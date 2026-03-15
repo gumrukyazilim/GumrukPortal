@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GümrükPortal | Otomotiv Otomasyonu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-darker: #020617;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --font-family: 'Inter', sans-serif;
+            --radius-md: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        button,
+        input,
+        select {
+            font-family: inherit;
+            outline: none;
+            border: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .glass-panel,
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .glass-card {
+            border-radius: var(--radius-md);
+            padding: 24px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--glass-border);
+            z-index: 10;
+        }
+
+        .sidebar-logo {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            width: 100%;
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 500;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-header {
+            height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header-search {
+            display: flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 8px 16px;
+            width: 400px;
+        }
+
+        .header-search input {
+            background: transparent;
+            color: var(--text-main);
+            padding-left: 12px;
+            width: 100%;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .icon-btn {
+            background: transparent;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .view-container {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            padding: 24px;
+            gap: 16px;
+            transition: 0.2s ease;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .stat-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary);
+        }
+
+        .stat-icon.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .stat-icon.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .stat-icon.danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-info h3 {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--glass-border);
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .text-primary {
+            color: var(--primary);
+        }
+
+        .text-danger {
+            color: var(--danger);
+        }
+
+        .text-success {
+            color: var(--success);
+        }
+
+        .text-warning {
+            color: var(--warning);
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .font-medium {
+            font-weight: 500;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .badge-dark {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-sm:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 14px;
+            transition: 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px var(--primary);
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.7);
+            color: white;
+            border: 1px solid var(--glass-border);
+        }
+
+        .sortable-th {
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .sortable-th:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-screen" class="app-container">
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-logo"><i data-lucide="shield-check"></i>
+                <div><span>GümrükPortal</span><small style="font-size:10px;color:var(--text-muted);display:block;">Final
+                        Version v13.5</small></div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Özet
+                        Gösterge</span></button>
+                <button class="nav-item" data-view="declarations"><i data-lucide="file-check-2"></i><span>Gelen
+                        Araçlar</span></button>
+                <button class="nav-item" data-view="firms"><i
+                        data-lucide="building-2"></i><span>Firmalar</span></button>
+                <button class="nav-item" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi &
+                        Harç</span></button>
+                <button class="nav-item" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet
+                        Listesi</span></button>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="top-header glass-panel">
+                <div class="header-search">
+                    <i data-lucide="search" style="cursor:pointer;"
+                        onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"></i>
+                    <input type="text" id="global-search-input"
+                        onkeyup="if(event.key === 'Enter') window.handleGlobalSearch(this.value)"
+                        placeholder="Şasi No, Marka veya Model ara... (Enter)">
+                </div>
+                <div class="header-actions">
+                    <div class="user-profile">
+                        <img src="https://ui-avatars.com/api/?name=Bayram&background=6366f1&color=fff&rounded=true"
+                            alt="User">
+                        <div class="user-info"><span class="user-name">Bayram</span><span class="user-role"
+                                style="font-size:11px;color:var(--text-muted);">Gümrük Müşaviri</span></div>
+                    </div>
+                </div>
+            </header>
+            <div id="view-container" class="view-container"></div>
+        </main>
+    </div>
+
+    <div id="decl-modal" class="hidden"
+        style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center;">
+        <div class="glass-card"
+            style="width:95%; max-width:620px; padding:32px; border:1px solid var(--primary); max-height:90vh; overflow-y:auto;">
+            <h2 id="decl-modal-title" style="margin:0 0 20px;">Yeni Araç Ekle</h2>
+            <input type="hidden" id="decl-edit-idx" value="-1">
+            <div
+                style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; border-bottom:1px solid var(--glass-border); padding-bottom:16px;">
+                <div class="input-group"><label>FİRMA SEÇİNİZ *</label><select id="da-firma">
+                        <option value="ŞAMNU GT">ŞAMNU GT</option>
+                        <option value="FF OTOMOTİV">FF OTOMOTİV</option>
+                        <option value="SANDIKÇI">SANDIKÇI</option>
+                        <option value="KARABAYIR">KARABAYIR</option>
+                        <option value="ŞAHISLAR">ŞAHISLAR</option>
+                    </select></div>
+                <div class="input-group"><label>MARKA</label><input type="text" id="da-marka"></div>
+                <div class="input-group"><label>MODEL</label><input type="text" id="da-model"></div>
+                <div class="input-group"><label>YIL</label><input type="text" id="da-yil"></div>
+                <div class="input-group"><label>RENK</label><input type="text" id="da-renk"></div>
+                <div class="input-group"><label>ŞASİ NO</label><input type="text" id="da-sase"></div>
+            </div>
+            <div
+                style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; border-bottom:1px solid var(--glass-border); padding-bottom:16px;">
+                <div class="input-group"><label>GELİŞ TARİHİ *</label><input type="text" id="da-tarih"
+                        placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
+                <div class="input-group"><label>EK SÜRE TARİHİ</label><input type="text" id="da-ekSure"
+                        placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
+                <div class="input-group"><label>ANTREPO TARİHİ</label><input type="text" id="da-antTarih"
+                        placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
+                <div class="input-group"><label>BEYANNAME T.</label><input type="text" id="da-beynmCif"
+                        placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
+                <div class="input-group"><label>BEYANNAME NO</label><input type="text" id="da-beyanname"></div>
+                <div class="input-group"><label>EVRAK DURUMU</label><select id="da-evrak"
+                        onchange="window.declAutoCalc()">
+                        <option value="Kapalı">Kapalı</option>
+                        <option value="Açık">Açık</option>
+                    </select></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div class="input-group"><label>KIYMET V. TARİHİ</label><input type="text" id="da-kiymVv"
+                        placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
+                <div class="input-group"><label>KIYMET G. TARİHİ</label><input type="text" id="da-kiymGt"
+                        placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
+                <div class="input-group"><label>FATURA TUTARI (€)</label><input type="text" id="da-fatura"></div>
+                <div class="input-group"><label>KIYMET TUTARI (€)</label><input type="text" id="da-kiymet"></div>
+            </div>
+            <div id="decl-preview-box"
+                style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:10px; padding:14px; margin-bottom:18px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; font-size:12px;">
+                    <div><span class="text-muted">İlk Süre Sonu:</span><br><strong id="da-prev-ilkSure">-</strong></div>
+                    <div><span class="text-muted">Kalan Gün:</span><br><strong id="da-prev-klnGun"
+                            class="text-warning">-</strong></div>
+                    <div><span class="text-muted">Ardiye:</span><br><strong id="da-prev-ardiye"
+                            class="text-danger">-</strong></div>
+                    <div><span class="text-muted">Son Gün:</span><br><strong id="da-prev-sonGun">-</strong></div>
+                    <div><span class="text-muted">Kıym G.Süresi:</span><br><strong id="da-prev-kiymGecen">-</strong>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button onclick="window.closeDeclModal()" class="btn"
+                    style="border:1px solid rgba(255,255,255,0.2); background:transparent; color:white; padding:10px 20px; border-radius:8px;">İPTAL</button>
+                <button onclick="window.saveDeclEntry()" class="btn-primary">KAYDET</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="kiymet-modal" class="hidden"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+        <div class="glass-card" style="width: 90%; max-width: 500px; padding: 24px;">
+            <h2 style="margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">Kıymet
+                Kaydı</h2>
+            <input type="hidden" id="km-edit-index" value="-1">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div class="input-group"><label>Marka</label><input id="km-marka" type="text"></div>
+                <div class="input-group"><label>Model</label><input id="km-model" type="text"></div>
+                <div class="input-group"><label>Yıl</label><input id="km-yil" type="text"></div>
+                <div class="input-group"><label>Renk</label><input id="km-renk" type="text"></div>
+            </div>
+            <div class="input-group" style="margin-bottom: 12px;"><label>Şasi Numarası</label><input id="km-sasi"
+                    type="text"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div class="input-group"><label>Geliş T.</label><input id="km-tarih" type="text"></div>
+                <div class="input-group"><label>Fatura (€)</label><input id="km-fatura" type="text"></div>
+                <div class="input-group"><label>Kıymet (€)</label><input id="km-kiymet" type="text"></div>
+            </div>
+            <div class="input-group"><label>Durum / Not</label><input id="km-durum" type="text"
+                    placeholder="Örn: Mahkeme İade"></div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top:20px;">
+                <button class="btn"
+                    style="border: 1px solid var(--glass-border); color: white; padding: 8px 16px; border-radius: 6px;"
+                    onclick="window.closeKiymetModal()">İptal</button>
+                <button class="btn-primary" style="padding: 8px 16px; border-radius: 6px;"
+                    onclick="window.saveNewKiymet()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="excel-modal" class="hidden"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+        <div class="glass-card" style="width: 90%; max-width: 500px; padding: 24px; text-align: center;">
+            <h2 style="margin-top: 0; margin-bottom: 8px; font-size: 18px;">Excel Dosyası Yükle</h2>
+            <p class="text-muted" style="font-size: 13px; margin-bottom: 24px;" id="excel-modal-desc">Sütun Sırası:
+                Marka, Model, Yıl, Renk, Şasi No, Tarih, Beyanname No, Fatura, Kıymet, Durum</p>
+            <div style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; padding: 40px 20px; margin-bottom: 20px; cursor: pointer; background: rgba(15,23,42,0.4);"
+                onclick="document.getElementById('excel-file-input').click()">
+                <i data-lucide="upload-cloud"
+                    style="width: 48px; height: 48px; color: var(--primary); margin-bottom: 12px;"></i>
+                <p style="margin: 0; font-weight: 500;">Bilgisayardan Excel Seçin</p>
+            </div>
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display: none;"
+                onchange="window.processExcelData(this)">
+            <input type="hidden" id="excel-target-context" value="kiymet">
+            <div style="display: flex; justify-content: center;">
+                <button class="btn"
+                    style="background: transparent; border: 1px solid var(--glass-border); color: white; padding: 8px 24px; border-radius: 6px;"
+                    onclick="window.closeExcelModal()">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <template id="tpl-dashboard">
+        <div class="page-header fade-in">
+            <h1 class="page-title">Özet Gösterge</h1>
+        </div>
+        <div class="dashboard-grid fade-in">
+            <div class="stat-card glass-card" onclick="window.goToFilter('kiymet')">
+                <div class="stat-icon"><i data-lucide="file-check"></i></div>
+                <div class="stat-info">
+                    <h3>Kıymette Bekleyen</h3>
+                    <p class="stat-value" id="dash-kiymet">0</p>
+                    <p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card" onclick="window.goToFilter('acik')">
+                <div class="stat-icon warning"><i data-lucide="car"></i></div>
+                <div class="stat-info">
+                    <h3>İşlemi Açık (Ambarda)</h3>
+                    <p class="stat-value" id="dash-ambar">0</p>
+                    <p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card" onclick="window.goToFilter('all')">
+                <div class="stat-icon success"><i data-lucide="check-circle"></i></div>
+                <div class="stat-info">
+                    <h3>Sistemdeki Toplam Araç</h3>
+                    <p class="stat-value" id="dash-total">0</p>
+                    <p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-firms">
+        <div class="page-header fade-in">
+            <h1 class="page-title">Firmalar</h1>
+        </div>
+        <div class="glass-card fade-in">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                <div class="stat-card glass-card" onclick="window.renderFirmDetails('ŞAMNU GT')"
+                    style="background: rgba(99, 102, 241, 0.05);">
+                    <div class="stat-icon"><i data-lucide="building-2"></i></div>
+                    <div class="stat-info">
+                        <h3 style="font-size: 18px; color: white;">ŞAMNU GT</h3>
+                        <p class="text-muted">Araçları Gör</p>
+                    </div>
+                </div>
+                <div class="stat-card glass-card" onclick="window.renderFirmDetails('FF OTOMOTİV')"
+                    style="background: rgba(99, 102, 241, 0.05);">
+                    <div class="stat-icon"><i data-lucide="building-2"></i></div>
+                    <div class="stat-info">
+                        <h3 style="font-size: 18px; color: white;">FF OTOMOTİV</h3>
+                        <p class="text-muted">Araçları Gör</p>
+                    </div>
+                </div>
+                <div class="stat-card glass-card" onclick="window.renderFirmDetails('SANDIKÇI')"
+                    style="background: rgba(99, 102, 241, 0.05);">
+                    <div class="stat-icon"><i data-lucide="building-2"></i></div>
+                    <div class="stat-info">
+                        <h3 style="font-size: 18px; color: white;">SANDIKÇI</h3>
+                        <p class="text-muted">Araçları Gör</p>
+                    </div>
+                </div>
+                <div class="stat-card glass-card" onclick="window.renderFirmDetails('KARABAYIR')"
+                    style="background: rgba(99, 102, 241, 0.05);">
+                    <div class="stat-icon"><i data-lucide="building-2"></i></div>
+                    <div class="stat-info">
+                        <h3 style="font-size: 18px; color: white;">KARABAYIR</h3>
+                        <p class="text-muted">Araçları Gör</p>
+                    </div>
+                </div>
+                <div class="stat-card glass-card" onclick="window.renderFirmDetails('ŞAHISLAR')"
+                    style="background: rgba(99, 102, 241, 0.05);">
+                    <div class="stat-icon"><i data-lucide="building-2"></i></div>
+                    <div class="stat-info">
+                        <h3 style="font-size: 18px; color: white;">ŞAHISLAR</h3>
+                        <p class="text-muted">Araçları Gör</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-firmDetails">
+        <div class="page-header fade-in">
+            <h1 class="page-title" id="current-firm-title">Firma Detayları</h1>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button class="btn-sm"
+                    style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4);"
+                    onclick="window.openExcelModal('firm')"><i data-lucide="table" style="width: 14px;"></i> Excel'den
+                    Ekle</button>
+                <button class="btn-primary" style="background: var(--success);"
+                    onclick="window.openDeclVehicleModal(-1, 'firm')"><i data-lucide="plus"
+                        style="width: 16px; margin-right: 8px; vertical-align: middle;"></i> ARAÇ EKLE</button>
+                <button id="firm-bulk-delete-btn" class="btn-sm hidden"
+                    style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444;"
+                    onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"
+                        style="width: 14px; margin-right: 5px; vertical-align: middle;"></i> SİL (<span
+                        id="firm-selected-count">0</span>)</button>
+                <button class="btn-sm" onclick="window.renderView('firms')">Geri Dön</button>
+            </div>
+        </div>
+        <div class="glass-card fade-in">
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"><input type="checkbox" id="firm-select-all"
+                                    onclick="window.toggleAllFirmVehicles(this.checked)"></th>
+                            <th>MARKA</th>
+                            <th>MODEL</th>
+                            <th>YIL</th>
+                            <th>RENK</th>
+                            <th>ŞASİ NO</th>
+                            <th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ <i
+                                    data-lucide="arrow-up-down" style="width:12px;vertical-align:middle;"></i></th>
+                            <th>BEYANNAME NO</th>
+                            <th>FATURA (€)</th>
+                            <th>KIYMET (€)</th>
+                            <th>İŞLEM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="firm-vehicles-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-declarations">
+        <div class="page-header fade-in">
+            <h1 class="page-title">Gelen Araçlar</h1>
+        </div>
+        <div class="glass-card fade-in">
+            <div class="action-bar"
+                style="display: flex; justify-content: space-between; margin-bottom: 20px; align-items:center;">
+                <div style="display:flex; gap:10px;">
+                    <select id="decl-status-filter" onchange="window.renderDeclarationsTable()"
+                        style="padding: 10px; border-radius: 8px; background: rgba(15,23,42,0.5); color: white; border: 1px solid var(--glass-border); width: 220px;">
+                        <option value="all">Tüm Araçlar</option>
+                        <option value="acik">İşlemi Açık Olanlar</option>
+                        <option value="kiymet">Kıymette Bekleyenler</option>
+                    </select>
+                    <button id="decl-bulk-delete-btn" class="btn-sm hidden"
+                        style="background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.5);"
+                        onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"
+                            style="width:14px; margin-right:5px; vertical-align:middle;"></i>SİL (<span
+                            id="decl-sel-count">0</span>)</button>
+                </div>
+                <button class="btn-primary" onclick="window.openDeclVehicleModal(-1, 'decl')"><i data-lucide="plus"
+                        style="width:16px; margin-right:5px; vertical-align:middle;"></i> Yeni Araç Ekle</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:30px;"><input type="checkbox" id="decl-selectAll"
+                                    onclick="window.toggleAllDeclarations(this.checked)"></th>
+                            <th>FİRMA</th>
+                            <th>MARKA</th>
+                            <th>MODEL</th>
+                            <th>YIL</th>
+                            <th>ŞASİ NO</th>
+                            <th class="sortable-th" onclick="window.sortData('decl')">G. TARİHİ <i
+                                    data-lucide="arrow-up-down" style="width:12px;vertical-align:middle;"></i></th>
+                            <th class="text-warning">İLK SÜRE</th>
+                            <th>EK SÜRE</th>
+                            <th>ANTREPO</th>
+                            <th>BEYANNAME</th>
+                            <th>KIYM V.T.</th>
+                            <th>KIYM G.T.</th>
+                            <th class="text-primary">KLN SON T.</th>
+                            <th class="text-warning">KALAN GÜN</th>
+                            <th>KIYM G.S.</th>
+                            <th class="text-success">SON GÜN</th>
+                            <th>EVRAK</th>
+                            <th>FATURA (€)</th>
+                            <th class="text-danger">ARDİYE (₺)</th>
+                            <th>GEÇEN GÜN</th>
+                            <th>İŞLEM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="declarations-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-calculator">
+        <div class="page-header fade-in">
+            <h1 class="page-title">Vergi & Harç Hesaplama</h1>
+        </div>
+        <div class="glass-card fade-in">
+            <div class="calculator-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div class="calc-form">
+                    <div class="input-group">
+                        <label>Araç Cinsi ve GTİP</label>
+                        <select id="calc-type" onchange="window.calculateTaxes()"
+                            style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
+                            <optgroup label="Benzin / Dizel (87.03)">
+                                <option value="ic-1400">Motor Silindir Hacmi 1400 cm³ altı</option>
+                                <option value="ic-1600" selected>1401 - 1600 cm³ arası</option>
+                                <option value="ic-2000">1601 - 2000 cm³ arası</option>
+                                <option value="ic-over2000">2000 cm³ üzeri</option>
+                            </optgroup>
+                            <optgroup label="Hibrit Araçlar (Dışarıdan Şarj Olmayan)">
+                                <option value="hybrid-1800">Hibrit 1601 - 1800 cm³ arası</option>
+                                <option value="hybrid-2500">Hibrit 2001 - 2500 cm³ arası</option>
+                            </optgroup>
+                            <optgroup label="Plug-in Hibrit (Dışarıdan Şarj Edilebilir)">
+                                <option value="phev-1600">PHEV: 1600 cm³ altı</option>
+                                <option value="phev-1800">PHEV: 1601 - 1800 cm³ arası</option>
+                            </optgroup>
+                            <optgroup label="Tam Elektrikli (Sadece Elektrik Motorlu)">
+                                <option value="ev-160">Tam Elektrik (160 kW altı)</option>
+                                <option value="ev-over160">Tam Elektrik (160 kW üzeri)</option>
+                            </optgroup>
+                            <optgroup label="Kamyon / Arazi (87.04)">
+                                <option value="ticari-50">Kamyon / Ticari (%50 Sabit)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="input-group">
+                            <label>Fatura Tutarı</label>
+                            <div style="display:flex; gap:4px;">
+                                <input id="calc-fatura" type="text"
+                                    oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="126.000"
+                                    style="flex:1; padding: 10px; border-radius: 6px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
+                                <select id="cur-calc-fatura" onchange="window.calculateTaxes()"
+                                    style="width: 60px; padding: 10px 4px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--text-muted); border: 1px solid var(--glass-border);">
+                                    <option value="EUR" selected>EUR</option>
+                                    <option value="USD">USD</option>
+                                    <option value="TL">TL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Navlun</label>
+                            <div style="display:flex; gap:4px;">
+                                <input id="calc-navlun" type="text"
+                                    oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="100"
+                                    style="flex:1; padding: 10px; border-radius: 6px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
+                                <select id="cur-calc-navlun" onchange="window.calculateTaxes()"
+                                    style="width: 60px; padding: 10px 4px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--text-muted); border: 1px solid var(--glass-border);">
+                                    <option value="EUR" selected>EUR</option>
+                                    <option value="USD">USD</option>
+                                    <option value="TL">TL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Sigorta</label>
+                            <div style="display:flex; gap:4px;">
+                                <input id="calc-sigorta" type="text"
+                                    oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="50"
+                                    style="flex:1; padding: 10px; border-radius: 6px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
+                                <select id="cur-calc-sigorta" onchange="window.calculateTaxes()"
+                                    style="width: 60px; padding: 10px 4px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--text-muted); border: 1px solid var(--glass-border);">
+                                    <option value="EUR" selected>EUR</option>
+                                    <option value="USD">USD</option>
+                                    <option value="TL">TL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Yurt Dışı Gideri</label>
+                            <div style="display:flex; gap:4px;">
+                                <input id="calc-yurtdisi" type="text"
+                                    oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="100"
+                                    style="flex:1; padding: 10px; border-radius: 6px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
+                                <select id="cur-calc-yurtdisi" onchange="window.calculateTaxes()"
+                                    style="width: 60px; padding: 10px 4px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--text-muted); border: 1px solid var(--glass-border);">
+                                    <option value="EUR" selected>EUR</option>
+                                    <option value="USD">USD</option>
+                                    <option value="TL">TL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Yurt İçi Gider</label>
+                            <div style="display:flex; gap:4px;">
+                                <input id="calc-yurtici" type="text"
+                                    oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="25.000"
+                                    style="flex:1; padding: 10px; border-radius: 6px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
+                                <select id="cur-calc-yurtici" onchange="window.calculateTaxes()"
+                                    style="width: 60px; padding: 10px 4px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--text-muted); border: 1px solid var(--glass-border);">
+                                    <option value="TL" selected>TL</option>
+                                    <option value="EUR">EUR</option>
+                                    <option value="USD">USD</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        style="background: rgba(30, 64, 175, 0.15); padding: 16px; border-radius: 10px; margin-top: 24px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <h4
+                            style="margin-top:0; color:var(--text-main); border-bottom: 1px solid rgba(59, 130, 246, 0.3); padding-bottom: 8px;">
+                            Diğer Masraflar</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;"
+                            id="diger-masraflar-container"></div>
+                    </div>
+                </div>
+                <div class="calc-result glass-panel"
+                    style="padding: 24px; border-radius: 12px; background: rgba(99,102,241,0.05);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-size: 20px; margin: 0;">Tahmini Maliyet Tablosu</h3>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <label style="font-size: 13px; color: var(--text-muted);">Kur EUR(₺):</label>
+                            <input id="calc-kur-input" type="text" value="50,9822"
+                                oninput="window.formatCurrencyInput(this); window.calculateTaxes()"
+                                style="padding: 6px; width: 85px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--success); font-weight: bold; border: 1px solid var(--glass-border);">
+                        </div>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
+                        <span class="text-muted">GV. Matrağı:</span><strong id="res-gv-matrah">0 ₺</strong>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
+                        <span class="text-muted">Ara Toplam:</span><strong id="res-ara-toplam">0 ₺</strong>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
+                        <span class="text-muted">ÖTV Matrağı:</span><strong id="res-otv-matrahi">0 ₺</strong>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
+                        <span class="text-muted">Hesaplanan ÖTV <span id="res-otv-yuzde"
+                                class="text-warning"></span>:</span><strong id="res-hesaplanan-otv"
+                            class="text-warning">0 ₺</strong>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
+                        <span class="text-muted">KDV (%20):</span><strong id="res-kdv-tutar" class="text-warning">0
+                            ₺</strong>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 16px; color: var(--primary);">
+                        <span>Toplam Vergi:</span><strong id="res-toplam-vergi">0 ₺</strong>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-top: 12px; font-size: 16px; font-weight:bold; color: var(--text-main); background: rgba(30, 64, 175, 0.15); padding: 12px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                        <span>DİĞER MASRAFLAR:</span>
+                        <div style="text-align: right;">
+                            <div id="res-diger-eur"
+                                style="font-size: 13px; color: var(--text-muted); margin-bottom: 2px;">0 €</div><strong
+                                id="res-diger-maliyet" class="text-warning" style="font-size: 16px;">0 ₺</strong>
+                        </div>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 18px; font-weight:bold; color: var(--text-main); background: rgba(0,0,0,0.4); padding: 16px; border-radius: 8px; border: 1px solid var(--success);">
+                        <span>GENEL TOPLAM:</span>
+                        <div style="text-align: right;">
+                            <div id="res-genel-eur"
+                                style="font-size: 14px; color: var(--text-muted); margin-bottom: 4px;">0 €</div><strong
+                                id="res-genel-maliyet" class="text-success" style="font-size: 20px;">0 ₺</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-kiymetListesi">
+        <div class="page-header fade-in">
+            <h1 class="page-title">Kıymet Listesi</h1>
+        </div>
+        <div class="glass-card fade-in">
+            <div class="action-bar" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <button id="kiymet-delete-btn" class="btn-sm hidden"
+                    style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.4);"
+                    onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2" style="width: 14px;"></i> SİL
+                    (<span id="kiymet-sel-count">0</span>)</button>
+                <div style="display:flex; gap: 8px;">
+                    <button class="btn-sm"
+                        style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4);"
+                        onclick="window.openExcelModal('kiymet')"><i data-lucide="table" style="width: 14px;"></i> Excel
+                        Yükle</button>
+                    <button class="btn-primary btn-sm" onclick="window.openKiymetModal()"><i data-lucide="plus"
+                            style="width: 14px;"></i> Yeni Ekle</button>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"><input type="checkbox" id="kiymet-selectAll"
+                                    onclick="window.toggleSelectAllKiymet(this.checked)"></th>
+                            <th>MARKA</th>
+                            <th>MODEL</th>
+                            <th>YIL</th>
+                            <th>RENK</th>
+                            <th>ŞASİ NO</th>
+                            <th class="sortable-th" onclick="window.sortData('kiymet')">G. TARİHİ <i
+                                    data-lucide="arrow-up-down" style="width:12px;vertical-align:middle;"></i></th>
+                            <th>FATURA (€)</th>
+                            <th>KIYMET (€)</th>
+                            <th>DURUM</th>
+                            <th>İŞLEM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kiymet-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-searchResults">
+        <div class="page-header fade-in">
+            <h1 class="page-title">Arama Sonuçları</h1>
+            <p class="page-subtitle">"<span id="search-query-display" class="text-primary font-bold"></span>" için
+                bulunan sonuçlar</p>
+        </div>
+        <div id="search-results-container" class="flex-col gap-4 fade-in"></div>
+    </template>
+    <script>
+        window.exchangeRates = { EUR: 50.9822, USD: 48.10, GBP: 58.50, TL: 1 };
+        window.declarationsData = [];
+        window.firmData = {};
+        window.kiymetData = [];
+        window.digerMasrafListesi = [
+            { id: 'mc-gumruk', label: 'GÜMRÜK HİZMETİ', val: '1.500', cur: 'EUR' }, { id: 'mc-belge', label: 'BELGE ÜCRETİ', val: '0', cur: 'EUR' },
+            { id: 'mc-plaka', label: 'PLAKA+MTV+SİGRTA', val: '0', cur: 'EUR' }, { id: 'mc-nakliye', label: 'NAKLİYE', val: '2.500', cur: 'EUR' },
+            { id: 'mc-almanya', label: 'ALMANYA', val: '5.000', cur: 'EUR' }, { id: 'mc-ardiye', label: 'ARDİYE+HARÇ', val: '0', cur: 'EUR' },
+            { id: 'mc-tse', label: 'TSE HARCI', val: '6.964', cur: 'EUR' }, { id: 'mc-tsemuh', label: 'TSE MÜH HİZMETİ', val: '257', cur: 'EUR' },
+            { id: 'mc-mmo', label: 'MMO-RAPOR', val: '0', cur: 'EUR' }, { id: 'mc-isik', label: 'IŞIKLANDIRMA', val: '0', cur: 'EUR' }, { id: 'mc-cekici', label: 'ÇEKİCİ', val: '0', cur: 'EUR' }
+        ];
+
+        const defaultKiymetVerileri = [
+            { marka: "MERCEDES", model: "S 680 MAYBACH", yil: "2024", renk: "SİYAH", sasi: "W1K2231261A112117", tarih: "30.12.2024", fatura: "287.000", kiymet: "291.250", durum: "" },
+            { marka: "BMW", model: "I7", yil: "2024", renk: "LACİVERT", sasi: "WBY51EJ050X200371", tarih: "14.12.2024", fatura: "142.000", kiymet: "141.450", durum: "" },
+            { marka: "VOLKSWAGEN", model: "GOLF R", yil: "2024", renk: "SARI", sasi: "WVWZZZCD8REW124200", tarih: "25.12.2023", fatura: "64.300", kiymet: "", durum: "K. YOK" },
+            { marka: "PORSCHE", model: "CAYENNE COUPE", yil: "2024", renk: "SİYAH", sasi: "WP12ZZZ9Y8SDA5476", tarih: "20.12.2023", fatura: "106.000", kiymet: "41.250", durum: "" },
+            { marka: "MERCEDES", model: "G63 AMG", yil: "2024", renk: "YEŞİL", sasi: "W1U4632741X888825", tarih: "18.12.2023", fatura: "180.000", kiymet: "143.460", durum: "" },
+            { marka: "VOLKSWAGEN", model: "AMAROK", yil: "2024", renk: "GRİ", sasi: "WVWZZZ2T1PM01234", tarih: "03.01.2025", fatura: "56.000", kiymet: "", durum: "" }
+        ];
+
+        window.fixExcelDate = function (val) {
+            if (!val) return '';
+            if (typeof val === 'number' || (!isNaN(val) && Number(val) > 30000)) {
+                try { let d = new Date((Number(val) - 25569) * 86400 * 1000); return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`; } catch (e) { return val; }
+            }
+            return String(val).trim();
+        };
+
+        window.parseTRDate = function (dateStr) {
+            if (!dateStr || dateStr.trim().length < 8) return null; let parts = dateStr.trim().split(/[\.\-\/]/); if (parts.length !== 3) return null;
+            let d = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, y = parseInt(parts[2], 10); if (y < 100) y += 2000;
+            let date = new Date(y, m, d); date.setHours(0, 0, 0, 0); return isNaN(date.getTime()) ? null : date;
+        };
+
+        window.formatTRDate = function (dateObj) {
+            if (!dateObj || isNaN(dateObj.getTime())) return "";
+            return `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`;
+        };
+
+        window.addDays = function (dateObj, days) { if (!dateObj) return null; let result = new Date(dateObj); result.setDate(result.getDate() + days); return result; };
+        window.diffDaysSigned = function (targetDate, baseDate) { if (!targetDate || !baseDate) return 0; return Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24)); };
+
+        window.formatNumber = function (val) {
+            if (val === null || val === undefined || val === '') return '-'; let num = typeof val === 'string' ? parseFloat(val.replace(/\./g, '').replace(',', '.')) : val;
+            if (isNaN(num)) return val; return num.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, 'X').replace(/\./g, '.').replace(/X/g, ',');
+        };
+
+        window.formatCurrencyInput = function (input) {
+            let cursor = input.selectionStart, oldVal = input.value; let val = oldVal.replace(/[^0-9,]/g, ''); let parts = val.split(',');
+            if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join(''); parts = val.split(',');
+            let intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "."); let newVal = parts.length > 1 ? intPart + ',' + parts[1] : intPart;
+            if (oldVal !== newVal) { input.value = newVal; let newPos = cursor + (newVal.length - oldVal.length); input.setSelectionRange(newPos, newPos); }
+        };
+
+        function loadAllData() {
+            try {
+                const kData = localStorage.getItem('gumrukKiymetData');
+                if (kData) {
+                    const parsed = JSON.parse(kData); window.kiymetData = parsed.length > 0 ? parsed : [...defaultKiymetVerileri];
+                } else { window.kiymetData = [...defaultKiymetVerileri]; }
+
+                const dData = localStorage.getItem('gumrukDeclData'); if (dData) window.declarationsData = JSON.parse(dData);
+                const fData = localStorage.getItem('gumrukFirmData');
+                if (fData) { window.firmData = JSON.parse(fData); } else { window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] }; }
+
+                window.declarationsData.forEach(d => { d.tarih = window.fixExcelDate(d.tarih); d.kiymVv = window.fixExcelDate(d.kiymVv); d.kiymGt = window.fixExcelDate(d.kiymGt); });
+                Object.keys(window.firmData).forEach(fk => { window.firmData[fk].forEach(d => { d.tarih = window.fixExcelDate(d.tarih); }); });
+                window.kiymetData.forEach(k => { k.tarih = window.fixExcelDate(k.tarih); });
+            } catch (e) { }
+        }
+
+        function saveData(type) {
+            if (type === 'kiymet' || type === 'all') localStorage.setItem('gumrukKiymetData', JSON.stringify(window.kiymetData));
+            if (type === 'decl' || type === 'all') localStorage.setItem('gumrukDeclData', JSON.stringify(window.declarationsData));
+            if (type === 'firm' || type === 'all') localStorage.setItem('gumrukFirmData', JSON.stringify(window.firmData));
+        }
+
+        window.calculateVehicleMetrics = function (data) {
+            let today = new Date(); today.setHours(0, 0, 0, 0);
+            let E = window.parseTRDate(data.tarih), G = window.parseTRDate(data.ekSure), H = window.parseTRDate(data.antTarih);
+            let I = window.parseTRDate(data.beynmCif), J = window.parseTRDate(data.kiymVv), K = window.parseTRDate(data.kiymGt), N = data.evrak || "Kapalı";
+            let result = { ilkSureSonu: "", klnSonTarih: "", klnGun: "", kiymGecen: "", sonGun: "", ardiye: 0, gecenGun: "", kiyGuncelSure: "" };
+
+            if (!E) return result;
+            let F = window.addDays(E, 20); result.ilkSureSonu = window.formatTRDate(F);
+            let L_date = null;
+            if (!G) { L_date = F; } else {
+                if (I) L_date = window.addDays(I, 29);
+                else if (H) result.klnSonTarih = "Süresiz";
+                else if (G) L_date = window.addDays(G > F ? G : F, 29);
+            }
+            if (L_date && result.klnSonTarih !== "Süresiz") result.klnSonTarih = window.formatTRDate(L_date);
+
+            if (I) { let p30 = window.addDays(I, 30); result.klnGun = p30 > today ? window.diffDaysSigned(p30, today) : 0; }
+            else if (!H) { if (result.klnSonTarih === "Süresiz") result.klnGun = "Süresiz"; else if (L_date) { let d = window.diffDaysSigned(L_date, today); result.klnGun = d < 0 ? 0 : d; } }
+            else { result.klnGun = "Süresiz"; }
+
+            if (!I && !J && !K) { if (H) result.kiymGecen = "Süresiz"; }
+            else if (J) result.kiymGecen = K ? window.diffDaysSigned(K, J) : "Kıymette";
+
+            if (N === "Açık") result.sonGun = "Açık";
+            else {
+                if (!J && !K) result.sonGun = result.klnSonTarih;
+                else if (J && !K) result.sonGun = "Kıymette";
+                else if (L_date && typeof result.kiymGecen === 'number') result.sonGun = window.formatTRDate(window.addDays(L_date, result.kiymGecen));
+            }
+
+            let gun = window.diffDaysSigned(today, E) + 1; result.gecenGun = gun;
+            if (gun > 0) {
+                if (gun <= 20) result.ardiye = gun * 145;
+                else if (gun <= 50) result.ardiye = 2900 + (gun - 20) * 725;
+                else if (gun <= 80) result.ardiye = 24650 + (gun - 50) * 1160;
+                else result.ardiye = 59450 + (gun - 80) * 1450;
+            }
+            return result;
+        };
+
+        window.sortState = { col: 'tarih', asc: false };
+        window.sortData = function (context) {
+            window.sortState.asc = !window.sortState.asc;
+            const mult = window.sortState.asc ? 1 : -1;
+            const parseD = (dStr) => {
+                if (!dStr) return 0; let clean = window.fixExcelDate(dStr); let p = clean.split('.');
+                if (p.length === 3) return parseInt(p[2] + p[1] + p[0]); return 0;
+            };
+
+            if (context === 'decl') { window.declarationsData.sort((a, b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('decl'); window.renderDeclarationsTable(); }
+            else if (context === 'firm') { window.firmData[window.currentFirm].sort((a, b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('firm'); window.renderFirmVehicles(); }
+            else if (context === 'kiymet') { window.kiymetData.sort((a, b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('kiymet'); window.renderKiymetTable(); }
+        };
+
+        // --- DASHBOARD BAĞLANTILARI (FİLTRELİ GEÇİŞ) ---
+        window.goToFilter = function (filterType) {
+            window.renderView('declarations');
+            const filterEl = document.getElementById('decl-status-filter');
+            if (filterEl) { filterEl.value = filterType; window.renderDeclarationsTable(); }
+        };
+
+        // --- ARAMA MOTORU ---
+        window.handleGlobalSearch = function (query) {
+            if (!query || query.trim().length < 2) {
+                if (document.getElementById('view-searchResults') && !document.getElementById('view-searchResults').classList.contains('hidden')) { window.renderView('dashboard'); }
+                return;
+            }
+            const q = query.toUpperCase().trim();
+            const decResults = []; const kiymetResults = []; const firmResults = [];
+
+            window.declarationsData.forEach((d, i) => {
+                if ((d.sasi && d.sasi.toUpperCase().includes(q)) || (d.marka && d.marka.toUpperCase().includes(q)) || (d.model && d.model.toUpperCase().includes(q))) { decResults.push({ data: d, index: i }); }
+            });
+            Object.keys(window.firmData).forEach(fName => {
+                window.firmData[fName].forEach((d, i) => {
+                    if ((d.sasi && d.sasi.toUpperCase().includes(q)) || (d.marka && d.marka.toUpperCase().includes(q)) || (d.model && d.model.toUpperCase().includes(q))) { firmResults.push({ firm: fName, data: d, index: i }); }
+                });
+            });
+            window.kiymetData.forEach((k, i) => {
+                if ((k.sasi && k.sasi.toUpperCase().includes(q)) || (k.marka && k.marka.toUpperCase().includes(q)) || (k.model && k.model.toUpperCase().includes(q))) { kiymetResults.push({ data: k, index: i }); }
+            });
+
+            window.renderView('searchResults');
+            const displayEl = document.getElementById('search-query-display'); if (displayEl) displayEl.innerText = query;
+            const container = document.getElementById('search-results-container'); if (!container) return;
+
+            let html = '';
+            if (decResults.length > 0) {
+                html += `<div class="glass-card" style="margin-bottom:20px;"><h3><i data-lucide="file-check-2" style="vertical-align:text-bottom;"></i> Gelen Araçlar Lst. (${decResults.length})</h3><table class="data-table" style="margin-top:10px;"><thead><tr><th>FİRMA</th><th>MARKA/MODEL</th><th>ŞASİ NO</th><th>İŞLEM</th></tr></thead><tbody>`;
+                html += decResults.map(r => `<tr><td>${r.data.firma || '-'}</td><td>${r.data.marka || ''} ${r.data.model || ''}</td><td class="text-primary font-bold">${r.data.sasi || '-'}</td><td><button class="btn-primary btn-sm" onclick="window.openDeclVehicleModal(${r.index}, 'decl')">Görüntüle</button></td></tr>`).join('');
+                html += `</tbody></table></div>`;
+            }
+            if (firmResults.length > 0) {
+                html += `<div class="glass-card" style="margin-bottom:20px;"><h3><i data-lucide="building-2" style="vertical-align:text-bottom;"></i> Firma Kayıtları (${firmResults.length})</h3><table class="data-table" style="margin-top:10px;"><thead><tr><th>FİRMA</th><th>MARKA/MODEL</th><th>ŞASİ NO</th><th>İŞLEM</th></tr></thead><tbody>`;
+                html += firmResults.map(r => `<tr><td><span class="badge badge-dark">${r.firm}</span></td><td>${r.data.marka || ''} ${r.data.model || ''}</td><td class="text-primary font-bold">${r.data.sasi || '-'}</td><td><button class="btn-primary btn-sm" onclick="window.currentFirm='${r.firm}'; window.openDeclVehicleModal(${r.index}, 'firm')">Görüntüle</button></td></tr>`).join('');
+                html += `</tbody></table></div>`;
+            }
+            if (kiymetResults.length > 0) {
+                html += `<div class="glass-card" style="margin-bottom:20px;"><h3><i data-lucide="file-search" style="vertical-align:text-bottom;"></i> Kıymet Listesi (${kiymetResults.length})</h3><table class="data-table" style="margin-top:10px;"><thead><tr><th>MARKA/MODEL</th><th>ŞASİ NO</th><th>FATURA / KIYMET</th></tr></thead><tbody>`;
+                html += kiymetResults.map(r => `<tr><td>${r.data.marka || ''} ${r.data.model || ''}</td><td class="text-primary font-bold">${r.data.sasi || '-'}</td><td class="text-success font-bold">${r.data.fatura || '-'} € / ${r.data.kiymet || '-'} €</td></tr>`).join('');
+                html += `</tbody></table></div>`;
+            }
+            if (html === '') { html = `<div class="glass-card" style="text-align:center; padding: 40px;"><p class="text-muted">Eşleşen araç bulunamadı.</p></div>`; }
+
+            container.innerHTML = html;
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.updateDashboardStats = function () {
+            if (!window.declarationsData) return;
+            const total = window.declarationsData.length;
+            const kiymette = window.declarationsData.filter(d => d.kiymVv && !d.kiymGt).length;
+            const acik = window.declarationsData.filter(d => d.evrak === 'Açık').length;
+            if (document.getElementById('dash-total')) document.getElementById('dash-total').innerText = total;
+            if (document.getElementById('dash-kiymet')) document.getElementById('dash-kiymet').innerText = kiymette;
+            if (document.getElementById('dash-ambar')) document.getElementById('dash-ambar').innerText = acik;
+        };
+
+        window.renderKiymetTable = function () {
+            const tbody = document.getElementById('kiymet-tbody'); if (!tbody) return;
+            tbody.innerHTML = window.kiymetData.map((k, idx) => {
+                let dClass = k.durum && k.durum.toUpperCase().includes('MAHKEME') ? 'badge-danger' : (k.durum && k.durum.toUpperCase().includes('YOK') ? 'badge-dark' : 'badge-warning');
+                return `<tr><td style="text-align:center;"><input type="checkbox" class="kiymet-cb" value="${idx}" onclick="window.toggleKiymetCb()"></td><td class="font-medium">${k.marka || '-'}</td><td>${k.model || '-'}</td><td>${k.yil || '-'}</td><td>${k.renk || '-'}</td><td>${k.sasi || '-'}</td><td>${k.tarih || '-'}</td><td>${k.fatura ? window.formatNumber(k.fatura) + ' €' : '-'}</td><td class="text-success font-bold">${k.kiymet ? window.formatNumber(k.kiymet) + ' €' : '-'}</td><td>${k.durum ? `<span class="badge ${dClass}">${k.durum}</span>` : ''}</td><td style="display:flex;gap:4px;"><button class="icon-btn text-warning" onclick="window.editKiymet(${idx})"><i data-lucide="edit-3" style="width:16px;"></i></button><button class="icon-btn text-danger" onclick="window.deleteKiymet(${idx})"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`;
+            }).join('');
+            document.getElementById('kiymet-selectAll').checked = false; window.toggleKiymetCb(); if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.toggleSelectAllKiymet = function (src) { document.querySelectorAll('.kiymet-cb').forEach(c => c.checked = src.checked); window.toggleKiymetCb(); };
+        window.toggleKiymetCb = function () { const chk = document.querySelectorAll('.kiymet-cb:checked'); const btn = document.getElementById('kiymet-delete-btn'); if (btn) { if (chk.length > 0) { btn.classList.remove('hidden'); document.getElementById('kiymet-sel-count').innerText = chk.length; } else btn.classList.add('hidden'); } };
+        window.deleteSelectedKiymets = function () { const chk = document.querySelectorAll('.kiymet-cb:checked'); if (chk.length === 0) return; if (confirm(chk.length + ' kaydı silmek istediğinize emin misiniz?')) { Array.from(chk).map(c => parseInt(c.value)).sort((a, b) => b - a).forEach(i => window.kiymetData.splice(i, 1)); saveData('kiymet'); window.renderKiymetTable(); } };
+        window.deleteKiymet = function (i) { if (confirm('Emin misiniz?')) { window.kiymetData.splice(i, 1); saveData('kiymet'); window.renderKiymetTable(); } };
+        window.openKiymetModal = function () { document.getElementById('kiymet-modal').classList.remove('hidden'); document.getElementById('km-edit-index').value = '-1'; };
+        window.closeKiymetModal = function () { document.getElementById('kiymet-modal').classList.add('hidden'); };
+        window.editKiymet = function (i) { const k = window.kiymetData[i];['marka', 'model', 'yil', 'renk', 'sasi', 'tarih', 'fatura', 'kiymet', 'durum'].forEach(id => { if (document.getElementById('km-' + id)) document.getElementById('km-' + id).value = k[id] || ''; }); document.getElementById('km-edit-index').value = i; document.getElementById('kiymet-modal').classList.remove('hidden'); };
+        window.saveNewKiymet = function () { const i = parseInt(document.getElementById('km-edit-index').value); const r = { marka: document.getElementById('km-marka').value.toUpperCase(), model: document.getElementById('km-model').value.toUpperCase(), yil: document.getElementById('km-yil').value, renk: document.getElementById('km-renk').value.toUpperCase(), sasi: document.getElementById('km-sasi').value.toUpperCase(), tarih: document.getElementById('km-tarih').value, fatura: document.getElementById('km-fatura').value, kiymet: document.getElementById('km-kiymet').value, durum: document.getElementById('km-durum').value }; if (i === -1) window.kiymetData.unshift(r); else window.kiymetData[i] = r; saveData('kiymet'); window.closeKiymetModal(); window.renderKiymetTable(); };
+
+        window.openExcelModal = function (context) {
+            document.getElementById('excel-target-context').value = context;
+            document.getElementById('excel-modal').classList.remove('hidden');
+            const desc = document.getElementById('excel-modal-desc');
+            if (context === 'firm') desc.innerHTML = `Araç verilerini excel dosyasından <b>${window.currentFirm}</b> listesine ekleyin.<br><b>Sütun Sırası:</b> Marka, Model, Yıl, Renk, Şasi No, Tarih, Beyanname No, Fatura, Kıymet, Durum`;
+            else desc.innerHTML = `Araç verilerini excel dosyasından <b>Kıymet Listesi</b>ne ekleyin.<br><b>Sütun Sırası:</b> Marka, Model, Yıl, Renk, Şasi No, Tarih, Fatura, Kıymet, Durum`;
+        };
+        window.closeExcelModal = function () { document.getElementById('excel-modal').classList.add('hidden'); document.getElementById('excel-file-input').value = ""; };
+        window.processExcelData = function (input) {
+            if (!input.files || input.files.length === 0) return; const reader = new FileReader(); const targetContext = document.getElementById('excel-target-context').value;
+            reader.onload = function (e) {
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }); let c = 0;
+                    data.forEach(r => {
+                        if (r.length > 2 && !String(r[0]).toUpperCase().includes('MARKA')) {
+                            if (targetContext === 'firm') { if (!window.firmData[window.currentFirm]) window.firmData[window.currentFirm] = []; window.firmData[window.currentFirm].unshift({ firma: window.currentFirm, marka: r[0] || '', model: r[1] || '', yil: r[2] || '', renk: r[3] || '', sasi: r[4] || '', tarih: window.fixExcelDate(r[5]), beyanname: r[6] || '', fatura: r[7] || '', kiymet: r[8] || '', evrak: 'Kapalı' }); }
+                            else { window.kiymetData.unshift({ marka: r[0] || '', model: r[1] || '', yil: r[2] || '', renk: r[3] || '', sasi: r[4] || '', tarih: window.fixExcelDate(r[5]), fatura: r[6] || '', kiymet: r[7] || '', durum: r[8] || '' }); }
+                            c++;
+                        }
+                    });
+                    if (c > 0) { alert(c + ' araç başarıyla yüklendi'); if (targetContext === 'firm') { saveData('firm'); window.renderFirmVehicles(); } else { saveData('kiymet'); window.renderKiymetTable(); } window.closeExcelModal(); }
+                } catch (err) { alert('Excel okuma hatası'); }
+            };
+            reader.readAsArrayBuffer(input.files[0]);
+        };
+
+        window.populateDigerMasraflar = function () {
+            const container = document.getElementById('diger-masraflar-container');
+            if (!container) return;
+            container.innerHTML = window.digerMasrafListesi.map(m => `
+                <div class="input-group" style="margin-bottom: 8px;">
+                    <label style="font-size:10px;">${m.label}</label>
+                    <div style="display:flex; gap:4px;">
+                        <input id="${m.id}" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="${m.val}" style="flex:1; padding: 8px; border-radius: 6px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
+                        <select id="cur-${m.id}" onchange="window.calculateTaxes()" style="width: 55px; padding: 8px 2px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--text-muted); border: 1px solid var(--glass-border);">
+                            <option value="EUR" ${m.cur === 'EUR' ? 'selected' : ''}>EUR</option>
+                            <option value="USD" ${m.cur === 'USD' ? 'selected' : ''}>USD</option>
+                            <option value="TL" ${m.cur === 'TL' ? 'selected' : ''}>TL</option>
+                        </select>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.calculateTaxes = function () {
+            const typeEl = document.getElementById('calc-type'); const kurInputStr = document.getElementById('calc-kur-input')?.value || "50,98";
+            window.exchangeRates.EUR = parseFloat(kurInputStr.replace(/\./g, '').replace(',', '.')) || 50.9822;
+            const getValNum = (id) => { const el = document.getElementById(id); return (!el || !el.value) ? 0 : parseFloat(el.value.replace(/\./g, '').replace(',', '.')); };
+            const getValInTL = (id) => { const val = getValNum(id); const curEl = document.getElementById('cur-' + id); const cur = curEl ? curEl.value : 'EUR'; const rate = cur === 'TL' ? 1 : (window.exchangeRates[cur] || window.exchangeRates.EUR); return val * rate; };
+
+            const faturaTL = getValInTL('calc-fatura'); const navlunTL = getValInTL('calc-navlun'); const sigortaTL = getValInTL('calc-sigorta'); const yDisiTL = getValInTL('calc-yurtdisi'); const yIciTL = getValInTL('calc-yurtici');
+
+            let digerMasrafTL = 0;
+            if (window.digerMasrafListesi) window.digerMasrafListesi.forEach(m => { digerMasrafTL += getValInTL(m.id); });
+            const digerMasrafEUR = digerMasrafTL / window.exchangeRates.EUR;
+
+            const cifTL = faturaTL + navlunTL + sigortaTL; const gvMatrahiTL = cifTL + yDisiTL; const araToplamTL = gvMatrahiTL + yIciTL; const trtBandTL = araToplamTL * 0.008; const dvTL = 1606; const otvMatrahiTL = araToplamTL + trtBandTL + dvTL;
+
+            let otvOrani = 80; const sType = typeEl ? typeEl.value : "";
+            if (sType === 'ic-1400') { otvOrani = otvMatrahiTL <= 650000 ? 70 : (otvMatrahiTL <= 900000 ? 75 : (otvMatrahiTL <= 1100000 ? 80 : 90)); }
+            else if (sType === 'ic-1600') { otvOrani = otvMatrahiTL <= 850000 ? 75 : (otvMatrahiTL <= 1100000 ? 80 : (otvMatrahiTL <= 1650000 ? 90 : 100)); }
+            else if (sType === 'ic-2000') { otvOrani = otvMatrahiTL <= 1650000 ? 150 : 170; }
+            else if (sType === 'ic-over2000') { otvOrani = 220; }
+            else if (sType === 'hybrid-1800') { otvOrani = otvMatrahiTL <= 1250000 ? 70 : 80; }
+            else if (sType === 'hybrid-2500') { otvOrani = otvMatrahiTL <= 1650000 ? 150 : 170; }
+            else if (sType === 'phev-1600') { otvOrani = otvMatrahiTL <= 1350000 ? 45 : 75; }
+            else if (sType === 'phev-1800') { otvOrani = otvMatrahiTL <= 1350000 ? 85 : 150; }
+            else if (sType === 'ev-160') { otvOrani = otvMatrahiTL <= 1650000 ? 25 : 55; }
+            else if (sType === 'ev-over160') { otvOrani = otvMatrahiTL <= 1650000 ? 65 : 75; }
+            else if (sType === 'ticari-50') { otvOrani = 50; }
+
+            const hesaplananOtvTL = otvMatrahiTL * (otvOrani / 100), kdvMatrahiTL = otvMatrahiTL + hesaplananOtvTL, hesaplananKdvTL = kdvMatrahiTL * 0.20, toplamVergiTL = hesaplananOtvTL + hesaplananKdvTL + trtBandTL + dvTL, genelToplamTL = faturaTL + navlunTL + sigortaTL + yDisiTL + yIciTL + toplamVergiTL + digerMasrafTL;
+            const genelToplamEUR = genelToplamTL / window.exchangeRates.EUR;
+
+            const setInner = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            const fTL = (val) => window.formatNumber(val) + ' ₺'; const fEUR = (val) => window.formatNumber(val) + ' €';
+
+            setInner('res-gv-matrah', fTL(gvMatrahiTL)); setInner('res-ara-toplam', fTL(araToplamTL)); setInner('res-otv-matrahi', fTL(otvMatrahiTL)); setInner('res-otv-yuzde', `(%${otvOrani})`); setInner('res-hesaplanan-otv', fTL(hesaplananOtvTL)); setInner('res-kdv-tutar', fTL(hesaplananKdvTL)); setInner('res-toplam-vergi', fTL(toplamVergiTL));
+            setInner('res-diger-maliyet', fTL(digerMasrafTL)); setInner('res-diger-eur', fEUR(digerMasrafEUR)); setInner('res-genel-maliyet', fTL(genelToplamTL)); setInner('res-genel-eur', fEUR(genelToplamEUR));
+        };
+
+        window.declAutoCalc = function () {
+            const val = (id) => document.getElementById(id)?.value;
+            const data = { tarih: val('da-tarih'), ekSure: val('da-ekSure'), antTarih: val('da-antTarih'), beynmCif: val('da-beynmCif'), kiymVv: val('da-kiymVv'), kiymGt: val('da-kiymGt'), evrak: val('da-evrak') };
+            if (!data.tarih) return; const m = window.calculateVehicleMetrics(data); const set = (id, v) => { if (document.getElementById(id)) document.getElementById(id).innerText = v; };
+            set('da-prev-ilkSure', m.ilkSureSonu || '-'); set('da-prev-klnGun', m.klnGun !== '' ? m.klnGun : '-'); set('da-prev-ardiye', window.formatNumber(m.ardiye) + ' ₺'); set('da-prev-sonGun', m.sonGun || '-'); set('da-prev-kiymGecen', m.kiymGecen !== '' ? m.kiymGecen : '-');
+        };
+
+        window.renderDeclarationsTable = function () {
+            const tbody = document.getElementById('declarations-tbody'); if (!tbody) return;
+            const filterEl = document.getElementById('decl-status-filter'); const filterVal = filterEl ? filterEl.value : 'all';
+
+            let list = window.declarationsData.map((d, i) => ({ data: d, origIdx: i }));
+            if (filterVal === 'acik') { list = list.filter(item => item.data.evrak === 'Açık'); }
+            else if (filterVal === 'kiymet') { list = list.filter(item => item.data.kiymVv && !item.data.kiymGt); }
+
+            if (list.length === 0) { tbody.innerHTML = `<tr><td colspan="22" style="text-align:center;color:var(--text-muted);padding:30px;">Kayıt bulunamadı.</td></tr>`; return; }
+
+            let html = '';
+            list.forEach((item) => {
+                const d = item.data; const i = item.origIdx; const m = window.calculateVehicleMetrics(d);
+                html += `<tr><td style="text-align:center;"><input type="checkbox" class="decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td><td class="font-medium">${d.firma || '-'}</td><td>${d.marka || '-'}</td><td>${d.model || '-'}</td><td>${d.yil || '-'}</td><td class="text-primary">${d.sasi || '-'}</td><td>${d.tarih || '-'}</td><td class="text-warning">${m.ilkSureSonu || '-'}</td><td>${d.ekSure || '-'}</td><td>${d.antTarih || '-'}</td><td>${d.beynmCif || '-'}</td><td>${d.kiymVv || '-'}</td><td>${d.kiymGt || '-'}</td><td class="text-primary font-bold">${m.klnSonTarih || '-'}</td><td class="text-warning font-bold">${m.klnGun !== '' ? m.klnGun : '-'}</td><td>${m.kiymGecen !== '' ? m.kiymGecen : '-'}</td><td class="text-success">${m.sonGun || '-'}</td><td>${d.evrak || 'Kapalı'}</td><td>${d.fatura ? window.formatNumber(d.fatura) + ' €' : '-'}</td><td class="text-danger font-bold">${window.formatNumber(m.ardiye)} ₺</td><td>${m.gecenGun !== '' ? m.gecenGun : '-'}</td><td style="display:flex;gap:4px;"><button class="icon-btn text-warning" onclick="window.openDeclVehicleModal(${i}, 'decl')"><i data-lucide="edit-3" style="width:16px;"></i></button></td></tr>`;
+            });
+            tbody.innerHTML = html;
+            document.getElementById('decl-selectAll').checked = false; window.toggleDeclCb(); if (window.lucide) lucide.createIcons();
+            window.updateDashboardStats();
+        };
+
+        window.toggleAllDeclarations = function (isChecked) { document.querySelectorAll('.decl-cb').forEach(c => c.checked = isChecked); window.toggleDeclCb(); };
+        window.toggleDeclCb = function () { const chk = document.querySelectorAll('.decl-cb:checked'); const btn = document.getElementById('decl-bulk-delete-btn'); if (btn) { if (chk.length > 0) { btn.classList.remove('hidden'); document.getElementById('decl-sel-count').innerText = chk.length; } else btn.classList.add('hidden'); } };
+        window.bulkDeleteDeclarations = function () { const chk = document.querySelectorAll('.decl-cb:checked'); if (chk.length === 0) return; if (confirm(chk.length + ' kaydı silmek istediğinize emin misiniz? (Firmalardaki kopyası silinmez)')) { Array.from(chk).map(c => parseInt(c.value)).sort((a, b) => b - a).forEach(i => window.declarationsData.splice(i, 1)); saveData('decl'); window.renderDeclarationsTable(); } };
+
+        window.currentModalContext = 'decl';
+        window.openDeclVehicleModal = function (idx = -1, context = 'decl') {
+            window.currentModalContext = context; document.getElementById('decl-modal').classList.remove('hidden'); document.getElementById('decl-edit-idx').value = idx;
+            const selFirma = document.getElementById('da-firma');
+            let d = null; if (idx !== -1) d = context === 'firm' ? window.firmData[window.currentFirm][idx] : window.declarationsData[idx];
+
+            if (idx === -1 || !d) {
+                ['marka', 'model', 'yil', 'renk', 'sase', 'ekSure', 'antTarih', 'beynmCif', 'kiymVv', 'kiymGt', 'beyanname', 'fatura', 'kiymet'].forEach(id => { if (document.getElementById('da-' + id)) document.getElementById('da-' + id).value = ''; });
+                document.getElementById('da-tarih').value = new Date().toLocaleDateString('tr-TR'); document.getElementById('da-evrak').value = 'Kapalı';
+                if (selFirma) selFirma.value = context === 'firm' ? window.currentFirm : 'ŞAMNU GT';
+            } else {
+                if (selFirma) selFirma.value = d.firma || 'ŞAMNU GT';
+                ['marka', 'model', 'yil', 'renk'].forEach(id => { if (document.getElementById('da-' + id)) document.getElementById('da-' + id).value = d[id] || ''; });
+                if (document.getElementById('da-sase')) document.getElementById('da-sase').value = d.sasi || '';
+                ['tarih', 'ekSure', 'antTarih', 'beynmCif', 'kiymVv', 'kiymGt', 'beyanname', 'fatura', 'kiymet'].forEach(id => { if (document.getElementById('da-' + id)) document.getElementById('da-' + id).value = d[id] || ''; });
+                if (document.getElementById('da-evrak')) document.getElementById('da-evrak').value = d.evrak || 'Kapalı';
+            }
+            if (context === 'firm') { document.getElementById('decl-preview-box').classList.add('hidden'); } else { document.getElementById('decl-preview-box').classList.remove('hidden'); window.declAutoCalc(); }
+        };
+        window.closeDeclModal = function () { document.getElementById('decl-modal').classList.add('hidden'); };
+
+        window.saveDeclEntry = function () {
+            const i = parseInt(document.getElementById('decl-edit-idx').value); const val = (id) => document.getElementById(id)?.value.trim() || '';
+            const r = { firma: val('da-firma'), marka: val('da-marka').toUpperCase(), model: val('da-model').toUpperCase(), yil: val('da-yil'), renk: val('da-renk').toUpperCase(), sasi: val('da-sase').toUpperCase(), tarih: val('da-tarih'), ekSure: val('da-ekSure'), antTarih: val('da-antTarih'), beynmCif: val('da-beynmCif'), kiymVv: val('da-kiymVv'), kiymGt: val('da-kiymGt'), evrak: val('da-evrak'), beyanname: val('da-beyanname'), fatura: val('da-fatura'), kiymet: val('da-kiymet') };
+
+            if (!r.firma || !r.tarih) { alert('Firma ve Tarih zorunludur!'); return; }
+
+            if (window.currentModalContext === 'decl') {
+                if (i === -1) {
+                    window.declarationsData.unshift({ ...r });
+                    if (!window.firmData[r.firma]) window.firmData[r.firma] = [];
+                    window.firmData[r.firma].unshift({ ...r });
+                } else { window.declarationsData[i] = r; }
+                saveData('decl'); saveData('firm'); window.renderDeclarationsTable();
+            } else {
+                if (!window.firmData[window.currentFirm]) window.firmData[window.currentFirm] = [];
+                if (i === -1) window.firmData[window.currentFirm].unshift({ ...r }); else window.firmData[window.currentFirm][i] = r;
+                saveData('firm'); window.renderFirmVehicles();
+            }
+            window.closeDeclModal(); window.updateDashboardStats();
+        };
+
+        window.renderFirmDetails = function (fName) {
+            window.currentFirm = fName; window.renderView('firmDetails'); document.getElementById('current-firm-title').innerText = fName + " Araçları";
+            window.renderFirmVehicles();
+        };
+
+        window.renderFirmVehicles = function () {
+            const tbody = document.getElementById('firm-vehicles-tbody'); if (!tbody || !window.currentFirm) return;
+            const arr = window.firmData[window.currentFirm] || [];
+
+            if (arr.length === 0) { tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-muted)">Bu firmaya ait araç bulunamadı.</td></tr>`; return; }
+            let html = '';
+            arr.forEach((d, i) => {
+                html += `<tr><td style="text-align:center;"><input type="checkbox" class="firm-cb" value="${i}" onclick="window.toggleFirmCb()"></td><td class="font-medium">${d.marka || '-'}</td><td>${d.model || '-'}</td><td>${d.yil || '-'}</td><td>${d.renk || '-'}</td><td class="text-primary">${d.sasi || '-'}</td><td>${d.tarih || '-'}</td><td>${d.beyanname || '-'}</td><td>${d.fatura ? window.formatNumber(d.fatura) + ' €' : '-'}</td><td class="text-success font-bold">${d.kiymet ? window.formatNumber(d.kiymet) + ' €' : '-'}</td><td style="display:flex;gap:4px;"><button class="icon-btn text-warning" onclick="window.openDeclVehicleModal(${i}, 'firm')"><i data-lucide="edit-3" style="width:16px;"></i></button><button class="icon-btn text-danger" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`;
+            });
+            tbody.innerHTML = html;
+            document.getElementById('firm-select-all').checked = false; window.toggleFirmCb(); if (window.lucide) lucide.createIcons();
+        };
+
+        window.deleteFirmVehicle = function (i) { if (confirm('Emin misiniz? (Gelen Araçlar\'daki kopyası silinmez)')) { window.firmData[window.currentFirm].splice(i, 1); saveData('firm'); window.renderFirmVehicles(); } };
+        window.toggleAllFirmVehicles = function (isChecked) { document.querySelectorAll('.firm-cb').forEach(c => c.checked = isChecked); window.toggleFirmCb(); };
+        window.toggleFirmCb = function () { const chk = document.querySelectorAll('.firm-cb:checked'); const btn = document.getElementById('firm-bulk-delete-btn'); if (btn) { if (chk.length > 0) { btn.classList.remove('hidden'); document.getElementById('firm-selected-count').innerText = chk.length; } else btn.classList.add('hidden'); } };
+        window.bulkDeleteFirmVehicles = function () { const chk = document.querySelectorAll('.firm-cb:checked'); if (chk.length === 0) return; if (confirm(chk.length + ' kaydı silmek istediğinize emin misiniz?')) { Array.from(chk).map(c => parseInt(c.value)).sort((a, b) => b - a).forEach(i => window.firmData[window.currentFirm].splice(i, 1)); saveData('firm'); window.renderFirmVehicles(); } };
+
+        function initViews() {
+            const container = document.getElementById('view-container'); container.innerHTML = '';
+            const tpls = ['dashboard', 'firms', 'firmDetails', 'declarations', 'calculator', 'kiymetListesi', 'searchResults'];
+            tpls.forEach(name => {
+                const template = document.getElementById('tpl-' + name);
+                if (template) {
+                    const div = document.createElement('div');
+                    div.id = 'view-' + name; div.className = 'view-section hidden';
+                    div.appendChild(template.content.cloneNode(true));
+                    container.appendChild(div);
+                }
+            });
+        }
+
+        window.renderView = function (viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            const activeView = document.getElementById('view-' + viewName); if (activeView) activeView.classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(item => { if (item.dataset.view === viewName) item.classList.add('active'); else item.classList.remove('active'); });
+
+            if (viewName === 'dashboard') window.updateDashboardStats();
+            if (viewName === 'declarations') window.renderDeclarationsTable();
+            if (viewName === 'kiymetListesi') window.renderKiymetTable();
+            if (viewName === 'calculator') {
+                if (!window.digerMasraflarPopulated) {
+                    window.populateDigerMasraflar();
+                    window.digerMasraflarPopulated = true;
+                }
+                window.calculateTaxes();
+            }
+            if (window.lucide) lucide.createIcons();
+        };
+
+        document.querySelectorAll('.nav-item').forEach(item => { item.addEventListener('click', () => { if (item.dataset.view) window.renderView(item.dataset.view); }); });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initViews(); loadAllData(); window.renderView('dashboard');
+        });
+    </script>
+</body>
+
+</html>
