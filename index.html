@@ -43,6 +43,7 @@
         .stat-icon { display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 12px; background: rgba(99,102,241,0.15); color: var(--primary); }
         .stat-icon.warning { background: rgba(245,158,11,0.15); color: var(--warning); }
         .stat-icon.success { background: rgba(16,185,129,0.15); color: var(--success); }
+        .stat-icon.danger { background: rgba(239,68,68,0.15); color: var(--danger); }
         .stat-info { flex: 1; }
         .stat-info h3 { font-size: 14px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; }
         .stat-value { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
@@ -90,7 +91,7 @@
 
     <div id="app-screen" class="app-container">
         <aside class="sidebar glass-panel">
-            <div class="sidebar-logo"><i data-lucide="shield-check"></i><div><span>GümrükPortal</span><small style="font-size:10px;color:var(--text-muted);display:block;">Final Version v15.0 PRO</small></div></div>
+            <div class="sidebar-logo"><i data-lucide="shield-check"></i><div><span>GümrükPortal</span><small style="font-size:10px;color:var(--text-muted);display:block;">Final Version v15.1 PRO</small></div></div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Özet Gösterge</span></button>
                 <button class="nav-item" data-view="declarations"><i data-lucide="file-check-2"></i><span>Gelen Araçlar</span></button>
@@ -204,9 +205,7 @@
     </div>
 
     <template id="tpl-dashboard">
-        <div class="page-header fade-in">
-            <h1 class="page-title">Özet Gösterge</h1>
-        </div>
+        <div class="page-header fade-in"><h1 class="page-title">Özet Gösterge</h1></div>
         <div class="dashboard-grid fade-in">
             <div class="stat-card glass-card" onclick="window.goToFilter('kiymet')"><div class="stat-icon"><i data-lucide="file-check"></i></div><div class="stat-info"><h3>Kıymette Bekleyen</h3><p class="stat-value" id="dash-kiymet">0</p><p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p></div></div>
             <div class="stat-card glass-card" onclick="window.goToFilter('acik')"><div class="stat-icon warning"><i data-lucide="car"></i></div><div class="stat-info"><h3>İşlemi Açık (Ambarda)</h3><p class="stat-value" id="dash-ambar">0</p><p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p></div></div>
@@ -527,37 +526,26 @@
 
         // --- INLINE DATE EDITING (GELEN ARAÇLAR İÇİN) ---
         window.inlineEditDate = function(el, idx, field) {
-            if(el.querySelector('input')) return; // Zaten tıklanmışsa işlem yapma
+            if(el.querySelector('input')) return; 
             const currentVal = window.declarationsData[idx][field] || '';
             let isoDate = '';
             if(currentVal) {
                 const parts = currentVal.split('.');
-                if(parts.length === 3) isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
+                if(parts.length === 3) isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
             el.innerHTML = `<input type="date" value="${isoDate}" style="color:black; padding:2px; height:24px; border-radius:4px; font-size:12px; width:100%; border:none; outline:2px solid var(--primary);" 
                onblur="window.saveInlineDate(this, ${idx}, '${field}')" 
                onchange="window.saveInlineDate(this, ${idx}, '${field}')">`;
             const inp = el.querySelector('input');
             inp.focus();
-            inp.showPicker && inp.showPicker(); // Otomatik takvimi aç (Tarayıcı destekliyorsa)
+            inp.showPicker && inp.showPicker();
         };
 
         window.saveInlineDate = function(input, idx, field) {
-            const iso = input.value;
-            let trDate = '';
-            if(iso) {
-                const parts = iso.split('-');
-                if(parts.length === 3) trDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
-            }
-            // Sadece değişiklik varsa kaydet ve tabloyu yenile
-            if(window.declarationsData[idx][field] !== trDate) {
-                window.declarationsData[idx][field] = trDate;
-                saveData('decl');
-                window.renderDeclarationsTable(); 
-            } else {
-                // Değişiklik yoksa sadece HTML'i eski haline getir
-                input.parentElement.innerHTML = trDate || '-';
-            }
+            const iso = input.value; let trDate = '';
+            if(iso) { const parts = iso.split('-'); if(parts.length === 3) trDate = `${parts[2]}.${parts[1]}.${parts[0]}`; }
+            if(window.declarationsData[idx][field] !== trDate) { window.declarationsData[idx][field] = trDate; saveData('decl'); window.renderDeclarationsTable(); } 
+            else { input.parentElement.innerHTML = trDate || '-'; }
         };
 
         window.calculateVehicleMetrics = function(data) {
@@ -695,7 +683,9 @@
         window.saveNewKiymet = function() { const i = parseInt(document.getElementById('km-edit-index').value); const r = { marka:document.getElementById('km-marka').value.toUpperCase(), model:document.getElementById('km-model').value.toUpperCase(), yil:document.getElementById('km-yil').value, renk:document.getElementById('km-renk').value.toUpperCase(), sasi:document.getElementById('km-sasi').value.toUpperCase(), tarih:document.getElementById('km-tarih').value, fatura:document.getElementById('km-fatura').value, kiymet:document.getElementById('km-kiymet').value, durum:document.getElementById('km-durum').value }; if(i===-1) window.kiymetData.unshift(r); else window.kiymetData[i]=r; saveData('kiymet'); window.closeKiymetModal(); window.renderKiymetTable(); };
 
         window.openExcelModal = function(context) { 
-            document.getElementById('excel-target-context').value = context; document.getElementById('excel-modal').classList.remove('hidden'); const desc = document.getElementById('excel-modal-desc');
+            document.getElementById('excel-target-context').value = context;
+            document.getElementById('excel-modal').classList.remove('hidden'); 
+            const desc = document.getElementById('excel-modal-desc');
             if(context === 'firm') desc.innerHTML = `Araç verilerini excel dosyasından <b>${window.currentFirm}</b> listesine ekleyin.<br><b>Sütun Sırası:</b> Marka, Model, Yıl, Renk, Şasi No, Tarih, Beyanname No, Fatura, Kıymet, Durum`;
             else desc.innerHTML = `Araç verilerini excel dosyasından <b>Kıymet Listesi</b>ne ekleyin.<br><b>Sütun Sırası:</b> Marka, Model, Yıl, Renk, Şasi No, Tarih, Fatura, Kıymet, Durum`;
         };
@@ -745,7 +735,13 @@
                 if(s.digerMasraflar) {
                     s.digerMasraflar.forEach(m => {
                         const target = window.digerMasrafListesi.find(x => x.id === m.id);
-                        if(target) { target.val = m.val; target.cur = m.cur; }
+                        if(target) { 
+                            target.val = m.val; 
+                            target.cur = m.cur; 
+                        }
+                        // Hem değişkeni hem de ekrandaki kutuları anında güncelliyoruz:
+                        setV(m.id, m.val); 
+                        setV('cur-' + m.id, m.cur);
                     });
                 }
                 return true;
@@ -949,11 +945,14 @@
             if (viewName === 'kiymetListesi') window.renderKiymetTable();
             if (viewName === 'firms') window.renderFirmsList();
             if (viewName === 'calculator') {
+                window.loadCalculatorState(); // Önceki değerleri hafızadan listeye aktar
                 if(!window.digerMasraflarPopulated) {
-                    window.populateDigerMasraflar();
+                    window.populateDigerMasraflar(); // Listeyi ekrana HTML olarak yazdır
                     window.digerMasraflarPopulated = true;
+                    window.loadCalculatorState(); // HTML oluştuğu için kutuların içini hafızadan doldur
+                } else {
+                    window.loadCalculatorState(); // Sayfaya tekrar girildiğinde kutuları tazele
                 }
-                const hasSavedState = window.loadCalculatorState();
                 window.calculateTaxes();
             }
             if(window.lucide) lucide.createIcons();
