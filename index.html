@@ -91,7 +91,7 @@
 
     <div id="app-screen" class="app-container">
         <aside class="sidebar glass-panel">
-            <div class="sidebar-logo"><i data-lucide="shield-check"></i><div><span>GümrükPortal</span><small style="font-size:10px;color:var(--text-muted);display:block;">Final Version v15.1 PRO</small></div></div>
+            <div class="sidebar-logo"><i data-lucide="shield-check"></i><div><span>GümrükPortal</span><small style="font-size:10px;color:var(--text-muted);display:block;">Final Version v15.2 PRO</small></div></div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Özet Gösterge</span></button>
                 <button class="nav-item" data-view="declarations"><i data-lucide="file-check-2"></i><span>Gelen Araçlar</span></button>
@@ -336,9 +336,8 @@
                             <input id="calc-kur-input" type="text" value="50,9822" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="padding: 6px; width: 85px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--success); font-weight: bold; border: 1px solid var(--glass-border);">
                         </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">Gümrük Vergisi (<span id="res-gv-yuzde"></span>):</span><strong id="res-gv-tutar">0 ₺</strong></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">İlave Gümrük (İGV) (<span id="res-igv-yuzde"></span>):</span><strong id="res-igv-tutar">0 ₺</strong></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">KKDF (<span id="res-kkdf-yuzde"></span>):</span><strong id="res-kkdf-tutar">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">GV. Matrağı:</span><strong id="res-gv-matrah">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">Ara Toplam:</span><strong id="res-ara-toplam">0 ₺</strong></div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">ÖTV Matrağı:</span><strong id="res-otv-matrahi">0 ₺</strong></div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">Hesaplanan ÖTV <span id="res-otv-yuzde" class="text-warning"></span>:</span><strong id="res-hesaplanan-otv" class="text-warning">0 ₺</strong></div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">KDV (%20):</span><strong id="res-kdv-tutar" class="text-warning">0 ₺</strong></div>
@@ -524,7 +523,7 @@
             }
         };
 
-        // --- INLINE DATE EDITING (GELEN ARAÇLAR İÇİN) ---
+        // --- INLINE DATE EDITING ---
         window.inlineEditDate = function(el, idx, field) {
             if(el.querySelector('input')) return; 
             const currentVal = window.declarationsData[idx][field] || '';
@@ -683,9 +682,7 @@
         window.saveNewKiymet = function() { const i = parseInt(document.getElementById('km-edit-index').value); const r = { marka:document.getElementById('km-marka').value.toUpperCase(), model:document.getElementById('km-model').value.toUpperCase(), yil:document.getElementById('km-yil').value, renk:document.getElementById('km-renk').value.toUpperCase(), sasi:document.getElementById('km-sasi').value.toUpperCase(), tarih:document.getElementById('km-tarih').value, fatura:document.getElementById('km-fatura').value, kiymet:document.getElementById('km-kiymet').value, durum:document.getElementById('km-durum').value }; if(i===-1) window.kiymetData.unshift(r); else window.kiymetData[i]=r; saveData('kiymet'); window.closeKiymetModal(); window.renderKiymetTable(); };
 
         window.openExcelModal = function(context) { 
-            document.getElementById('excel-target-context').value = context;
-            document.getElementById('excel-modal').classList.remove('hidden'); 
-            const desc = document.getElementById('excel-modal-desc');
+            document.getElementById('excel-target-context').value = context; document.getElementById('excel-modal').classList.remove('hidden'); const desc = document.getElementById('excel-modal-desc');
             if(context === 'firm') desc.innerHTML = `Araç verilerini excel dosyasından <b>${window.currentFirm}</b> listesine ekleyin.<br><b>Sütun Sırası:</b> Marka, Model, Yıl, Renk, Şasi No, Tarih, Beyanname No, Fatura, Kıymet, Durum`;
             else desc.innerHTML = `Araç verilerini excel dosyasından <b>Kıymet Listesi</b>ne ekleyin.<br><b>Sütun Sırası:</b> Marka, Model, Yıl, Renk, Şasi No, Tarih, Fatura, Kıymet, Durum`;
         };
@@ -739,7 +736,6 @@
                             target.val = m.val; 
                             target.cur = m.cur; 
                         }
-                        // Hem değişkeni hem de ekrandaki kutuları anında güncelliyoruz:
                         setV(m.id, m.val); 
                         setV('cur-' + m.id, m.cur);
                     });
@@ -777,26 +773,35 @@
             const getValNum = (id) => { const el = document.getElementById(id); return (!el || !el.value) ? 0 : parseFloat(el.value.replace(/\./g, '').replace(',', '.')); };
             const getValInTL = (id) => { const val = getValNum(id); const curEl = document.getElementById('cur-' + id); const cur = curEl ? curEl.value : 'EUR'; const rate = cur === 'TL' ? 1 : (window.exchangeRates[cur] || window.exchangeRates.EUR); return val * rate; };
 
-            const faturaTL = getValInTL('calc-fatura'); const navlunTL = getValInTL('calc-navlun'); const sigortaTL = getValInTL('calc-sigorta'); const yDisiTL = getValInTL('calc-yurtdisi'); const yIciTL = getValInTL('calc-yurtici');
+            // 1. GİDERLERİN TL ÇEVRİMİ
+            const faturaTL = getValInTL('calc-fatura'); 
+            const navlunTL = getValInTL('calc-navlun'); 
+            const sigortaTL = getValInTL('calc-sigorta'); 
+            const yDisiTL = getValInTL('calc-yurtdisi'); 
+            const yIciTL = getValInTL('calc-yurtici');
             
+            // Diğer Masrafların Hesaplanması
             let digerMasrafTL = 0;
             if(window.digerMasrafListesi) window.digerMasrafListesi.forEach(m => { digerMasrafTL += getValInTL(m.id); });
             const digerMasrafEUR = digerMasrafTL / window.exchangeRates.EUR;
 
-            // CIF ve GV Matrahı
+            // 2. TEMEL MATRAHLAR (Excel mantığına göre dizildi)
             const cifTL = faturaTL + navlunTL + sigortaTL; 
             const gvMatrahiTL = cifTL + yDisiTL; 
+            const araToplamTL = gvMatrahiTL + yIciTL; // Excel'deki ARA TOPLAM satırı
             
-            // Gümrük Kalemleri
+            // 3. GÜMRÜK VERGİLERİ
             const gvTutarTL = gvMatrahiTL * (calcGv / 100);
             const igvTutarTL = gvMatrahiTL * (calcIgv / 100);
             const kkdfTutarTL = gvMatrahiTL * (calcKkdf / 100);
 
-            // Ara Toplam ve ÖTV
-            const araToplamTL = gvMatrahiTL + gvTutarTL + igvTutarTL + kkdfTutarTL + yIciTL; 
-            const trtBandTL = araToplamTL * 0.008; 
+            // 4. ÖTV MATRAHI İÇİN EKLENTİLER (TRT ve DV)
+            // TRT Bandrolü: (Ara Toplam + Gümrük Vergileri) üzerinden %0.8 alınır.
+            const trtBandTL = (araToplamTL + gvTutarTL + igvTutarTL + kkdfTutarTL) * 0.008; 
             const dvTL = 1606; 
-            const otvMatrahiTL = araToplamTL + trtBandTL + dvTL;
+
+            // ÖTV Matrahı tüm vergileri barındıran asıl yekündür
+            const otvMatrahiTL = araToplamTL + gvTutarTL + igvTutarTL + kkdfTutarTL + trtBandTL + dvTL;
             
             let otvOrani = 80; const sType = typeEl ? typeEl.value : "";
             if(sType === 'ic-1400') { otvOrani = otvMatrahiTL<=650000?70: (otvMatrahiTL<=900000?75: (otvMatrahiTL<=1100000?80:90)); }
@@ -816,7 +821,11 @@
             
             const kdvMatrahiTL = otvMatrahiTL + hesaplananOtvTL; 
             const hesaplananKdvTL = kdvMatrahiTL * 0.20; 
+            
+            // Excel'deki Toplam Vergi Satırı
             const toplamVergiTL = gvTutarTL + igvTutarTL + kkdfTutarTL + hesaplananOtvTL + hesaplananKdvTL + trtBandTL + dvTL; 
+            
+            // Bizim programdaki GERÇEK Genel Toplam
             const genelToplamTL = faturaTL + navlunTL + sigortaTL + yDisiTL + yIciTL + toplamVergiTL + digerMasrafTL;
             const genelToplamEUR = genelToplamTL / window.exchangeRates.EUR;
 
@@ -824,10 +833,10 @@
             const fTL = (val) => window.formatNumber(val) + ' ₺'; const fEUR = (val) => window.formatNumber(val) + ' €';
 
             setInner('res-gv-matrah', fTL(gvMatrahiTL)); 
+            setInner('res-ara-toplam', fTL(araToplamTL)); 
             setInner('res-gv-tutar', fTL(gvTutarTL)); setInner('res-gv-yuzde', `%${calcGv}`);
             setInner('res-igv-tutar', fTL(igvTutarTL)); setInner('res-igv-yuzde', `%${calcIgv}`);
             setInner('res-kkdf-tutar', fTL(kkdfTutarTL)); setInner('res-kkdf-yuzde', `%${calcKkdf}`);
-            setInner('res-ara-toplam', fTL(araToplamTL)); 
             
             setInner('res-otv-matrahi', fTL(otvMatrahiTL)); 
             setInner('res-otv-yuzde', importerType === "ithalatci" ? '(Muaf/Sonradan)' : `(%${otvOrani})`); 
@@ -838,7 +847,7 @@
             setInner('res-diger-maliyet', fTL(digerMasrafTL)); setInner('res-diger-eur', fEUR(digerMasrafEUR)); 
             setInner('res-genel-maliyet', fTL(genelToplamTL)); setInner('res-genel-eur', fEUR(genelToplamEUR));
 
-            window.saveCalculatorState(); // Her hesaplamada hafızaya kaydet
+            window.saveCalculatorState(); 
         };
 
         window.declAutoCalc = function() {
@@ -945,13 +954,13 @@
             if (viewName === 'kiymetListesi') window.renderKiymetTable();
             if (viewName === 'firms') window.renderFirmsList();
             if (viewName === 'calculator') {
-                window.loadCalculatorState(); // Önceki değerleri hafızadan listeye aktar
+                window.loadCalculatorState(); 
                 if(!window.digerMasraflarPopulated) {
-                    window.populateDigerMasraflar(); // Listeyi ekrana HTML olarak yazdır
+                    window.populateDigerMasraflar(); 
                     window.digerMasraflarPopulated = true;
-                    window.loadCalculatorState(); // HTML oluştuğu için kutuların içini hafızadan doldur
+                    window.loadCalculatorState(); 
                 } else {
-                    window.loadCalculatorState(); // Sayfaya tekrar girildiğinde kutuları tazele
+                    window.loadCalculatorState(); 
                 }
                 window.calculateTaxes();
             }
