@@ -113,6 +113,10 @@
         .inline-date:hover::after { content: '✎'; position: absolute; right: 8px; top: 10px; font-size: 10px; color: var(--text-muted); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); cursor: pointer; }
         
+        .firm-delete-btn { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; opacity: 0; border: 1px solid transparent;}
+        .stat-card:hover .firm-delete-btn { opacity: 1; }
+        .firm-delete-btn:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); }
+        
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
@@ -508,7 +512,7 @@
         };
 
         window.formatTRDate = function(dateObj) { if (!dateObj || isNaN(dateObj.getTime())) return ""; return `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`; };
-        window.addDays = function(dateObj, days) { if (!dateObj) return null; let result = new Date(dateObj); result.setDate(result.getDate() + days); return result; };
+        window.addDays = function(dateObj, days) { if (!dateObj) return null; let result = new Date(dateObj); result.setDate(result.getDate() + Number(days)); return result; };
         
         // ZIRHLI GÜN FARK MOTORU
         window.diffDaysSigned = function(targetDate, baseDate) { 
@@ -567,7 +571,7 @@
         window.inlineEditDate = function(el, idx, field) { if(el.querySelector('input')) return; const currentVal = window.declarationsData[idx][field] || ''; let isoDate = ''; if(currentVal) { const parts = currentVal.split('.'); if(parts.length === 3) isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`; } el.innerHTML = `<input type="date" value="${isoDate}" style="padding:4px; height:28px; font-size:12px;" onblur="window.saveInlineDate(this, ${idx}, '${field}')" onchange="window.saveInlineDate(this, ${idx}, '${field}')">`; const inp = el.querySelector('input'); inp.focus(); inp.showPicker && inp.showPicker(); };
         window.saveInlineDate = function(input, idx, field) { const iso = input.value; let trDate = ''; if(iso) { const parts = iso.split('-'); if(parts.length === 3) trDate = `${parts[2]}.${parts[1]}.${parts[0]}`; } if(window.declarationsData[idx][field] !== trDate) { window.declarationsData[idx][field] = trDate; saveData('decl'); window.renderDeclarationsTable(); } else { input.parentElement.innerHTML = trDate || '-'; } };
 
-        // --- ZIRHLI MATEMATİK MOTORU (V19.3 FİNAL) ---
+        // --- TAMİR EDİLMİŞ DÜMDÜZ VE KUSURSUZ MATEMATİK MOTORU ---
         window.calculateVehicleMetrics = function(data) {
             let today = new Date(); today.setHours(0,0,0,0);
             let E = window.parseTRDate(data.tarih);
@@ -585,56 +589,81 @@
             
             let F = window.addDays(E, 20); result.ilkSureSonu = window.formatTRDate(F);
             
-            // 1. Temel L_date (Son Tarih) Belirleme
+            // 1. L_date (Temel Son Tarih) Bulma
             let L_date = null;
             if (I) { L_date = window.addDays(I, 29); } 
-            else if (H) { L_date = null; } // Antrepo = Süresiz
+            else if (H) { result.klnSonTarih = "Süresiz"; } 
             else if (G) { L_date = window.addDays(G > F ? G : F, 29); } 
             else { L_date = F; }
             
-            result.klnSonTarih = L_date ? window.formatTRDate(L_date) : "Süresiz";
+            if (L_date) { result.klnSonTarih = window.formatTRDate(L_date); }
 
-            // 2. Kıymette Geçen Süre Hesabı
-            let kiymGecenGun = 0;
-            if (J && !K) {
-                result.kiymGecen = "Kıymette";
-            } else if (J && K) {
-                kiymGecenGun = window.diffDaysSigned(K, J);
-                result.kiymGecen = kiymGecenGun;
-            } else {
-                result.kiymGecen = L_date === null ? "Süresiz" : "-";
-            }
-
-            // 3. SON GÜN ve KALAN GÜN Mantığı
-            if (isAcik) {
-                result.sonGun = "Açık";
-                result.klnGun = "-";
-            } else if (J && !K) {
-                // Araç şu an Kıymette! Süre dondurulur.
-                result.sonGun = "Kıymette";
-                if (L_date) {
-                    let d = window.diffDaysSigned(L_date, J);
-                    result.klnGun = d < 0 ? 0 : d;
+            // 2. Kıymette Geçen Süre Hesabı (Rakam Olarak)
+            let kiymGecenSayi = 0;
+            if (J) {
+                if (K) {
+                    kiymGecenSayi = window.diffDaysSigned(K, J);
+                    result.kiymGecen = kiymGecenSayi; // Rakam
                 } else {
-                    result.klnGun = "Süresiz";
+                    result.kiymGecen = "Kıymette"; // Yazı
                 }
-            } else if (!L_date) {
-                // L_date yoksa (Örn: Antrepo) SON GÜN hesaplanamaz, Süresizdir.
-                result.sonGun = "Süresiz";
-                result.klnGun = "Süresiz";
-            } else {
-                // L_date var ve Kıymette DEĞİL (yani ya kıymet bitti ya da hiç gitmedi)
-                let finalSonGunDate = window.addDays(L_date, kiymGecenGun);
-                result.sonGun = window.formatTRDate(finalSonGunDate);
-                
-                let diff = window.diffDaysSigned(finalSonGunDate, today);
-                result.klnGun = diff < 0 ? 0 : diff;
+            } else if (H && !I) {
+                result.kiymGecen = "Süresiz";
             }
 
-            // 4. Ardiye Hesabı
+            // 3. O Sütunu (SON GÜN) Hesaplaması
+            let finalSonGunDate = L_date;
+            if (isAcik) { 
+                result.sonGun = "Açık"; 
+            } else if (H && !I) { 
+                result.sonGun = "Süresiz"; 
+            } else if (J && !K) {
+                result.sonGun = "Kıymette";
+                finalSonGunDate = null; // Kalan gün hesaplanmasın diye durduruldu
+            } else if (L_date) {
+                // Eğer J ve K varsa, L_date'in üzerine GÜN olarak (kiymGecenSayi) ekle!
+                if (J && K) {
+                    finalSonGunDate = window.addDays(L_date, Number(kiymGecenSayi));
+                }
+                result.sonGun = window.formatTRDate(finalSonGunDate);
+            }
+
+            // 4. Kalan Gün Sayacı (M Sütunu)
+            if (I) { 
+                let p30 = window.addDays(I, 30); result.klnGun = p30 > today ? window.diffDaysSigned(p30, today) : 0; 
+            } else if (H && !I) { 
+                result.klnGun = "Süresiz"; 
+            } else if (finalSonGunDate) { 
+                let d = 0;
+                if (J && !K) { d = window.diffDaysSigned(finalSonGunDate, J); } 
+                else { d = window.diffDaysSigned(finalSonGunDate, today); }
+                result.klnGun = d < 0 ? 0 : d; 
+            } else { 
+                result.klnGun = "Süresiz"; 
+            }
+
+            // 5. Ardiye
             let gun = window.diffDaysSigned(today, E) + 1; result.gecenGun = gun;
             if (gun > 0) { if (gun <= 20) result.ardiye = gun * 145; else if (gun <= 50) result.ardiye = 2900 + (gun - 20) * 725; else if (gun <= 80) result.ardiye = 24650 + (gun - 50) * 1160; else result.ardiye = 59450 + (gun - 80) * 1450; }
             return result;
+        };
+
+        window.declAutoCalc = function() {
+            const val = (id) => document.getElementById(id)?.value;
+            const isoToTR = (iso) => { if(!iso) return ''; const p = iso.split('-'); return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : iso; };
+            const data = { tarih: isoToTR(val('da-tarih')), ekSure: isoToTR(val('da-ekSure')), antTarih: isoToTR(val('da-antTarih')), beynmCif: isoToTR(val('da-beynmCif')), kiymVv: isoToTR(val('da-kiymVv')), kiymGt: isoToTR(val('da-kiymGt')), evrak: val('da-evrak') };
+            if(!data.tarih) return; 
+            const m = window.calculateVehicleMetrics(data); 
+            const set = (id, v) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = v; };
+            set('da-prev-ilkSure', m.ilkSureSonu||'-'); 
+            let klnGunHtml = '-'; 
+            if (m.klnGun !== '' && m.klnGun !== 'Süresiz') { 
+                let val2 = parseInt(m.klnGun); 
+                if (val2 <= 5) klnGunHtml = `<span class="text-danger font-bold">${val2} Gün</span>`; 
+                else if (val2 <= 20) klnGunHtml = `<span class="text-warning">${val2} Gün</span>`; 
+                else klnGunHtml = `<span class="text-success">${val2} Gün</span>`; 
+            } else if(m.klnGun === 'Süresiz') { klnGunHtml = `<span class="text-muted">Süresiz</span>`; }
+            set('da-prev-klnGun', klnGunHtml); set('da-prev-ardiye', window.formatNumber(m.ardiye)+' ₺'); set('da-prev-sonGun', m.sonGun||'-'); set('da-prev-kiymGecen', m.kiymGecen!==''?m.kiymGecen:'-');
         };
 
         window.sortState = { col: 'tarih', asc: false };
@@ -843,41 +872,16 @@
             localStorage.setItem('gumruk_calc_state', JSON.stringify(state));
         };
 
-        window.declAutoCalc = function() {
-    const val = (id) => document.getElementById(id)?.value;
-    // ISO (YYYY-MM-DD) → Türkçe (DD.MM.YYYY) çevirici
-    const isoToTR = (iso) => { 
-        if(!iso) return ''; 
-        const p = iso.split('-'); 
-        return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : iso; 
-    };
-    const data = { 
-        tarih:    isoToTR(val('da-tarih')), 
-        ekSure:   isoToTR(val('da-ekSure')), 
-        antTarih: isoToTR(val('da-antTarih')), 
-        beynmCif: isoToTR(val('da-beynmCif')), 
-        kiymVv:   isoToTR(val('da-kiymVv')),   // ← Düzeltildi
-        kiymGt:   isoToTR(val('da-kiymGt')),   // ← Düzeltildi
-        evrak: val('da-evrak') 
-    };
-    if(!data.tarih) return; 
-    const m = window.calculateVehicleMetrics(data); 
-    const set = (id, v) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = v; };
-    set('da-prev-ilkSure', m.ilkSureSonu||'-'); 
-    let klnGunHtml = '-'; 
-    if (m.klnGun !== '' && m.klnGun !== 'Süresiz') { 
-        let val2 = parseInt(m.klnGun); 
-        if (val2 <= 5) klnGunHtml = `<span class="text-danger font-bold">${val2} Gün</span>`; 
-        else if (val2 <= 20) klnGunHtml = `<span class="text-warning">${val2} Gün</span>`; 
-        else klnGunHtml = `<span class="text-success">${val2} Gün</span>`; 
-    } else if(m.klnGun === 'Süresiz') { 
-        klnGunHtml = `<span class="text-muted">Süresiz</span>`; 
-    }
-    set('da-prev-klnGun', klnGunHtml); 
-    set('da-prev-ardiye', window.formatNumber(m.ardiye)+' ₺'); 
-    set('da-prev-sonGun', m.sonGun||'-'); 
-    set('da-prev-kiymGecen', m.kiymGecen!==''?m.kiymGecen:'-');
-};
+        window.loadCalculatorState = function() {
+            const saved = localStorage.getItem('gumruk_calc_state'); if(!saved) return false;
+            try {
+                const s = JSON.parse(saved); const setV = (id, v) => { if(document.getElementById(id) && v !== undefined) document.getElementById(id).value = v; };
+                setV('calc-type', s.type); setV('calc-igv', s.igv); setV('calc-kkdf', s.kkdf); setV('calc-gv', s.gv); setV('calc-kur-input', s.kur); setV('calc-fatura', s.fatura); setV('cur-calc-fatura', s.curFatura); setV('calc-navlun', s.navlun); setV('cur-calc-navlun', s.curNavlun); setV('calc-sigorta', s.sigorta); setV('cur-calc-sigorta', s.curSigorta); setV('calc-yurtdisi', s.yurtdisi); setV('cur-calc-yurtdisi', s.curYurtdisi); setV('calc-yurtici', s.yurtici); setV('cur-calc-yurtici', s.curYurtici);
+                if (s.importer) { const radio = document.getElementById('sc-' + s.importer); if (radio) radio.checked = true; }
+                if(s.digerMasraflar) { s.digerMasraflar.forEach(m => { const target = window.digerMasrafListesi.find(x => x.id === m.id); if(target) { target.val = m.val; target.cur = m.cur; } setV(m.id, m.val); setV('cur-' + m.id, m.cur); }); }
+                return true;
+            } catch(e) { return false; }
+        };
 
         window.populateDigerMasraflar = function () {
             const container = document.getElementById('diger-masraflar-container'); if (!container) return;
@@ -908,10 +912,20 @@
         };
 
         window.declAutoCalc = function() {
-            const val = (id) => document.getElementById(id)?.value; const data = { tarih: val('da-tarih'), ekSure: val('da-ekSure'), antTarih: val('da-antTarih'), beynmCif: val('da-beynmCif'), kiymVv: val('da-kiymVv'), kiymGt: val('da-kiymGt'), evrak: val('da-evrak') };
-            if(!data.tarih) return; const m = window.calculateVehicleMetrics(data); const set = (id, v) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = v; };
+            const val = (id) => document.getElementById(id)?.value;
+            const isoToTR = (iso) => { if(!iso) return ''; const p = iso.split('-'); return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : iso; };
+            const data = { tarih: isoToTR(val('da-tarih')), ekSure: isoToTR(val('da-ekSure')), antTarih: isoToTR(val('da-antTarih')), beynmCif: isoToTR(val('da-beynmCif')), kiymVv: isoToTR(val('da-kiymVv')), kiymGt: isoToTR(val('da-kiymGt')), evrak: val('da-evrak') };
+            if(!data.tarih) return; 
+            const m = window.calculateVehicleMetrics(data); 
+            const set = (id, v) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = v; };
             set('da-prev-ilkSure', m.ilkSureSonu||'-'); 
-            let klnGunHtml = '-'; if (m.klnGun !== '' && m.klnGun !== 'Süresiz') { let val = parseInt(m.klnGun); if (val <= 5) klnGunHtml = `<span class="text-danger font-bold">${val} Gün</span>`; else if (val <= 20) klnGunHtml = `<span class="text-warning">${val} Gün</span>`; else klnGunHtml = `<span class="text-success">${val} Gün</span>`; } else if(m.klnGun === 'Süresiz') { klnGunHtml = `<span class="text-muted">Süresiz</span>`; }
+            let klnGunHtml = '-'; 
+            if (m.klnGun !== '' && m.klnGun !== 'Süresiz') { 
+                let val2 = parseInt(m.klnGun); 
+                if (val2 <= 5) klnGunHtml = `<span class="text-danger font-bold">${val2} Gün</span>`; 
+                else if (val2 <= 20) klnGunHtml = `<span class="text-warning">${val2} Gün</span>`; 
+                else klnGunHtml = `<span class="text-success">${val2} Gün</span>`; 
+            } else if(m.klnGun === 'Süresiz') { klnGunHtml = `<span class="text-muted">Süresiz</span>`; }
             set('da-prev-klnGun', klnGunHtml); set('da-prev-ardiye', window.formatNumber(m.ardiye)+' ₺'); set('da-prev-sonGun', m.sonGun||'-'); set('da-prev-kiymGecen', m.kiymGecen!==''?m.kiymGecen:'-');
         };
 
