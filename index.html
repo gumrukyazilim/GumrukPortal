@@ -166,8 +166,17 @@
         <main class="main-content">
             <header class="top-header">
                 <div class="header-search">
-                    <i data-lucide="search" style="color:var(--text-muted); cursor:pointer; width:16px;" onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"></i>
-                    <input type="text" id="global-search-input" onkeyup="if(event.key === 'Enter') window.handleGlobalSearch(this.value)" placeholder="Kayıt arayın... (Enter)">
+                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" 
+                            style="background:transparent; border:none; cursor:pointer; display:flex; align-items:center; color:var(--text-muted); padding:0;">
+                        <i data-lucide="search" style="width:16px; height:16px;"></i>
+                    </button>
+                    <input type="text" id="global-search-input" 
+                           onkeyup="if(event.key === 'Enter') window.handleGlobalSearch(this.value)" 
+                           placeholder="Kayıt arayın... (Enter)">
+                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"
+                            style="background:transparent; border:none; cursor:pointer; color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap; padding-left:8px; border-left:1px solid var(--border-light); margin-left:8px;">
+                        Ara
+                    </button>
                 </div>
                 <div class="header-actions">
                     <div class="user-profile" onclick="if(confirm('Oturumu kapatmak istiyor musunuz?')){localStorage.removeItem('gumruk_auth'); location.reload();}" title="Çıkış Yap">
