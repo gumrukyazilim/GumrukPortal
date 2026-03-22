@@ -113,6 +113,10 @@
         .inline-date:hover::after { content: '✎'; position: absolute; right: 8px; top: 10px; font-size: 10px; color: var(--text-muted); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); cursor: pointer; }
         
+        .firm-delete-btn { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; opacity: 0; border: 1px solid transparent;}
+        .stat-card:hover .firm-delete-btn { opacity: 1; }
+        .firm-delete-btn:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); }
+        
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
@@ -588,20 +592,22 @@
             let L_date = null;
             if (I) { L_date = window.addDays(I, 29); } 
             else if (H) { L_date = null; } // Antrepo = Süresiz
-            else if (G) { L_date = window.addDays(G > F ? G : F, 29); } 
+            else if (G) { L_date = window.addDays(G > F ? G : F, 30); } // 30 GÜN EKLENMESİ SAĞLANDI
             else { L_date = F; }
             
-            result.klnSonTarih = L_date ? window.formatTRDate(L_date) : "Süresiz";
+            if (L_date) { result.klnSonTarih = window.formatTRDate(L_date); }
 
             // 2. Kıymette Geçen Süre Hesabı (Rakam Olarak)
-            let kiymGecenGun = 0;
-            if (J && !K) {
-                result.kiymGecen = "Kıymette";
-            } else if (J && K) {
-                kiymGecenGun = window.diffDaysSigned(K, J);
-                result.kiymGecen = kiymGecenGun;
-            } else {
-                result.kiymGecen = L_date === null ? "Süresiz" : "-";
+            let kiymGecenSayi = 0;
+            if (J) {
+                if (K) {
+                    kiymGecenSayi = window.diffDaysSigned(K, J);
+                    result.kiymGecen = kiymGecenSayi; // Rakam
+                } else {
+                    result.kiymGecen = "Kıymette"; // Yazı
+                }
+            } else if (H && !I) {
+                result.kiymGecen = "Süresiz";
             }
 
             // 3. SON GÜN ve KALAN GÜN Mantığı
@@ -617,21 +623,26 @@
             } else if (isAcik && !(J && K)) {
                 // Evrak açık VE kıymet süreci tamamlanmamış
                 result.sonGun = "Açık";
-                result.klnGun = "-";
+                if (L_date) {
+                    let diff = window.diffDaysSigned(L_date, today);
+                    result.klnGun = diff < 0 ? 0 : diff;
+                } else {
+                    result.klnGun = "Süresiz";
+                }
             } else if (!L_date) {
                 // L_date yoksa (Örn: Antrepo) SON GÜN hesaplanamaz, Süresizdir.
                 result.sonGun = "Süresiz";
                 result.klnGun = "Süresiz";
             } else {
                 // L_date var ve Kıymette DEĞİL (yani ya kıymet bitti ya da hiç gitmedi)
-                let finalSonGunDate = window.addDays(L_date, kiymGecenGun);
+                let finalSonGunDate = window.addDays(L_date, kiymGecenSayi);
                 result.sonGun = window.formatTRDate(finalSonGunDate);
                 
                 let diff = window.diffDaysSigned(finalSonGunDate, today);
                 result.klnGun = diff < 0 ? 0 : diff;
             }
 
-            // 4. Ardiye Hesabı
+            // 5. Ardiye
             let gun = window.diffDaysSigned(today, E) + 1; result.gecenGun = gun;
             if (gun > 0) { if (gun <= 20) result.ardiye = gun * 145; else if (gun <= 50) result.ardiye = 2900 + (gun - 20) * 725; else if (gun <= 80) result.ardiye = 24650 + (gun - 50) * 1160; else result.ardiye = 59450 + (gun - 80) * 1450; }
             return result;
