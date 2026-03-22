@@ -423,13 +423,15 @@
         window.sortData=function(context){window.sortState.asc=!window.sortState.asc;const mult=window.sortState.asc?1:-1;const parseD=(dStr)=>{if(!dStr)return 0;let clean=window.fixExcelDate(dStr);let p=clean.split('.');if(p.length===3)return parseInt(p[2]+p[1]+p[0]);return 0;};if(context==='decl'){window.declarationsData.sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('decl');window.renderDeclarationsTable();}else if(context==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('firm');window.renderFirmVehicles();}else if(context==='kiymet'){window.kiymetData.sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('kiymet');window.renderKiymetTable();}};
         window.goToFilter=function(filterType){window.renderView('declarations');const filterEl=document.getElementById('decl-status-filter');if(filterEl){filterEl.value=filterType;window.renderDeclarationsTable();}};
 
-        // ═══ FIX 3: handleGlobalSearch — kıymet arama sonuçlarında FATURA ve KIYMET ayrı gösteriliyor ═══
+        // ═══ FIX 3: handleGlobalSearch — Türkçe büyük/küçük harf duyarsız arama ═══
         window.handleGlobalSearch=function(query){
             if(!query||query.trim().length<2){if(document.getElementById('view-searchResults')&&!document.getElementById('view-searchResults').classList.contains('hidden')){window.renderView('dashboard');}return;}
-            const q=query.toUpperCase().trim();const decResults=[],kiymetResults=[],firmResults=[];
-            window.declarationsData.forEach((d,i)=>{if((d.sasi&&d.sasi.toUpperCase().includes(q))||(d.marka&&d.marka.toUpperCase().includes(q))||(d.model&&d.model.toUpperCase().includes(q)))decResults.push({data:d,index:i});});
-            Object.keys(window.firmData).forEach(fName=>{window.firmData[fName].forEach((d,i)=>{if((d.sasi&&d.sasi.toUpperCase().includes(q))||(d.marka&&d.marka.toUpperCase().includes(q))||(d.model&&d.model.toUpperCase().includes(q)))firmResults.push({firm:fName,data:d,index:i});});});
-            window.kiymetData.forEach((k,i)=>{if((k.sasi&&k.sasi.toUpperCase().includes(q))||(k.marka&&k.marka.toUpperCase().includes(q))||(k.model&&k.model.toUpperCase().includes(q)))kiymetResults.push({data:k,index:i});});
+            const q=query.toLocaleLowerCase('tr').trim();
+            const match=function(val){return val&&val.toLocaleLowerCase('tr').includes(q);};
+            const decResults=[],kiymetResults=[],firmResults=[];
+            window.declarationsData.forEach((d,i)=>{if(match(d.sasi)||match(d.marka)||match(d.model)||match(d.firma))decResults.push({data:d,index:i});});
+            Object.keys(window.firmData).forEach(fName=>{window.firmData[fName].forEach((d,i)=>{if(match(d.sasi)||match(d.marka)||match(d.model)||match(fName))firmResults.push({firm:fName,data:d,index:i});});});
+            window.kiymetData.forEach((k,i)=>{if(match(k.sasi)||match(k.marka)||match(k.model))kiymetResults.push({data:k,index:i});});
             window.renderView('searchResults');document.getElementById('search-query-display').innerText=query;const container=document.getElementById('search-results-container');
             let html='';
             if(decResults.length>0){html+=`<div class="glass-card"><h3 style="margin-bottom:16px;">Gelen Araçlar (${decResults.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>İŞLEM</th></tr></thead><tbody>`+decResults.map(r=>`<tr><td>${r.data.firma}</td><td>${r.data.marka} ${r.data.model}</td><td>${r.data.sasi}</td><td><button class="btn-sm" onclick="window.openDeclVehicleModal(${r.index},'decl')">Aç</button></td></tr>`).join('')+`</tbody></table></div>`;}
