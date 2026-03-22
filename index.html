@@ -165,19 +165,15 @@
         </aside>
         <main class="main-content">
             <header class="top-header">
-                <div class="header-search">
-                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" 
-                            style="background:transparent; border:none; cursor:pointer; display:flex; align-items:center; color:var(--text-muted); padding:0;">
-                        <i data-lucide="search" style="width:16px; height:16px;"></i>
-                    </button>
+                <div class="header-search" style="position:relative;">
+                    <i data-lucide="search" style="color:var(--text-muted); width:16px; height:16px; flex-shrink:0;"></i>
                     <input type="text" id="global-search-input" 
-                           oninput="window.handleGlobalSearch(this.value)" 
-                           placeholder="Marka, model, şasi, beyanname... yazın">
-                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"
-                            style="background:transparent; border:none; cursor:pointer; color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap; padding-left:8px; border-left:1px solid var(--border-light); margin-left:8px;">
-                        Ara
-                    </button>
+                           oninput="window.liveSearch(this.value)"
+                           onblur="setTimeout(()=>{let d=document.getElementById('search-dropdown');if(d)d.style.display='none';},200)"
+                           placeholder="Marka, model, şasi, beyanname...">
+                    <div id="search-dropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:-1px; right:-1px; background:var(--bg-surface); border:1px solid var(--border-focus); border-radius:var(--radius-md); max-height:360px; overflow-y:auto; z-index:99999; box-shadow:0 20px 40px rgba(0,0,0,0.7);"></div>
                 </div>
+                
                 <div class="header-actions">
                     <div class="user-profile" onclick="if(confirm('Oturumu kapatmak istiyor musunuz?')){localStorage.removeItem('gumruk_auth'); location.reload();}" title="Çıkış Yap">
                         <img src="https://ui-avatars.com/api/?name=Bayram&background=18181b&color=fff&rounded=true" alt="User">
@@ -670,58 +666,78 @@
         window.sortData = function(context) { window.sortState.asc = !window.sortState.asc; const mult = window.sortState.asc ? 1 : -1; const parseD = (dStr) => { if(!dStr) return 0; let clean = window.fixExcelDate(dStr); let p = clean.split('.'); if(p.length === 3) return parseInt(p[2]+p[1]+p[0]); return 0; }; if(context === 'decl') { window.declarationsData.sort((a,b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('decl'); window.renderDeclarationsTable(); } else if(context === 'firm') { window.firmData[window.currentFirm].sort((a,b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('firm'); window.renderFirmVehicles(); } else if(context === 'kiymet') { window.kiymetData.sort((a,b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('kiymet'); window.renderKiymetTable(); } };
         window.goToFilter = function(filterType) { window.renderView('declarations'); const filterEl = document.getElementById('decl-status-filter'); if(filterEl) { filterEl.value = filterType; window.renderDeclarationsTable(); } };
 
-        window.handleGlobalSearch = function(query) {
-            if (!query || query.trim().length < 1) { 
-                if(document.getElementById('view-searchResults') && !document.getElementById('view-searchResults').classList.contains('hidden')) { 
-                    window.renderView('dashboard'); 
-                } 
-                return; 
-            }
-            const q = query.toUpperCase().trim(); 
-            const decResults = []; const kiymetResults = []; const firmResults = [];
-            
-            window.declarationsData.forEach((d, i) => { 
-                if ((d.sasi && d.sasi.toUpperCase().includes(q)) || 
-                    (d.marka && d.marka.toUpperCase().includes(q)) || 
-                    (d.model && d.model.toUpperCase().includes(q)) ||
-                    (d.firma && d.firma.toUpperCase().includes(q)) ||
-                    (d.beyanname && d.beyanname.toUpperCase().includes(q)) ||
-                    (d.renk && d.renk.toUpperCase().includes(q)) ||
-                    (d.yil && String(d.yil).toUpperCase().includes(q))
-                ) { decResults.push({ data: d, index: i }); } 
-            });
-            
-            Object.keys(window.firmData).forEach(fName => { 
-                window.firmData[fName].forEach((d, i) => { 
-                    if ((d.sasi && d.sasi.toUpperCase().includes(q)) || 
-                        (d.marka && d.marka.toUpperCase().includes(q)) || 
-                        (d.model && d.model.toUpperCase().includes(q)) ||
-                        (d.beyanname && d.beyanname.toUpperCase().includes(q)) ||
-                        (d.renk && d.renk.toUpperCase().includes(q)) ||
-                        (fName.toUpperCase().includes(q))
-                    ) { firmResults.push({ firm: fName, data: d, index: i }); } 
-                }); 
-            });
-            
-            window.kiymetData.forEach((k, i) => { 
-                if ((k.sasi && k.sasi.toUpperCase().includes(q)) || 
-                    (k.marka && k.marka.toUpperCase().includes(q)) || 
-                    (k.model && k.model.toUpperCase().includes(q)) ||
-                    (k.renk && k.renk.toUpperCase().includes(q)) ||
-                    (k.yil && String(k.yil).toUpperCase().includes(q)) ||
-                    (k.durum && k.durum.toUpperCase().includes(q))
-                ) { kiymetResults.push({ data: k, index: i }); } 
+        // CANLI (LIVE) SEARCH MANTIĞI EKLENDİ
+        window.liveSearch = function(query) {
+            const dropdown = document.getElementById('search-dropdown');
+            if (!dropdown) return;
+            if (!query || query.trim().length < 1) { dropdown.style.display = 'none'; return; }
+            const q = query.toUpperCase().trim();
+            let items = [];
+
+            (window.declarationsData || []).forEach((d, i) => {
+                if ([d.sasi, d.marka, d.model, d.firma, d.beyanname, d.renk, d.yil]
+                    .some(v => v && String(v).toUpperCase().includes(q))) {
+                    items.push({ type:'decl', idx:i,
+                        title:`${d.marka||''} ${d.model||''}`.trim(),
+                        sub:`${d.firma||''} • Şasi: ${d.sasi||'-'} • ${d.beyanname ? 'Byn: '+d.beyanname : d.tarih||''}`,
+                        badge:'Gelen Araç', color:'var(--primary)' });
+                }
             });
 
-            window.renderView('searchResults'); 
-            document.getElementById('search-query-display').innerText = query; 
-            const container = document.getElementById('search-results-container');
-            let html = '';
-            if (decResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Gelen Araçlar (${decResults.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>BEYANNAME</th><th>İŞLEM</th></tr></thead><tbody>` + decResults.map(r => `<tr><td>${r.data.firma||'-'}</td><td>${r.data.marka||''} ${r.data.model||''}</td><td>${r.data.sasi||'-'}</td><td>${r.data.beyanname||'-'}</td><td><button class="btn-sm" onclick="window.openDeclVehicleModal(${r.index}, 'decl')">Aç</button></td></tr>`).join('') + `</tbody></table></div>`; }
-            if (firmResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Firmalar (${firmResults.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>İŞLEM</th></tr></thead><tbody>` + firmResults.map(r => `<tr><td>${r.firm}</td><td>${r.data.marka||''} ${r.data.model||''}</td><td>${r.data.sasi||'-'}</td><td><button class="btn-sm" onclick="window.currentFirm='${r.firm.replace(/"/g, '&quot;').replace(/'/g, "\\'")}'; window.openDeclVehicleModal(${r.index}, 'firm')">Aç</button></td></tr>`).join('') + `</tbody></table></div>`; }
-            if (kiymetResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Kıymet Arşivi (${kiymetResults.length})</h3><table class="data-table"><thead><tr><th>ARAÇ</th><th>ŞASİ</th><th>FATURA</th><th>KIYMET</th><th>DURUM</th></tr></thead><tbody>` + kiymetResults.map(r => `<tr><td>${r.data.marka||''} ${r.data.model||''}</td><td>${r.data.sasi||'-'}</td><td>${r.data.fatura||'-'} €</td><td class="text-success">${r.data.kiymet||'-'} €</td><td>${r.data.durum||'-'}</td></tr>`).join('') + `</tbody></table></div>`; }
-            if(html === '') { html = `<div class="glass-card" style="text-align:center; padding:40px; color:var(--text-muted);">Kayıt bulunamadı.</div>`; }
-            container.innerHTML = html; if (window.lucide) window.lucide.createIcons();
+            (window.kiymetData || []).forEach((k, i) => {
+                if ([k.sasi, k.marka, k.model, k.renk, k.yil, k.durum]
+                    .some(v => v && String(v).toUpperCase().includes(q))) {
+                    items.push({ type:'kiymet', idx:i,
+                        title:`${k.marka||''} ${k.model||''}`.trim(),
+                        sub:`Şasi: ${k.sasi||'-'} • ${k.durum||''}`,
+                        badge:'Kıymet', color:'var(--kiymet-color)' });
+                }
+            });
+
+            Object.keys(window.firmData || {}).forEach(fName => {
+                (window.firmData[fName] || []).forEach((d, i) => {
+                    if ([d.sasi, d.marka, d.model, d.beyanname, fName]
+                        .some(v => v && String(v).toUpperCase().includes(q))) {
+                        if (!items.find(x => x.type==='decl' && x.sub && x.sub.includes(d.sasi||'__NOSASI__'))) {
+                            items.push({ type:'firm', idx:i, firmName:fName,
+                                title:`${d.marka||''} ${d.model||''}`.trim(),
+                                sub:`${fName} • Şasi: ${d.sasi||'-'}`,
+                                badge:'Firma', color:'var(--success)' });
+                        }
+                    }
+                });
+            });
+
+            if (items.length === 0) {
+                dropdown.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">Kayıt bulunamadı.</div>`;
+            } else {
+                dropdown.innerHTML = items.slice(0, 25).map((r, i) =>
+                    `<div style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;"
+                         onmouseover="this.style.background='var(--bg-surface-hover)'"
+                         onmouseout="this.style.background='transparent'"
+                         onmousedown="window.searchGoTo('${r.type}',${r.idx},'${(r.firmName||'').replace(/'/g,"\\'")}')">
+                        <div>
+                            <div style="font-weight:600;color:white;font-size:13px;">${r.title||'(Bilinmiyor)'}</div>
+                            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${r.sub}</div>
+                        </div>
+                        <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:${r.color}22;color:${r.color};white-space:nowrap;margin-left:8px;">${r.badge}</span>
+                    </div>`
+                ).join('') + (items.length > 25 ? `<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:12px;">+${items.length-25} daha fazla sonuç</div>` : '');
+            }
+            dropdown.style.display = 'block';
+        };
+
+        window.searchGoTo = function(type, idx, firmName) {
+            document.getElementById('search-dropdown').style.display = 'none';
+            document.getElementById('global-search-input').value = '';
+            if (type === 'decl') { window.renderView('declarations'); setTimeout(() => window.openDeclVehicleModal(idx, 'decl'), 150); }
+            else if (type === 'kiymet') { window.renderView('kiymetListesi'); }
+            else if (type === 'firm') { window.currentFirm = firmName; window.renderView('firmDetails'); setTimeout(() => window.openDeclVehicleModal(idx, 'firm'), 150); }
+        };
+
+        window.handleGlobalSearch = function(query) {
+            // Dropdown sistemine geçildiği için boş bırakıldı ancak uyumluluk için korundu.
+            window.liveSearch(query);
         };
 
         window.updateDashboardStats = function() {
