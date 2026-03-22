@@ -24,7 +24,6 @@
         .glass-card { border-radius: var(--radius-lg); padding: 28px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; }
         .glass-card::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, transparent, rgba(255,255,255,0.03), transparent); transform: skewX(-20deg); transition: 0.7s; }
         .glass-card:hover::before { left: 150%; }
-        
         .app-container { display: flex; height: 100vh; }
         .sidebar { width: 280px; display: flex; flex-direction: column; background: rgba(9, 9, 11, 0.8); border-right: 1px solid var(--glass-border); z-index: 10; }
         .sidebar-logo { padding: 32px 24px; display: flex; align-items: center; gap: 16px; font-size: 24px; font-weight: 800; color: white; background: linear-gradient(90deg, rgba(59, 130, 246, 0.05), transparent); border-bottom: 1px solid var(--glass-border); letter-spacing: -0.5px;}
@@ -34,28 +33,23 @@
         .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text-main); transform: translateX(6px); }
         .nav-item.active { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%); color: var(--accent); box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3); border-right: 3px solid var(--accent); }
         .sidebar-footer { padding: 24px 16px; border-top: 1px solid var(--glass-border); display:flex; flex-direction:column; gap:12px; }
-        
         .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .top-header { height: 88px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: rgba(9, 9, 11, 0.6); border-bottom: 1px solid var(--glass-border); backdrop-filter: blur(30px); z-index: 5;}
         .header-search { display: flex; align-items: center; background: rgba(24, 24, 27, 0.6); border: 1px solid var(--glass-border); border-radius: 40px; padding: 12px 24px; width: 480px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
         .header-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), inset 0 2px 4px rgba(0,0,0,0.2); transform: scale(1.02); }
         .header-search input { background: transparent; color: var(--text-main); padding-left: 14px; width: 100%; font-size: 15px; }
-        
         .user-profile { display: flex; align-items: center; gap: 14px; padding: 6px 20px 6px 6px; border-radius: 40px; background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%); border: 1px solid var(--glass-border); transition: 0.3s; cursor:pointer;}
         .user-profile:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
         .user-profile img { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--accent); padding: 2px; }
-        
         .view-container { flex: 1; padding: 48px; overflow-y: auto; scroll-behavior: smooth; }
         @keyframes fadeSlideUp { 0% { opacity: 0; transform: translateY(30px) scale(0.98); filter: blur(8px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
         .fade-in { animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         @keyframes pulse-alarm { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .urgent-pulse { animation: pulse-alarm 1.5s infinite; border-radius: 8px; display:inline-block; padding: 4px 12px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.5); color: #fca5a5; font-weight: 800; letter-spacing: 1px;}
-        
         .page-header { margin-bottom: 40px; display:flex; justify-content:space-between; align-items:flex-end; }
         .page-title { font-size: 36px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px;}
-        
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; margin-bottom: 40px; }
-        .stat-card { display: flex; align-items: center; padding: 32px; gap: 24px; background: linear-gradient(145deg, rgba(39, 39, 42, 0.4) 0%, rgba(24, 24, 27, 0.8) 100%); cursor:pointer;}
+        .stat-card { display: flex; align-items: center; padding: 32px; gap: 24px; background: linear-gradient(145deg, rgba(39, 39, 42, 0.4) 0%, rgba(24, 24, 27, 0.8) 100%); cursor:pointer; }
         .stat-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(56, 189, 248, 0.3); }
         .stat-icon { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 20px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, transparent 100%); color: var(--accent); font-size: 32px; border: 1px solid rgba(59, 130, 246, 0.2);}
         .stat-icon.warning { background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, transparent 100%); color: var(--warning); border-color: rgba(245, 158, 11, 0.2);}
@@ -63,7 +57,6 @@
         .stat-info { flex: 1; }
         .stat-info h3 { font-size: 13px; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;}
         .stat-value { font-size: 36px; font-weight: 800; color: white; margin-bottom: 4px; font-family: 'Outfit', sans-serif;}
-        
         .data-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; font-size:14px; }
         .data-table th { padding: 16px 20px; text-align: left; font-weight: 700; color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; border-bottom: none; }
         .data-table td { padding: 16px 20px; text-align: left; background: rgba(24, 24, 27, 0.4); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); white-space: nowrap; vertical-align: middle;}
@@ -71,12 +64,10 @@
         .data-table td:last-child { border-right: 1px solid var(--glass-border); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
         .data-table tbody tr { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: default; }
         .data-table tbody tr:hover { background: rgba(39, 39, 42, 0.6); transform: translateY(-2px) scale(1.002); box-shadow: 0 10px 20px -10px rgba(0,0,0,0.6); z-index: 2; position: relative; }
-        
         .custom-cb { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; background: rgba(0,0,0,0.3); border: 2px solid #52525b; border-radius: 6px; cursor: pointer; display: inline-grid; place-content: center; transition: all 0.3s; margin:0;}
         .custom-cb::before { content: ""; width: 12px; height: 12px; transform: scale(0); transition: 0.2s transform cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: inset 1em 1em white; transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); }
         .custom-cb:checked { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
         .custom-cb:checked::before { transform: scale(1); }
-        
         .text-primary { color: var(--accent); } .text-danger { color: #f87171; } .text-success { color: #34d399; } .text-warning { color: #fbbf24; } .text-muted { color: var(--text-muted); }
         .font-medium { font-weight: 500; } .font-bold { font-weight: 800; }
         .badge { padding: 8px 16px; border-radius: 30px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);}
@@ -84,36 +75,30 @@
         .badge-success { background: linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.2) 100%); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
         .badge-danger { background: linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(220,38,38,0.2) 100%); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
         .badge-dark { background: rgba(39, 39, 42, 0.6); color: #e4e4e7; border: 1px solid rgba(255,255,255,0.1); }
-        
         .btn-sm { padding: 10px 20px; background: rgba(255,255,255,0.03); color: white; border-radius: 10px; font-size: 13px; font-weight: 600; transition: all 0.3s; cursor: pointer; border: 1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; gap:8px;}
         .btn-sm:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .btn-primary { padding: 14px 28px; background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%); color: white; border-radius: 12px; font-weight: 700; font-size: 14px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4), inset 0 1px 1px rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; gap:8px;}
         .btn-primary:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5), inset 0 1px 1px rgba(255,255,255,0.2); }
         .icon-btn { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; transition: all 0.3s; cursor:pointer; border:1px solid transparent; color: white;}
         .icon-btn:hover { transform: translateY(-2px); filter: brightness(1.2); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        
         .input-group { margin-bottom: 24px; position:relative; }
         .input-group label { display: block; margin-bottom: 10px; font-size: 12px; color: #a1a1aa; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
         input[type="text"], input[type="password"], input[type="date"], select { width:100%; padding:16px; border-radius:12px; background:rgba(0,0,0,0.3); color:white; border:1px solid #3f3f46; font-size: 15px; font-weight:500; transition: all 0.3s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);}
         input[type="text"]:focus, select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15), inset 0 2px 4px rgba(0,0,0,0.1); background:rgba(0,0,0,0.5);}
-        
         .segmented-control { display: flex; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 14px; position: relative; border: 1px solid #3f3f46; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);}
         .segmented-control input { display: none; }
         .segmented-control label { flex: 1; text-align: center; padding: 12px 0; font-size: 14px; font-weight: 700; color: #a1a1aa; cursor: pointer; transition: 0.3s; z-index: 2; margin:0; border-radius: 10px;}
         .segmented-control .slider { position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc(50% - 6px); background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); border-radius: 10px; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4); z-index: 1; }
         .segmented-control input:nth-child(3):checked ~ .slider { left: 50%; }
         .segmented-control input:checked + label { color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2);}
-
         .inline-date { cursor: pointer; position: relative; min-width: 110px; padding: 10px !important; border-radius: 10px; transition: all 0.3s; background: rgba(0,0,0,0.2);}
         .inline-date:hover { background: rgba(56, 189, 248, 0.1); box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.3); transform: scale(1.05);}
         .inline-date:hover::after { content: '✎ Düzenle'; position: absolute; right: 10px; top: -12px; font-size: 10px; color: var(--accent); background:var(--bg-dark); padding:2px 6px; border-radius:4px; border:1px solid rgba(56,189,248,0.3); opacity:0; transform:translateY(5px); transition:0.3s; font-weight:700;}
         .inline-date:hover::after { opacity:1; transform:translateY(0); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.8) sepia(1) hue-rotate(180deg) saturate(300%); cursor: pointer; }
-        
         .firm-delete-btn { position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 12px; background: rgba(239,68,68,0.1); color: #fca5a5; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; transform: scale(0.8) rotate(-10deg);}
         .stat-card:hover .firm-delete-btn { opacity: 1; transform: scale(1) rotate(0); border: 1px solid rgba(239,68,68,0.3);}
         .firm-delete-btn:hover { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: white; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5); }
-        
         ::-webkit-scrollbar { width: 10px; height: 10px; }
         ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); }
         ::-webkit-scrollbar-thumb { background: rgba(63, 63, 70, 0.8); border-radius: 6px; border: 2px solid rgba(0,0,0,0.3);}
@@ -135,7 +120,7 @@
 
     <div id="app-screen" class="app-container">
         <aside class="sidebar">
-            <div class="sidebar-logo"><i data-lucide="hexagon"></i><div><span>GümrükPortal</span><small style="font-size:11px;color:var(--text-muted);display:block;font-weight:600;margin-top:2px; letter-spacing:1px;">v17.6 KUSURSUZ</small></div></div>
+            <div class="sidebar-logo"><i data-lucide="hexagon"></i><div><span>GümrükPortal</span><small style="font-size:11px;color:var(--text-muted);display:block;font-weight:600;margin-top:2px; letter-spacing:1px;">v17.7 OTO-SENKRON</small></div></div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Sistem Özeti</span></button>
                 <button class="nav-item" data-view="declarations"><i data-lucide="car-front"></i><span>Gelen Araçlar</span></button>
@@ -457,7 +442,7 @@
     </template>
 
     <script>
-        // --- GİRİŞ / LOGIN KONTROLÜ ---
+        // TÜM JAVASCRIPT KODLARI
         window.checkLogin = function() {
             const pw = document.getElementById('login-password').value;
             if(pw === 'Bayram2026') {
@@ -470,7 +455,6 @@
             }
         };
 
-        // --- VERİ HAVUZU VE SABİTLER ---
         window.exchangeRates = { EUR: 50.9822, USD: 48.10, GBP: 58.50, TL: 1 };
         window.declarationsData = []; 
         window.firmData = {}; 
@@ -522,7 +506,6 @@
             if (oldVal !== newVal) { input.value = newVal; let newPos = cursor + (newVal.length - oldVal.length); input.setSelectionRange(newPos, newPos); }
         };
 
-        // KUSURSUZ YÜKLEME VE KURTARMA MOTORU
         function loadAllData() {
             try {
                 const kData = localStorage.getItem('gumrukKiymetData');
@@ -548,8 +531,23 @@
 
                 window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] };
 
+                // OTO-KURTARMA: Gelen Araçlar boşsa ama firmalar doluysa kurtar
+                let totalFirmsVehicles = 0;
+                Object.keys(parsedFirms).forEach(k => { totalFirmsVehicles += Array.isArray(parsedFirms[k]) ? parsedFirms[k].length : 0; });
+
+                if (window.declarationsData.length === 0 && totalFirmsVehicles > 0) {
+                    Object.keys(parsedFirms).forEach(fName => {
+                        if (Array.isArray(parsedFirms[fName])) {
+                            parsedFirms[fName].forEach(v => {
+                                window.declarationsData.push({...v, firma: fName});
+                            });
+                        }
+                    });
+                }
+
+                // ÇAPRAZ SENKRONİZASYON
                 window.declarationsData.forEach(d => {
-                    if(d) {
+                    if(d && d.sasi) {
                         d.tarih = window.fixExcelDate(d.tarih); d.kiymVv = window.fixExcelDate(d.kiymVv); d.kiymGt = window.fixExcelDate(d.kiymGt);
                         let fName = d.firma || "ŞAMNU GT";
                         if(!window.firmData[fName]) window.firmData[fName] = [];
@@ -561,19 +559,21 @@
                     if(!window.firmData[fName]) window.firmData[fName] = [];
                     if(Array.isArray(parsedFirms[fName])) {
                         parsedFirms[fName].forEach(p => {
-                            if(p && !window.firmData[fName].find(x => x.sasi === p.sasi)) {
+                            if(p && p.sasi) {
                                 p.tarih = window.fixExcelDate(p.tarih);
-                                window.firmData[fName].push(p);
+                                if(!window.firmData[fName].find(x => x.sasi === p.sasi)) window.firmData[fName].push(p);
+                                if(!window.declarationsData.find(x => x.sasi === p.sasi)) window.declarationsData.push({...p, firma: fName});
                             }
                         });
                     }
                 });
 
                 window.kiymetData.forEach(k => { if(k) k.tarih = window.fixExcelDate(k.tarih); });
-                saveData('firm');
+                
+                saveData('all'); // Kurtarılmış verileri güvenle kalıcı hafızaya yaz
 
             } catch (e) {
-                console.error("Kritik Veri Okuma Hatası! Sistem kendini güvenli moda aldı.", e);
+                console.error("Kritik Veri Okuma Hatası!", e);
                 window.declarationsData = [];
                 window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] };
                 window.kiymetData = [...defaultKiymetVerileri];
@@ -630,7 +630,6 @@
             }
         };
 
-        // ZIRHLI CLICK FONKSİYONLARI (QUOTES ERROR ÖNLEME)
         window.deleteFirm = function(firmNameEscaped, event) {
             event.stopPropagation();
             const firmName = firmNameEscaped.replace(/&quot;/g, '"');
@@ -934,12 +933,13 @@
 
         window.toggleAllFirmVehicles = function(isChecked) { document.querySelectorAll('.firm-cb').forEach(c => c.checked = isChecked); window.toggleFirmCb(); };
         window.toggleFirmCb = function() { const chk = document.querySelectorAll('.firm-cb:checked'); const btn = document.getElementById('firm-bulk-delete-btn'); if(btn) { if(chk.length>0) { btn.classList.remove('hidden'); document.getElementById('firm-selected-count').innerText=chk.length; } else btn.classList.add('hidden'); } };
-        window.bulkDeleteFirmVehicles = function() { const chk = document.querySelectorAll('.firm-cb:checked'); if(chk.length===0) return; if(confirm(chk.length + ' kaydı silmek istediğinize emin misiniz?')) { Array.from(chk).map(c=>parseInt(c.value)).sort((a,b)=>b-a).forEach(i => window.firmData[window.currentFirm].splice(i,1)); saveData('firm'); window.renderFirmVehicles(); } };
+        window.bulkDeleteFirmVehicles = function() { const chk = document.querySelectorAll('.firm-cb:checked'); if(chk.length===0) return; if(confirm(chk.length + ' kaydı silmek istediğinize emin misiniz? (Gelen Araçlardaki ana kayıtlar silinmez)')) { Array.from(chk).map(c=>parseInt(c.value)).sort((a,b)=>b-a).forEach(i => window.firmData[window.currentFirm].splice(i,1)); saveData('firm'); window.renderFirmVehicles(); } };
 
         window.toggleSelectAllKiymet = function(src) { document.querySelectorAll('.kiymet-cb').forEach(c => c.checked = src.checked); window.toggleKiymetCb(); };
         window.toggleKiymetCb = function() { const chk = document.querySelectorAll('.kiymet-cb:checked'); const btn = document.getElementById('kiymet-delete-btn'); if(btn) { if(chk.length>0) { btn.classList.remove('hidden'); document.getElementById('kiymet-sel-count').innerText=chk.length; } else btn.classList.add('hidden'); } };
         window.deleteSelectedKiymets = function() { const chk = document.querySelectorAll('.kiymet-cb:checked'); if(chk.length===0) return; if(confirm(chk.length + ' kaydı silmek istediğinize emin misiniz?')) { Array.from(chk).map(c=>parseInt(c.value)).sort((a,b)=>b-a).forEach(i => window.kiymetData.splice(i,1)); saveData('kiymet'); window.renderKiymetTable(); } };
         window.deleteKiymet = function(i) { if(confirm('Bu kıymet kaydını silmek istediğinize emin misiniz?')) { window.kiymetData.splice(i,1); saveData('kiymet'); window.renderKiymetTable(); } };
+        
         window.openKiymetModal = function() { document.getElementById('kiymet-modal').classList.remove('hidden'); document.getElementById('km-edit-index').value='-1'; };
         window.closeKiymetModal = function() { document.getElementById('kiymet-modal').classList.add('hidden'); };
         window.editKiymet = function(i) { const k = window.kiymetData[i]; ['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id => {if(document.getElementById('km-'+id)) document.getElementById('km-'+id).value = k[id]||'';}); document.getElementById('km-edit-index').value = i; document.getElementById('kiymet-modal').classList.remove('hidden'); };
@@ -988,16 +988,31 @@
             if(!r.firma || !r.tarih) { alert('Firma ve Geliş Tarihi zorunludur!'); return; }
 
             if(window.currentModalContext === 'decl') { 
+                let oldSasi = i === -1 ? null : window.declarationsData[i].sasi;
                 if(i===-1) {
                     window.declarationsData.unshift({...r});
                     if(!window.firmData[r.firma]) window.firmData[r.firma] = [];
-                    window.firmData[r.firma].unshift({...r});
-                } else { window.declarationsData[i] = r; }
+                    if(!window.firmData[r.firma].find(x=>x.sasi === r.sasi)) window.firmData[r.firma].unshift({...r});
+                } else { 
+                    window.declarationsData[i] = r; 
+                    if(window.firmData[r.firma]) {
+                        let fIdx = window.firmData[r.firma].findIndex(x => x.sasi === oldSasi);
+                        if(fIdx !== -1) window.firmData[r.firma][fIdx] = r;
+                    }
+                }
                 saveData('decl'); saveData('firm'); window.renderDeclarationsTable(); 
             } else { 
+                let oldSasi = i === -1 ? null : window.firmData[window.currentFirm][i].sasi;
                 if(!window.firmData[window.currentFirm]) window.firmData[window.currentFirm] = [];
-                if(i===-1) window.firmData[window.currentFirm].unshift({...r}); else window.firmData[window.currentFirm][i] = r; 
-                saveData('firm'); window.renderFirmVehicles(); 
+                if(i===-1) {
+                    window.firmData[window.currentFirm].unshift({...r}); 
+                    if(!window.declarationsData.find(x=>x.sasi===r.sasi)) window.declarationsData.unshift({...r});
+                } else { 
+                    window.firmData[window.currentFirm][i] = r; 
+                    let dIdx = window.declarationsData.findIndex(x => x.sasi === oldSasi);
+                    if(dIdx !== -1) window.declarationsData[dIdx] = r;
+                }
+                saveData('firm'); saveData('decl'); window.renderFirmVehicles(); 
             }
             window.closeDeclModal(); window.updateDashboardStats();
         };
@@ -1007,7 +1022,9 @@
             if(context === 'firm') desc.innerHTML = `Araç verilerini excel dosyasından <b>${window.currentFirm}</b> listesine ekleyin.<br><b>Sütun Sırası:</b> Marka, Model, Yıl, Renk, Şasi No, Tarih, Beyanname No, Fatura, Kıymet, Durum`;
             else desc.innerHTML = `Araç verilerini excel dosyasından <b>Kıymet Listesi</b>ne ekleyin.<br><b>Sütun Sırası:</b> Marka, Model, Yıl, Renk, Şasi No, Tarih, Fatura, Kıymet, Durum`;
         };
+        
         window.closeExcelModal = function() { document.getElementById('excel-modal').classList.add('hidden'); document.getElementById('excel-file-input').value = ""; };
+        
         window.processExcelData = function(input) {
             if (!input.files || input.files.length === 0) return; const reader = new FileReader(); const targetContext = document.getElementById('excel-target-context').value;
             reader.onload = function(e) {
@@ -1015,12 +1032,22 @@
                     const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'}); const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1}); let c = 0;
                     data.forEach(r => { 
                         if(r.length>2 && !String(r[0]).toUpperCase().includes('MARKA')) { 
-                            if(targetContext === 'firm') { if(!window.firmData[window.currentFirm]) window.firmData[window.currentFirm] = []; window.firmData[window.currentFirm].unshift({ firma: window.currentFirm, marka:r[0]||'', model:r[1]||'', yil:r[2]||'', renk:r[3]||'', sasi:r[4]||'', tarih:window.fixExcelDate(r[5]), beyanname:r[6]||'', fatura:r[7]||'', kiymet:r[8]||'', evrak: 'Kapalı' }); } 
+                            if(targetContext === 'firm') { 
+                                const newVeh = { firma: window.currentFirm, marka:r[0]||'', model:r[1]||'', yil:r[2]||'', renk:r[3]||'', sasi:r[4]||'', tarih:window.fixExcelDate(r[5]), beyanname:r[6]||'', fatura:r[7]||'', kiymet:r[8]||'', evrak: 'Kapalı' };
+                                if(!window.firmData[window.currentFirm]) window.firmData[window.currentFirm] = []; 
+                                window.firmData[window.currentFirm].unshift(newVeh);
+                                window.declarationsData.unshift(newVeh); // GELEN ARAÇLARA DA ANINDA EKLE
+                            } 
                             else { window.kiymetData.unshift({ marka:r[0]||'', model:r[1]||'', yil:r[2]||'', renk:r[3]||'', sasi:r[4]||'', tarih:window.fixExcelDate(r[5]), fatura:r[6]||'', kiymet:r[7]||'', durum:r[8]||'' }); }
                             c++; 
                         } 
                     });
-                    if(c>0) { alert(c+' araç başarıyla yüklendi'); if(targetContext === 'firm') { saveData('firm'); window.renderFirmVehicles(); } else { saveData('kiymet'); window.renderKiymetTable(); } window.closeExcelModal(); }
+                    if(c>0) { 
+                        alert(c+' araç başarıyla yüklendi'); 
+                        if(targetContext === 'firm') { saveData('firm'); saveData('decl'); window.renderFirmVehicles(); window.updateDashboardStats(); } 
+                        else { saveData('kiymet'); window.renderKiymetTable(); } 
+                        window.closeExcelModal(); 
+                    }
                 } catch(err) { alert('Excel okuma hatası'); }
             };
             reader.readAsArrayBuffer(input.files[0]);
