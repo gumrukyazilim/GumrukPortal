@@ -843,16 +843,41 @@
             localStorage.setItem('gumruk_calc_state', JSON.stringify(state));
         };
 
-        window.loadCalculatorState = function() {
-            const saved = localStorage.getItem('gumruk_calc_state'); if(!saved) return false;
-            try {
-                const s = JSON.parse(saved); const setV = (id, v) => { if(document.getElementById(id) && v !== undefined) document.getElementById(id).value = v; };
-                setV('calc-type', s.type); setV('calc-igv', s.igv); setV('calc-kkdf', s.kkdf); setV('calc-gv', s.gv); setV('calc-kur-input', s.kur); setV('calc-fatura', s.fatura); setV('cur-calc-fatura', s.curFatura); setV('calc-navlun', s.navlun); setV('cur-calc-navlun', s.curNavlun); setV('calc-sigorta', s.sigorta); setV('cur-calc-sigorta', s.curSigorta); setV('calc-yurtdisi', s.yurtdisi); setV('cur-calc-yurtdisi', s.curYurtdisi); setV('calc-yurtici', s.yurtici); setV('cur-calc-yurtici', s.curYurtici);
-                if (s.importer) { const radio = document.getElementById('sc-' + s.importer); if (radio) radio.checked = true; }
-                if(s.digerMasraflar) { s.digerMasraflar.forEach(m => { const target = window.digerMasrafListesi.find(x => x.id === m.id); if(target) { target.val = m.val; target.cur = m.cur; } setV(m.id, m.val); setV('cur-' + m.id, m.cur); }); }
-                return true;
-            } catch(e) { return false; }
-        };
+        window.declAutoCalc = function() {
+    const val = (id) => document.getElementById(id)?.value;
+    // ISO (YYYY-MM-DD) → Türkçe (DD.MM.YYYY) çevirici
+    const isoToTR = (iso) => { 
+        if(!iso) return ''; 
+        const p = iso.split('-'); 
+        return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : iso; 
+    };
+    const data = { 
+        tarih:    isoToTR(val('da-tarih')), 
+        ekSure:   isoToTR(val('da-ekSure')), 
+        antTarih: isoToTR(val('da-antTarih')), 
+        beynmCif: isoToTR(val('da-beynmCif')), 
+        kiymVv:   isoToTR(val('da-kiymVv')),   // ← Düzeltildi
+        kiymGt:   isoToTR(val('da-kiymGt')),   // ← Düzeltildi
+        evrak: val('da-evrak') 
+    };
+    if(!data.tarih) return; 
+    const m = window.calculateVehicleMetrics(data); 
+    const set = (id, v) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = v; };
+    set('da-prev-ilkSure', m.ilkSureSonu||'-'); 
+    let klnGunHtml = '-'; 
+    if (m.klnGun !== '' && m.klnGun !== 'Süresiz') { 
+        let val2 = parseInt(m.klnGun); 
+        if (val2 <= 5) klnGunHtml = `<span class="text-danger font-bold">${val2} Gün</span>`; 
+        else if (val2 <= 20) klnGunHtml = `<span class="text-warning">${val2} Gün</span>`; 
+        else klnGunHtml = `<span class="text-success">${val2} Gün</span>`; 
+    } else if(m.klnGun === 'Süresiz') { 
+        klnGunHtml = `<span class="text-muted">Süresiz</span>`; 
+    }
+    set('da-prev-klnGun', klnGunHtml); 
+    set('da-prev-ardiye', window.formatNumber(m.ardiye)+' ₺'); 
+    set('da-prev-sonGun', m.sonGun||'-'); 
+    set('da-prev-kiymGecen', m.kiymGecen!==''?m.kiymGecen:'-');
+};
 
         window.populateDigerMasraflar = function () {
             const container = document.getElementById('diger-masraflar-container'); if (!container) return;
