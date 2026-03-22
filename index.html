@@ -3,118 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GümrükPortal | Otomotiv Otomasyonu</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>GümrükPortal | Profesyonel Yönetim</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <style>
-        :root { --bg-dark: #0f172a; --bg-darker: #020617; --primary: #6366f1; --primary-hover: #4f46e5; --text-main: #f8fafc; --text-muted: #94a3b8; --glass-bg: rgba(30, 41, 59, 0.7); --glass-border: rgba(255, 255, 255, 0.1); --danger: #ef4444; --success: #10b981; --warning: #f59e0b; --font-family: 'Inter', sans-serif; --radius-md: 12px; }
+        :root { 
+            --bg-dark: #020617; 
+            --bg-darker: #0f172a; 
+            --primary: #4f46e5; 
+            --primary-hover: #4338ca; 
+            --accent: #06b6d4;
+            --text-main: #f8fafc; 
+            --text-muted: #94a3b8; 
+            --glass-bg: rgba(15, 23, 42, 0.6); 
+            --glass-border: rgba(255, 255, 255, 0.08); 
+            --danger: #ef4444; 
+            --success: #10b981; 
+            --warning: #f59e0b; 
+            --font-family: 'Plus Jakarta Sans', sans-serif; 
+            --radius-md: 16px; 
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font-family); background: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+        body { font-family: var(--font-family); background: linear-gradient(135deg, #020617 0%, #0f172a 100%); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
         button, input, select { font-family: inherit; outline: none; border: none; }
         .hidden { display: none !important; }
-        .glass-panel, .glass-card { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); }
-        .glass-card { border-radius: var(--radius-md); padding: 24px; box-shadow: 0 4px 30px rgba(0,0,0,0.1); position: relative; }
+        .glass-panel, .glass-card { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .glass-card { border-radius: var(--radius-md); padding: 24px; transition: transform 0.3s ease, box-shadow 0.3s ease; position: relative; }
         .app-container { display: flex; height: 100vh; }
-        .sidebar { width: 260px; display: flex; flex-direction: column; border-right: 1px solid var(--glass-border); z-index: 10; }
-        .sidebar-logo { padding: 24px; display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 600; color: white; border-bottom: 1px solid var(--glass-border); }
+        
+        /* Sidebar Styling */
+        .sidebar { width: 280px; display: flex; flex-direction: column; background: rgba(2, 6, 23, 0.8); border-right: 1px solid var(--glass-border); z-index: 10; }
+        .sidebar-logo { padding: 32px 24px; display: flex; align-items: center; gap: 16px; font-size: 22px; font-weight: 700; color: white; background: linear-gradient(to right, rgba(79, 70, 229, 0.1), transparent); border-bottom: 1px solid var(--glass-border); }
+        .sidebar-logo i { color: var(--primary); width: 28px; height: 28px; }
         .sidebar-nav { flex: 1; padding: 24px 16px; display: flex; flex-direction: column; gap: 8px; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; width: 100%; background: transparent; color: var(--text-muted); border-radius: var(--radius-md); font-size: 15px; font-weight: 500; transition: 0.2s; cursor:pointer; }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
-        .nav-item.active { background: rgba(99,102,241,0.15); color: var(--primary); }
-        .sidebar-footer { padding: 20px 16px; border-top: 1px solid var(--glass-border); display:flex; flex-direction:column; gap:10px; }
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .top-header { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid var(--glass-border); }
-        .header-search { display: flex; align-items: center; background: rgba(15,23,42,0.5); border: 1px solid var(--glass-border); border-radius: 24px; padding: 8px 16px; width: 400px; }
-        .header-search input { background: transparent; color: var(--text-main); padding-left: 12px; width: 100%; }
-        .header-actions { display: flex; align-items: center; gap: 24px; }
-        .icon-btn { background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; cursor:pointer;}
-        .icon-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-        .user-profile { display: flex; align-items: center; gap: 12px; }
-        .user-profile img { width: 40px; height: 40px; border-radius: 50%; }
-        .view-container { flex: 1; padding: 32px; overflow-y: auto; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-in { animation: fadeIn 0.4s ease forwards; }
-        .page-header { margin-bottom: 24px; display:flex; justify-content:space-between; align-items:center; }
-        .page-title { font-size: 28px; font-weight: 600; margin-bottom: 8px; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 24px; }
-        .stat-card { display: flex; align-items: center; padding: 24px; gap: 16px; transition: 0.2s ease; cursor: pointer; position:relative; }
-        .stat-card:hover { transform: translateY(-4px); }
-        .stat-icon { display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 12px; background: rgba(99,102,241,0.15); color: var(--primary); }
-        .stat-icon.warning { background: rgba(245,158,11,0.15); color: var(--warning); }
-        .stat-icon.success { background: rgba(16,185,129,0.15); color: var(--success); }
-        .stat-icon.danger { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .nav-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; width: 100%; background: transparent; color: var(--text-muted); border-radius: 12px; font-size: 15px; font-weight: 600; transition: all 0.2s ease; cursor:pointer; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); transform: translateX(4px); }
+        .nav-item.active { background: linear-gradient(90deg, var(--primary) 0%, var(--primary-hover) 100%); color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .sidebar-footer { padding: 24px 16px; border-top: 1px solid var(--glass-border); display:flex; flex-direction:column; gap:12px; }
+        
+        /* Main Content Styling */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: radial-gradient(circle at top right, rgba(79,70,229,0.05), transparent 40%); }
+        .top-header { height: 84px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: rgba(15, 23, 42, 0.4); border-bottom: 1px solid var(--glass-border); backdrop-filter: blur(20px); z-index: 5;}
+        .header-search { display: flex; align-items: center; background: rgba(2, 6, 23, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; padding: 10px 20px; width: 450px; transition: all 0.3s ease; }
+        .header-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
+        .header-search input { background: transparent; color: var(--text-main); padding-left: 12px; width: 100%; font-size: 14px; }
+        .header-search input::placeholder { color: #64748b; }
+        
+        .user-profile { display: flex; align-items: center; gap: 14px; padding: 6px 16px 6px 6px; border-radius: 30px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; cursor:pointer;}
+        .user-profile:hover { background: rgba(255,255,255,0.08); }
+        .user-profile img { width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--primary); }
+        
+        .view-container { flex: 1; padding: 40px; overflow-y: auto; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        .page-header { margin-bottom: 32px; display:flex; justify-content:space-between; align-items:flex-end; }
+        .page-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        /* Cards & Grids */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .stat-card { display: flex; align-items: center; padding: 28px; gap: 20px; background: linear-gradient(145deg, rgba(30,41,59,0.7) 0%, rgba(15,23,42,0.9) 100%); border: 1px solid rgba(255,255,255,0.05); }
+        .stat-card:hover { transform: translateY(-6px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(79,70,229,0.3); }
+        .stat-icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 16px; background: rgba(79, 70, 229, 0.15); color: var(--primary); font-size: 28px;}
+        .stat-icon.warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .stat-icon.success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
         .stat-info { flex: 1; }
-        .stat-info h3 { font-size: 14px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; }
-        .stat-value { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-        .data-table { width: 100%; border-collapse: collapse; font-size:13px; }
-        .data-table th, .data-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--glass-border); white-space: nowrap; }
-        .data-table th { font-weight: 500; color: var(--text-muted); font-size: 12px; }
-        .data-table tbody tr:hover { background: rgba(255,255,255,0.05); }
-        .text-primary { color: var(--primary); } .text-danger { color: var(--danger); } .text-success { color: var(--success); } .text-warning { color: var(--warning); } .text-muted { color: var(--text-muted); }
+        .stat-info h3 { font-size: 14px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .stat-value { font-size: 32px; font-weight: 800; color: white; margin-bottom: 4px; }
+        
+        /* Tables */
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size:14px; }
+        .data-table th, .data-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--glass-border); white-space: nowrap; }
+        .data-table th { font-weight: 600; color: #cbd5e1; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(15, 23, 42, 0.8); }
+        .data-table th:first-child { border-top-left-radius: 12px; }
+        .data-table th:last-child { border-top-right-radius: 12px; }
+        .data-table tbody tr { transition: all 0.2s ease; }
+        .data-table tbody tr:hover { background: rgba(255,255,255,0.03); transform: scale(1.002); }
+        
+        .text-primary { color: #818cf8; } .text-danger { color: #f87171; } .text-success { color: #34d399; } .text-warning { color: #fbbf24; } .text-muted { color: var(--text-muted); }
         .font-medium { font-weight: 500; } .font-bold { font-weight: 700; }
-        .badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .badge-warning { background: rgba(245,158,11,0.2); color: var(--warning); }
-        .badge-success { background: rgba(16,185,129,0.2); color: var(--success); }
-        .badge-danger { background: rgba(239,68,68,0.2); color: var(--danger); }
-        .badge-dark { background: rgba(255,255,255,0.1); color: var(--text-muted); }
-        .btn-sm { padding: 8px 16px; background: rgba(255,255,255,0.1); color: white; border-radius: 6px; font-size: 13px; transition: 0.2s; cursor: pointer;}
-        .btn-sm:hover { background: rgba(255,255,255,0.2); }
-        .btn-primary { padding: 10px 20px; background: var(--primary); color: white; border-radius: var(--radius-md); font-weight: 500; font-size: 14px; transition: 0.3s ease; cursor: pointer; }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 10px 20px -10px var(--primary); }
-        .input-group { margin-bottom: 16px; }
-        .input-group label { display: block; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        input[type="text"], input[type="password"], input[type="date"], select { width:100%; padding:10px; border-radius:8px; background:rgba(15,23,42,0.7); color:white; border:1px solid var(--glass-border); }
+        .badge { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px;}
+        .badge-warning { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .badge-success { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge-danger { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+        .badge-dark { background: rgba(255,255,255,0.05); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); }
+        
+        /* Buttons */
+        .btn-sm { padding: 8px 16px; background: rgba(255,255,255,0.05); color: white; border-radius: 8px; font-size: 13px; font-weight: 500; transition: all 0.2s; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);}
+        .btn-sm:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+        .btn-primary { padding: 12px 24px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); color: white; border-radius: 10px; font-weight: 600; font-size: 14px; transition: all 0.3s ease; cursor: pointer; border: none; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(79, 70, 229, 0.4); }
+        
+        /* Inputs */
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="text"], input[type="password"], input[type="date"], select { width:100%; padding:14px; border-radius:10px; background:rgba(2, 6, 23, 0.5); color:white; border:1px solid rgba(255,255,255,0.1); font-size: 14px; transition: border-color 0.2s; }
+        input[type="text"]:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
+        
         .sortable-th { cursor: pointer; transition: 0.2s; }
         .sortable-th:hover { color: white; background: rgba(255,255,255,0.05); }
-        .inline-date { cursor: pointer; position: relative; min-width: 90px; }
-        .inline-date:hover { background: rgba(99,102,241,0.15); border-radius: 6px; }
-        .inline-date:hover::after { content: '✎'; position: absolute; right: 4px; top: 12px; font-size: 10px; opacity: 0.6; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        .firm-delete-btn { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%; background: rgba(239,68,68,0.15); color: var(--danger); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; opacity: 0; }
-        .stat-card:hover .firm-delete-btn { opacity: 1; }
-        .firm-delete-btn:hover { background: var(--danger); color: white; }
+        .inline-date { cursor: pointer; position: relative; min-width: 100px; padding: 8px !important; border-radius: 8px; transition: background 0.2s;}
+        .inline-date:hover { background: rgba(79, 70, 229, 0.15); box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.3); }
+        .inline-date:hover::after { content: '✎'; position: absolute; right: 8px; top: 14px; font-size: 12px; color: var(--primary); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.7); cursor: pointer; }
+        
+        .firm-delete-btn { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 10px; background: rgba(239,68,68,0.1); color: #f87171; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s; opacity: 0; transform: scale(0.9);}
+        .stat-card:hover .firm-delete-btn { opacity: 1; transform: scale(1); }
+        .firm-delete-btn:hover { background: #ef4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
     </style>
 </head>
 <body>
 
     <div id="login-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-dark); z-index:999999; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.3s;">
-        <div class="glass-card" style="width:100%; max-width:400px; text-align:center;">
-            <div style="display:flex; justify-content:center; margin-bottom:20px; color:var(--primary);"><i data-lucide="shield-check" style="width:64px; height:64px;"></i></div>
-            <h2 style="margin-bottom:8px;">GümrükPortal</h2>
-            <p class="text-muted" style="margin-bottom:24px; font-size:14px;">Sisteme erişmek için şifrenizi girin.</p>
-            <input type="password" id="login-password" placeholder="Şifre" onkeyup="if(event.key === 'Enter') window.checkLogin()" style="width:100%; padding:12px; border-radius:8px; background:rgba(15,23,42,0.8); color:white; border:1px solid var(--primary); text-align:center; font-size:18px; letter-spacing: 2px;">
-            <button onclick="window.checkLogin()" class="btn-primary" style="width:100%; margin-top:20px; font-size:16px; padding:12px;">GİRİŞ YAP</button>
-            <p id="login-error" style="color:var(--danger); margin-top:16px; font-size:14px; display:none;">Hatalı şifre! Lütfen tekrar deneyin.</p>
+        <div class="glass-card" style="width:100%; max-width:420px; text-align:center; padding: 40px; background: linear-gradient(145deg, rgba(30,41,59,0.8) 0%, rgba(15,23,42,0.95) 100%);">
+            <div style="display:flex; justify-content:center; margin-bottom:24px; color:var(--primary);"><i data-lucide="shield-check" style="width:72px; height:72px; filter: drop-shadow(0 0 10px rgba(79, 70, 229, 0.5));"></i></div>
+            <h2 style="margin-bottom:12px; font-size: 28px; font-weight: 700;">GümrükPortal</h2>
+            <p class="text-muted" style="margin-bottom:32px; font-size:15px;">Güvenli sisteme erişmek için şifrenizi girin.</p>
+            <input type="password" id="login-password" placeholder="••••••••" onkeyup="if(event.key === 'Enter') window.checkLogin()" style="width:100%; padding:16px; border-radius:12px; background:rgba(2, 6, 23, 0.6); color:white; border:1px solid rgba(79, 70, 229, 0.4); text-align:center; font-size:24px; letter-spacing: 4px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
+            <button onclick="window.checkLogin()" class="btn-primary" style="width:100%; margin-top:24px; font-size:16px; padding:16px; border-radius: 12px;">GÜVENLİ GİRİŞ</button>
+            <p id="login-error" style="color:var(--danger); margin-top:20px; font-size:14px; font-weight: 500; display:none;">⚠️ Hatalı şifre! Lütfen tekrar deneyin.</p>
         </div>
     </div>
 
     <div id="app-screen" class="app-container">
-        <aside class="sidebar glass-panel">
-            <div class="sidebar-logo"><i data-lucide="shield-check"></i><div><span>GümrükPortal</span><small style="font-size:10px;color:var(--text-muted);display:block;">Final Version v15.2 PRO</small></div></div>
+        <aside class="sidebar">
+            <div class="sidebar-logo"><i data-lucide="shield-check"></i><div><span style="letter-spacing: 0.5px;">GümrükPortal</span><small style="font-size:11px;color:var(--accent);display:block;font-weight:600;margin-top:2px;">v16.0 PRO EDITION</small></div></div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Özet Gösterge</span></button>
                 <button class="nav-item" data-view="declarations"><i data-lucide="file-check-2"></i><span>Gelen Araçlar</span></button>
-                <button class="nav-item" data-view="firms"><i data-lucide="building-2"></i><span>Firmalar</span></button>
-                <button class="nav-item" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi & Harç</span></button>
+                <button class="nav-item" data-view="firms"><i data-lucide="building-2"></i><span>Firmalar Arşivi</span></button>
+                <button class="nav-item" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
                 <button class="nav-item" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
             </nav>
             <div class="sidebar-footer">
-                <button class="btn-sm" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; background:rgba(16,185,129,0.15); color:var(--success); border:1px solid rgba(16,185,129,0.3);" onclick="window.exportBackup()"><i data-lucide="download-cloud" style="width:16px;"></i> Yedeği İndir</button>
-                <button class="btn-sm" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; background:rgba(245,158,11,0.15); color:var(--warning); border:1px solid rgba(245,158,11,0.3);" onclick="document.getElementById('import-backup-file').click()"><i data-lucide="upload-cloud" style="width:16px;"></i> Yedeği Yükle</button>
+                <button class="btn-sm" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.2);" onclick="window.exportBackup()"><i data-lucide="download-cloud" style="width:16px;"></i> Sistemi Yedekle</button>
+                <button class="btn-sm" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; background:rgba(245,158,11,0.1); color:var(--warning); border:1px solid rgba(245,158,11,0.2);" onclick="document.getElementById('import-backup-file').click()"><i data-lucide="upload-cloud" style="width:16px;"></i> Yedeği Yükle</button>
                 <input type="file" id="import-backup-file" accept=".json" style="display:none;" onchange="window.importBackup(event)">
             </div>
         </aside>
         <main class="main-content">
-            <header class="top-header glass-panel">
+            <header class="top-header">
                 <div class="header-search">
-                    <i data-lucide="search" style="cursor:pointer;" onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"></i>
-                    <input type="text" id="global-search-input" onkeyup="if(event.key === 'Enter') window.handleGlobalSearch(this.value)" placeholder="Şasi No, Marka veya Model ara... (Enter)">
+                    <i data-lucide="search" style="color:var(--text-muted); cursor:pointer;" onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"></i>
+                    <input type="text" id="global-search-input" onkeyup="if(event.key === 'Enter') window.handleGlobalSearch(this.value)" placeholder="Şasi No, Marka veya Model arayın... (Enter)">
                 </div>
                 <div class="header-actions">
-                    <div class="user-profile" onclick="if(confirm('Çıkış yapmak istiyor musunuz?')){localStorage.removeItem('gumruk_auth'); location.reload();}" style="cursor:pointer;" title="Çıkış Yap">
-                        <img src="https://ui-avatars.com/api/?name=Bayram&background=6366f1&color=fff&rounded=true" alt="User">
-                        <div class="user-info"><span class="user-name">Bayram</span><span class="user-role" style="font-size:11px;color:var(--text-muted);">Güvenli Oturum</span></div>
+                    <div class="user-profile" onclick="if(confirm('Sistemden güvenli çıkış yapmak istiyor musunuz?')){localStorage.removeItem('gumruk_auth'); location.reload();}" title="Çıkış Yap">
+                        <img src="https://ui-avatars.com/api/?name=Bayram&background=4f46e5&color=fff&rounded=true&bold=true" alt="User">
+                        <div class="user-info"><span class="user-name" style="font-weight:600; font-size:14px;">Bayram</span><span class="user-role" style="font-size:11px;color:var(--success); display:flex; align-items:center; gap:4px;"><span style="width:6px;height:6px;background:var(--success);border-radius:50%;display:inline-block;"></span> Çevrimiçi</span></div>
                     </div>
                 </div>
             </header>
@@ -122,104 +165,143 @@
         </main>
     </div>
 
-    <div id="decl-modal" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center;">
-        <div class="glass-card" style="width:95%; max-width:620px; padding:32px; border:1px solid var(--primary); max-height:90vh; overflow-y:auto;">
-            <h2 id="decl-modal-title" style="margin:0 0 20px;">Araç Detayları</h2>
+    <div id="decl-modal" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(2, 6, 23, 0.9); backdrop-filter: blur(8px); z-index:9999; display:flex; align-items:center; justify-content:center;">
+        <div class="glass-card" style="width:95%; max-width:680px; padding:40px; border:1px solid rgba(79, 70, 229, 0.3); max-height:90vh; overflow-y:auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; border-bottom: 1px solid var(--glass-border); padding-bottom: 16px;">
+                <h2 id="decl-modal-title" style="margin:0; font-size:24px;">Araç Detay Kartı</h2>
+                <button onclick="window.closeDeclModal()" style="background:transparent; color:var(--text-muted); cursor:pointer; padding:8px; border-radius:8px;"><i data-lucide="x"></i></button>
+            </div>
+            
             <input type="hidden" id="decl-edit-idx" value="-1">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; border-bottom:1px solid var(--glass-border); padding-bottom:16px;">
-                <div class="input-group"><label>FİRMA SEÇİNİZ *</label><select id="da-firma"></select></div>
-                <div class="input-group"><label>MARKA</label><input type="text" id="da-marka"></div>
-                <div class="input-group"><label>MODEL</label><input type="text" id="da-model"></div>
-                <div class="input-group"><label>YIL</label><input type="text" id="da-yil"></div>
-                <div class="input-group"><label>RENK</label><input type="text" id="da-renk"></div>
-                <div class="input-group"><label>ŞASİ NO</label><input type="text" id="da-sase"></div>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; border-bottom:1px solid var(--glass-border); padding-bottom:16px;">
-                <div class="input-group"><label>GELİŞ TARİHİ *</label><input type="text" id="da-tarih" placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
-                <div class="input-group"><label>EK SÜRE TARİHİ</label><input type="text" id="da-ekSure" placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
-                <div class="input-group"><label>ANTREPO TARİHİ</label><input type="text" id="da-antTarih" placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
-                <div class="input-group"><label>BEYANNAME T.</label><input type="text" id="da-beynmCif" placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
-                <div class="input-group"><label>BEYANNAME NO</label><input type="text" id="da-beyanname"></div>
-                <div class="input-group"><label>EVRAK DURUMU</label><select id="da-evrak" onchange="window.declAutoCalc()"><option value="Kapalı">Kapalı</option><option value="Açık">Açık</option></select></div>
-            </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
-                <div class="input-group"><label>KIYMET V. TARİHİ</label><input type="text" id="da-kiymVv" placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
-                <div class="input-group"><label>KIYMET G. TARİHİ</label><input type="text" id="da-kiymGt" placeholder="GG.AA.YYYY" onkeyup="window.declAutoCalc()"></div>
-                <div class="input-group"><label>FATURA TUTARI (€)</label><input type="text" id="da-fatura"></div>
-                <div class="input-group"><label>KIYMET TUTARI (€)</label><input type="text" id="da-kiymet"></div>
+                <div class="input-group"><label>Firma *</label><select id="da-firma"></select></div>
+                <div class="input-group"><label>Şasi Numarası</label><input type="text" id="da-sase" style="border-color: rgba(79, 70, 229, 0.4);"></div>
+                <div class="input-group"><label>Marka</label><input type="text" id="da-marka"></div>
+                <div class="input-group"><label>Model</label><input type="text" id="da-model"></div>
+                <div class="input-group"><label>Yıl</label><input type="text" id="da-yil"></div>
+                <div class="input-group"><label>Renk</label><input type="text" id="da-renk"></div>
             </div>
-            <div id="decl-preview-box" style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:10px; padding:14px; margin-bottom:18px;">
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; font-size:12px;">
-                    <div><span class="text-muted">İlk Süre Sonu:</span><br><strong id="da-prev-ilkSure">-</strong></div>
-                    <div><span class="text-muted">Kalan Gün:</span><br><strong id="da-prev-klnGun" class="text-warning">-</strong></div>
-                    <div><span class="text-muted">Ardiye:</span><br><strong id="da-prev-ardiye" class="text-danger">-</strong></div>
-                    <div><span class="text-muted">Son Gün:</span><br><strong id="da-prev-sonGun">-</strong></div>
-                    <div><span class="text-muted">Kıym G.Süresi:</span><br><strong id="da-prev-kiymGecen">-</strong></div>
+            <div style="height: 1px; background: var(--glass-border); margin: 24px 0;"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div class="input-group"><label>Geliş Tarihi *</label><input type="date" id="da-tarih" onchange="window.declAutoCalc()"></div>
+                <div class="input-group"><label>Ek Süre Tarihi</label><input type="date" id="da-ekSure" onchange="window.declAutoCalc()"></div>
+                <div class="input-group"><label>Antrepo Tarihi</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div>
+                <div class="input-group"><label>Beyanname Tarihi</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div>
+                <div class="input-group"><label>Beyanname Numarası</label><input type="text" id="da-beyanname"></div>
+                <div class="input-group"><label>Evrak Durumu</label><select id="da-evrak" onchange="window.declAutoCalc()"><option value="Kapalı">Kapalı</option><option value="Açık">Açık İşlemde</option></select></div>
+            </div>
+            <div style="height: 1px; background: var(--glass-border); margin: 24px 0;"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+                <div class="input-group"><label>Kıymet Veriliş T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc()"></div>
+                <div class="input-group"><label>Kıymet Geliş T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc()"></div>
+                <div class="input-group"><label>Fatura Tutarı (€)</label><input type="text" id="da-fatura" oninput="window.formatCurrencyInput(this)"></div>
+                <div class="input-group"><label>Kıymet Tutarı (€)</label><input type="text" id="da-kiymet" oninput="window.formatCurrencyInput(this)"></div>
+            </div>
+            
+            <div id="decl-preview-box" style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:20px; margin-bottom:24px;">
+                <h4 style="margin:0 0 16px; font-size:14px; color:var(--success); display:flex; align-items:center; gap:8px;"><i data-lucide="calculator" style="width:16px;"></i> Otomatik Hesaplanan Metrikler</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; font-size:13px;">
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;"><span class="text-muted" style="font-size:11px;">İlk Süre Sonu</span><br><strong id="da-prev-ilkSure" style="font-size:14px;">-</strong></div>
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;"><span class="text-muted" style="font-size:11px;">Kalan Gün</span><br><strong id="da-prev-klnGun" class="text-warning" style="font-size:16px;">-</strong></div>
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(239,68,68,0.2);"><span class="text-muted" style="font-size:11px;">Ardiye Maliyeti</span><br><strong id="da-prev-ardiye" class="text-danger" style="font-size:16px;">-</strong></div>
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;"><span class="text-muted" style="font-size:11px;">Son Gün Tarihi</span><br><strong id="da-prev-sonGun" style="font-size:14px;">-</strong></div>
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;"><span class="text-muted" style="font-size:11px;">Kıymette Geçen</span><br><strong id="da-prev-kiymGecen" style="font-size:14px;">-</strong></div>
                 </div>
             </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button onclick="window.closeDeclModal()" class="btn" style="border:1px solid rgba(255,255,255,0.2); background:transparent; color:white; padding:10px 20px; border-radius:8px;">İPTAL</button>
-                <button onclick="window.saveDeclEntry()" class="btn-primary">KAYDET</button>
+            
+            <div style="display:flex; gap:12px; justify-content:flex-end;">
+                <button onclick="window.closeDeclModal()" class="btn-sm" style="padding:12px 24px; font-size:14px;">İptal Et</button>
+                <button onclick="window.saveDeclEntry()" class="btn-primary" style="padding:12px 32px;"><i data-lucide="save" style="width:16px; margin-right:8px; vertical-align:middle;"></i> Kaydet</button>
             </div>
         </div>
     </div>
 
-    <div id="kiymet-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-        <div class="glass-card" style="width: 90%; max-width: 500px; padding: 24px;">
-            <h2 style="margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">Kıymet Kaydı</h2>
+    <div id="kiymet-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(2,6,23,0.9); backdrop-filter:blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+        <div class="glass-card" style="width: 90%; max-width: 500px; padding: 32px; border: 1px solid rgba(16,185,129,0.3);">
+            <h2 style="margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">Kıymet Arşiv Kaydı</h2>
             <input type="hidden" id="km-edit-index" value="-1">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                 <div class="input-group"><label>Marka</label><input id="km-marka" type="text"></div>
                 <div class="input-group"><label>Model</label><input id="km-model" type="text"></div>
                 <div class="input-group"><label>Yıl</label><input id="km-yil" type="text"></div>
                 <div class="input-group"><label>Renk</label><input id="km-renk" type="text"></div>
             </div>
-            <div class="input-group" style="margin-bottom: 12px;"><label>Şasi Numarası</label><input id="km-sasi" type="text"></div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-                <div class="input-group"><label>Geliş T.</label><input id="km-tarih" type="text"></div>
-                <div class="input-group"><label>Fatura (€)</label><input id="km-fatura" type="text"></div>
-                <div class="input-group"><label>Kıymet (€)</label><input id="km-kiymet" type="text"></div>
+            <div class="input-group" style="margin-bottom: 16px;"><label>Şasi Numarası</label><input id="km-sasi" type="text" style="border-color:rgba(16,185,129,0.4);"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                <div class="input-group"><label>Geliş T.</label><input id="km-tarih" type="date"></div>
+                <div class="input-group"><label>Fatura (€)</label><input id="km-fatura" type="text" oninput="window.formatCurrencyInput(this)"></div>
+                <div class="input-group"><label>Kıymet (€)</label><input id="km-kiymet" type="text" oninput="window.formatCurrencyInput(this)"></div>
             </div>
-            <div class="input-group"><label>Durum / Not</label><input id="km-durum" type="text" placeholder="Örn: Mahkeme İade"></div>
-            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top:20px;">
-                <button class="btn" style="border: 1px solid var(--glass-border); color: white; padding: 8px 16px; border-radius: 6px;" onclick="window.closeKiymetModal()">İptal</button>
-                <button class="btn-primary" style="padding: 8px 16px; border-radius: 6px;" onclick="window.saveNewKiymet()">Kaydet</button>
+            <div class="input-group"><label>Durum / Not</label><input id="km-durum" type="text" placeholder="Örn: Mahkeme İade, Karar Yok vb."></div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top:32px;">
+                <button class="btn-sm" onclick="window.closeKiymetModal()" style="padding:10px 20px;">İptal</button>
+                <button class="btn-primary" style="background:var(--success); padding:10px 24px;" onclick="window.saveNewKiymet()">Arşive Kaydet</button>
             </div>
         </div> 
     </div> 
 
-    <div id="excel-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-        <div class="glass-card" style="width: 90%; max-width: 500px; padding: 24px; text-align: center;">
-            <h2 style="margin-top: 0; margin-bottom: 8px; font-size: 18px;">Excel Dosyası Yükle</h2>
-            <p class="text-muted" style="font-size: 13px; margin-bottom: 24px;" id="excel-modal-desc">Sütun Sırası: Marka, Model, Yıl, Renk, Şasi No, Tarih, Beyanname No, Fatura, Kıymet, Durum</p>
-            <div style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; padding: 40px 20px; margin-bottom: 20px; cursor: pointer; background: rgba(15,23,42,0.4);" onclick="document.getElementById('excel-file-input').click()">
-                <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--primary); margin-bottom: 12px;"></i>
-                <p style="margin: 0; font-weight: 500;">Bilgisayardan Excel Seçin</p>
+    <div id="excel-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(2,6,23,0.9); backdrop-filter:blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+        <div class="glass-card" style="width: 90%; max-width: 500px; padding: 40px; text-align: center;">
+            <div style="display:flex; justify-content:center; margin-bottom:16px; color:var(--primary);"><i data-lucide="file-spreadsheet" style="width:56px; height:56px;"></i></div>
+            <h2 style="margin-top: 0; margin-bottom: 12px; font-size: 22px;">Toplu Excel Aktarımı</h2>
+            <p class="text-muted" style="font-size: 13px; margin-bottom: 32px; line-height:1.5;" id="excel-modal-desc">Sütun Sırası: Marka, Model, Yıl, Renk, Şasi No, Tarih, Beyanname No, Fatura, Kıymet, Durum</p>
+            
+            <div style="border: 2px dashed rgba(79, 70, 229, 0.4); border-radius: 16px; padding: 40px 20px; margin-bottom: 24px; cursor: pointer; background: rgba(79, 70, 229, 0.05); transition:all 0.3s;" onclick="document.getElementById('excel-file-input').click()" onmouseover="this.style.background='rgba(79, 70, 229, 0.1)'" onmouseout="this.style.background='rgba(79, 70, 229, 0.05)'">
+                <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--primary); margin-bottom: 16px;"></i>
+                <p style="margin: 0; font-weight: 600; font-size:16px;">Bilgisayardan .xlsx Seçin</p>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:8px;">Sürükle bırak özelliği yakında eklenecektir.</p>
             </div>
             <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display: none;" onchange="window.processExcelData(this)">
             <input type="hidden" id="excel-target-context" value="kiymet">
             <div style="display: flex; justify-content: center;">
-                <button class="btn" style="background: transparent; border: 1px solid var(--glass-border); color: white; padding: 8px 24px; border-radius: 6px;" onclick="window.closeExcelModal()">Kapat</button>
+                <button class="btn-sm" style="padding: 10px 32px;" onclick="window.closeExcelModal()">Kapat</button>
             </div>
         </div>
     </div>
 
     <template id="tpl-dashboard">
-        <div class="page-header fade-in"><h1 class="page-title">Özet Gösterge</h1></div>
+        <div class="page-header fade-in">
+            <h1 class="page-title">Sistem Özeti</h1>
+        </div>
         <div class="dashboard-grid fade-in">
-            <div class="stat-card glass-card" onclick="window.goToFilter('kiymet')"><div class="stat-icon"><i data-lucide="file-check"></i></div><div class="stat-info"><h3>Kıymette Bekleyen</h3><p class="stat-value" id="dash-kiymet">0</p><p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p></div></div>
-            <div class="stat-card glass-card" onclick="window.goToFilter('acik')"><div class="stat-icon warning"><i data-lucide="car"></i></div><div class="stat-info"><h3>İşlemi Açık (Ambarda)</h3><p class="stat-value" id="dash-ambar">0</p><p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p></div></div>
-            <div class="stat-card glass-card" onclick="window.goToFilter('all')"><div class="stat-icon success"><i data-lucide="check-circle"></i></div><div class="stat-info"><h3>Sistemdeki Toplam Araç</h3><p class="stat-value" id="dash-total">0</p><p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p></div></div>
+            <div class="stat-card glass-card" onclick="window.goToFilter('kiymet')">
+                <div class="stat-icon"><i data-lucide="file-clock"></i></div>
+                <div class="stat-info">
+                    <h3>Kıymette Bekleyen</h3>
+                    <p class="stat-value" id="dash-kiymet">0</p>
+                    <p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card" onclick="window.goToFilter('acik')">
+                <div class="stat-icon warning"><i data-lucide="alert-circle"></i></div>
+                <div class="stat-info">
+                    <h3>İşlemi Açık (Ambarda)</h3>
+                    <p class="stat-value" id="dash-ambar">0</p>
+                    <p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card" onclick="window.goToFilter('all')">
+                <div class="stat-icon success"><i data-lucide="check-circle-2"></i></div>
+                <div class="stat-info">
+                    <h3>Sistemdeki Toplam Araç</h3>
+                    <p class="stat-value" id="dash-total">0</p>
+                    <p class="text-muted" style="font-size:11px;">Listelemek için tıkla</p>
+                </div>
+            </div>
+        </div>
+        <div class="glass-card fade-in" style="margin-top:20px; background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2);">
+            <h3 style="font-size:16px; margin-bottom:12px; display:flex; align-items:center; gap:8px;"><i data-lucide="info" style="width:18px; color:var(--primary);"></i> Sistem Bilgilendirmesi</h3>
+            <p style="font-size:14px; color:var(--text-muted); line-height:1.6;">Sol menüden Gelen Araçlar, Firmalar veya Kıymet Listesi sekmelerine geçiş yapabilirsiniz. "Gelen Araçlar" tablosunda tarihleri hızlıca güncellemek için <strong>doğrudan tablodaki tarih hücrelerine (Ek Süre, Antrepo vb.) tıklayabilirsiniz.</strong></p>
         </div>
     </template>
 
     <template id="tpl-firms">
         <div class="page-header fade-in">
-            <h1 class="page-title">Firmalar</h1>
-            <button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus" style="width: 16px; margin-right: 6px; vertical-align: middle;"></i> Yeni Firma Ekle</button>
+            <h1 class="page-title">Firma Arşivi</h1>
+            <button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="folder-plus" style="width: 18px; margin-right: 8px; vertical-align: middle;"></i> Yeni Firma Oluştur</button>
         </div>
-        <div class="glass-card fade-in">
-            <div id="firms-dynamic-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+        <div class="glass-card fade-in" style="padding:32px;">
+            <div id="firms-dynamic-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
                 </div>
         </div>
     </template>
@@ -227,11 +309,11 @@
     <template id="tpl-firmDetails">
         <div class="page-header fade-in">
             <h1 class="page-title" id="current-firm-title">Firma Detayları</h1>
-            <div style="margin-top: 15px; display: flex; gap: 10px;">
-                <button class="btn-sm" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4);" onclick="window.openExcelModal('firm')"><i data-lucide="table" style="width: 14px;"></i> Excel'den Ekle</button>
-                <button class="btn-primary" style="background: var(--success);" onclick="window.openDeclVehicleModal(-1, 'firm')"><i data-lucide="plus" style="width: 16px; margin-right: 8px; vertical-align: middle;"></i> ARAÇ EKLE</button>
-                <button id="firm-bulk-delete-btn" class="btn-sm hidden" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444;" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2" style="width: 14px; margin-right: 5px; vertical-align: middle;"></i> SİL (<span id="firm-selected-count">0</span>)</button>
-                <button class="btn-sm" onclick="window.renderView('firms')">Geri Dön</button>
+            <div style="margin-top: 15px; display: flex; gap: 12px;">
+                <button class="btn-sm" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); padding:10px 16px;" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet" style="width: 16px; margin-right:6px; vertical-align:middle;"></i> Excel'den Ekle</button>
+                <button class="btn-primary" style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);" onclick="window.openDeclVehicleModal(-1, 'firm')"><i data-lucide="plus-circle" style="width: 18px; margin-right: 8px; vertical-align: middle;"></i> Yeni Araç</button>
+                <button id="firm-bulk-delete-btn" class="btn-sm hidden" style="background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); padding:10px 16px;" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2" style="width: 16px; margin-right: 6px; vertical-align: middle;"></i> Seçilenleri Sil (<span id="firm-selected-count">0</span>)</button>
+                <button class="btn-sm" style="padding:10px 16px;" onclick="window.renderView('firms')"><i data-lucide="arrow-left" style="width: 16px; margin-right: 6px; vertical-align: middle;"></i> Geri Dön</button>
             </div>
         </div>
         <div class="glass-card fade-in">
@@ -239,10 +321,10 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 30px;"><input type="checkbox" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th>
+                            <th style="width: 40px; text-align:center;"><input type="checkbox" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)" style="width:16px; height:16px; cursor:pointer;"></th>
                             <th>MARKA</th><th>MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th>
                             <th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ <i data-lucide="arrow-up-down" style="width:12px;vertical-align:middle;"></i></th>
-                            <th>BEYANNAME NO</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>İŞLEM</th>
+                            <th>BEYANNAME NO</th><th>FATURA (€)</th><th>KIYMET (€)</th><th style="text-align:center;">İŞLEM</th>
                         </tr>
                     </thead>
                     <tbody id="firm-vehicles-tbody"></tbody>
@@ -252,55 +334,60 @@
     </template>
 
     <template id="tpl-declarations">
-        <div class="page-header fade-in"><h1 class="page-title">Gelen Araçlar</h1></div>
+        <div class="page-header fade-in">
+            <h1 class="page-title">Gelen Araçlar Listesi</h1>
+        </div>
         <div class="glass-card fade-in">
-            <div class="action-bar" style="display: flex; justify-content: space-between; margin-bottom: 20px; align-items:center;">
-                <div style="display:flex; gap:10px;">
-                    <select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="padding: 10px; border-radius: 8px; background: rgba(15,23,42,0.5); color: white; border: 1px solid var(--glass-border); width: 220px;">
-                        <option value="all">Tüm Araçlar</option>
-                        <option value="acik">İşlemi Açık Olanlar</option>
-                        <option value="kiymet">Kıymette Bekleyenler</option>
+            <div class="action-bar" style="display: flex; justify-content: space-between; margin-bottom: 24px; align-items:center;">
+                <div style="display:flex; gap:12px;">
+                    <select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="padding: 10px 16px; border-radius: 10px; background: rgba(15,23,42,0.8); color: white; border: 1px solid var(--glass-border); width: 240px; font-weight:500;">
+                        <option value="all">Tüm Araçları Göster</option>
+                        <option value="acik">Sadece İşlemi Açık Olanlar</option>
+                        <option value="kiymet">Sadece Kıymette Bekleyenler</option>
                     </select>
-                    <button id="decl-bulk-delete-btn" class="btn-sm hidden" style="background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.5);" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2" style="width:14px; margin-right:5px; vertical-align:middle;"></i>SİL (<span id="decl-sel-count">0</span>)</button>
+                    <button id="decl-bulk-delete-btn" class="btn-sm hidden" style="background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); padding:10px 16px;" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2" style="width:16px; margin-right:6px; vertical-align:middle;"></i>Seçilenleri Sil (<span id="decl-sel-count">0</span>)</button>
                 </div>
-                <button class="btn-primary" onclick="window.openDeclVehicleModal(-1, 'decl')"><i data-lucide="plus" style="width:16px; margin-right:5px; vertical-align:middle;"></i> Yeni Araç Ekle</button>
+                <button class="btn-primary" onclick="window.openDeclVehicleModal(-1, 'decl')"><i data-lucide="plus-circle" style="width:18px; margin-right:8px; vertical-align:middle;"></i> Yeni Araç Ekle</button>
             </div>
             <div style="overflow-x: auto; padding-bottom: 20px;">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width:30px;"><input type="checkbox" id="decl-selectAll" onclick="window.toggleAllDeclarations(this.checked)"></th>
+                            <th style="width:40px; text-align:center;"><input type="checkbox" id="decl-selectAll" onclick="window.toggleAllDeclarations(this.checked)" style="width:16px; height:16px; cursor:pointer;"></th>
                             <th>FİRMA</th><th>MARKA / MODEL</th><th>ŞASİ NO</th>
                             <th class="sortable-th" onclick="window.sortData('decl')">G. TARİHİ <i data-lucide="arrow-up-down" style="width:12px;vertical-align:middle;"></i></th>
                             <th class="text-warning">İLK SÜRE</th>
                             <th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>KIYM V.T.</th><th>KIYM G.T.</th>
                             <th class="text-primary">KLN SON T.</th><th class="text-warning">KALAN GÜN</th>
-                            <th class="text-success">SON GÜN</th><th>EVRAK</th><th>FATURA (€)</th><th class="text-danger">ARDİYE (₺)</th><th>İŞLEM</th>
+                            <th class="text-success">SON GÜN</th><th>EVRAK</th><th>FATURA (€)</th><th class="text-danger">ARDİYE (₺)</th><th style="text-align:center;">İŞLEM</th>
                         </tr>
                     </thead>
                     <tbody id="declarations-tbody"></tbody>
                 </table>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">💡 İpucu: Tablodaki tarih sütunlarına tıklayarak (Ek Süre, Antrepo vb.) hızlıca tarih seçebilir ve güncelleyebilirsiniz.</p>
+            <div style="margin-top: 16px; padding: 12px; background: rgba(79, 70, 229, 0.1); border-radius: 8px; border: 1px dashed rgba(79, 70, 229, 0.3); display:inline-block;">
+                <p style="font-size: 12px; color: #cbd5e1; margin: 0;"><i data-lucide="mouse-pointer-click" style="width:14px; vertical-align:middle; margin-right:4px; color:var(--primary);"></i> Hızlı Düzenleme: Tablodaki <strong>Ek Süre, Antrepo, Beyanname, Kıymet V.T. ve Kıymet G.T.</strong> hücrelerine tıklayarak tarihi anında değiştirebilirsiniz.</p>
+            </div>
         </div>
     </template>
 
     <template id="tpl-calculator">
-        <div class="page-header fade-in"><h1 class="page-title">Vergi & Harç Hesaplama</h1></div>
-        <div class="glass-card fade-in">
-            <div class="calculator-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <div class="page-header fade-in"><h1 class="page-title">Vergi & Harç Hesaplama Motoru</h1></div>
+        <div class="glass-card fade-in" style="padding: 32px;">
+            <div class="calculator-grid" style="display: grid; grid-template-columns: 1fr 1.1fr; gap: 40px;">
+                
                 <div class="calc-form">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                         <div class="input-group" style="margin-bottom:0;">
-                            <label>İthalat Türü</label>
-                            <select id="calc-importer" onchange="window.calculateTaxes()" style="padding: 12px; border-radius: 8px; background: rgba(15,23,42,0.6); border: 1px solid var(--glass-border); color:var(--primary);">
-                                <option value="sahis" selected>Şahıs (ÖTV Dahil)</option>
-                                <option value="ithalatci">İthalatçı (ÖTV Sıfır)</option>
+                            <label>İthalat Türü <span style="color:var(--text-muted); font-weight:normal; text-transform:none;">(ÖTV Durumu)</span></label>
+                            <select id="calc-importer" onchange="window.calculateTaxes()" style="padding: 14px; border-radius: 10px; background: rgba(2,6,23,0.7); border: 1px solid rgba(79, 70, 229, 0.5); color:white; font-weight:600;">
+                                <option value="sahis">Şahıs (ÖTV Hesaplanır)</option>
+                                <option value="ithalatci">İthalatçı (ÖTV Muaf / 0₺)</option>
                             </select>
                         </div>
                         <div class="input-group" style="margin-bottom:0;">
                             <label>Araç Cinsi ve GTİP</label>
-                            <select id="calc-type" onchange="window.calculateTaxes()" style="padding: 12px; border-radius: 8px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
+                            <select id="calc-type" onchange="window.calculateTaxes()" style="padding: 14px; border-radius: 10px; background: rgba(2,6,23,0.7); color: white;">
                                 <optgroup label="Benzin / Dizel (87.03)"><option value="ic-1400">Motor Silindir Hacmi 1400 cm³ altı</option><option value="ic-1600" selected>1401 - 1600 cm³ arası</option><option value="ic-2000">1601 - 2000 cm³ arası</option><option value="ic-over2000">2000 cm³ üzeri</option></optgroup>
                                 <optgroup label="Hibrit Araçlar (Dışarıdan Şarj Olmayan)"><option value="hybrid-1800">Hibrit 1601 - 1800 cm³ arası</option><option value="hybrid-2500">Hibrit 2001 - 2500 cm³ arası</option></optgroup>
                                 <optgroup label="Plug-in Hibrit (Dışarıdan Şarj Edilebilir)"><option value="phev-1600">PHEV: 1600 cm³ altı</option><option value="phev-1800">PHEV: 1601 - 1800 cm³ arası</option></optgroup>
@@ -310,45 +397,54 @@
                         </div>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border);">
-                        <div class="input-group" style="margin-bottom:0;"><label>İlave Gümrük (İGV)</label><select id="calc-igv" onchange="window.calculateTaxes()"><option value="0" selected>%0</option><option value="10">%10</option><option value="25">%25</option><option value="30">%30</option><option value="40">%40</option><option value="60">%60</option></select></div>
-                        <div class="input-group" style="margin-bottom:0;"><label>KKDF</label><select id="calc-kkdf" onchange="window.calculateTaxes()"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
-                        <div class="input-group" style="margin-bottom:0;"><label>Gümrük Vergisi (G.V)</label><select id="calc-gv" onchange="window.calculateTaxes()"><option value="0">%0</option><option value="6">%6</option><option value="10" selected>%10</option><option value="20">%20</option></select></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; background: rgba(255,255,255,0.03); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+                        <div class="input-group" style="margin-bottom:0;"><label style="color:var(--accent);">İlave Gümrük (İGV)</label><select id="calc-igv" onchange="window.calculateTaxes()"><option value="0" selected>%0</option><option value="10">%10</option><option value="25">%25</option><option value="30">%30</option><option value="40">%40</option><option value="60">%60</option></select></div>
+                        <div class="input-group" style="margin-bottom:0;"><label style="color:var(--accent);">KKDF Oranı</label><select id="calc-kkdf" onchange="window.calculateTaxes()"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
+                        <div class="input-group" style="margin-bottom:0;"><label style="color:var(--accent);">Gümrük Ver. (G.V)</label><select id="calc-gv" onchange="window.calculateTaxes()"><option value="0">%0</option><option value="6">%6</option><option value="10" selected>%10</option><option value="20">%20</option></select></div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="input-group"><label>Fatura Tutarı</label><div style="display:flex; gap:4px;"><input id="calc-fatura" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="126.000" style="flex:1;"><select id="cur-calc-fatura" onchange="window.calculateTaxes()" style="width: 60px; padding: 10px 4px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
-                        <div class="input-group"><label>Navlun</label><div style="display:flex; gap:4px;"><input id="calc-navlun" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="100" style="flex:1;"><select id="cur-calc-navlun" onchange="window.calculateTaxes()" style="width: 60px; padding: 10px 4px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
-                        <div class="input-group"><label>Sigorta</label><div style="display:flex; gap:4px;"><input id="calc-sigorta" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="50" style="flex:1;"><select id="cur-calc-sigorta" onchange="window.calculateTaxes()" style="width: 60px; padding: 10px 4px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
-                        <div class="input-group"><label>Yurt Dışı Gideri</label><div style="display:flex; gap:4px;"><input id="calc-yurtdisi" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="100" style="flex:1;"><select id="cur-calc-yurtdisi" onchange="window.calculateTaxes()" style="width: 60px; padding: 10px 4px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
-                        <div class="input-group" style="grid-column: span 2;"><label>Yurt İçi Gider</label><div style="display:flex; gap:4px;"><input id="calc-yurtici" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="25.000" style="flex:1;"><select id="cur-calc-yurtici" onchange="window.calculateTaxes()" style="width: 60px; padding: 10px 4px;"><option value="TL" selected>TL</option><option value="EUR">EUR</option><option value="USD">USD</option></select></div></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="input-group"><label>Fatura Tutarı</label><div style="display:flex; gap:6px;"><input id="calc-fatura" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-fatura" onchange="window.calculateTaxes()" style="width: 70px; padding: 10px 6px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
+                        <div class="input-group"><label>Navlun</label><div style="display:flex; gap:6px;"><input id="calc-navlun" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-navlun" onchange="window.calculateTaxes()" style="width: 70px; padding: 10px 6px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
+                        <div class="input-group"><label>Sigorta</label><div style="display:flex; gap:6px;"><input id="calc-sigorta" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-sigorta" onchange="window.calculateTaxes()" style="width: 70px; padding: 10px 6px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
+                        <div class="input-group"><label>Yurt Dışı Gideri</label><div style="display:flex; gap:6px;"><input id="calc-yurtdisi" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-yurtdisi" onchange="window.calculateTaxes()" style="width: 70px; padding: 10px 6px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
+                        <div class="input-group" style="grid-column: span 2;"><label>Yurt İçi Gider</label><div style="display:flex; gap:6px;"><input id="calc-yurtici" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1; border-color:rgba(16,185,129,0.5);"><select id="cur-calc-yurtici" onchange="window.calculateTaxes()" style="width: 70px; padding: 10px 6px;"><option value="TL" selected>TL</option><option value="EUR">EUR</option><option value="USD">USD</option></select></div></div>
                     </div>
-                    <div style="background: rgba(30, 64, 175, 0.15); padding: 16px; border-radius: 10px; margin-top: 24px; border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <h4 style="margin-top:0; color:var(--text-main); border-bottom: 1px solid rgba(59, 130, 246, 0.3); padding-bottom: 8px;">Diğer Masraflar</h4>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;" id="diger-masraflar-container"></div>
+                    
+                    <div style="background: linear-gradient(145deg, rgba(30, 64, 175, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%); padding: 20px; border-radius: 12px; margin-top: 24px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                        <h4 style="margin-top:0; color:#93c5fd; border-bottom: 1px solid rgba(59, 130, 246, 0.2); padding-bottom: 10px; font-size:14px; text-transform:uppercase; letter-spacing:1px;"><i data-lucide="layers" style="width:16px; vertical-align:middle; margin-right:4px;"></i> Diğer Masraf Kalemleri</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;" id="diger-masraflar-container"></div>
                     </div>
                 </div>
-                <div class="calc-result glass-panel" style="padding: 24px; border-radius: 12px; background: rgba(99,102,241,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="font-size: 20px; margin: 0;">Tahmini Maliyet Tablosu</h3>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <label style="font-size: 13px; color: var(--text-muted);">Kur EUR(₺):</label>
-                            <input id="calc-kur-input" type="text" value="50,9822" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="padding: 6px; width: 85px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--success); font-weight: bold; border: 1px solid var(--glass-border);">
+                
+                <div class="calc-result" style="padding: 28px; border-radius: 16px; background: rgba(2, 6, 23, 0.8); border: 1px solid rgba(79, 70, 229, 0.3); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <h3 style="font-size: 20px; margin: 0; color:white; display:flex; align-items:center; gap:8px;"><i data-lucide="receipt" style="color:var(--primary);"></i> Maliyet Tablosu</h3>
+                        <div style="display: flex; gap: 8px; align-items: center; background:rgba(0,0,0,0.3); padding:6px 12px; border-radius:30px; border:1px solid rgba(16,185,129,0.3);">
+                            <label style="font-size: 12px; color: var(--text-muted); font-weight:600;">KUR EUR(₺):</label>
+                            <input id="calc-kur-input" type="text" value="50,9822" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="padding: 4px; width: 80px; border-radius: 6px; background: transparent; color: var(--success); font-weight: 700; border: none; font-size:15px; text-align:right; outline:none;">
                         </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">GV. Matrağı:</span><strong id="res-gv-matrah">0 ₺</strong></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">Ara Toplam:</span><strong id="res-ara-toplam">0 ₺</strong></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">ÖTV Matrağı:</span><strong id="res-otv-matrahi">0 ₺</strong></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">Hesaplanan ÖTV <span id="res-otv-yuzde" class="text-warning"></span>:</span><strong id="res-hesaplanan-otv" class="text-warning">0 ₺</strong></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"><span class="text-muted">KDV (%20):</span><strong id="res-kdv-tutar" class="text-warning">0 ₺</strong></div>
-                    <div style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 16px; color: var(--primary);"><span>Toplam Vergi:</span><strong id="res-toplam-vergi">0 ₺</strong></div>
-                    <div style="display: flex; justify-content: space-between; margin-top: 12px; font-size: 16px; font-weight:bold; color: var(--text-main); background: rgba(30, 64, 175, 0.15); padding: 12px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px;"><span class="text-muted">GV. Matrağı:</span><strong id="res-gv-matrah" style="font-size:15px;">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px;"><span class="text-muted">Gümrük Vergisi (<span id="res-gv-yuzde"></span>):</span><strong id="res-gv-tutar" style="font-size:15px;">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px;"><span class="text-muted">İlave Gümrük (İGV) (<span id="res-igv-yuzde"></span>):</span><strong id="res-igv-tutar" style="font-size:15px;">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px;"><span class="text-muted">KKDF (<span id="res-kkdf-yuzde"></span>):</span><strong id="res-kkdf-tutar" style="font-size:15px;">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px; background:rgba(255,255,255,0.02); padding:8px; border-radius:6px;"><span style="color:#cbd5e1; font-weight:600;">Ara Toplam:</span><strong id="res-ara-toplam" style="font-size:15px; color:white;">0 ₺</strong></div>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px; margin-top:16px;"><span class="text-muted">ÖTV Matrağı <span style="font-size:10px;">(+TRT ve 1606₺ D.V Dahil)</span>:</span><strong id="res-otv-matrahi" style="font-size:15px;">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px;"><span class="text-muted">Hesaplanan ÖTV <span id="res-otv-yuzde" class="text-warning"></span>:</span><strong id="res-hesaplanan-otv" class="text-warning" style="font-size:16px;">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px;"><span class="text-muted">KDV (%20):</span><strong id="res-kdv-tutar" class="text-warning" style="font-size:16px;">0 ₺</strong></div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 16px; color: var(--primary); font-weight:700;"><span>TÜM VERGİLER TOPLAMI:</span><strong id="res-toplam-vergi">0 ₺</strong></div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items:center; margin-top: 24px; font-size: 15px; font-weight:600; color: #93c5fd; background: rgba(59, 130, 246, 0.1); padding: 14px 16px; border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.3);">
                         <span>DİĞER MASRAFLAR:</span>
-                        <div style="text-align: right;"><div id="res-diger-eur" style="font-size: 13px; color: var(--text-muted); margin-bottom: 2px;">0 €</div><strong id="res-diger-maliyet" class="text-warning" style="font-size: 16px;">0 ₺</strong></div>
+                        <div style="text-align: right;"><div id="res-diger-eur" style="font-size: 12px; color: #60a5fa; margin-bottom: 2px;">0 €</div><strong id="res-diger-maliyet" style="font-size: 16px;">0 ₺</strong></div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 18px; font-weight:bold; color: var(--text-main); background: rgba(0,0,0,0.4); padding: 16px; border-radius: 8px; border: 1px solid var(--success);">
-                        <span>GENEL TOPLAM:</span>
-                        <div style="text-align: right;"><div id="res-genel-eur" style="font-size: 14px; color: var(--text-muted); margin-bottom: 4px;">0 €</div><strong id="res-genel-maliyet" class="text-success" style="font-size: 20px;">0 ₺</strong></div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items:center; margin-top: 16px; font-size: 18px; font-weight:800; color: white; background: linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.4) 100%); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--success); box-shadow: 0 4px 20px rgba(16,185,129,0.2);">
+                        <span>FİNAL MALİYET:</span>
+                        <div style="text-align: right;"><div id="res-genel-eur" style="font-size: 13px; color: #a7f3d0; margin-bottom: 4px; font-weight:600;">0 €</div><strong id="res-genel-maliyet" style="font-size: 24px;">0 ₺</strong></div>
                     </div>
                 </div>
             </div>
@@ -356,23 +452,25 @@
     </template>
 
     <template id="tpl-kiymetListesi">
-        <div class="page-header fade-in"><h1 class="page-title">Kıymet Listesi</h1></div>
+        <div class="page-header fade-in">
+            <h1 class="page-title">Kıymet Arşivi</h1>
+        </div>
         <div class="glass-card fade-in">
-            <div class="action-bar" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <button id="kiymet-delete-btn" class="btn-sm hidden" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.4);" onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2" style="width: 14px;"></i> SİL (<span id="kiymet-sel-count">0</span>)</button>
-                <div style="display:flex; gap: 8px;">
-                    <button class="btn-sm" style="background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4);" onclick="window.openExcelModal('kiymet')"><i data-lucide="table" style="width: 14px;"></i> Excel Yükle</button>
-                    <button class="btn-primary btn-sm" onclick="window.openKiymetModal()"><i data-lucide="plus" style="width: 14px;"></i> Yeni Ekle</button>
+            <div class="action-bar" style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+                <button id="kiymet-delete-btn" class="btn-sm hidden" style="background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); padding:10px 16px;" onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2" style="width: 16px; margin-right:6px; vertical-align:middle;"></i> Seçilenleri Sil (<span id="kiymet-sel-count">0</span>)</button>
+                <div style="display:flex; gap: 12px;">
+                    <button class="btn-sm" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); padding:10px 16px;" onclick="window.openExcelModal('kiymet')"><i data-lucide="file-spreadsheet" style="width: 16px; margin-right:6px; vertical-align:middle;"></i> Toplu Excel Yükle</button>
+                    <button class="btn-primary" onclick="window.openKiymetModal()"><i data-lucide="plus-circle" style="width: 18px; margin-right:6px; vertical-align:middle;"></i> Yeni Kıymet Ekle</button>
                 </div>
             </div>
             <div style="overflow-x: auto;">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 30px;"><input type="checkbox" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)"></th>
+                            <th style="width: 40px; text-align:center;"><input type="checkbox" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)" style="width:16px; height:16px; cursor:pointer;"></th>
                             <th>MARKA</th><th>MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th>
                             <th class="sortable-th" onclick="window.sortData('kiymet')">G. TARİHİ <i data-lucide="arrow-up-down" style="width:12px;vertical-align:middle;"></i></th>
-                            <th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th>İŞLEM</th>
+                            <th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM NOTU</th><th style="text-align:center;">İŞLEM</th>
                         </tr>
                     </thead>
                     <tbody id="kiymet-tbody"></tbody>
@@ -383,10 +481,10 @@
 
     <template id="tpl-searchResults">
         <div class="page-header fade-in">
-            <h1 class="page-title">Arama Sonuçları</h1>
-            <p class="page-subtitle">"<span id="search-query-display" class="text-primary font-bold"></span>" için bulunan sonuçlar</p>
+            <h1 class="page-title">Sistem Taraması</h1>
+            <p class="text-muted" style="font-size:15px;">"<span id="search-query-display" style="color:var(--primary); font-weight:700;"></span>" için bulunan sonuçlar listeleniyor.</p>
         </div>
-        <div id="search-results-container" class="flex-col gap-4 fade-in"></div>
+        <div id="search-results-container" class="fade-in" style="display:flex; flex-direction:column; gap:24px;"></div>
     </template>
 
     <script>
@@ -505,7 +603,7 @@
             reader.readAsText(file); document.getElementById('import-backup-file').value = "";
         };
 
-        // --- FİRMA EKLE / SİL ---
+        // --- FİRMA EKLE / ÇİFT ONAYLI SİL ---
         window.addNewFirm = function() {
             const firmName = prompt("Lütfen yeni firmanın adını giriniz:");
             if(firmName && firmName.trim() !== '') {
@@ -518,12 +616,14 @@
 
         window.deleteFirm = function(firmName, event) {
             event.stopPropagation();
-            if(confirm(`DIKKAT! '${firmName}' firmasını ve bu firmaya ait listedeki araçları silmek istediğinize emin misiniz? (Gelen Araçlardaki kayıtlar kalır)`)) {
-                delete window.firmData[firmName]; saveData('firm'); window.renderView('firms');
+            if(confirm(`DIKKAT! '${firmName}' firmasını ve bu firmaya ait listedeki araçları silmek istediğinize emin misiniz?`)) {
+                if(confirm(`SON ONAY: '${firmName}' firması kalıcı olarak silinecek! Bu işlem geri alınamaz. Onaylıyor musunuz?`)) {
+                    delete window.firmData[firmName]; saveData('firm'); window.renderView('firms');
+                }
             }
         };
 
-        // --- INLINE DATE EDITING ---
+        // --- INLINE DATE EDITING (HIZLI TARİH SEÇİMİ) ---
         window.inlineEditDate = function(el, idx, field) {
             if(el.querySelector('input')) return; 
             const currentVal = window.declarationsData[idx][field] || '';
@@ -532,7 +632,7 @@
                 const parts = currentVal.split('.');
                 if(parts.length === 3) isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
-            el.innerHTML = `<input type="date" value="${isoDate}" style="color:black; padding:2px; height:24px; border-radius:4px; font-size:12px; width:100%; border:none; outline:2px solid var(--primary);" 
+            el.innerHTML = `<input type="date" value="${isoDate}" style="color:white; padding:4px 8px; height:32px; border-radius:6px; font-size:13px; width:100%; border:1px solid var(--primary); background:rgba(15,23,42,0.9); outline:none; box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);" 
                onblur="window.saveInlineDate(this, ${idx}, '${field}')" 
                onchange="window.saveInlineDate(this, ${idx}, '${field}')">`;
             const inp = el.querySelector('input');
@@ -633,21 +733,21 @@
 
             let html = '';
             if (decResults.length > 0) {
-                html += `<div class="glass-card" style="margin-bottom:20px;"><h3><i data-lucide="file-check-2" style="vertical-align:text-bottom;"></i> Gelen Araçlar Lst. (${decResults.length})</h3><table class="data-table" style="margin-top:10px;"><thead><tr><th>FİRMA</th><th>MARKA/MODEL</th><th>ŞASİ NO</th><th>İŞLEM</th></tr></thead><tbody>`;
-                html += decResults.map(r => `<tr><td>${r.data.firma||'-'}</td><td>${r.data.marka||''} ${r.data.model||''}</td><td class="text-primary font-bold">${r.data.sasi||'-'}</td><td><button class="btn-primary btn-sm" onclick="window.openDeclVehicleModal(${r.index}, 'decl')">Görüntüle</button></td></tr>`).join('');
+                html += `<div class="glass-card" style="background: rgba(79, 70, 229, 0.05);"><h3><i data-lucide="file-check-2" style="vertical-align:text-bottom;"></i> Gelen Araçlar Listesi (${decResults.length})</h3><table class="data-table" style="margin-top:12px;"><thead><tr><th>FİRMA</th><th>MARKA/MODEL</th><th>ŞASİ NO</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody>`;
+                html += decResults.map(r => `<tr><td>${r.data.firma||'-'}</td><td>${r.data.marka||''} ${r.data.model||''}</td><td class="text-primary font-bold">${r.data.sasi||'-'}</td><td style="text-align:center;"><button class="btn-primary btn-sm" style="padding:8px 16px;" onclick="window.openDeclVehicleModal(${r.index}, 'decl')">Görüntüle</button></td></tr>`).join('');
                 html += `</tbody></table></div>`;
             }
             if (firmResults.length > 0) {
-                html += `<div class="glass-card" style="margin-bottom:20px;"><h3><i data-lucide="building-2" style="vertical-align:text-bottom;"></i> Firma Kayıtları (${firmResults.length})</h3><table class="data-table" style="margin-top:10px;"><thead><tr><th>FİRMA</th><th>MARKA/MODEL</th><th>ŞASİ NO</th><th>İŞLEM</th></tr></thead><tbody>`;
-                html += firmResults.map(r => `<tr><td><span class="badge badge-dark">${r.firm}</span></td><td>${r.data.marka||''} ${r.data.model||''}</td><td class="text-primary font-bold">${r.data.sasi||'-'}</td><td><button class="btn-primary btn-sm" onclick="window.currentFirm='${r.firm}'; window.openDeclVehicleModal(${r.index}, 'firm')">Görüntüle</button></td></tr>`).join('');
+                html += `<div class="glass-card" style="background: rgba(79, 70, 229, 0.05);"><h3><i data-lucide="building-2" style="vertical-align:text-bottom;"></i> Firma Kayıtları (${firmResults.length})</h3><table class="data-table" style="margin-top:12px;"><thead><tr><th>FİRMA</th><th>MARKA/MODEL</th><th>ŞASİ NO</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody>`;
+                html += firmResults.map(r => `<tr><td><span class="badge badge-dark" style="font-size:12px;">${r.firm}</span></td><td>${r.data.marka||''} ${r.data.model||''}</td><td class="text-primary font-bold">${r.data.sasi||'-'}</td><td style="text-align:center;"><button class="btn-primary btn-sm" style="padding:8px 16px;" onclick="window.currentFirm='${r.firm}'; window.openDeclVehicleModal(${r.index}, 'firm')">Görüntüle</button></td></tr>`).join('');
                 html += `</tbody></table></div>`;
             }
             if (kiymetResults.length > 0) {
-                html += `<div class="glass-card" style="margin-bottom:20px;"><h3><i data-lucide="file-search" style="vertical-align:text-bottom;"></i> Kıymet Listesi (${kiymetResults.length})</h3><table class="data-table" style="margin-top:10px;"><thead><tr><th>MARKA/MODEL</th><th>ŞASİ NO</th><th>FATURA / KIYMET</th></tr></thead><tbody>`;
+                html += `<div class="glass-card" style="background: rgba(79, 70, 229, 0.05);"><h3><i data-lucide="file-search" style="vertical-align:text-bottom;"></i> Kıymet Listesi (${kiymetResults.length})</h3><table class="data-table" style="margin-top:12px;"><thead><tr><th>MARKA/MODEL</th><th>ŞASİ NO</th><th>FATURA / KIYMET</th></tr></thead><tbody>`;
                 html += kiymetResults.map(r => `<tr><td>${r.data.marka||''} ${r.data.model||''}</td><td class="text-primary font-bold">${r.data.sasi||'-'}</td><td class="text-success font-bold">${r.data.fatura||'-'} € / ${r.data.kiymet||'-'} €</td></tr>`).join('');
                 html += `</tbody></table></div>`;
             }
-            if(html === '') { html = `<div class="glass-card" style="text-align:center; padding: 40px;"><p class="text-muted">Eşleşen araç bulunamadı.</p></div>`; }
+            if(html === '') { html = `<div class="glass-card" style="text-align:center; padding: 60px;"><i data-lucide="search-x" style="width:48px; height:48px; color:var(--text-muted); margin-bottom:16px;"></i><p class="text-muted" style="font-size:16px;">Sistemde eşleşen herhangi bir kayıt bulunamadı.</p></div>`; }
 
             container.innerHTML = html;
             if (window.lucide) window.lucide.createIcons();
@@ -667,7 +767,7 @@
             const tbody = document.getElementById('kiymet-tbody'); if (!tbody) return;
             tbody.innerHTML = window.kiymetData.map((k, idx) => {
                 let dClass = k.durum && k.durum.toUpperCase().includes('MAHKEME') ? 'badge-danger' : (k.durum && k.durum.toUpperCase().includes('YOK') ? 'badge-dark' : 'badge-warning');
-                return `<tr><td style="text-align:center;"><input type="checkbox" class="kiymet-cb" value="${idx}" onclick="window.toggleKiymetCb()"></td><td class="font-medium">${k.marka||'-'}</td><td>${k.model||'-'}</td><td>${k.yil||'-'}</td><td>${k.renk||'-'}</td><td>${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura ? window.formatNumber(k.fatura) + ' €' : '-'}</td><td class="text-success font-bold">${k.kiymet ? window.formatNumber(k.kiymet) + ' €' : '-'}</td><td>${k.durum ? `<span class="badge ${dClass}">${k.durum}</span>` : ''}</td><td style="display:flex;gap:4px;"><button class="icon-btn text-warning" onclick="window.editKiymet(${idx})"><i data-lucide="edit-3" style="width:16px;"></i></button><button class="icon-btn text-danger" onclick="window.deleteKiymet(${idx})"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`;
+                return `<tr><td style="text-align:center;"><input type="checkbox" class="kiymet-cb" value="${idx}" onclick="window.toggleKiymetCb()" style="width:16px; height:16px; cursor:pointer;"></td><td class="font-medium">${k.marka||'-'}</td><td>${k.model||'-'}</td><td>${k.yil||'-'}</td><td>${k.renk||'-'}</td><td class="text-primary">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura ? window.formatNumber(k.fatura) + ' €' : '-'}</td><td class="text-success font-bold">${k.kiymet ? window.formatNumber(k.kiymet) + ' €' : '-'}</td><td>${k.durum ? `<span class="badge ${dClass}">${k.durum}</span>` : ''}</td><td style="display:flex;gap:6px; justify-content:center;"><button class="icon-btn text-warning" style="background:rgba(245,158,11,0.1);" onclick="window.editKiymet(${idx})"><i data-lucide="edit-3" style="width:16px;"></i></button><button class="icon-btn text-danger" style="background:rgba(239,68,68,0.1);" onclick="window.deleteKiymet(${idx})"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`;
             }).join('');
             document.getElementById('kiymet-selectAll').checked = false; window.toggleKiymetCb(); if(window.lucide) window.lucide.createIcons();
         };
@@ -675,7 +775,7 @@
         window.toggleSelectAllKiymet = function(src) { document.querySelectorAll('.kiymet-cb').forEach(c => c.checked = src.checked); window.toggleKiymetCb(); };
         window.toggleKiymetCb = function() { const chk = document.querySelectorAll('.kiymet-cb:checked'); const btn = document.getElementById('kiymet-delete-btn'); if(btn) { if(chk.length>0) { btn.classList.remove('hidden'); document.getElementById('kiymet-sel-count').innerText=chk.length; } else btn.classList.add('hidden'); } };
         window.deleteSelectedKiymets = function() { const chk = document.querySelectorAll('.kiymet-cb:checked'); if(chk.length===0) return; if(confirm(chk.length + ' kaydı silmek istediğinize emin misiniz?')) { Array.from(chk).map(c=>parseInt(c.value)).sort((a,b)=>b-a).forEach(i => window.kiymetData.splice(i,1)); saveData('kiymet'); window.renderKiymetTable(); } };
-        window.deleteKiymet = function(i) { if(confirm('Emin misiniz?')) { window.kiymetData.splice(i,1); saveData('kiymet'); window.renderKiymetTable(); } };
+        window.deleteKiymet = function(i) { if(confirm('Bu kıymet kaydını silmek istediğinize emin misiniz?')) { window.kiymetData.splice(i,1); saveData('kiymet'); window.renderKiymetTable(); } };
         window.openKiymetModal = function() { document.getElementById('kiymet-modal').classList.remove('hidden'); document.getElementById('km-edit-index').value='-1'; };
         window.closeKiymetModal = function() { document.getElementById('kiymet-modal').classList.add('hidden'); };
         window.editKiymet = function(i) { const k = window.kiymetData[i]; ['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id => {if(document.getElementById('km-'+id)) document.getElementById('km-'+id).value = k[id]||'';}); document.getElementById('km-edit-index').value = i; document.getElementById('kiymet-modal').classList.remove('hidden'); };
@@ -705,7 +805,7 @@
             reader.readAsArrayBuffer(input.files[0]);
         };
 
-        // --- VERGİ / HESAP MAKİNESİ HAFIZASI ---
+        // --- VERGİ / HESAP MAKİNESİ HAFIZASI (DÜZELTİLDİ) ---
         window.saveCalculatorState = function() {
             const val = (id) => document.getElementById(id)?.value;
             const state = {
@@ -748,11 +848,11 @@
             const container = document.getElementById('diger-masraflar-container');
             if (!container) return;
             container.innerHTML = window.digerMasrafListesi.map(m => `
-                <div class="input-group" style="margin-bottom: 8px;">
-                    <label style="font-size:10px;">${m.label}</label>
-                    <div style="display:flex; gap:4px;">
-                        <input id="${m.id}" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="${m.val}" style="flex:1; padding: 8px; border-radius: 6px; background: rgba(15,23,42,0.6); color: white; border: 1px solid var(--glass-border);">
-                        <select id="cur-${m.id}" onchange="window.calculateTaxes()" style="width: 55px; padding: 8px 2px; border-radius: 6px; background: rgba(15,23,42,0.6); color: var(--text-muted); border: 1px solid var(--glass-border);">
+                <div class="input-group" style="margin-bottom: 12px; background:rgba(15,23,42,0.4); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                    <label style="font-size:10px; color:#cbd5e1;">${m.label}</label>
+                    <div style="display:flex; gap:6px;">
+                        <input id="${m.id}" type="text" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" value="${m.val}" style="flex:1; padding: 10px; border-radius: 8px; background: rgba(2,6,23,0.7); color: white; border: 1px solid var(--glass-border);">
+                        <select id="cur-${m.id}" onchange="window.calculateTaxes()" style="width: 70px; padding: 10px 4px; border-radius: 8px; background: rgba(2,6,23,0.7); color: var(--text-muted); border: 1px solid var(--glass-border);">
                             <option value="EUR" ${m.cur === 'EUR' ? 'selected' : ''}>EUR</option>
                             <option value="USD" ${m.cur === 'USD' ? 'selected' : ''}>USD</option>
                             <option value="TL" ${m.cur === 'TL' ? 'selected' : ''}>TL</option>
@@ -773,34 +873,23 @@
             const getValNum = (id) => { const el = document.getElementById(id); return (!el || !el.value) ? 0 : parseFloat(el.value.replace(/\./g, '').replace(',', '.')); };
             const getValInTL = (id) => { const val = getValNum(id); const curEl = document.getElementById('cur-' + id); const cur = curEl ? curEl.value : 'EUR'; const rate = cur === 'TL' ? 1 : (window.exchangeRates[cur] || window.exchangeRates.EUR); return val * rate; };
 
-            // 1. GİDERLERİN TL ÇEVRİMİ
-            const faturaTL = getValInTL('calc-fatura'); 
-            const navlunTL = getValInTL('calc-navlun'); 
-            const sigortaTL = getValInTL('calc-sigorta'); 
-            const yDisiTL = getValInTL('calc-yurtdisi'); 
-            const yIciTL = getValInTL('calc-yurtici');
+            const faturaTL = getValInTL('calc-fatura'); const navlunTL = getValInTL('calc-navlun'); const sigortaTL = getValInTL('calc-sigorta'); const yDisiTL = getValInTL('calc-yurtdisi'); const yIciTL = getValInTL('calc-yurtici');
             
-            // Diğer Masrafların Hesaplanması
             let digerMasrafTL = 0;
             if(window.digerMasrafListesi) window.digerMasrafListesi.forEach(m => { digerMasrafTL += getValInTL(m.id); });
             const digerMasrafEUR = digerMasrafTL / window.exchangeRates.EUR;
 
-            // 2. TEMEL MATRAHLAR (Excel mantığına göre dizildi)
             const cifTL = faturaTL + navlunTL + sigortaTL; 
             const gvMatrahiTL = cifTL + yDisiTL; 
-            const araToplamTL = gvMatrahiTL + yIciTL; // Excel'deki ARA TOPLAM satırı
+            const araToplamTL = gvMatrahiTL + yIciTL; 
             
-            // 3. GÜMRÜK VERGİLERİ
             const gvTutarTL = gvMatrahiTL * (calcGv / 100);
             const igvTutarTL = gvMatrahiTL * (calcIgv / 100);
             const kkdfTutarTL = gvMatrahiTL * (calcKkdf / 100);
 
-            // 4. ÖTV MATRAHI İÇİN EKLENTİLER (TRT ve DV)
-            // TRT Bandrolü: (Ara Toplam + Gümrük Vergileri) üzerinden %0.8 alınır.
             const trtBandTL = (araToplamTL + gvTutarTL + igvTutarTL + kkdfTutarTL) * 0.008; 
             const dvTL = 1606; 
 
-            // ÖTV Matrahı tüm vergileri barındıran asıl yekündür
             const otvMatrahiTL = araToplamTL + gvTutarTL + igvTutarTL + kkdfTutarTL + trtBandTL + dvTL;
             
             let otvOrani = 80; const sType = typeEl ? typeEl.value : "";
@@ -816,16 +905,11 @@
             else if(sType === 'ev-over160') { otvOrani = otvMatrahiTL<=1650000?65:75; }
             else if(sType === 'ticari-50') { otvOrani = 50; }
 
-            // İthalatçı ise ÖTV sıfırlanır
             const hesaplananOtvTL = importerType === "ithalatci" ? 0 : otvMatrahiTL * (otvOrani / 100);
-            
             const kdvMatrahiTL = otvMatrahiTL + hesaplananOtvTL; 
             const hesaplananKdvTL = kdvMatrahiTL * 0.20; 
-            
-            // Excel'deki Toplam Vergi Satırı
             const toplamVergiTL = gvTutarTL + igvTutarTL + kkdfTutarTL + hesaplananOtvTL + hesaplananKdvTL + trtBandTL + dvTL; 
             
-            // Bizim programdaki GERÇEK Genel Toplam
             const genelToplamTL = faturaTL + navlunTL + sigortaTL + yDisiTL + yIciTL + toplamVergiTL + digerMasrafTL;
             const genelToplamEUR = genelToplamTL / window.exchangeRates.EUR;
 
@@ -850,6 +934,7 @@
             window.saveCalculatorState(); 
         };
 
+        // --- DİĞER MODÜL HESAPLAMALARI ---
         window.declAutoCalc = function() {
             const val = (id) => document.getElementById(id)?.value;
             const data = { tarih: val('da-tarih'), ekSure: val('da-ekSure'), antTarih: val('da-antTarih'), beynmCif: val('da-beynmCif'), kiymVv: val('da-kiymVv'), kiymGt: val('da-kiymGt'), evrak: val('da-evrak') };
@@ -865,23 +950,27 @@
             if(filterVal === 'acik') { list = list.filter(item => item.data.evrak === 'Açık'); } 
             else if(filterVal === 'kiymet') { list = list.filter(item => item.data.kiymVv && !item.data.kiymGt); }
 
-            if (list.length === 0) { tbody.innerHTML = `<tr><td colspan="22" style="text-align:center;color:var(--text-muted);padding:30px;">Kayıt bulunamadı.</td></tr>`; return; }
+            if (list.length === 0) { tbody.innerHTML = `<tr><td colspan="22" style="text-align:center;color:var(--text-muted);padding:40px; font-size:15px;"><i data-lucide="file-search" style="width:32px; height:32px; margin-bottom:12px; opacity:0.5;"></i><br>Kayıt bulunamadı.</td></tr>`; return; }
             
             let html = '';
             list.forEach((item) => {
                 const d = item.data; const i = item.origIdx; const m = window.calculateVehicleMetrics(d);
                 html += `<tr>
-                    <td style="text-align:center;"><input type="checkbox" class="decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
-                    <td class="font-medium">${d.firma||'-'}</td><td>${d.marka||''} ${d.model||''}</td><td class="text-primary font-bold">${d.sasi||'-'}</td><td>${d.tarih||'-'}</td>
-                    <td class="text-warning">${m.ilkSureSonu||'-'}</td>
+                    <td style="text-align:center;"><input type="checkbox" class="decl-cb" value="${i}" onclick="window.toggleDeclCb()" style="width:16px; height:16px; cursor:pointer;"></td>
+                    <td class="font-medium">${d.firma||'-'}</td><td><div style="font-weight:600; color:white;">${d.marka||''}</div><div style="font-size:11px; color:var(--text-muted);">${d.model||''}</div></td>
+                    <td class="text-primary font-bold" style="letter-spacing:1px;">${d.sasi||'-'}</td>
+                    <td>${d.tarih||'-'}</td><td class="text-warning">${m.ilkSureSonu||'-'}</td>
                     <td class="inline-date" onclick="window.inlineEditDate(this, ${i}, 'ekSure')" title="Tarih seçmek için tıkla">${d.ekSure||'-'}</td>
                     <td class="inline-date" onclick="window.inlineEditDate(this, ${i}, 'antTarih')" title="Tarih seçmek için tıkla">${d.antTarih||'-'}</td>
                     <td class="inline-date" onclick="window.inlineEditDate(this, ${i}, 'beynmCif')" title="Tarih seçmek için tıkla">${d.beynmCif||'-'}</td>
                     <td class="inline-date" onclick="window.inlineEditDate(this, ${i}, 'kiymVv')" title="Tarih seçmek için tıkla">${d.kiymVv||'-'}</td>
                     <td class="inline-date" onclick="window.inlineEditDate(this, ${i}, 'kiymGt')" title="Tarih seçmek için tıkla">${d.kiymGt||'-'}</td>
-                    <td class="text-primary font-bold">${m.klnSonTarih||'-'}</td><td class="text-warning font-bold">${m.klnGun!==''?m.klnGun:'-'}</td>
-                    <td class="text-success font-bold">${m.sonGun||'-'}</td><td>${d.evrak||'Kapalı'}</td><td>${d.fatura ? window.formatNumber(d.fatura) + ' €' : '-'}</td><td class="text-danger font-bold">${window.formatNumber(m.ardiye)} ₺</td>
-                    <td style="display:flex;gap:4px;"><button class="icon-btn text-warning" onclick="window.openDeclVehicleModal(${i}, 'decl')"><i data-lucide="edit-3" style="width:16px;"></i></button></td>
+                    <td class="text-primary font-bold">${m.klnSonTarih||'-'}</td><td class="text-warning font-bold" style="font-size:15px;">${m.klnGun!==''?m.klnGun:'-'}</td>
+                    <td class="text-success font-bold">${m.sonGun||'-'}</td>
+                    <td><span class="badge ${d.evrak==='Açık'?'badge-warning':'badge-dark'}">${d.evrak||'Kapalı'}</span></td>
+                    <td style="font-weight:600;">${d.fatura ? window.formatNumber(d.fatura) + ' €' : '-'}</td>
+                    <td class="text-danger font-bold" style="font-size:14px;">${window.formatNumber(m.ardiye)} ₺</td>
+                    <td style="text-align:center;"><button class="icon-btn text-warning" style="background:rgba(245,158,11,0.1);" onclick="window.openDeclVehicleModal(${i}, 'decl')"><i data-lucide="edit-3" style="width:16px;"></i></button></td>
                 </tr>`;
             });
             tbody.innerHTML = html;
@@ -892,15 +981,15 @@
         window.renderFirmsList = function() {
             const grid = document.getElementById('firms-dynamic-grid'); if(!grid) return;
             const firms = Object.keys(window.firmData);
-            if(firms.length === 0) { grid.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:40px; color:var(--text-muted);">Henüz kayıtlı firma yok. Yukarıdan 'Yeni Firma Ekle' butonuna basabilirsiniz.</div>`; return; }
+            if(firms.length === 0) { grid.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; padding:60px; color:var(--text-muted); background:rgba(255,255,255,0.02); border-radius:16px;"><i data-lucide="building" style="width:48px; height:48px; opacity:0.5; margin-bottom:16px;"></i><br>Henüz kayıtlı firma yok.<br>Yukarıdan 'Yeni Firma Oluştur' butonuna basabilirsiniz.</div>`; return; }
             
             grid.innerHTML = firms.map(firmName => `
-                <div class="stat-card glass-card" onclick="window.renderFirmDetails('${firmName}')" style="background: rgba(99, 102, 241, 0.05);">
-                    <div class="firm-delete-btn" onclick="window.deleteFirm('${firmName}', event)" title="Firmayı Sil"><i data-lucide="trash-2" style="width:14px;"></i></div>
-                    <div class="stat-icon"><i data-lucide="building-2"></i></div>
+                <div class="stat-card glass-card" onclick="window.renderFirmDetails('${firmName}')" style="background: linear-gradient(145deg, rgba(79,70,229,0.05) 0%, rgba(15,23,42,0.8) 100%);">
+                    <div class="firm-delete-btn" onclick="window.deleteFirm('${firmName}', event)" title="Firmayı Tamamen Sil"><i data-lucide="trash-2" style="width:16px;"></i></div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.2) 0%, rgba(67, 56, 202, 0.4) 100%); color:white;"><i data-lucide="building-2"></i></div>
                     <div class="stat-info">
-                        <h3 style="font-size: 18px; color: white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${firmName}">${firmName}</h3>
-                        <p class="text-muted">${window.firmData[firmName].length} Araç Kayıtlı</p>
+                        <h3 style="font-size: 16px; color: white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:700; letter-spacing:0.5px;" title="${firmName}">${firmName}</h3>
+                        <p style="color:var(--accent); font-size:12px; font-weight:600; margin-top:4px;">${window.firmData[firmName].length} Araç Kayıtlı</p>
                     </div>
                 </div>
             `).join('');
@@ -908,7 +997,7 @@
         };
 
         window.renderFirmDetails = function(fName) {
-            window.currentFirm = fName; window.renderView('firmDetails'); document.getElementById('current-firm-title').innerText = fName + " Araçları";
+            window.currentFirm = fName; window.renderView('firmDetails'); document.getElementById('current-firm-title').innerText = fName + " Arşivi";
             window.renderFirmVehicles();
         };
 
@@ -916,16 +1005,23 @@
             const tbody = document.getElementById('firm-vehicles-tbody'); if(!tbody || !window.currentFirm) return; 
             const arr = window.firmData[window.currentFirm] || [];
             
-            if(arr.length===0) { tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-muted)">Bu firmaya ait araç bulunamadı.</td></tr>`; return; }
+            if(arr.length===0) { tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted)"><i data-lucide="car" style="width:32px; height:32px; opacity:0.5; margin-bottom:12px;"></i><br>Bu firmaya ait araç bulunamadı.</td></tr>`; return; }
             let html = '';
             arr.forEach((d, i) => {
-                html += `<tr><td style="text-align:center;"><input type="checkbox" class="firm-cb" value="${i}" onclick="window.toggleFirmCb()"></td><td class="font-medium">${d.marka||'-'}</td><td>${d.model||'-'}</td><td>${d.yil||'-'}</td><td>${d.renk||'-'}</td><td class="text-primary">${d.sasi||'-'}</td><td>${d.tarih||'-'}</td><td>${d.beyanname||'-'}</td><td>${d.fatura ? window.formatNumber(d.fatura) + ' €' : '-'}</td><td class="text-success font-bold">${d.kiymet ? window.formatNumber(d.kiymet) + ' €' : '-'}</td><td style="display:flex;gap:4px;"><button class="icon-btn text-warning" onclick="window.openDeclVehicleModal(${i}, 'firm')"><i data-lucide="edit-3" style="width:16px;"></i></button><button class="icon-btn text-danger" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`;
+                html += `<tr>
+                    <td style="text-align:center;"><input type="checkbox" class="firm-cb" value="${i}" onclick="window.toggleFirmCb()" style="width:16px; height:16px; cursor:pointer;"></td>
+                    <td class="font-medium">${d.marka||'-'}</td><td>${d.model||'-'}</td><td>${d.yil||'-'}</td><td>${d.renk||'-'}</td>
+                    <td class="text-primary font-bold" style="letter-spacing:1px;">${d.sasi||'-'}</td><td>${d.tarih||'-'}</td><td>${d.beyanname||'-'}</td>
+                    <td style="font-weight:600;">${d.fatura ? window.formatNumber(d.fatura) + ' €' : '-'}</td>
+                    <td class="text-success font-bold">${d.kiymet ? window.formatNumber(d.kiymet) + ' €' : '-'}</td>
+                    <td style="display:flex;gap:6px; justify-content:center;"><button class="icon-btn text-warning" style="background:rgba(245,158,11,0.1);" onclick="window.openDeclVehicleModal(${i}, 'firm')"><i data-lucide="edit-3" style="width:16px;"></i></button><button class="icon-btn text-danger" style="background:rgba(239,68,68,0.1);" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2" style="width:16px;"></i></button></td>
+                </tr>`;
             });
             tbody.innerHTML = html;
             document.getElementById('firm-select-all').checked = false; window.toggleFirmCb(); if(window.lucide) lucide.createIcons();
         };
 
-        window.deleteFirmVehicle = function(i) { if(confirm('Emin misiniz? (Gelen Araçlar\'daki kopyası silinmez)')) { window.firmData[window.currentFirm].splice(i,1); saveData('firm'); window.renderFirmVehicles(); } };
+        window.deleteFirmVehicle = function(i) { if(confirm('Bu aracı firma arşivinden silmek istediğinize emin misiniz? (Gelen Araçlar listesindeki ana kayıt silinmez)')) { window.firmData[window.currentFirm].splice(i,1); saveData('firm'); window.renderFirmVehicles(); } };
         window.toggleAllFirmVehicles = function(isChecked) { document.querySelectorAll('.firm-cb').forEach(c => c.checked = isChecked); window.toggleFirmCb(); };
         window.toggleFirmCb = function() { const chk = document.querySelectorAll('.firm-cb:checked'); const btn = document.getElementById('firm-bulk-delete-btn'); if(btn) { if(chk.length>0) { btn.classList.remove('hidden'); document.getElementById('firm-selected-count').innerText=chk.length; } else btn.classList.add('hidden'); } };
         window.bulkDeleteFirmVehicles = function() { const chk = document.querySelectorAll('.firm-cb:checked'); if(chk.length===0) return; if(confirm(chk.length + ' kaydı silmek istediğinize emin misiniz?')) { Array.from(chk).map(c=>parseInt(c.value)).sort((a,b)=>b-a).forEach(i => window.firmData[window.currentFirm].splice(i,1)); saveData('firm'); window.renderFirmVehicles(); } };
