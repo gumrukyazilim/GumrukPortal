@@ -113,10 +113,6 @@
         .inline-date:hover::after { content: '✎'; position: absolute; right: 8px; top: 10px; font-size: 10px; color: var(--text-muted); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); cursor: pointer; }
         
-        .firm-delete-btn { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; opacity: 0; border: 1px solid transparent;}
-        .stat-card:hover .firm-delete-btn { opacity: 1; }
-        .firm-delete-btn:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); }
-        
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
@@ -514,7 +510,6 @@
         window.formatTRDate = function(dateObj) { if (!dateObj || isNaN(dateObj.getTime())) return ""; return `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`; };
         window.addDays = function(dateObj, days) { if (!dateObj) return null; let result = new Date(dateObj); result.setDate(result.getDate() + Number(days)); return result; };
         
-        // ZIRHLI GÜN FARK MOTORU
         window.diffDaysSigned = function(targetDate, baseDate) { 
             if (!targetDate || !baseDate) return 0; 
             const utcTarget = Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()); 
@@ -592,58 +587,51 @@
             // 1. L_date (Temel Son Tarih) Bulma
             let L_date = null;
             if (I) { L_date = window.addDays(I, 29); } 
-            else if (H) { result.klnSonTarih = "Süresiz"; } 
+            else if (H) { L_date = null; } // Antrepo = Süresiz
             else if (G) { L_date = window.addDays(G > F ? G : F, 29); } 
             else { L_date = F; }
             
-            if (L_date) { result.klnSonTarih = window.formatTRDate(L_date); }
+            result.klnSonTarih = L_date ? window.formatTRDate(L_date) : "Süresiz";
 
             // 2. Kıymette Geçen Süre Hesabı (Rakam Olarak)
-            let kiymGecenSayi = 0;
-            if (J) {
-                if (K) {
-                    kiymGecenSayi = window.diffDaysSigned(K, J);
-                    result.kiymGecen = kiymGecenSayi; // Rakam
-                } else {
-          // 3. SON GÜN ve KALAN GÜN Mantığı
-if (J && !K) {
-    // Araç şu an Kıymette! Süre dondurulur.
-    result.sonGun = "Kıymette";
-    if (L_date) {
-        let d = window.diffDaysSigned(L_date, J);
-        result.klnGun = d < 0 ? 0 : d;
-    } else {
-        result.klnGun = "Süresiz";
-    }
-} else if (isAcik && !(J && K)) {
-    // Evrak açık VE kıymet süreci tamamlanmamış
-    result.sonGun = "Açık";
-    result.klnGun = "-";
-} else if (!L_date) {
-    // L_date yoksa (Örn: Antrepo) SON GÜN hesaplanamaz, Süresizdir.
-    result.sonGun = "Süresiz";
-    result.klnGun = "Süresiz";
-} else {
-    // L_date var ve Kıymette DEĞİL (yani ya kıymet bitti ya da hiç gitmedi)
-    let finalSonGunDate = window.addDays(L_date, kiymGecenGun);
-    result.sonGun = window.formatTRDate(finalSonGunDate);
-    
-    let diff = window.diffDaysSigned(finalSonGunDate, today);
-    result.klnGun = diff < 0 ? 0 : diff;
-}
-                let p30 = window.addDays(I, 30); result.klnGun = p30 > today ? window.diffDaysSigned(p30, today) : 0; 
-            } else if (H && !I) { 
-                result.klnGun = "Süresiz"; 
-            } else if (finalSonGunDate) { 
-                let d = 0;
-                if (J && !K) { d = window.diffDaysSigned(finalSonGunDate, J); } 
-                else { d = window.diffDaysSigned(finalSonGunDate, today); }
-                result.klnGun = d < 0 ? 0 : d; 
-            } else { 
-                result.klnGun = "Süresiz"; 
+            let kiymGecenGun = 0;
+            if (J && !K) {
+                result.kiymGecen = "Kıymette";
+            } else if (J && K) {
+                kiymGecenGun = window.diffDaysSigned(K, J);
+                result.kiymGecen = kiymGecenGun;
+            } else {
+                result.kiymGecen = L_date === null ? "Süresiz" : "-";
             }
 
-            // 5. Ardiye
+            // 3. SON GÜN ve KALAN GÜN Mantığı
+            if (J && !K) {
+                // Araç şu an Kıymette! Süre dondurulur.
+                result.sonGun = "Kıymette";
+                if (L_date) {
+                    let d = window.diffDaysSigned(L_date, J);
+                    result.klnGun = d < 0 ? 0 : d;
+                } else {
+                    result.klnGun = "Süresiz";
+                }
+            } else if (isAcik && !(J && K)) {
+                // Evrak açık VE kıymet süreci tamamlanmamış
+                result.sonGun = "Açık";
+                result.klnGun = "-";
+            } else if (!L_date) {
+                // L_date yoksa (Örn: Antrepo) SON GÜN hesaplanamaz, Süresizdir.
+                result.sonGun = "Süresiz";
+                result.klnGun = "Süresiz";
+            } else {
+                // L_date var ve Kıymette DEĞİL (yani ya kıymet bitti ya da hiç gitmedi)
+                let finalSonGunDate = window.addDays(L_date, kiymGecenGun);
+                result.sonGun = window.formatTRDate(finalSonGunDate);
+                
+                let diff = window.diffDaysSigned(finalSonGunDate, today);
+                result.klnGun = diff < 0 ? 0 : diff;
+            }
+
+            // 4. Ardiye Hesabı
             let gun = window.diffDaysSigned(today, E) + 1; result.gecenGun = gun;
             if (gun > 0) { if (gun <= 20) result.ardiye = gun * 145; else if (gun <= 50) result.ardiye = 2900 + (gun - 20) * 725; else if (gun <= 80) result.ardiye = 24650 + (gun - 50) * 1160; else result.ardiye = 59450 + (gun - 80) * 1450; }
             return result;
@@ -910,24 +898,6 @@ if (J && !K) {
             const setInner = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; }; const fTL = (val) => window.formatNumber(val) + ' ₺'; const fEUR = (val) => window.formatNumber(val) + ' €';
 
             setInner('res-gv-matrah', fTL(gvMatrahiTL)); setInner('res-ara-toplam', fTL(araToplamTL)); setInner('res-gv-tutar', fTL(gvTutarTL)); setInner('res-gv-yuzde', `%${calcGv}`); setInner('res-igv-tutar', fTL(igvTutarTL)); setInner('res-igv-yuzde', `%${calcIgv}`); setInner('res-kkdf-tutar', fTL(kkdfTutarTL)); setInner('res-kkdf-yuzde', `%${calcKkdf}`); setInner('res-otv-matrahi', fTL(otvMatrahiTL)); setInner('res-otv-yuzde', importerType === "ithalatci" ? '(Muaf)' : `(%${otvOrani})`); setInner('res-hesaplanan-otv', fTL(hesaplananOtvTL)); setInner('res-kdv-tutar', fTL(hesaplananKdvTL)); setInner('res-toplam-vergi', fTL(toplamVergiTL)); setInner('res-diger-maliyet', fTL(digerMasrafTL)); setInner('res-diger-eur', fEUR(digerMasrafEUR)); setInner('res-genel-maliyet', fTL(genelToplamTL)); setInner('res-genel-eur', fEUR(genelToplamEUR)); window.saveCalculatorState(); 
-        };
-
-        window.declAutoCalc = function() {
-            const val = (id) => document.getElementById(id)?.value;
-            const isoToTR = (iso) => { if(!iso) return ''; const p = iso.split('-'); return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : iso; };
-            const data = { tarih: isoToTR(val('da-tarih')), ekSure: isoToTR(val('da-ekSure')), antTarih: isoToTR(val('da-antTarih')), beynmCif: isoToTR(val('da-beynmCif')), kiymVv: isoToTR(val('da-kiymVv')), kiymGt: isoToTR(val('da-kiymGt')), evrak: val('da-evrak') };
-            if(!data.tarih) return; 
-            const m = window.calculateVehicleMetrics(data); 
-            const set = (id, v) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = v; };
-            set('da-prev-ilkSure', m.ilkSureSonu||'-'); 
-            let klnGunHtml = '-'; 
-            if (m.klnGun !== '' && m.klnGun !== 'Süresiz') { 
-                let val2 = parseInt(m.klnGun); 
-                if (val2 <= 5) klnGunHtml = `<span class="text-danger font-bold">${val2} Gün</span>`; 
-                else if (val2 <= 20) klnGunHtml = `<span class="text-warning">${val2} Gün</span>`; 
-                else klnGunHtml = `<span class="text-success">${val2} Gün</span>`; 
-            } else if(m.klnGun === 'Süresiz') { klnGunHtml = `<span class="text-muted">Süresiz</span>`; }
-            set('da-prev-klnGun', klnGunHtml); set('da-prev-ardiye', window.formatNumber(m.ardiye)+' ₺'); set('da-prev-sonGun', m.sonGun||'-'); set('da-prev-kiymGecen', m.kiymGecen!==''?m.kiymGecen:'-');
         };
 
         function initViews() {
