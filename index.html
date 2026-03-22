@@ -163,7 +163,7 @@
 
     <div id="app-screen" class="app-container">
         <aside class="sidebar">
-            <div class="sidebar-logo"><i data-lucide="hexagon"></i><div><span>GümrükPortal</span><small style="font-size:11px;color:var(--text-muted);display:block;font-weight:600;margin-top:2px; letter-spacing:1px;">v17.2 ROCK SOLID</small></div></div>
+            <div class="sidebar-logo"><i data-lucide="hexagon"></i><div><span>GümrükPortal</span><small style="font-size:11px;color:var(--text-muted);display:block;font-weight:600;margin-top:2px; letter-spacing:1px;">v17.3 ROCK SOLID</small></div></div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Sistem Özeti</span></button>
                 <button class="nav-item" data-view="declarations"><i data-lucide="car-front"></i><span>Gelen Araçlar</span></button>
@@ -558,49 +558,63 @@
             if (oldVal !== newVal) { input.value = newVal; let newPos = cursor + (newVal.length - oldVal.length); input.setSelectionRange(newPos, newPos); }
         };
 
-        // ÇELİK GİBİ SAĞLAM VERİ YÜKLEME MOTORU (TÜM HATALARI ÖNLER)
+        // ÇELİK GİBİ SAĞLAM VERİ YÜKLEME VE KURTARMA MOTORU
         function loadAllData() {
             try {
-                // Kıymet Data
                 const kData = localStorage.getItem('gumrukKiymetData');
                 if(kData && kData !== "null" && kData !== "undefined") {
                     const parsed = JSON.parse(kData); 
                     window.kiymetData = Array.isArray(parsed) && parsed.length > 0 ? parsed : [...defaultKiymetVerileri];
                 } else { window.kiymetData = [...defaultKiymetVerileri]; }
 
-                // Declarations Data
                 const dData = localStorage.getItem('gumrukDeclData'); 
                 if(dData && dData !== "null" && dData !== "undefined") {
                     const parsed = JSON.parse(dData);
                     window.declarationsData = Array.isArray(parsed) ? parsed : [];
                 }
 
-                // Firm Data
                 const fData = localStorage.getItem('gumrukFirmData'); 
+                let parsedFirms = {};
                 if(fData && fData !== "null" && fData !== "undefined") { 
-                    const parsed = JSON.parse(fData);
-                    window.firmData = (typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {}; 
-                } else { 
-                    window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] }; 
-                }
-                
-                // Güvenlik: Eğer obje tamamen boşsa veya bozulduysa varsayılanları ekle
-                if(Object.keys(window.firmData).length === 0) {
-                    window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] };
-                }
+                    try {
+                        let temp = JSON.parse(fData);
+                        if(typeof temp === 'object' && !Array.isArray(temp)) { parsedFirms = temp; }
+                    } catch(e){}
+                } 
 
-                // Tarih formatlarını düzeltme
-                window.declarationsData.forEach(d => { if(d) { d.tarih = window.fixExcelDate(d.tarih); d.kiymVv = window.fixExcelDate(d.kiymVv); d.kiymGt = window.fixExcelDate(d.kiymGt); }});
-                
-                Object.keys(window.firmData).forEach(fk => { 
-                    if(Array.isArray(window.firmData[fk])) {
-                        window.firmData[fk].forEach(d => { if(d) d.tarih = window.fixExcelDate(d.tarih); }); 
-                    } else {
-                        window.firmData[fk] = []; // Bozuk listeyi temiz diziye çevir
+                // ZORUNLU ANA FİRMALAR
+                window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] };
+
+                // 1. ADIM: EĞER FİRMA HAFIZASI BOŞSA VEYA BOZULMUŞSA, GELEN ARAÇLARDAN FİRMALARI VE ARAÇLARI KURTAR
+                window.declarationsData.forEach(d => {
+                    if(d) {
+                        d.tarih = window.fixExcelDate(d.tarih); d.kiymVv = window.fixExcelDate(d.kiymVv); d.kiymGt = window.fixExcelDate(d.kiymGt);
+                        let fName = d.firma || "ŞAMNU GT";
+                        if(!window.firmData[fName]) window.firmData[fName] = [];
+                        // Şasi nosu aynı olan araç daha önce eklenmemişse ekle (Duplike önleme)
+                        if(!window.firmData[fName].find(x => x.sasi === d.sasi)) {
+                            window.firmData[fName].push({...d});
+                        }
                     }
                 });
-                
+
+                // 2. ADIM: KULLANICININ ÖZEL EKLEDİĞİ (GELEN ARAÇLARDA OLMAYAN) FİRMALAR VARSA ONLARI DA EKLE
+                Object.keys(parsedFirms).forEach(fName => {
+                    if(!window.firmData[fName]) window.firmData[fName] = [];
+                    // Kullanıcının kendi eklediği, declarationsData'da olmayan ekstra araçları varsa onları da koru
+                    if(Array.isArray(parsedFirms[fName])) {
+                        parsedFirms[fName].forEach(p => {
+                            if(p && !window.firmData[fName].find(x => x.sasi === p.sasi)) {
+                                p.tarih = window.fixExcelDate(p.tarih);
+                                window.firmData[fName].push(p);
+                            }
+                        });
+                    }
+                });
+
                 window.kiymetData.forEach(k => { if(k) k.tarih = window.fixExcelDate(k.tarih); });
+
+                saveData('firm'); // Kurtarılmış ve birleştirilmiş datayı hemen güvenlice kaydet.
 
             } catch (e) {
                 console.error("Kritik Veri Okuma Hatası! Sistem kendini güvenli moda aldı.", e);
@@ -632,10 +646,22 @@
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if(data.decl && data.firm && data.kiymet) {
+                    if(data.decl && data.kiymet) {
                         window.declarationsData = Array.isArray(data.decl) ? data.decl : []; 
-                        window.firmData = (typeof data.firm === 'object' && !Array.isArray(data.firm)) ? data.firm : {}; 
                         window.kiymetData = Array.isArray(data.kiymet) ? data.kiymet : [];
+                        
+                        // Yedek içindeki firma datası sağlamsa al, yoksa declarations'dan kurtar
+                        if(data.firm && typeof data.firm === 'object' && !Array.isArray(data.firm) && Object.keys(data.firm).length > 0) {
+                            window.firmData = data.firm;
+                        } else {
+                            window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] };
+                            window.declarationsData.forEach(d => {
+                                let f = d.firma || "ŞAMNU GT";
+                                if(!window.firmData[f]) window.firmData[f] = [];
+                                window.firmData[f].push({...d});
+                            });
+                        }
+                        
                         saveData('all'); alert("Sistem yedeği başarıyla yüklendi! Sayfa yenileniyor..."); location.reload();
                     } else { alert("Geçersiz yedek dosyası!"); }
                 } catch(err) { alert("Dosya okunurken bir hata oluştu!"); }
@@ -850,7 +876,7 @@
                 }
 
                 html += `<tr>
-                    <td style="text-align:center;"><input type="checkbox" class="custom-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
+                    <td style="text-align:center; padding-top:12px;"><input type="checkbox" class="custom-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
                     <td><span class="badge badge-dark" style="font-size:11px;">${d.firma||'-'}</span></td>
                     <td><div style="font-weight:800; color:white; font-size:15px;">${d.marka||''}</div><div style="font-size:12px; color:var(--text-muted); font-weight:600;">${d.model||''}</div></td>
                     <td class="text-primary font-bold" style="letter-spacing:1px;">${d.sasi||'-'}</td>
@@ -884,7 +910,7 @@
             tbody.innerHTML = window.kiymetData.map((k, idx) => {
                 let dClass = k.durum && k.durum.toUpperCase().includes('MAHKEME') ? 'badge-danger' : (k.durum && k.durum.toUpperCase().includes('YOK') ? 'badge-dark' : 'badge-warning');
                 return `<tr>
-                    <td style="text-align:center;"><input type="checkbox" class="custom-cb" value="${idx}" onclick="window.toggleKiymetCb()"></td>
+                    <td style="text-align:center; padding-top:12px;"><input type="checkbox" class="custom-cb" value="${idx}" onclick="window.toggleKiymetCb()"></td>
                     <td><div style="font-weight:700; color:white; font-size:15px;">${k.marka||'-'}</div></td><td><span style="color:#e2e8f0;">${k.model||'-'}</span></td><td>${k.yil||'-'}</td><td>${k.renk||'-'}</td>
                     <td class="text-primary font-bold" style="letter-spacing:1px;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td>
                     <td style="font-weight:600; color:#e2e8f0;">${k.fatura ? window.formatNumber(k.fatura) + ' €' : '-'}</td>
@@ -1143,6 +1169,9 @@
         }
 
         window.renderView = function(viewName) {
+            // SAYFA HAFIZASI
+            localStorage.setItem('gumruk_last_view', viewName);
+            
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             const activeView = document.getElementById('view-' + viewName); 
             if(activeView) {
@@ -1157,6 +1186,10 @@
             if (viewName === 'declarations') window.renderDeclarationsTable();
             if (viewName === 'kiymetListesi') window.renderKiymetTable();
             if (viewName === 'firms') window.renderFirmsList();
+            if (viewName === 'firmDetails') {
+                if(window.currentFirm) localStorage.setItem('gumruk_last_firm', window.currentFirm);
+                window.renderFirmVehicles();
+            }
             if (viewName === 'calculator') {
                 window.loadCalculatorState(); 
                 if(!window.digerMasraflarPopulated) {
@@ -1174,7 +1207,23 @@
                 const ls = document.getElementById('login-screen');
                 if(ls) ls.style.display = 'none';
             }
-            initViews(); loadAllData(); window.renderView('dashboard');
+            initViews(); 
+            loadAllData(); 
+            
+            // HAFIZADAN SON SAYFAYI AÇMA
+            const lastView = localStorage.getItem('gumruk_last_view') || 'dashboard';
+            if (lastView === 'firmDetails') {
+                const lastFirm = localStorage.getItem('gumruk_last_firm');
+                if (lastFirm && window.firmData[lastFirm]) {
+                    window.currentFirm = lastFirm;
+                    window.renderView('firmDetails');
+                    if(document.getElementById('current-firm-title')) document.getElementById('current-firm-title').innerText = lastFirm + " Arşivi";
+                } else {
+                    window.renderView('firms');
+                }
+            } else {
+                window.renderView(lastView);
+            }
         });
     </script>
 </body>
