@@ -171,8 +171,8 @@
                         <i data-lucide="search" style="width:16px; height:16px;"></i>
                     </button>
                     <input type="text" id="global-search-input" 
-                           onkeyup="if(event.key === 'Enter') window.handleGlobalSearch(this.value)" 
-                           placeholder="Kayıt arayın... (Enter)">
+                           oninput="window.handleGlobalSearch(this.value)" 
+                           placeholder="Marka, model, şasi, beyanname... yazın">
                     <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"
                             style="background:transparent; border:none; cursor:pointer; color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap; padding-left:8px; border-left:1px solid var(--border-light); margin-left:8px;">
                         Ara
@@ -579,7 +579,6 @@
         window.inlineEditDate = function(el, idx, field) { if(el.querySelector('input')) return; const currentVal = window.declarationsData[idx][field] || ''; let isoDate = ''; if(currentVal) { const parts = currentVal.split('.'); if(parts.length === 3) isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`; } el.innerHTML = `<input type="date" value="${isoDate}" style="padding:4px; height:28px; font-size:12px;" onblur="window.saveInlineDate(this, ${idx}, '${field}')" onchange="window.saveInlineDate(this, ${idx}, '${field}')">`; const inp = el.querySelector('input'); inp.focus(); inp.showPicker && inp.showPicker(); };
         window.saveInlineDate = function(input, idx, field) { const iso = input.value; let trDate = ''; if(iso) { const parts = iso.split('-'); if(parts.length === 3) trDate = `${parts[2]}.${parts[1]}.${parts[0]}`; } if(window.declarationsData[idx][field] !== trDate) { window.declarationsData[idx][field] = trDate; saveData('decl'); window.renderDeclarationsTable(); } else { input.parentElement.innerHTML = trDate || '-'; } };
 
-        // --- TAMİR EDİLMİŞ DÜMDÜZ VE KUSURSUZ MATEMATİK MOTORU ---
         window.calculateVehicleMetrics = function(data) {
             let today = new Date(); today.setHours(0,0,0,0);
             let E = window.parseTRDate(data.tarih);
@@ -597,31 +596,27 @@
             
             let F = window.addDays(E, 20); result.ilkSureSonu = window.formatTRDate(F);
             
-            // 1. L_date (Temel Son Tarih) Bulma
             let L_date = null;
             if (I) { L_date = window.addDays(I, 29); } 
-            else if (H) { L_date = null; } // Antrepo = Süresiz
-            else if (G) { L_date = window.addDays(G > F ? G : F, 30); } // 30 GÜN EKLENMESİ SAĞLANDI
+            else if (H) { L_date = null; } 
+            else if (G) { L_date = window.addDays(G > F ? G : F, 30); } 
             else { L_date = F; }
             
             if (L_date) { result.klnSonTarih = window.formatTRDate(L_date); }
 
-            // 2. Kıymette Geçen Süre Hesabı (Rakam Olarak)
             let kiymGecenSayi = 0;
             if (J) {
                 if (K) {
                     kiymGecenSayi = window.diffDaysSigned(K, J);
-                    result.kiymGecen = kiymGecenSayi; // Rakam
+                    result.kiymGecen = kiymGecenSayi; 
                 } else {
-                    result.kiymGecen = "Kıymette"; // Yazı
+                    result.kiymGecen = "Kıymette"; 
                 }
             } else if (H && !I) {
                 result.kiymGecen = "Süresiz";
             }
 
-            // 3. SON GÜN ve KALAN GÜN Mantığı
             if (J && !K) {
-                // Araç şu an Kıymette! Süre dondurulur.
                 result.sonGun = "Kıymette";
                 if (L_date) {
                     let d = window.diffDaysSigned(L_date, J);
@@ -630,7 +625,6 @@
                     result.klnGun = "Süresiz";
                 }
             } else if (isAcik && !(J && K)) {
-                // Evrak açık VE kıymet süreci tamamlanmamış
                 result.sonGun = "Açık";
                 if (L_date) {
                     let diff = window.diffDaysSigned(L_date, today);
@@ -639,11 +633,9 @@
                     result.klnGun = "Süresiz";
                 }
             } else if (!L_date) {
-                // L_date yoksa (Örn: Antrepo) SON GÜN hesaplanamaz, Süresizdir.
                 result.sonGun = "Süresiz";
                 result.klnGun = "Süresiz";
             } else {
-                // L_date var ve Kıymette DEĞİL (yani ya kıymet bitti ya da hiç gitmedi)
                 let finalSonGunDate = window.addDays(L_date, kiymGecenSayi);
                 result.sonGun = window.formatTRDate(finalSonGunDate);
                 
@@ -651,7 +643,6 @@
                 result.klnGun = diff < 0 ? 0 : diff;
             }
 
-            // 5. Ardiye
             let gun = window.diffDaysSigned(today, E) + 1; result.gecenGun = gun;
             if (gun > 0) { if (gun <= 20) result.ardiye = gun * 145; else if (gun <= 50) result.ardiye = 2900 + (gun - 20) * 725; else if (gun <= 80) result.ardiye = 24650 + (gun - 50) * 1160; else result.ardiye = 59450 + (gun - 80) * 1450; }
             return result;
@@ -680,18 +671,56 @@
         window.goToFilter = function(filterType) { window.renderView('declarations'); const filterEl = document.getElementById('decl-status-filter'); if(filterEl) { filterEl.value = filterType; window.renderDeclarationsTable(); } };
 
         window.handleGlobalSearch = function(query) {
-            if (!query || query.trim().length < 2) { if(document.getElementById('view-searchResults') && !document.getElementById('view-searchResults').classList.contains('hidden')) { window.renderView('dashboard'); } return; }
-            const q = query.toUpperCase().trim(); const decResults = []; const kiymetResults = []; const firmResults = [];
-            window.declarationsData.forEach((d, i) => { if ((d.sasi && d.sasi.toUpperCase().includes(q)) || (d.marka && d.marka.toUpperCase().includes(q)) || (d.model && d.model.toUpperCase().includes(q))) { decResults.push({ data: d, index: i }); } });
-            Object.keys(window.firmData).forEach(fName => { window.firmData[fName].forEach((d, i) => { if ((d.sasi && d.sasi.toUpperCase().includes(q)) || (d.marka && d.marka.toUpperCase().includes(q)) || (d.model && d.model.toUpperCase().includes(q))) { firmResults.push({ firm: fName, data: d, index: i }); } }); });
-            window.kiymetData.forEach((k, i) => { if ((k.sasi && k.sasi.toUpperCase().includes(q)) || (k.marka && k.marka.toUpperCase().includes(q)) || (k.model && k.model.toUpperCase().includes(q))) { kiymetResults.push({ data: k, index: i }); } });
+            if (!query || query.trim().length < 1) { 
+                if(document.getElementById('view-searchResults') && !document.getElementById('view-searchResults').classList.contains('hidden')) { 
+                    window.renderView('dashboard'); 
+                } 
+                return; 
+            }
+            const q = query.toUpperCase().trim(); 
+            const decResults = []; const kiymetResults = []; const firmResults = [];
+            
+            window.declarationsData.forEach((d, i) => { 
+                if ((d.sasi && d.sasi.toUpperCase().includes(q)) || 
+                    (d.marka && d.marka.toUpperCase().includes(q)) || 
+                    (d.model && d.model.toUpperCase().includes(q)) ||
+                    (d.firma && d.firma.toUpperCase().includes(q)) ||
+                    (d.beyanname && d.beyanname.toUpperCase().includes(q)) ||
+                    (d.renk && d.renk.toUpperCase().includes(q)) ||
+                    (d.yil && String(d.yil).toUpperCase().includes(q))
+                ) { decResults.push({ data: d, index: i }); } 
+            });
+            
+            Object.keys(window.firmData).forEach(fName => { 
+                window.firmData[fName].forEach((d, i) => { 
+                    if ((d.sasi && d.sasi.toUpperCase().includes(q)) || 
+                        (d.marka && d.marka.toUpperCase().includes(q)) || 
+                        (d.model && d.model.toUpperCase().includes(q)) ||
+                        (d.beyanname && d.beyanname.toUpperCase().includes(q)) ||
+                        (d.renk && d.renk.toUpperCase().includes(q)) ||
+                        (fName.toUpperCase().includes(q))
+                    ) { firmResults.push({ firm: fName, data: d, index: i }); } 
+                }); 
+            });
+            
+            window.kiymetData.forEach((k, i) => { 
+                if ((k.sasi && k.sasi.toUpperCase().includes(q)) || 
+                    (k.marka && k.marka.toUpperCase().includes(q)) || 
+                    (k.model && k.model.toUpperCase().includes(q)) ||
+                    (k.renk && k.renk.toUpperCase().includes(q)) ||
+                    (k.yil && String(k.yil).toUpperCase().includes(q)) ||
+                    (k.durum && k.durum.toUpperCase().includes(q))
+                ) { kiymetResults.push({ data: k, index: i }); } 
+            });
 
-            window.renderView('searchResults'); document.getElementById('search-query-display').innerText = query; const container = document.getElementById('search-results-container');
+            window.renderView('searchResults'); 
+            document.getElementById('search-query-display').innerText = query; 
+            const container = document.getElementById('search-results-container');
             let html = '';
-            if (decResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Gelen Araçlar (${decResults.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>İŞLEM</th></tr></thead><tbody>` + decResults.map(r => `<tr><td>${r.data.firma}</td><td>${r.data.marka} ${r.data.model}</td><td>${r.data.sasi}</td><td><button class="btn-sm" onclick="window.openDeclVehicleModal(${r.index}, 'decl')">Aç</button></td></tr>`).join('') + `</tbody></table></div>`; }
-            if (firmResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Firmalar (${firmResults.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>İŞLEM</th></tr></thead><tbody>` + firmResults.map(r => `<tr><td>${r.firm}</td><td>${r.data.marka} ${r.data.model}</td><td>${r.data.sasi}</td><td><button class="btn-sm" onclick="window.currentFirm='${r.firm.replace(/"/g, '&quot;').replace(/'/g, "\\'")}'; window.openDeclVehicleModal(${r.index}, 'firm')">Aç</button></td></tr>`).join('') + `</tbody></table></div>`; }
-            if (kiymetResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Kıymet (${kiymetResults.length})</h3><table class="data-table"><thead><tr><th>ARAÇ</th><th>ŞASİ</th><th>FATURA</th><th>KIYMET</th></tr></thead><tbody>` + kiymetResults.map(r => `<tr><td>${r.data.marka} ${r.data.model}</td><td>${r.data.sasi}</td><td>${r.data.fatura||'-'} €</td><td class="text-success">${r.data.kiymet||'-'} €</td></tr>`).join('') + `</tbody></table></div>`; }
-            if(html === '') { html = `<div class="glass-card" style="text-align:center; padding:40px;">Kayıt bulunamadı.</div>`; }
+            if (decResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Gelen Araçlar (${decResults.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>BEYANNAME</th><th>İŞLEM</th></tr></thead><tbody>` + decResults.map(r => `<tr><td>${r.data.firma||'-'}</td><td>${r.data.marka||''} ${r.data.model||''}</td><td>${r.data.sasi||'-'}</td><td>${r.data.beyanname||'-'}</td><td><button class="btn-sm" onclick="window.openDeclVehicleModal(${r.index}, 'decl')">Aç</button></td></tr>`).join('') + `</tbody></table></div>`; }
+            if (firmResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Firmalar (${firmResults.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>İŞLEM</th></tr></thead><tbody>` + firmResults.map(r => `<tr><td>${r.firm}</td><td>${r.data.marka||''} ${r.data.model||''}</td><td>${r.data.sasi||'-'}</td><td><button class="btn-sm" onclick="window.currentFirm='${r.firm.replace(/"/g, '&quot;').replace(/'/g, "\\'")}'; window.openDeclVehicleModal(${r.index}, 'firm')">Aç</button></td></tr>`).join('') + `</tbody></table></div>`; }
+            if (kiymetResults.length > 0) { html += `<div class="glass-card"><h3 style="margin-bottom:16px;">Kıymet Arşivi (${kiymetResults.length})</h3><table class="data-table"><thead><tr><th>ARAÇ</th><th>ŞASİ</th><th>FATURA</th><th>KIYMET</th><th>DURUM</th></tr></thead><tbody>` + kiymetResults.map(r => `<tr><td>${r.data.marka||''} ${r.data.model||''}</td><td>${r.data.sasi||'-'}</td><td>${r.data.fatura||'-'} €</td><td class="text-success">${r.data.kiymet||'-'} €</td><td>${r.data.durum||'-'}</td></tr>`).join('') + `</tbody></table></div>`; }
+            if(html === '') { html = `<div class="glass-card" style="text-align:center; padding:40px; color:var(--text-muted);">Kayıt bulunamadı.</div>`; }
             container.innerHTML = html; if (window.lucide) window.lucide.createIcons();
         };
 
