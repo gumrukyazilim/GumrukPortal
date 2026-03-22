@@ -15,7 +15,6 @@
             --primary: #3b82f6; --primary-hover: #2563eb; --accent: #38bdf8;
             --text-main: #f8fafc; --text-muted: #a1a1aa; 
             --danger: #ef4444; --success: #10b981; --warning: #f59e0b; 
-            --kiymet-color: #a855f7; /* KIYMETTE BEKLEYENLER İÇİN MOR RENK */
             --font-family: 'Inter', -apple-system, sans-serif; 
             --radius-lg: 16px; --radius-md: 8px; --radius-sm: 6px;
         }
@@ -59,7 +58,6 @@
         .stat-icon { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 12px; background: rgba(59, 130, 246, 0.1); color: var(--primary); }
         .stat-icon.warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
         .stat-icon.success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-        .stat-icon.purple { background: rgba(168, 85, 247, 0.1); color: var(--kiymet-color); }
         .stat-info h3 { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; }
         .stat-value { font-size: 28px; font-weight: 600; color: white; letter-spacing:-0.5px;}
         
@@ -69,21 +67,9 @@
         .data-table tbody tr { transition: background 0.15s ease; }
         .data-table tbody tr:hover td { background: var(--bg-surface-hover); }
 
-        /* KIYMETTE BEKLEYEN ARAÇ SATIR RENGİ (Açık Mor Parlama) */
-        .row-kiymette td {
-            background-color: rgba(168, 85, 247, 0.08) !important;
-            border-bottom-color: rgba(168, 85, 247, 0.15) !important;
-        }
-        .row-kiymette:hover td {
-            background-color: rgba(168, 85, 247, 0.12) !important;
-        }
-        .badge-kiymette {
-            background: rgba(168, 85, 247, 0.15);
-            color: #d8b4fe;
-            border: 1px solid rgba(168, 85, 247, 0.3);
-            box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
-            animation: pulse-purple 2s infinite;
-        }
+        .row-kiymette td { background-color: rgba(168, 85, 247, 0.08) !important; border-bottom-color: rgba(168, 85, 247, 0.15) !important; }
+        .row-kiymette:hover td { background-color: rgba(168, 85, 247, 0.12) !important; }
+        .badge-kiymette { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); box-shadow: 0 0 10px rgba(168, 85, 247, 0.2); animation: pulse-purple 2s infinite; }
         @keyframes pulse-purple { 0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(168, 85, 247, 0); } 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); } }
         
         .custom-cb { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; background: transparent; border: 1px solid #52525b; border-radius: 4px; cursor: pointer; display: inline-flex; align-items:center; justify-content:center; transition: 0.2s; margin:0; vertical-align:middle;}
@@ -124,6 +110,10 @@
         .inline-date:hover { background: rgba(255,255,255,0.03); border-color: var(--border-light); }
         .inline-date:hover::after { content: '✎'; position: absolute; right: 8px; top: 10px; font-size: 10px; color: var(--text-muted); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); cursor: pointer; }
+        
+        .firm-delete-btn { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; opacity: 0; border: 1px solid transparent;}
+        .stat-card:hover .firm-delete-btn { opacity: 1; }
+        .firm-delete-btn:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); }
         
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -283,7 +273,7 @@
         <div class="page-header fade-in"><h1 class="page-title">Sistem Özeti</h1></div>
         <div class="dashboard-grid fade-in">
             <div class="stat-card" onclick="window.goToFilter('kiymet')">
-                <div class="stat-icon purple"><i data-lucide="clock"></i></div>
+                <div class="stat-icon" style="background:rgba(168,85,247,0.1); color:var(--kiymet-color);"><i data-lucide="clock"></i></div>
                 <div class="stat-info"><h3>Kıymette Bekleyen</h3><p class="stat-value" id="dash-kiymet">0</p></div>
             </div>
             <div class="stat-card" onclick="window.goToFilter('acik')">
@@ -389,16 +379,16 @@
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-light); background:var(--bg-main);">
-                        <div class="input-group" style="margin-bottom:0;"><label>İGV</label><select id="calc-igv" onchange="window.calculateTaxes()"><option value="0" selected>%0</option><option value="10">%10</option><option value="25">%25</option><option value="30">%30</option><option value="40">%40</option><option value="60">%60</option></select></div>
+                        <div class="input-group" style="margin-bottom:0;"><label>İGV</label><select id="calc-igv" onchange="window.calculateTaxes()"><option value="0" selected>%0</option><option value="10">%10</option><option value="25">%25</option><option value="30">%30</option></select></div>
                         <div class="input-group" style="margin-bottom:0;"><label>KKDF</label><select id="calc-kkdf" onchange="window.calculateTaxes()"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
                         <div class="input-group" style="margin-bottom:0;"><label>G.V</label><select id="calc-gv" onchange="window.calculateTaxes()"><option value="0">%0</option><option value="6">%6</option><option value="10" selected>%10</option><option value="20">%20</option></select></div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <div class="input-group"><label>Fatura</label><div style="display:flex; gap:6px;"><input id="calc-fatura" type="text" value="100.500" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-fatura" onchange="window.calculateTaxes()" style="width: 70px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
-                        <div class="input-group"><label>Navlun</label><div style="display:flex; gap:6px;"><input id="calc-navlun" type="text" value="1.850" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-navlun" onchange="window.calculateTaxes()" style="width: 70px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
-                        <div class="input-group"><label>Sigorta</label><div style="display:flex; gap:6px;"><input id="calc-sigorta" type="text" value="50" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-sigorta" onchange="window.calculateTaxes()" style="width: 70px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
-                        <div class="input-group"><label>Y.Dışı</label><div style="display:flex; gap:6px;"><input id="calc-yurtdisi" type="text" value="100" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-yurtdisi" onchange="window.calculateTaxes()" style="width: 70px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option><option value="TL">TL</option></select></div></div>
-                        <div class="input-group" style="grid-column: span 2;"><label>Y.İçi Gider</label><div style="display:flex; gap:6px;"><input id="calc-yurtici" type="text" value="25.000" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1; border-color:var(--border-focus);"><select id="cur-calc-yurtici" onchange="window.calculateTaxes()" style="width: 70px; border-color:var(--border-focus);"><option value="TL" selected>TL</option><option value="EUR">EUR</option><option value="USD">USD</option></select></div></div>
+                        <div class="input-group"><label>Fatura</label><div style="display:flex; gap:6px;"><input id="calc-fatura" type="text" value="100.500" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-fatura" onchange="window.calculateTaxes()" style="width: 70px;"><option value="EUR" selected>EUR</option><option value="USD">USD</option></select></div></div>
+                        <div class="input-group"><label>Navlun</label><div style="display:flex; gap:6px;"><input id="calc-navlun" type="text" value="1.850" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-navlun" onchange="window.calculateTaxes()" style="width: 70px;"><option value="EUR" selected>EUR</option></select></div></div>
+                        <div class="input-group"><label>Sigorta</label><div style="display:flex; gap:6px;"><input id="calc-sigorta" type="text" value="50" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-sigorta" onchange="window.calculateTaxes()" style="width: 70px;"><option value="EUR" selected>EUR</option></select></div></div>
+                        <div class="input-group"><label>Y.Dışı</label><div style="display:flex; gap:6px;"><input id="calc-yurtdisi" type="text" value="100" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1;"><select id="cur-calc-yurtdisi" onchange="window.calculateTaxes()" style="width: 70px;"><option value="EUR" selected>EUR</option></select></div></div>
+                        <div class="input-group" style="grid-column: span 2;"><label>Y.İçi Gider</label><div style="display:flex; gap:6px;"><input id="calc-yurtici" type="text" value="25.000" oninput="window.formatCurrencyInput(this); window.calculateTaxes()" style="flex:1; border-color:var(--border-focus);"><select id="cur-calc-yurtici" onchange="window.calculateTaxes()" style="width: 70px; border-color:var(--border-focus);"><option value="TL" selected>TL</option></select></div></div>
                     </div>
                     <div style="padding: 16px; border-radius: var(--radius-md); margin-top: 16px; border: 1px solid var(--border-light); background:var(--bg-main);">
                         <h4 style="margin:0 0 16px 0; font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Diğer Masraflar</h4>
@@ -478,43 +468,21 @@
     </template>
 
     <script>
-        // ---------------- API BULUT BAĞLANTISI ----------------
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxpfr5WW6EWV5bSZJCLvGhLlJ_FOkn8i86qlvAInJONJw7F2nF4BcxCQKev9_5MflUUWA/exec";
 
         function showSyncToast(text, isSuccess = false) {
-            const t = document.getElementById('sync-toast');
-            const icon = document.getElementById('sync-icon');
-            document.getElementById('sync-text').innerText = text;
-            
-            if(isSuccess) {
-                icon.style.animation = 'none';
-                icon.style.border = 'none';
-                icon.innerHTML = '<i data-lucide="check-circle" style="color:var(--success); width:18px; height:18px;"></i>';
-                if(window.lucide) lucide.createIcons();
-            } else {
-                icon.innerHTML = '';
-                icon.style.border = '2px solid rgba(255,255,255,0.1)';
-                icon.style.borderTopColor = 'var(--primary)';
-                icon.style.animation = 'spin 1s linear infinite';
-            }
+            const t = document.getElementById('sync-toast'); const icon = document.getElementById('sync-icon'); document.getElementById('sync-text').innerText = text;
+            if(isSuccess) { icon.style.animation = 'none'; icon.style.border = 'none'; icon.innerHTML = '<i data-lucide="check-circle" style="color:var(--success); width:18px; height:18px;"></i>'; if(window.lucide) lucide.createIcons();
+            } else { icon.innerHTML = ''; icon.style.border = '2px solid rgba(255,255,255,0.1)'; icon.style.borderTopColor = 'var(--primary)'; icon.style.animation = 'spin 1s linear infinite'; }
             t.classList.add('show');
         }
 
-        function hideSyncToast(text, isSuccess = true) {
-            showSyncToast(text, isSuccess);
-            setTimeout(() => { document.getElementById('sync-toast').classList.remove('show'); }, 2500);
-        }
+        function hideSyncToast(text, isSuccess = true) { showSyncToast(text, isSuccess); setTimeout(() => { document.getElementById('sync-toast').classList.remove('show'); }, 2500); }
 
         window.checkLogin = function() {
             const pw = document.getElementById('login-password').value;
-            if(pw === 'Bayram2026') {
-                localStorage.setItem('gumruk_auth', 'true');
-                document.getElementById('login-screen').style.opacity = '0';
-                setTimeout(() => { document.getElementById('login-screen').style.display = 'none'; }, 400);
-            } else {
-                document.getElementById('login-error').style.display = 'block';
-                document.getElementById('login-password').value = '';
-            }
+            if(pw === 'Bayram2026') { localStorage.setItem('gumruk_auth', 'true'); document.getElementById('login-screen').style.opacity = '0'; setTimeout(() => { document.getElementById('login-screen').style.display = 'none'; }, 400);
+            } else { document.getElementById('login-error').style.display = 'block'; document.getElementById('login-password').value = ''; }
         };
 
         window.exchangeRates = { EUR: 50.9822, USD: 48.10, GBP: 58.50, TL: 1 };
@@ -526,9 +494,7 @@
             if(typeof val === 'number' || (!isNaN(val) && Number(val) > 30000)) { 
                 try { let d = new Date((Number(val) - 25569) * 86400 * 1000); return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth()+1).padStart(2, '0')}.${d.getFullYear()}`; } catch(e) { return val; } 
             } 
-            if (typeof val === 'string' && val.includes('T')) { 
-                try { let d = new Date(val); return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth()+1).padStart(2, '0')}.${d.getFullYear()}`; } catch(e) {}
-            }
+            if (typeof val === 'string' && val.includes('T')) { try { let d = new Date(val); return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth()+1).padStart(2, '0')}.${d.getFullYear()}`; } catch(e) {} }
             return String(val).trim(); 
         };
         
@@ -537,92 +503,58 @@
             let parts = dateStr.trim().split(/[\.\-\/]/);
             if (parts.length !== 3) return null;
             let d, m, y;
-            if (parts[0].length === 4) { 
-                y = parseInt(parts[0], 10); m = parseInt(parts[1], 10) - 1; d = parseInt(parts[2], 10);
-            } else { 
-                d = parseInt(parts[0], 10); m = parseInt(parts[1], 10) - 1; y = parseInt(parts[2], 10);
-                if (y < 100) y += 2000;
-            }
-            let date = new Date(y, m, d);
-            date.setHours(0, 0, 0, 0);
+            if (parts[0].length === 4) { y = parseInt(parts[0], 10); m = parseInt(parts[1], 10) - 1; d = parseInt(parts[2], 10);
+            } else { d = parseInt(parts[0], 10); m = parseInt(parts[1], 10) - 1; y = parseInt(parts[2], 10); if (y < 100) y += 2000; }
+            let date = new Date(y, m, d); date.setHours(0, 0, 0, 0);
             return isNaN(date.getTime()) ? null : date;
         };
 
         window.formatTRDate = function(dateObj) { if (!dateObj || isNaN(dateObj.getTime())) return ""; return `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`; };
         window.addDays = function(dateObj, days) { if (!dateObj) return null; let result = new Date(dateObj); result.setDate(result.getDate() + days); return result; };
-        window.diffDaysSigned = function(targetDate, baseDate) { if (!targetDate || !baseDate) return 0; return Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24)); };
+        
+        // ZIRHLI GÜN FARK MOTORU (UTC KORUMALI)
+        window.diffDaysSigned = function(targetDate, baseDate) { 
+            if (!targetDate || !baseDate) return 0; 
+            const utcTarget = Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+            const utcBase = Date.UTC(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+            return Math.round((utcTarget - utcBase) / (1000 * 60 * 60 * 24)); 
+        };
+        
         window.formatNumber = function (val) { if (val === null || val === undefined || val === '') return '-'; let num = typeof val === 'string' ? parseFloat(val.replace(/\./g, '').replace(',', '.')) : val; if (isNaN(num)) return val; return num.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, 'X').replace(/\./g, '.').replace(/X/g, ','); };
         window.formatCurrencyInput = function (input) { let cursor = input.selectionStart, oldVal = input.value; let val = oldVal.replace(/[^0-9,]/g, ''); let parts = val.split(','); if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join(''); parts = val.split(','); let intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "."); let newVal = parts.length > 1 ? intPart + ',' + parts[1] : intPart; if (oldVal !== newVal) { input.value = newVal; let newPos = cursor + (newVal.length - oldVal.length); input.setSelectionRange(newPos, newPos); } };
 
-        // --- CLOUD MOTORU ENTEGRASYONU ---
         window.forceCloudSync = function() { loadAllData(); };
 
         async function loadAllData() {
             showSyncToast("Buluttan veriler indiriliyor...");
             try {
-                let res = await fetch(GOOGLE_API_URL);
-                let json = await res.json();
-                
+                let res = await fetch(GOOGLE_API_URL); let json = await res.json();
                 if(json.status === "success") {
-                    window.declarationsData = json.data.decl || [];
-                    window.kiymetData = json.data.kiymet || [];
-                    window.firmData = json.data.firm || { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] };
-                    
+                    window.declarationsData = json.data.decl || []; window.kiymetData = json.data.kiymet || []; window.firmData = json.data.firm || { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] };
                     window.declarationsData.forEach(d => { if(d) { d.tarih = window.fixExcelDate(d.tarih); d.kiymVv = window.fixExcelDate(d.kiymVv); d.kiymGt = window.fixExcelDate(d.kiymGt); d.ekSure = window.fixExcelDate(d.ekSure); d.antTarih = window.fixExcelDate(d.antTarih); d.beynmCif = window.fixExcelDate(d.beynmCif); }});
                     Object.keys(window.firmData).forEach(fName => { window.firmData[fName].forEach(p => { if(p) { p.tarih = window.fixExcelDate(p.tarih); } }); });
                     window.kiymetData.forEach(k => { if(k) k.tarih = window.fixExcelDate(k.tarih); });
-                    
-                    saveToLocal();
-                    hideSyncToast("Veriler buluttan çekildi!", true);
+                    saveToLocal(); hideSyncToast("Veriler buluttan çekildi!", true);
                 } else { throw new Error("API Hatası"); }
             } catch (e) {
-                console.warn("Bulut Bağlantısı Kurulamadı, Lokal Hafıza Kullanılıyor.");
-                hideSyncToast("Çevrimdışı moddasınız.", false);
-                loadFromLocal();
+                console.warn("Bulut Bağlantısı Kurulamadı, Lokal Hafıza Kullanılıyor."); hideSyncToast("Çevrimdışı moddasınız.", false); loadFromLocal();
             }
-            
             const lastView = localStorage.getItem('gumruk_last_view') || 'dashboard';
-            if (lastView === 'firmDetails') {
-                const lastFirm = localStorage.getItem('gumruk_last_firm');
-                if (lastFirm && window.firmData[lastFirm]) { window.currentFirm = lastFirm; window.renderView('firmDetails'); if(document.getElementById('current-firm-title')) document.getElementById('current-firm-title').innerText = lastFirm; } 
-                else { window.renderView('firms'); }
-            } else { window.renderView(lastView); }
+            if (lastView === 'firmDetails') { const lastFirm = localStorage.getItem('gumruk_last_firm'); if (lastFirm && window.firmData[lastFirm]) { window.currentFirm = lastFirm; window.renderView('firmDetails'); if(document.getElementById('current-firm-title')) document.getElementById('current-firm-title').innerText = lastFirm; } else { window.renderView('firms'); } } else { window.renderView(lastView); }
         }
 
-        function loadFromLocal() {
-            try {
-                const kData = localStorage.getItem('gumrukKiymetData'); if(kData && kData !== "null") { window.kiymetData = JSON.parse(kData); } else { window.kiymetData = []; }
-                const dData = localStorage.getItem('gumrukDeclData'); if(dData && dData !== "null") { window.declarationsData = JSON.parse(dData); }
-                const fData = localStorage.getItem('gumrukFirmData'); if(fData && fData !== "null") { window.firmData = JSON.parse(fData); } else { window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] }; }
-            } catch(e) {}
-        }
-
-        function saveToLocal() {
-            try {
-                localStorage.setItem('gumrukKiymetData', JSON.stringify(window.kiymetData));
-                localStorage.setItem('gumrukDeclData', JSON.stringify(window.declarationsData));
-                localStorage.setItem('gumrukFirmData', JSON.stringify(window.firmData));
-            } catch(e) {}
-        }
+        function loadFromLocal() { try { const kData = localStorage.getItem('gumrukKiymetData'); if(kData && kData !== "null") { window.kiymetData = JSON.parse(kData); } else { window.kiymetData = []; } const dData = localStorage.getItem('gumrukDeclData'); if(dData && dData !== "null") { window.declarationsData = JSON.parse(dData); } const fData = localStorage.getItem('gumrukFirmData'); if(fData && fData !== "null") { window.firmData = JSON.parse(fData); } else { window.firmData = { "ŞAMNU GT": [], "FF OTOMOTİV": [], "SANDIKÇI": [], "KARABAYIR": [], "ŞAHISLAR": [] }; } } catch(e) {} }
+        function saveToLocal() { try { localStorage.setItem('gumrukKiymetData', JSON.stringify(window.kiymetData)); localStorage.setItem('gumrukDeclData', JSON.stringify(window.declarationsData)); localStorage.setItem('gumrukFirmData', JSON.stringify(window.firmData)); } catch(e) {} }
 
         let cloudSaveTimeout = null;
         function saveData(type) {
-            saveToLocal(); 
-            showSyncToast("Buluta kaydediliyor...");
-            
-            clearTimeout(cloudSaveTimeout);
+            saveToLocal(); showSyncToast("Buluta kaydediliyor..."); clearTimeout(cloudSaveTimeout);
             cloudSaveTimeout = setTimeout(async () => {
                 try {
                     let payload = { decl: window.declarationsData, firm: window.firmData, kiymet: window.kiymetData };
-                    await fetch(GOOGLE_API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload)
-                    });
+                    await fetch(GOOGLE_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
                     hideSyncToast("Buluta başarıyla kaydedildi!", true);
-                } catch(e) {
-                    hideSyncToast("Kaydedilemedi! Lütfen bağlantınızı kontrol edin.", false);
-                }
+                } catch(e) { hideSyncToast("Kaydedilemedi! Lütfen bağlantınızı kontrol edin.", false); }
             }, 1500); 
         }
 
@@ -637,7 +569,7 @@
         window.inlineEditDate = function(el, idx, field) { if(el.querySelector('input')) return; const currentVal = window.declarationsData[idx][field] || ''; let isoDate = ''; if(currentVal) { const parts = currentVal.split('.'); if(parts.length === 3) isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`; } el.innerHTML = `<input type="date" value="${isoDate}" style="padding:4px; height:28px; font-size:12px;" onblur="window.saveInlineDate(this, ${idx}, '${field}')" onchange="window.saveInlineDate(this, ${idx}, '${field}')">`; const inp = el.querySelector('input'); inp.focus(); inp.showPicker && inp.showPicker(); };
         window.saveInlineDate = function(input, idx, field) { const iso = input.value; let trDate = ''; if(iso) { const parts = iso.split('-'); if(parts.length === 3) trDate = `${parts[2]}.${parts[1]}.${parts[0]}`; } if(window.declarationsData[idx][field] !== trDate) { window.declarationsData[idx][field] = trDate; saveData('decl'); window.renderDeclarationsTable(); } else { input.parentElement.innerHTML = trDate || '-'; } };
 
-        // TAMİR EDİLMİŞ KUSURSUZ ZAMAN MOTORU (ZAMAN DONDURMA VE EKLEME)
+        // --- ZIRHLI MATEMATİK MOTORU (LOGIC FIX) ---
         window.calculateVehicleMetrics = function(data) {
             let today = new Date(); today.setHours(0,0,0,0);
             let E = window.parseTRDate(data.tarih);
@@ -655,6 +587,7 @@
             
             let F = window.addDays(E, 20); result.ilkSureSonu = window.formatTRDate(F);
             
+            // 1. Temel L_Date (Kalan Son Tarih) Bulunması
             let L_date = null;
             if (I) { L_date = window.addDays(I, 29); } 
             else if (H) { result.klnSonTarih = "Süresiz"; } 
@@ -663,42 +596,52 @@
             
             if (L_date) { result.klnSonTarih = window.formatTRDate(L_date); }
 
-            if (!I && !J && !K) { 
-                if (H) result.kiymGecen = "Süresiz"; 
-            } else if (J) {
-                result.kiymGecen = K ? window.diffDaysSigned(K, J) : "Kıymette";
-            }
-
-            let finalSonGunDate = L_date;
-            if (isAcik) { result.sonGun = "Açık"; } 
-            else if (H && !I) { result.sonGun = "Süresiz"; } 
-            else {
-                if (J && !K) {
-                    result.sonGun = "Kıymette";
-                } else if (J && K && L_date && typeof result.kiymGecen === 'number') {
-                    // KIYMETTEN GELİŞ (K) GİRİLDİĞİNDE GEÇEN SÜREYİ (K - J) SON GÜNE EKLE
-                    finalSonGunDate = window.addDays(L_date, result.kiymGecen);
-                    result.sonGun = window.formatTRDate(finalSonGunDate);
-                } else if (L_date) {
-                    result.sonGun = result.klnSonTarih;
+            // 2. Kıymette Geçen Süre Hesabı
+            let kiymGecenNum = 0;
+            if (J) {
+                if (K) {
+                    kiymGecenNum = window.diffDaysSigned(K, J);
+                    result.kiymGecen = kiymGecenNum;
+                } else {
+                    result.kiymGecen = "Kıymette";
                 }
+            } else if (H && !I) {
+                result.kiymGecen = "Süresiz";
             }
 
-            if (I) { 
-                let p30 = window.addDays(I, 30); result.klnGun = p30 > today ? window.diffDaysSigned(p30, today) : 0; 
-            } else if (H) { 
-                result.klnGun = "Süresiz"; 
-            } else if (finalSonGunDate) { 
-                let d = 0;
-                if (J && !K) { d = window.diffDaysSigned(finalSonGunDate, J); } 
-                else { d = window.diffDaysSigned(finalSonGunDate, today); }
-                result.klnGun = d; 
-            } else { 
-                result.klnGun = "Süresiz"; 
+            // 3. O Sütunu (SON GÜN) Mantığı (L_date + KiymGecen)
+            let finalSonGunDate = L_date;
+            if (isAcik) { 
+                result.sonGun = "Açık"; 
+            } else if (J && !K) {
+                result.sonGun = "Kıymette";
+                finalSonGunDate = null; // Süre Dondu
+            } else if (H && !I) {
+                result.sonGun = "Süresiz";
+                finalSonGunDate = null;
+            } else if (L_date) {
+                if (J && K) {
+                    // İŞTE BURASI: K.VER ve K.GEL varsa kıymette geçen gün acımasızca L_date'e eklenir!
+                    finalSonGunDate = window.addDays(L_date, kiymGecenNum);
+                }
+                result.sonGun = window.formatTRDate(finalSonGunDate);
             }
 
+            // 4. Kalan Gün Sayacı (M Sütunu)
+            if (finalSonGunDate) {
+                let baseDateForCount = today;
+                if (J && !K) { baseDateForCount = J; } // Kıymette beklerken geri sayımı o anlık dondurur
+                let diff = window.diffDaysSigned(finalSonGunDate, baseDateForCount);
+                result.klnGun = diff < 0 ? 0 : diff;
+            } else {
+                if (result.sonGun === "Açık") { result.klnGun = "-"; } 
+                else { result.klnGun = "Süresiz"; }
+            }
+
+            // 5. Ardiye Hesabı
             let gun = window.diffDaysSigned(today, E) + 1; result.gecenGun = gun;
             if (gun > 0) { if (gun <= 20) result.ardiye = gun * 145; else if (gun <= 50) result.ardiye = 2900 + (gun - 20) * 725; else if (gun <= 80) result.ardiye = 24650 + (gun - 50) * 1160; else result.ardiye = 59450 + (gun - 80) * 1450; }
+            
             return result;
         };
 
@@ -747,13 +690,10 @@
                 let isAcik = (String(d.evrak||"").trim().toLowerCase() === "açık" || String(d.evrak||"").trim().toLowerCase() === "false" || String(d.evrak||"").trim().toLowerCase() === "0");
                 let evrakBadge = isAcik ? `<span class="badge badge-warning">Açık</span>` : `<span class="badge badge-dark">Kapalı</span>`;
 
-                // KIYMETTE BEKLEYENLERİ BOYAMA VE BADGE EKLEME
                 let isKiymette = d.kiymVv && !d.kiymGt;
                 let rowClass = isKiymette ? 'row-kiymette' : '';
                 let sonGunHtml = m.sonGun;
-                if(isKiymette) {
-                    sonGunHtml = `<span class="badge badge-kiymette">Kıymette</span>`;
-                }
+                if(isKiymette) { sonGunHtml = `<span class="badge badge-kiymette">Kıymette</span>`; }
 
                 return `<tr class="${rowClass}">
                     <td style="text-align:center;"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
