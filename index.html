@@ -605,31 +605,32 @@
                     kiymGecenSayi = window.diffDaysSigned(K, J);
                     result.kiymGecen = kiymGecenSayi; // Rakam
                 } else {
-                    result.kiymGecen = "Kıymette"; // Yazı
-                }
-            } else if (H && !I) {
-                result.kiymGecen = "Süresiz";
-            }
-
-            // 3. O Sütunu (SON GÜN) Hesaplaması
-            let finalSonGunDate = L_date;
-            if (isAcik) { 
-                result.sonGun = "Açık"; 
-            } else if (H && !I) { 
-                result.sonGun = "Süresiz"; 
-            } else if (J && !K) {
-                result.sonGun = "Kıymette";
-                finalSonGunDate = null; // Kalan gün hesaplanmasın diye durduruldu
-            } else if (L_date) {
-                // Eğer J ve K varsa, L_date'in üzerine GÜN olarak (kiymGecenSayi) ekle!
-                if (J && K) {
-                    finalSonGunDate = window.addDays(L_date, Number(kiymGecenSayi));
-                }
-                result.sonGun = window.formatTRDate(finalSonGunDate);
-            }
-
-            // 4. Kalan Gün Sayacı (M Sütunu)
-            if (I) { 
+          // 3. SON GÜN ve KALAN GÜN Mantığı
+if (J && !K) {
+    // Araç şu an Kıymette! Süre dondurulur.
+    result.sonGun = "Kıymette";
+    if (L_date) {
+        let d = window.diffDaysSigned(L_date, J);
+        result.klnGun = d < 0 ? 0 : d;
+    } else {
+        result.klnGun = "Süresiz";
+    }
+} else if (isAcik && !(J && K)) {
+    // Evrak açık VE kıymet süreci tamamlanmamış
+    result.sonGun = "Açık";
+    result.klnGun = "-";
+} else if (!L_date) {
+    // L_date yoksa (Örn: Antrepo) SON GÜN hesaplanamaz, Süresizdir.
+    result.sonGun = "Süresiz";
+    result.klnGun = "Süresiz";
+} else {
+    // L_date var ve Kıymette DEĞİL (yani ya kıymet bitti ya da hiç gitmedi)
+    let finalSonGunDate = window.addDays(L_date, kiymGecenGun);
+    result.sonGun = window.formatTRDate(finalSonGunDate);
+    
+    let diff = window.diffDaysSigned(finalSonGunDate, today);
+    result.klnGun = diff < 0 ? 0 : diff;
+}
                 let p30 = window.addDays(I, 30); result.klnGun = p30 > today ? window.diffDaysSigned(p30, today) : 0; 
             } else if (H && !I) { 
                 result.klnGun = "Süresiz"; 
