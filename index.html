@@ -63,8 +63,15 @@
         .stat-info h3 { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; }
         .stat-value { font-size: 28px; font-weight: 600; color: white; letter-spacing:-0.5px;}
         
-        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .data-table th { padding: 14px 16px; text-align: left; font-weight: 600; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #27272a; background: #000000; position: sticky; top: 0; z-index: 2;}
+        /* ÖZEL TABLO KAPSAYICISI (SCROLLBAR & SABİT BAŞLIK İÇİN) */
+        .table-wrapper { width: 100%; overflow: auto; max-height: calc(100vh - 260px); }
+        .table-wrapper::-webkit-scrollbar { width: 10px; height: 10px; }
+        .table-wrapper::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: rgba(63, 63, 70, 0.8); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background-color: rgba(113, 113, 122, 1); }
+
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .data-table th { padding: 14px 16px; text-align: left; font-weight: 600; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #27272a; background: #000000; position: sticky; top: 0; z-index: 10;}
         .data-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; color: #e4e4e7; transition: 0.2s;}
         .data-table tbody tr { transition: background 0.15s ease; }
         .data-table tbody tr:hover td { background: var(--bg-surface-hover); }
@@ -116,11 +123,6 @@
         .firm-delete-btn { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; opacity: 0; border: 1px solid transparent;}
         .stat-card:hover .firm-delete-btn { opacity: 1; }
         .firm-delete-btn:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); }
-        
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
         /* CLOUD SYNC TOAST */
         #sync-toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-surface); border: 1px solid var(--border-light); padding: 12px 20px; border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; transform: translateY(100px); opacity: 0; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 99999; }
@@ -166,11 +168,18 @@
         <main class="main-content">
             <header class="top-header">
                 <div class="header-search" style="position:relative;">
-                    <i data-lucide="search" style="color:var(--text-muted); width:16px; height:16px; flex-shrink:0;"></i>
+                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" 
+                            style="background:transparent; border:none; cursor:pointer; display:flex; align-items:center; color:var(--text-muted); padding:0;">
+                        <i data-lucide="search" style="width:16px; height:16px;"></i>
+                    </button>
                     <input type="text" id="global-search-input" 
                            oninput="window.liveSearch(this.value)"
                            onblur="setTimeout(()=>{let d=document.getElementById('search-dropdown');if(d)d.style.display='none';},200)"
-                           placeholder="Marka, model, şasi, beyanname...">
+                           placeholder="Marka, model, şasi, beyanname... yazın">
+                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"
+                            style="background:transparent; border:none; cursor:pointer; color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap; padding-left:8px; border-left:1px solid var(--border-light); margin-left:8px;">
+                        Ara
+                    </button>
                     <div id="search-dropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:-1px; right:-1px; background:var(--bg-surface); border:1px solid var(--border-focus); border-radius:var(--radius-md); max-height:360px; overflow-y:auto; z-index:99999; box-shadow:0 20px 40px rgba(0,0,0,0.7);"></div>
                 </div>
                 
@@ -315,7 +324,7 @@
             </div>
         </div>
         <div class="glass-card fade-in" style="padding:0; overflow:hidden;">
-            <div style="overflow-x: auto;">
+            <div class="table-wrapper">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -344,7 +353,7 @@
                 <button class="btn-primary" onclick="window.openDeclVehicleModal(-1, 'decl')"><i data-lucide="plus" style="width:16px;"></i> Yeni Kayıt</button>
             </div>
             <div class="glass-card" style="padding:0; overflow:hidden;">
-                <div style="overflow-x: auto;">
+                <div class="table-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -449,7 +458,7 @@
                 </div>
             </div>
             <div class="glass-card" style="padding:0; overflow:hidden;">
-                <div style="overflow-x: auto;">
+                <div class="table-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -666,7 +675,6 @@
         window.sortData = function(context) { window.sortState.asc = !window.sortState.asc; const mult = window.sortState.asc ? 1 : -1; const parseD = (dStr) => { if(!dStr) return 0; let clean = window.fixExcelDate(dStr); let p = clean.split('.'); if(p.length === 3) return parseInt(p[2]+p[1]+p[0]); return 0; }; if(context === 'decl') { window.declarationsData.sort((a,b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('decl'); window.renderDeclarationsTable(); } else if(context === 'firm') { window.firmData[window.currentFirm].sort((a,b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('firm'); window.renderFirmVehicles(); } else if(context === 'kiymet') { window.kiymetData.sort((a,b) => (parseD(a.tarih) - parseD(b.tarih)) * mult); saveData('kiymet'); window.renderKiymetTable(); } };
         window.goToFilter = function(filterType) { window.renderView('declarations'); const filterEl = document.getElementById('decl-status-filter'); if(filterEl) { filterEl.value = filterType; window.renderDeclarationsTable(); } };
 
-        // CANLI (LIVE) SEARCH MANTIĞI EKLENDİ
         window.liveSearch = function(query) {
             const dropdown = document.getElementById('search-dropdown');
             if (!dropdown) return;
@@ -735,10 +743,7 @@
             else if (type === 'firm') { window.currentFirm = firmName; window.renderView('firmDetails'); setTimeout(() => window.openDeclVehicleModal(idx, 'firm'), 150); }
         };
 
-        window.handleGlobalSearch = function(query) {
-            // Dropdown sistemine geçildiği için boş bırakıldı ancak uyumluluk için korundu.
-            window.liveSearch(query);
-        };
+        window.handleGlobalSearch = function(query) { window.liveSearch(query); };
 
         window.updateDashboardStats = function() {
             if(!window.declarationsData) return;
