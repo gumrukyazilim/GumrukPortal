@@ -40,61 +40,73 @@
         button, input, select { font-family:inherit; outline:none; border:none; }
         .hidden { display:none !important; }
 
-        /* ─── LOGIN ─── */
+        /* ─── ADVANCED LOGIN SYSTEM ─── */
         #login-screen {
             position:fixed; inset:0; z-index:99999;
             background: radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.18) 0%, transparent 55%),
                         radial-gradient(ellipse at 80% 80%, rgba(168,85,247,0.12) 0%, transparent 50%),
                         #030507;
             display:flex; align-items:center; justify-content:center;
+            backdrop-filter: blur(10px);
         }
         .login-card {
-            width:420px; padding:52px 44px;
+            width:440px; padding:40px;
             background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
             border:1px solid rgba(255,255,255,0.08);
             border-radius:var(--r-xl);
             box-shadow: 0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+            position: relative; overflow: hidden;
         }
         .login-logo {
-            width:56px; height:56px; border-radius:16px; margin:0 auto 28px;
+            width:56px; height:56px; border-radius:16px; margin:0 auto 24px;
             background:linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
             display:flex; align-items:center; justify-content:center;
             box-shadow: 0 8px 24px rgba(59,130,246,0.4);
         }
-        .login-title { font-size:26px; font-weight:700; text-align:center; letter-spacing:-0.5px; margin-bottom:6px; }
-        .login-sub { text-align:center; color:var(--text-secondary); font-size:14px; margin-bottom:36px; }
+        .login-title { font-size:24px; font-weight:700; text-align:center; letter-spacing:-0.5px; margin-bottom:6px; }
+        .login-sub { text-align:center; color:var(--text-secondary); font-size:13px; margin-bottom:28px; }
+        
+        .auth-tabs { display:flex; gap:8px; margin-bottom:24px; background:rgba(255,255,255,0.03); padding:6px; border-radius:var(--r-md); border:1px solid var(--border); }
+        .auth-tab { flex:1; text-align:center; padding:10px 0; border-radius:var(--r-sm); cursor:pointer; font-size:13px; font-weight:600; color:var(--text-secondary); transition:0.2s; }
+        .auth-tab.active { background:var(--bg-elevated); color:var(--text-primary); box-shadow:0 2px 8px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); }
+        
         .login-input-wrap { position:relative; margin-bottom:16px; }
-        .login-input-wrap i { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--text-muted); width:18px; height:18px; }
-        .login-input-wrap input { width:100%; padding:14px 16px 14px 46px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--r-md); color:var(--text-primary); font-size:15px; transition:0.2s; letter-spacing:1px; }
+        .login-input-wrap > i { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--text-muted); width:18px; height:18px; z-index: 2; pointer-events: none;}
+        .login-input-wrap input { width:100%; padding:14px 16px 14px 46px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--r-md); color:var(--text-primary); font-size:14px; transition:0.2s; }
         .login-input-wrap input:focus { border-color:var(--border-active); background:rgba(59,130,246,0.06); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
-        .login-btn { width:100%; padding:15px; background:linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%); color:white; font-size:15px; font-weight:600; border-radius:var(--r-md); cursor:pointer; transition:0.2s; box-shadow:0 4px 16px rgba(59,130,246,0.35); margin-top:8px; }
+        
+        .pwd-toggle { position:absolute; right:16px; top:50%; transform:translateY(-50%); cursor:pointer; color:var(--text-muted); transition:0.2s; display: flex; align-items: center; justify-content: center;}
+        .pwd-toggle:hover { color:var(--text-primary); }
+
+        .checkbox-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; font-size:13px; color: var(--text-secondary); }
+        .checkbox-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        
+        .link-text { color:var(--primary); cursor:pointer; font-weight:500; transition:0.2s; text-decoration:none; }
+        .link-text:hover { color:var(--primary-hover); text-decoration:underline; }
+
+        .login-btn { width:100%; padding:14px; background:linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%); color:white; font-size:14px; font-weight:600; border-radius:var(--r-md); cursor:pointer; transition:0.2s; box-shadow:0 4px 16px rgba(59,130,246,0.35); }
         .login-btn:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(59,130,246,0.45); }
-        #login-error { color:var(--danger); text-align:center; margin-top:14px; font-size:13px; display:none; }
-        .login-dots { display:flex; justify-content:center; gap:6px; margin-top:36px; }
-        .login-dots span { width:6px; height:6px; border-radius:50%; background:var(--border); }
-        .login-dots span:first-child { background:var(--primary); }
+        
+        .auth-error { color:var(--danger); text-align:center; margin-top:14px; font-size:12.5px; display:none; padding: 10px; background: rgba(239,68,68,0.1); border-radius: var(--r-sm); border: 1px solid rgba(239,68,68,0.2);}
+        .auth-success { color:var(--success); text-align:center; margin-bottom:14px; font-size:12.5px; display:none; padding: 10px; background: rgba(16,185,129,0.1); border-radius: var(--r-sm); border: 1px solid rgba(16,185,129,0.2);}
+        
+        /* OTP GRID */
+        .otp-grid { display:flex; justify-content:space-between; gap:10px; margin:24px 0; direction: ltr; }
+        .otp-input { width:48px; height:56px; border-radius:var(--r-md); background:rgba(255,255,255,0.03); border:1px solid var(--border); color:white; font-size:24px; font-weight:700; text-align:center; transition:0.2s; padding: 0;}
+        .otp-input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.15); background:rgba(59,130,246,0.05); }
+        
+        /* AUTH ANIMATIONS */
+        .auth-view { animation: authFade 0.3s ease; }
+        @keyframes authFade { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
 
         /* ─── LAYOUT ─── */
         .app-wrap { display:flex; height:100vh; overflow:hidden; }
 
         /* ─── SIDEBAR ─── */
-        .sidebar {
-            width:var(--sidebar-w); flex-shrink:0; display:flex; flex-direction:column;
-            background:var(--bg-surface); border-right:1px solid var(--border);
-            transition:margin-left 0.3s cubic-bezier(0.4,0,0.2,1); z-index:20;
-        }
+        .sidebar { width:var(--sidebar-w); flex-shrink:0; display:flex; flex-direction:column; background:var(--bg-surface); border-right:1px solid var(--border); transition:margin-left 0.3s cubic-bezier(0.4,0,0.2,1); z-index:20; }
         .sidebar.collapsed { margin-left:calc(-1 * var(--sidebar-w)); }
-        .sidebar-brand {
-            padding:24px 22px 20px;
-            display:flex; align-items:center; gap:12px;
-            border-bottom:1px solid var(--border);
-        }
-        .brand-icon {
-            width:38px; height:38px; border-radius:10px; flex-shrink:0;
-            background:linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
-            display:flex; align-items:center; justify-content:center;
-            box-shadow:0 4px 12px rgba(59,130,246,0.35);
-        }
+        .sidebar-brand { padding:24px 22px 20px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); }
+        .brand-icon { width:38px; height:38px; border-radius:10px; flex-shrink:0; background:linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(59,130,246,0.35); }
         .brand-icon i { color:white; width:18px; height:18px; }
         .brand-text { flex:1; min-width:0; }
         .brand-name { font-size:16px; font-weight:700; letter-spacing:-0.3px; white-space:nowrap; }
@@ -105,18 +117,11 @@
 
         .sidebar-nav { flex:1; padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
         .sidebar-section-label { font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; padding:10px 10px 6px; }
-        .nav-btn {
-            display:flex; align-items:center; gap:11px; width:100%; padding:10px 12px;
-            border-radius:var(--r-md); color:var(--text-secondary); font-size:13.5px; font-weight:500;
-            background:transparent; cursor:pointer; transition:all 0.18s; position:relative;
-        }
+        .nav-btn { display:flex; align-items:center; gap:11px; width:100%; padding:10px 12px; border-radius:var(--r-md); color:var(--text-secondary); font-size:13.5px; font-weight:500; background:transparent; cursor:pointer; transition:all 0.18s; position:relative; }
         .nav-btn i { width:17px; height:17px; flex-shrink:0; }
         .nav-btn:hover { background:var(--bg-hover); color:var(--text-primary); }
         .nav-btn.active { background:linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0.05) 100%); color:var(--primary); font-weight:600; }
         .nav-btn.active::before { content:''; position:absolute; left:0; top:25%; bottom:25%; width:3px; border-radius:0 2px 2px 0; background:var(--primary); }
-        .nav-badge { margin-left:auto; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; }
-        .nav-badge.danger { background:rgba(239,68,68,0.15); color:#f87171; }
-        .nav-badge.purple { background:rgba(168,85,247,0.15); color:#c084fc; }
 
         .sidebar-footer { padding:14px 12px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:6px; }
         .footer-btn { display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px; border-radius:var(--r-md); background:transparent; color:var(--text-secondary); font-size:12.5px; font-weight:500; cursor:pointer; transition:0.18s; border:1px solid transparent; }
@@ -129,63 +134,30 @@
         .main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 
         /* ─── HEADER ─── */
-        .top-header {
-            height:var(--header-h); display:flex; align-items:center; justify-content:space-between;
-            padding:0 28px; background:rgba(3,5,7,0.8);
-            border-bottom:1px solid var(--border); backdrop-filter:blur(16px);
-            gap:16px; flex-shrink:0; z-index:10;
-        }
+        .top-header { height:var(--header-h); display:flex; align-items:center; justify-content:space-between; padding:0 28px; background:rgba(3,5,7,0.8); border-bottom:1px solid var(--border); backdrop-filter:blur(16px); gap:16px; flex-shrink:0; z-index:10; }
         .header-left { display:flex; align-items:center; gap:14px; }
-        .menu-toggle {
-            width:38px; height:38px; border-radius:var(--r-md); background:transparent;
-            border:1px solid transparent; color:var(--text-secondary); cursor:pointer;
-            display:flex; align-items:center; justify-content:center; transition:0.18s;
-        }
+        .menu-toggle { width:38px; height:38px; border-radius:var(--r-md); background:transparent; border:1px solid transparent; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.18s; }
         .menu-toggle:hover { background:var(--bg-elevated); border-color:var(--border); color:var(--text-primary); }
         .menu-toggle i { width:18px; height:18px; }
 
-        .search-wrap {
-            position:relative; display:flex; align-items:center;
-            background:var(--bg-elevated); border:1px solid var(--border);
-            border-radius:var(--r-md); padding:0 14px; width:380px; height:40px;
-            transition:0.2s;
-        }
+        .search-wrap { position:relative; display:flex; align-items:center; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-md); padding:0 14px; width:380px; height:40px; transition:0.2s; }
         .search-wrap:focus-within { border-color:var(--border-active); box-shadow:0 0 0 3px rgba(59,130,246,0.08); }
         .search-wrap > i { color:var(--text-muted); width:15px; height:15px; flex-shrink:0; }
         .search-wrap input { background:transparent; color:var(--text-primary); padding:0 10px; flex:1; font-size:13.5px; }
         .search-wrap input::placeholder { color:var(--text-muted); }
-        .search-kbd { font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; padding:2px 6px; white-space:nowrap; }
-        #search-dropdown {
-            display:none; position:absolute; top:calc(100% + 8px); left:-1px; right:-1px;
-            background:var(--bg-elevated); border:1px solid var(--border-active);
-            border-radius:var(--r-lg); max-height:380px; overflow-y:auto;
-            z-index:99999; box-shadow:0 24px 48px rgba(0,0,0,0.7);
-        }
-        .search-result-item {
-            padding:11px 16px; cursor:pointer; border-bottom:1px solid var(--border);
-            display:flex; justify-content:space-between; align-items:center;
-            transition:background 0.15s;
-        }
+        #search-dropdown { display:none; position:absolute; top:calc(100% + 8px); left:-1px; right:-1px; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:var(--r-lg); max-height:380px; overflow-y:auto; z-index:99999; box-shadow:0 24px 48px rgba(0,0,0,0.7); }
+        .search-result-item { padding:11px 16px; cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; transition:background 0.15s; }
         .search-result-item:last-child { border-bottom:none; }
         .search-result-item:hover { background:var(--bg-hover); }
         .search-result-item .title { font-weight:600; color:var(--text-primary); font-size:13px; }
         .search-result-item .sub { font-size:11px; color:var(--text-secondary); margin-top:2px; }
 
         .header-right { display:flex; align-items:center; gap:10px; }
-        .hdr-icon-btn {
-            width:38px; height:38px; border-radius:var(--r-md); border:1px solid var(--border);
-            background:var(--bg-elevated); color:var(--text-secondary); cursor:pointer;
-            display:flex; align-items:center; justify-content:center; transition:0.18s; position:relative;
-        }
+        .hdr-icon-btn { width:38px; height:38px; border-radius:var(--r-md); border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.18s; position:relative; }
         .hdr-icon-btn i { width:17px; height:17px; }
         .hdr-icon-btn:hover { border-color:rgba(255,255,255,0.12); color:var(--text-primary); background:var(--bg-hover); }
-        .hdr-icon-btn .notif-dot { position:absolute; top:8px; right:8px; width:7px; height:7px; border-radius:50%; background:var(--danger); border:2px solid var(--bg-surface); }
         .divider-v { width:1px; height:24px; background:var(--border); }
-        .user-pill {
-            display:flex; align-items:center; gap:9px; padding:5px 12px 5px 6px;
-            border-radius:20px; border:1px solid var(--border); background:var(--bg-elevated);
-            cursor:pointer; transition:0.18s;
-        }
+        .user-pill { display:flex; align-items:center; gap:9px; padding:5px 12px 5px 6px; border-radius:20px; border:1px solid var(--border); background:var(--bg-elevated); cursor:pointer; transition:0.18s; }
         .user-pill:hover { border-color:rgba(255,255,255,0.12); background:var(--bg-hover); }
         .user-avatar { width:28px; height:28px; border-radius:50%; object-fit:cover; }
         .user-info .user-name { font-size:13px; font-weight:600; color:var(--text-primary); line-height:1.2; }
@@ -198,7 +170,6 @@
 
         /* ─── PAGE HEADER ─── */
         .page-hdr { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; }
-        .page-hdr-left { }
         .page-eyebrow { font-size:11px; font-weight:600; color:var(--primary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; }
         .page-title { font-size:26px; font-weight:700; letter-spacing:-0.5px; color:var(--text-primary); }
         .page-sub { font-size:13px; color:var(--text-secondary); margin-top:4px; }
@@ -210,10 +181,7 @@
 
         /* ─── STAT CARDS ─── */
         .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:20px; margin-bottom:28px; }
-        .stat-card {
-            background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg);
-            padding:24px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden;
-        }
+        .stat-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
         .stat-card::after { content:''; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 60%); pointer-events:none; }
         .stat-card:hover { transform:translateY(-2px); border-color:rgba(255,255,255,0.1); box-shadow:0 12px 28px rgba(0,0,0,0.3); }
         .stat-card.blue:hover { border-color:rgba(59,130,246,0.3); box-shadow:0 12px 28px rgba(59,130,246,0.1); }
@@ -251,19 +219,12 @@
 
         /* ─── BADGES ─── */
         .badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:5px; font-size:11px; font-weight:600; letter-spacing:0.2px; }
-        .badge-blue { background:rgba(59,130,246,0.12); color:#93c5fd; border:1px solid rgba(59,130,246,0.2); }
-        .badge-green { background:rgba(16,185,129,0.12); color:#6ee7b7; border:1px solid rgba(16,185,129,0.2); }
-        .badge-yellow { background:rgba(245,158,11,0.12); color:#fde68a; border:1px solid rgba(245,158,11,0.2); }
-        .badge-red { background:rgba(239,68,68,0.12); color:#fca5a5; border:1px solid rgba(239,68,68,0.2); }
-        .badge-dark { background:rgba(255,255,255,0.04); color:var(--text-secondary); border:1px solid var(--border); }
-        .badge-purple { background:rgba(168,85,247,0.12); color:#d8b4fe; border:1px solid rgba(168,85,247,0.25); animation:pulse-purple 2s infinite; }
-        @keyframes pulse-purple { 0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,0.4)} 50%{box-shadow:0 0 0 5px rgba(168,85,247,0)} }
-
         .badge-warning { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
         .badge-success { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
         .badge-danger { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+        .badge-dark { background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border); }
         .badge-kiymette { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); box-shadow: 0 0 10px rgba(168, 85, 247, 0.2); animation: pulse-purple 2s infinite; }
-
+        @keyframes pulse-purple { 0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,0.4)} 50%{box-shadow:0 0 0 5px rgba(168,85,247,0)} }
         .urgent-pulse { animation:pulse-alarm 1.5s infinite; border-radius:5px; display:inline-block; padding:2px 8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.35); color:#f87171; font-weight:700; font-size:12px; }
         @keyframes pulse-alarm { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 70%{box-shadow:0 0 0 5px rgba(239,68,68,0)} }
 
@@ -287,7 +248,7 @@
         .toolbar-left, .toolbar-right { display:flex; align-items:center; gap:10px; }
 
         /* ─── INPUTS ─── */
-        .input-group { margin-bottom:18px; }
+        .input-group { margin-bottom:18px; position:relative;}
         .input-group label { display:block; margin-bottom:6px; font-size:11.5px; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.4px; }
         input[type="text"], input[type="password"], input[type="date"], select { width:100%; padding:10px 12px; border-radius:var(--r-md); background:rgba(255,255,255,0.03); color:var(--text-primary); border:1px solid var(--border); font-size:13px; transition:0.18s; }
         input[type="text"]:focus, input[type="date"]:focus, select:focus { border-color:var(--border-active); background:rgba(59,130,246,0.04); box-shadow:0 0 0 3px rgba(59,130,246,0.08); outline:none; }
@@ -300,7 +261,6 @@
         .custom-cb:checked { background:var(--primary); border-color:var(--primary); }
         .custom-cb:checked::before { transform:scale(1); }
 
-        /* ─── INLINE DATE ─── */
         .inline-date { cursor:pointer; position:relative; min-width:90px; padding:5px 7px !important; border-radius:var(--r-sm); transition:0.15s; border:1px solid transparent; }
         .inline-date:hover { background:rgba(255,255,255,0.04); border-color:var(--border); }
         .inline-date:hover::after { content:'✎'; position:absolute; right:6px; top:8px; font-size:10px; color:var(--text-muted); }
@@ -315,14 +275,12 @@
         .modal-section { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:var(--r-md); padding:20px; margin-bottom:20px; }
         .modal-section-title { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:16px; }
 
-        /* ─── METRICS BOX ─── */
         #decl-preview-box { background:rgba(59,130,246,0.04); border:1px solid rgba(59,130,246,0.15); border-radius:var(--r-md); padding:18px; margin-bottom:20px; }
         .metrics-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; }
         .metric-item { text-align:center; }
         .metric-label { font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px; }
         .metric-value { font-size:15px; font-weight:700; color:var(--text-primary); }
 
-        /* ─── SEGMENTED ─── */
         .segmented-control { display:flex; background:rgba(255,255,255,0.04); padding:3px; border-radius:var(--r-sm); border:1px solid var(--border); position:relative; }
         .segmented-control input { display:none; }
         .segmented-control label { flex:1; text-align:center; padding:7px 0; font-size:12.5px; font-weight:500; color:var(--text-secondary); cursor:pointer; z-index:2; border-radius:5px; margin:0; transition:color 0.2s; }
@@ -330,12 +288,8 @@
         .segmented-control input:nth-child(3):checked ~ .slider { left:50%; }
         .segmented-control input:checked + label { color:var(--text-primary); font-weight:600; }
 
-        /* ─── FIRMS GRID ─── */
         .firms-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:16px; }
-        .firm-card {
-            background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg);
-            padding:22px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden;
-        }
+        .firm-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:22px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
         .firm-card:hover { border-color:rgba(59,130,246,0.3); transform:translateY(-2px); box-shadow:0 10px 24px rgba(0,0,0,0.3); }
         .firm-card-icon { width:42px; height:42px; border-radius:10px; background:rgba(59,130,246,0.1); color:var(--primary); display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
         .firm-card-icon i { width:20px; height:20px; }
@@ -346,7 +300,6 @@
         .firm-delete-btn:hover { background:rgba(239,68,68,0.1); color:var(--danger); border-color:rgba(239,68,68,0.2); }
         .firm-delete-btn i { width:14px; height:14px; }
 
-        /* ─── CALCULATOR ─── */
         .calc-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:32px; }
         .result-panel { background:var(--bg-base); border:1px solid var(--border); border-radius:var(--r-lg); padding:28px; position:sticky; top:0; }
         .result-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; }
@@ -358,60 +311,122 @@
         .result-total-value { font-size:22px; font-weight:800; color:white; letter-spacing:-0.5px; }
         .result-total-sub { font-size:11px; color:rgba(255,255,255,0.65); margin-top:2px; text-align:right; }
 
-        /* ─── TOAST ─── */
         #sync-toast { position:fixed; bottom:24px; right:24px; background:var(--bg-elevated); border:1px solid var(--border); padding:12px 18px; border-radius:var(--r-lg); box-shadow:0 16px 40px rgba(0,0,0,0.5); display:flex; align-items:center; gap:12px; transform:translateY(100px); opacity:0; transition:0.4s cubic-bezier(0.175,0.885,0.32,1.275); z-index:99999; }
         #sync-toast.show { transform:translateY(0); opacity:1; }
         .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,0.1); border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite; flex-shrink:0; }
         @keyframes spin { to { transform:rotate(360deg); } }
 
-        /* ─── SCROLLBAR ─── */
         ::-webkit-scrollbar { width:6px; height:6px; }
         ::-webkit-scrollbar-track { background:transparent; }
         ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:3px; }
         ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.14); }
-
-        /* ─── UTILS ─── */
-        .text-primary-c { color:var(--primary); }
-        .text-success { color:var(--success); }
-        .text-warning { color:var(--warning); }
-        .text-danger { color:var(--danger); }
-        .text-muted { color:var(--text-muted); }
-        .text-secondary { color:var(--text-secondary); }
-        .font-medium { font-weight:500; }
-        .font-bold { font-weight:600; }
-        .font-extrabold { font-weight:700; }
-        .sortable-th { cursor:pointer; }
-        .sortable-th:hover { color:var(--text-primary); }
     </style>
 </head>
 <body>
 
-<!-- SYNC TOAST -->
 <div id="sync-toast">
     <div id="sync-icon" class="spinner"></div>
     <span id="sync-text" style="font-size:13px;font-weight:500;">Bulut ile eşzamanlanıyor...</span>
 </div>
 
-<!-- ═══ LOGIN ═══ -->
 <div id="login-screen">
     <div class="login-card">
         <div class="login-logo"><i data-lucide="shield-check" style="color:white; width:24px; height:24px;"></i></div>
         <h1 class="login-title">GümrükPortal</h1>
-        <p class="login-sub">Güvenli kurumsal giriş paneli</p>
-        <div class="login-input-wrap">
-            <i data-lucide="lock"></i>
-            <input type="password" id="login-password" placeholder="Şifrenizi girin" onkeyup="if(event.key==='Enter') window.checkLogin()">
+        <p class="login-sub">Kurumsal SaaS Yönetim Paneli</p>
+        
+        <div id="auth-alert" class="auth-error"></div>
+        <div id="auth-success" class="auth-success"></div>
+
+        <div class="auth-tabs" id="auth-tabs-container">
+            <div class="auth-tab active" onclick="window.Auth.switchTab('login')">Giriş Yap</div>
+            <div class="auth-tab" onclick="window.Auth.switchTab('register')">Kayıt Ol</div>
         </div>
-        <button class="login-btn" onclick="window.checkLogin()">Sisteme Giriş Yap</button>
-        <p id="login-error">Hatalı şifre. Lütfen tekrar deneyin.</p>
-        <div class="login-dots"><span></span><span></span><span></span></div>
+
+        <div id="view-login" class="auth-view">
+            <div class="login-input-wrap">
+                <i data-lucide="mail"></i>
+                <input type="text" id="log-email" placeholder="E-posta adresiniz" onkeyup="if(event.key==='Enter') window.Auth.doLogin()">
+            </div>
+            <div class="login-input-wrap">
+                <i data-lucide="lock"></i>
+                <input type="password" id="log-pass" placeholder="Şifreniz" onkeyup="if(event.key==='Enter') window.Auth.doLogin()">
+                <div class="pwd-toggle" onclick="window.Auth.togglePwd('log-pass', this)"><i data-lucide="eye" style="width:16px;height:16px;"></i></div>
+            </div>
+            <div class="checkbox-row">
+                <label><input type="checkbox" id="log-remember" class="custom-cb"> Beni Hatırla</label>
+                <span class="link-text" onclick="window.Auth.switchView('forgot')">Şifremi Unuttum</span>
+            </div>
+            <button class="login-btn" onclick="window.Auth.doLogin()">Sisteme Giriş Yap</button>
+        </div>
+
+        <div id="view-register" class="auth-view hidden">
+            <div class="login-input-wrap">
+                <i data-lucide="user"></i>
+                <input type="text" id="reg-name" placeholder="Ad Soyad">
+            </div>
+            <div class="login-input-wrap">
+                <i data-lucide="mail"></i>
+                <input type="text" id="reg-email" placeholder="E-posta adresi">
+            </div>
+            <div class="login-input-wrap">
+                <i data-lucide="lock"></i>
+                <input type="password" id="reg-pass" placeholder="Şifre belirleyin">
+                <div class="pwd-toggle" onclick="window.Auth.togglePwd('reg-pass', this)"><i data-lucide="eye" style="width:16px;height:16px;"></i></div>
+            </div>
+            <div class="login-input-wrap">
+                <i data-lucide="check-circle"></i>
+                <input type="password" id="reg-pass2" placeholder="Şifreyi tekrar girin">
+            </div>
+            <button class="login-btn" onclick="window.Auth.doRegisterCheck()">Hesap Oluştur</button>
+        </div>
+
+        <div id="view-forgot" class="auth-view hidden">
+            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px; text-align:center;">Şifrenizi sıfırlamak için kayıtlı e-posta adresinizi girin. Size 6 haneli bir kod göndereceğiz.</p>
+            <div class="login-input-wrap">
+                <i data-lucide="mail"></i>
+                <input type="text" id="forgot-email" placeholder="E-posta adresiniz">
+            </div>
+            <button class="login-btn" onclick="window.Auth.doForgotCheck()" style="margin-bottom:16px;">Sıfırlama Kodu Gönder</button>
+            <div style="text-align:center;"><span class="link-text" onclick="window.Auth.switchView('login')"><i data-lucide="arrow-left" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"></i>Giriş ekranına dön</span></div>
+        </div>
+
+        <div id="view-otp" class="auth-view hidden">
+            <p style="font-size:13px; color:var(--text-secondary); text-align:center; margin-bottom:8px;">Güvenlik kodunu girin</p>
+            <p style="font-size:12px; color:var(--primary); text-align:center; font-weight:600;" id="otp-target-email"></p>
+            
+            <div class="otp-grid" id="otp-inputs">
+                <input type="text" class="otp-input" maxlength="1">
+                <input type="text" class="otp-input" maxlength="1">
+                <input type="text" class="otp-input" maxlength="1">
+                <input type="text" class="otp-input" maxlength="1">
+                <input type="text" class="otp-input" maxlength="1">
+                <input type="text" class="otp-input" maxlength="1">
+            </div>
+            
+            <button class="login-btn" id="btn-otp-verify" onclick="window.Auth.doVerifyOtp()" style="margin-bottom:16px;">Kodu Doğrula</button>
+            <div style="text-align:center;"><span class="link-text" onclick="window.Auth.switchView('login')">İptal et ve geri dön</span></div>
+        </div>
+
+        <div id="view-reset" class="auth-view hidden">
+            <p style="font-size:13px; color:var(--text-secondary); text-align:center; margin-bottom:16px;">Güvenlik doğrulandı. Lütfen yeni şifrenizi belirleyin.</p>
+            <div class="login-input-wrap">
+                <i data-lucide="lock"></i>
+                <input type="password" id="res-pass" placeholder="Yeni Şifre">
+                <div class="pwd-toggle" onclick="window.Auth.togglePwd('res-pass', this)"><i data-lucide="eye" style="width:16px;height:16px;"></i></div>
+            </div>
+            <div class="login-input-wrap">
+                <i data-lucide="check-circle"></i>
+                <input type="password" id="res-pass2" placeholder="Yeni Şifre (Tekrar)">
+            </div>
+            <button class="login-btn" onclick="window.Auth.doResetFinal()">Şifreyi Güncelle</button>
+        </div>
+
     </div>
 </div>
 
-<!-- ═══ APP ═══ -->
 <div id="app-screen" class="app-wrap">
 
-    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="sidebar-brand">
             <div class="brand-icon"><i data-lucide="layers"></i></div>
@@ -420,72 +435,44 @@
                 <div class="brand-status"><span class="status-dot"></span><span>Canlı Bağlantı</span></div>
             </div>
         </div>
-
         <nav class="sidebar-nav">
             <div class="sidebar-section-label">Genel Bakış</div>
-            <button class="nav-btn active" data-view="dashboard">
-                <i data-lucide="layout-dashboard"></i><span>Sistem Özeti</span>
-            </button>
-
+            <button class="nav-btn active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Sistem Özeti</span></button>
             <div class="sidebar-section-label" style="margin-top:8px;">Yönetim</div>
-            <button class="nav-btn" data-view="declarations">
-                <i data-lucide="car"></i><span>Gelen Araçlar</span>
-            </button>
-            <button class="nav-btn" data-view="firms">
-                <i data-lucide="building-2"></i><span>Firma Arşivi</span>
-            </button>
-            <button class="nav-btn" data-view="kiymetListesi">
-                <i data-lucide="file-search"></i><span>Kıymet Listesi</span>
-            </button>
-
+            <button class="nav-btn" data-view="declarations"><i data-lucide="car"></i><span>Gelen Araçlar</span></button>
+            <button class="nav-btn" data-view="firms"><i data-lucide="building-2"></i><span>Firma Arşivi</span></button>
+            <button class="nav-btn" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
             <div class="sidebar-section-label" style="margin-top:8px;">Araçlar</div>
-            <button class="nav-btn" data-view="calculator">
-                <i data-lucide="calculator"></i><span>Vergi Hesaplama</span>
-            </button>
+            <button class="nav-btn" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
         </nav>
-
         <div class="sidebar-footer">
-            <button class="footer-btn primary-subtle" onclick="window.forceCloudSync()">
-                <i data-lucide="refresh-cw"></i> Bulutla Eşitle
-            </button>
-            <button class="footer-btn" onclick="document.getElementById('import-backup-file').click()">
-                <i data-lucide="upload"></i> Yedek İçe Aktar
-            </button>
+            <button class="footer-btn primary-subtle" onclick="window.forceCloudSync()"><i data-lucide="refresh-cw"></i> Bulutla Eşitle</button>
+            <button class="footer-btn" onclick="document.getElementById('import-backup-file').click()"><i data-lucide="upload"></i> Yedek İçe Aktar</button>
             <input type="file" id="import-backup-file" accept=".json" style="display:none;" onchange="window.importBackup(event)">
         </div>
     </aside>
 
-    <!-- MAIN -->
     <main class="main-content">
         <header class="top-header">
             <div class="header-left">
-                <button class="menu-toggle" onclick="window.toggleSidebar()" title="Menüyü Aç/Kapat">
-                    <i data-lucide="menu"></i>
-                </button>
+                <button class="menu-toggle" onclick="window.toggleSidebar()" title="Menüyü Aç/Kapat"><i data-lucide="menu"></i></button>
                 <div class="search-wrap">
-                    <i data-lucide="search"></i>
-                    <input type="text" id="global-search-input"
-                           oninput="window.liveSearch(this.value)"
-                           onblur="setTimeout(()=>{let d=document.getElementById('search-dropdown');if(d)d.style.display='none';},200)"
-                           placeholder="Şasi, marka, beyanname no...">
-                    <span class="search-kbd">⌘K</span>
+                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" style="background:transparent; border:none; cursor:pointer; display:flex; align-items:center; color:var(--text-muted); padding:0;"><i data-lucide="search" style="width:16px; height:16px;"></i></button>
+                    <input type="text" id="global-search-input" oninput="window.liveSearch(this.value)" onblur="setTimeout(()=>{let d=document.getElementById('search-dropdown');if(d)d.style.display='none';},200)" placeholder="Şasi, marka, beyanname no...">
+                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" style="background:transparent; border:none; cursor:pointer; color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap; padding-left:8px; border-left:1px solid var(--border); margin-left:8px;">Ara</button>
+                    <span class="search-kbd" style="margin-left:8px;">⌘K</span>
                     <div id="search-dropdown"></div>
                 </div>
             </div>
 
             <div class="header-right">
-                <button class="hdr-icon-btn" title="Bildirimler">
-                    <i data-lucide="bell"></i>
-                    <span class="notif-dot"></span>
-                </button>
-                <button class="hdr-icon-btn" onclick="window.exportBackup()" title="Yedek İndir">
-                    <i data-lucide="download"></i>
-                </button>
+                <button class="hdr-icon-btn" title="Bildirimler"><i data-lucide="bell"></i><span class="notif-dot"></span></button>
+                <button class="hdr-icon-btn" onclick="window.exportBackup()" title="Yedek İndir"><i data-lucide="download"></i></button>
                 <div class="divider-v"></div>
-                <div class="user-pill" onclick="if(confirm('Oturumu kapatmak istiyor musunuz?')){localStorage.removeItem('gumruk_auth'); location.reload();}" title="Çıkış Yap">
-                    <img src="https://ui-avatars.com/api/?name=Bayram&background=1e3a5f&color=60a5fa&rounded=true" alt="User" class="user-avatar">
+                <div class="user-pill" onclick="window.Auth.doLogout()" title="Çıkış Yap">
+                    <img src="https://ui-avatars.com/api/?name=User&background=1e3a5f&color=60a5fa&rounded=true" alt="User" class="user-avatar" id="nav-user-avatar">
                     <div class="user-info">
-                        <div class="user-name">Bayram</div>
+                        <div class="user-name" id="nav-user-name">Kullanıcı</div>
                         <div class="user-role">Yönetici</div>
                     </div>
                 </div>
@@ -496,7 +483,6 @@
     </main>
 </div>
 
-<!-- ═══ MODAL: ARAÇ ═══ -->
 <div id="decl-modal" class="modal-backdrop hidden">
     <div class="modal-box">
         <div class="modal-header">
@@ -533,7 +519,7 @@
                         </select>
                     </div>
                 </div>
-            </div>
+             </div>
 
             <div class="modal-section">
                 <div class="modal-section-title">Kıymet & Finans</div>
@@ -548,26 +534,11 @@
             <div id="decl-preview-box">
                 <div class="modal-section-title" style="margin-bottom:14px;">Sistem Metrikleri</div>
                 <div class="metrics-grid">
-                    <div class="metric-item">
-                        <div class="metric-label">İlk Süre</div>
-                        <div class="metric-value" id="da-prev-ilkSure">-</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">Kalan Gün</div>
-                        <div class="metric-value" id="da-prev-klnGun">-</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">Ardiye</div>
-                        <div class="metric-value text-danger" id="da-prev-ardiye">-</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">Son Gün</div>
-                        <div class="metric-value" id="da-prev-sonGun">-</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">Kıymette</div>
-                        <div class="metric-value" id="da-prev-kiymGecen">-</div>
-                    </div>
+                     <div class="metric-item"><div class="metric-label">İlk Süre</div><div class="metric-value" id="da-prev-ilkSure">-</div></div>
+                    <div class="metric-item"><div class="metric-label">Kalan Gün</div><div class="metric-value" id="da-prev-klnGun">-</div></div>
+                    <div class="metric-item"><div class="metric-label">Ardiye</div><div class="metric-value text-danger" id="da-prev-ardiye">-</div></div>
+                    <div class="metric-item"><div class="metric-label">Son Gün</div><div class="metric-value" id="da-prev-sonGun">-</div></div>
+                    <div class="metric-item"><div class="metric-label">Kıymette</div><div class="metric-value" id="da-prev-kiymGecen">-</div></div>
                 </div>
             </div>
         </div>
@@ -578,14 +549,10 @@
     </div>
 </div>
 
-<!-- ═══ MODAL: KIYMET ═══ -->
 <div id="kiymet-modal" class="modal-backdrop hidden">
     <div class="modal-box" style="max-width:520px;">
-        <div class="modal-header">
-            <h2>Kıymet Kaydı</h2>
-            <button onclick="window.closeKiymetModal()" class="icon-btn"><i data-lucide="x"></i></button>
-        </div>
-        <div class="modal-body">
+        <div class="modal-header"><h2>Kıymet Kaydı</h2><button onclick="window.closeKiymetModal()" class="icon-btn"><i data-lucide="x"></i></button></div>
+         <div class="modal-body">
             <input type="hidden" id="km-edit-index" value="-1">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                 <div class="input-group"><label>Marka</label><input id="km-marka" type="text"></div>
@@ -600,30 +567,18 @@
                 <div class="input-group"><label>Kıymet (€)</label><input id="km-kiymet" type="text" oninput="window.formatCurrencyInput(this)"></div>
             </div>
             <div class="input-group"><label>Durum / Not</label><input id="km-durum" type="text" placeholder="Örn: İade, Mahkeme..."></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-sm" onclick="window.closeKiymetModal()">İptal</button>
-            <button class="btn-primary" onclick="window.saveNewKiymet()"><i data-lucide="save"></i> Kaydet</button>
-        </div>
+         </div>
+        <div class="modal-footer"><button class="btn-sm" onclick="window.closeKiymetModal()">İptal</button><button class="btn-primary" onclick="window.saveNewKiymet()"><i data-lucide="save"></i> Kaydet</button></div>
     </div>
 </div>
 
-<!-- ═══ MODAL: EXCEL ═══ -->
 <div id="excel-modal" class="modal-backdrop hidden">
     <div class="modal-box" style="max-width:480px;">
-        <div class="modal-header">
-            <h2>Excel'den İçe Aktar</h2>
-            <button onclick="window.closeExcelModal()" class="icon-btn"><i data-lucide="x"></i></button>
-        </div>
+        <div class="modal-header"><h2>Excel'den İçe Aktar</h2><button onclick="window.closeExcelModal()" class="icon-btn"><i data-lucide="x"></i></button></div>
         <div class="modal-body" style="text-align:center;">
-            <div style="width:56px; height:56px; border-radius:14px; background:rgba(16,185,129,0.1); display:flex; align-items:center; justify-content:center; margin:0 auto 20px; color:var(--success);">
-                <i data-lucide="file-spreadsheet" style="width:26px; height:26px;"></i>
-            </div>
+            <div style="width:56px; height:56px; border-radius:14px; background:rgba(16,185,129,0.1); display:flex; align-items:center; justify-content:center; margin:0 auto 20px; color:var(--success);"><i data-lucide="file-spreadsheet" style="width:26px; height:26px;"></i></div>
             <p id="excel-modal-desc" style="color:var(--text-secondary); font-size:13px; line-height:1.6; margin-bottom:24px;">Sütun Sırası: Marka, Model, Yıl, Renk, Şasi No, Tarih, Beyanname No, Fatura, Kıymet, Durum</p>
-            <div onclick="document.getElementById('excel-file-input').click()"
-                 onmouseover="this.style.borderColor='var(--primary)'; this.style.background='rgba(59,130,246,0.04)'"
-                 onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(255,255,255,0.02)'"
-                 style="border:2px dashed rgba(255,255,255,0.1); border-radius:var(--r-lg); padding:36px 20px; cursor:pointer; background:rgba(255,255,255,0.02); transition:0.2s;">
+            <div onclick="document.getElementById('excel-file-input').click()" onmouseover="this.style.borderColor='var(--primary)'; this.style.background='rgba(59,130,246,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(255,255,255,0.02)'" style="border:2px dashed rgba(255,255,255,0.1); border-radius:var(--r-lg); padding:36px 20px; cursor:pointer; background:rgba(255,255,255,0.02); transition:0.2s;">
                 <i data-lucide="upload-cloud" style="width:32px; height:32px; color:var(--text-muted); display:block; margin:0 auto 12px;"></i>
                 <p style="font-weight:600; color:var(--text-primary);">Dosya Seçin veya Sürükleyin</p>
                 <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">.xlsx veya .xls formatı</p>
@@ -631,13 +586,9 @@
             <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none;" onchange="window.processExcelData(this)">
             <input type="hidden" id="excel-target-context" value="kiymet">
         </div>
-        <div class="modal-footer">
-            <button class="btn-sm" onclick="window.closeExcelModal()">İptal</button>
-        </div>
+        <div class="modal-footer"><button class="btn-sm" onclick="window.closeExcelModal()">İptal</button></div>
     </div>
 </div>
-
-<!-- ═══ TEMPLATES ═══ -->
 
 <template id="tpl-dashboard">
     <div class="page-hdr fade-in">
@@ -650,13 +601,13 @@
     <div class="stats-grid fade-in">
         <div class="stat-card purple" onclick="window.goToFilter('kiymet')">
             <div class="stat-card-top">
-                <div class="stat-icon-box purple"><i data-lucide="clock"></i></div>
+                 <div class="stat-icon-box purple"><i data-lucide="clock"></i></div>
                 <span class="stat-trend warn">Aktif</span>
             </div>
             <div class="stat-value" id="dash-kiymet">0</div>
             <div class="stat-label">Kıymette Bekleyen</div>
             <div class="stat-bar"><div class="stat-bar-fill purple" id="bar-kiymet" style="width:0%"></div></div>
-        </div>
+         </div>
         <div class="stat-card yellow" onclick="window.goToFilter('acik')">
             <div class="stat-card-top">
                 <div class="stat-icon-box yellow"><i data-lucide="alert-triangle"></i></div>
@@ -670,7 +621,7 @@
             <div class="stat-card-top">
                 <div class="stat-icon-box green"><i data-lucide="check-circle-2"></i></div>
                 <span class="stat-trend up">Toplam</span>
-            </div>
+             </div>
             <div class="stat-value" id="dash-total">0</div>
             <div class="stat-label">Sistemdeki Toplam Araç</div>
             <div class="stat-bar"><div class="stat-bar-fill green" style="width:100%"></div></div>
@@ -752,7 +703,7 @@
                     <th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th>
                     <th>DURUM</th><th>FATURA</th><th>ARDİYE</th><th style="text-align:center;">İŞLEM</th>
                 </tr></thead>
-                <tbody id="declarations-tbody"></tbody>
+                 <tbody id="declarations-tbody"></tbody>
             </table>
         </div>
     </div>
@@ -766,27 +717,27 @@
         </div>
     </div>
     <div class="calc-grid fade-in">
-        <div>
+         <div>
             <div class="card card-pad" style="margin-bottom:20px;">
                 <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:16px; margin-bottom:20px;">
                     <div class="input-group" style="margin-bottom:0;">
                         <label>İthalat Türü</label>
                         <div class="segmented-control">
-                            <input type="radio" id="sc-sahis" name="calc-importer" value="sahis" checked onchange="window.calculateTaxes()"><label for="sc-sahis">Şahıs</label>
+                             <input type="radio" id="sc-sahis" name="calc-importer" value="sahis" checked onchange="window.calculateTaxes()"><label for="sc-sahis">Şahıs</label>
                             <input type="radio" id="sc-ithalatci" name="calc-importer" value="ithalatci" onchange="window.calculateTaxes()"><label for="sc-ithalatci">İthalatçı</label>
                             <div class="slider"></div>
                         </div>
-                    </div>
+                     </div>
                     <div class="input-group" style="margin-bottom:0;">
                         <label>GTİP / Cins</label>
                         <select id="calc-type" onchange="window.calculateTaxes()">
-                            <optgroup label="Benzin / Dizel">
+                             <optgroup label="Benzin / Dizel">
                                 <option value="ic-1400">1400 cm³ altı</option>
                                 <option value="ic-1600" selected>1401 - 1600 cm³</option>
                                 <option value="ic-2000">1601 - 2000 cm³</option>
                                 <option value="ic-over2000">2000 cm³ üzeri</option>
                             </optgroup>
-                            <optgroup label="Hibrit">
+                             <optgroup label="Hibrit">
                                 <option value="hybrid-1800">1601 - 1800 cm³</option>
                                 <option value="hybrid-2500">2001 - 2500 cm³</option>
                             </optgroup>
@@ -909,10 +860,173 @@
     }
     function hideSyncToast(text, isSuccess=true) { showSyncToast(text, isSuccess); setTimeout(()=>{ document.getElementById('sync-toast').classList.remove('show'); }, 2500); }
 
-    window.checkLogin = function() {
-        const pw = document.getElementById('login-password').value;
-        if(pw === 'Bayram2026') { localStorage.setItem('gumruk_auth','true'); const s = document.getElementById('login-screen'); s.style.opacity='0'; s.style.transform='scale(1.02)'; s.style.transition='all 0.4s ease'; setTimeout(()=>{ s.style.display='none'; },400); }
-        else { document.getElementById('login-error').style.display='block'; document.getElementById('login-password').value=''; }
+    // ─── AUTHENTICATION SYSTEM (v21.0) ───
+    window.Auth = {
+        users: JSON.parse(localStorage.getItem('gumruk_users')) || { "admin@gumruk.com": { name: "Bayram (Admin)", pass: "Bayram2026" } },
+        tempContext: null, // 'register' or 'reset'
+        tempUser: null,
+        
+        saveUsers: function() { localStorage.setItem('gumruk_users', JSON.stringify(this.users)); },
+        
+        showError: function(msg) { 
+            const e = document.getElementById('auth-alert'); 
+            e.innerText = msg; e.style.display = 'block'; 
+            document.getElementById('auth-success').style.display = 'none';
+        },
+        showSuccess: function(msg) { 
+            const s = document.getElementById('auth-success'); 
+            s.innerText = msg; s.style.display = 'block'; 
+            document.getElementById('auth-alert').style.display = 'none';
+        },
+        hideMsgs: function() { document.getElementById('auth-alert').style.display = 'none'; document.getElementById('auth-success').style.display = 'none'; },
+
+        switchTab: function(tab) {
+            this.hideMsgs();
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            if(tab === 'login') document.querySelectorAll('.auth-tab')[0].classList.add('active');
+            else document.querySelectorAll('.auth-tab')[1].classList.add('active');
+            this.switchView(tab);
+        },
+
+        switchView: function(viewId) {
+            this.hideMsgs();
+            document.querySelectorAll('.auth-view').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+            if(viewId === 'login' || viewId === 'register') {
+                document.getElementById('auth-tabs-container').style.display = 'flex';
+            } else {
+                document.getElementById('auth-tabs-container').style.display = 'none';
+            }
+        },
+
+        togglePwd: function(inputId, iconWrap) {
+            const input = document.getElementById(inputId);
+            if(input.type === 'password') { input.type = 'text'; iconWrap.innerHTML = '<i data-lucide="eye-off" style="width:16px;height:16px;"></i>'; }
+            else { input.type = 'password'; iconWrap.innerHTML = '<i data-lucide="eye" style="width:16px;height:16px;"></i>'; }
+            if(window.lucide) lucide.createIcons();
+        },
+
+        doLogin: function() {
+            const email = document.getElementById('log-email').value.trim().toLowerCase();
+            const pass = document.getElementById('log-pass').value;
+            const remember = document.getElementById('log-remember').checked;
+            
+            if(!email || !pass) return this.showError('Lütfen e-posta ve şifrenizi girin.');
+            if(pass === 'Bayram2026' && email === 'admin') { // Master Bypass for quick dev access
+                 this.finalizeLogin("Bayram (Master)", "admin@gumruk.com", remember); return;
+            }
+            if(!this.users[email] || this.users[email].pass !== pass) return this.showError('Hatalı e-posta veya şifre.');
+            
+            this.finalizeLogin(this.users[email].name, email, remember);
+        },
+
+        finalizeLogin: function(name, email, remember) {
+            localStorage.setItem('gumruk_auth', 'true');
+            localStorage.setItem('gumruk_active_user_name', name);
+            if(remember) localStorage.setItem('gumruk_remember_me', email);
+            else localStorage.removeItem('gumruk_remember_me');
+
+            document.getElementById('nav-user-name').innerText = name.split(' ')[0];
+            document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1e3a5f&color=60a5fa&rounded=true`;
+
+            const s = document.getElementById('login-screen');
+            s.style.opacity = '0'; s.style.transform = 'scale(1.02)'; s.style.transition = 'all 0.4s ease';
+            setTimeout(() => { s.style.display = 'none'; }, 400);
+        },
+
+        doLogout: function() {
+            if(confirm('Oturumu kapatmak istiyor musunuz?')) {
+                localStorage.removeItem('gumruk_auth');
+                localStorage.removeItem('gumruk_remember_me');
+                location.reload();
+            }
+        },
+
+        doRegisterCheck: function() {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim().toLowerCase();
+            const p1 = document.getElementById('reg-pass').value;
+            const p2 = document.getElementById('reg-pass2').value;
+
+            if(!name || !email || !p1 || !p2) return this.showError('Tüm alanları doldurunuz.');
+            if(p1 !== p2) return this.showError('Şifreler eşleşmiyor.');
+            if(p1.length < 6) return this.showError('Şifre en az 6 karakter olmalıdır.');
+            if(this.users[email]) return this.showError('Bu e-posta adresi zaten kayıtlı.');
+
+            this.tempContext = 'register';
+            this.tempUser = { name, email, pass: p1 };
+            this.showOtpScreen(email);
+        },
+
+        doForgotCheck: function() {
+            const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+            if(!email) return this.showError('E-posta adresinizi girin.');
+            if(!this.users[email]) return this.showError('Sistemde böyle bir kayıt bulunamadı.');
+
+            this.tempContext = 'reset';
+            this.tempUser = { email };
+            this.showOtpScreen(email);
+        },
+
+        showOtpScreen: function(email) {
+            document.getElementById('otp-target-email').innerText = email;
+            document.querySelectorAll('.otp-input').forEach(i => i.value = '');
+            this.switchView('otp');
+            setTimeout(() => document.querySelectorAll('.otp-input')[0].focus(), 100);
+            this.showSuccess('6 Haneli doğrulama kodu e-postanıza gönderildi.');
+        },
+
+        doVerifyOtp: function() {
+            // For simulation, any 6-digit code is accepted
+            const inputs = document.querySelectorAll('.otp-input');
+            let code = Array.from(inputs).map(i => i.value).join('');
+            if(code.length !== 6) return this.showError('Lütfen 6 haneli kodu eksiksiz girin.');
+
+            if(this.tempContext === 'register') {
+                this.users[this.tempUser.email] = { name: this.tempUser.name, pass: this.tempUser.pass };
+                this.saveUsers();
+                this.finalizeLogin(this.tempUser.name, this.tempUser.email, true);
+            } else if (this.tempContext === 'reset') {
+                this.switchView('reset');
+                this.hideMsgs();
+            }
+        },
+
+        doResetFinal: function() {
+            const p1 = document.getElementById('res-pass').value;
+            const p2 = document.getElementById('res-pass2').value;
+            if(!p1 || !p2) return this.showError('Yeni şifrenizi girin.');
+            if(p1 !== p2) return this.showError('Şifreler eşleşmiyor.');
+            if(p1.length < 6) return this.showError('Şifre en az 6 karakter olmalıdır.');
+
+            this.users[this.tempUser.email].pass = p1;
+            this.saveUsers();
+            this.switchTab('login');
+            this.showSuccess('Şifreniz başarıyla güncellendi. Giriş yapabilirsiniz.');
+        },
+
+        initOtpLogic: function() {
+            const inputs = document.querySelectorAll('.otp-input');
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    if (e.target.value.length > 1) e.target.value = e.target.value.slice(0, 1);
+                    if (e.target.value.length === 1) {
+                        if (index < inputs.length - 1) inputs[index + 1].focus();
+                        else window.Auth.doVerifyOtp(); // Auto-verify on last digit
+                    }
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) inputs[index - 1].focus();
+                });
+                input.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const pasted = e.clipboardData.getData('text').slice(0,6).replace(/[^0-9]/g, '');
+                    pasted.split('').forEach((char, i) => { if(inputs[i]) inputs[i].value = char; });
+                    if(pasted.length === 6) window.Auth.doVerifyOtp();
+                    else if (pasted.length > 0) inputs[pasted.length - 1].focus();
+                });
+            });
+        }
     };
 
     window.toggleSidebar = function() { const s = document.querySelector('.sidebar'); s.classList.toggle('collapsed'); localStorage.setItem('gumruk_sidebar_state', s.classList.contains('collapsed')?'closed':'open'); };
@@ -920,7 +1034,6 @@
     window.exchangeRates = { EUR:50.9822, USD:48.10, GBP:58.50, TL:1 };
     window.declarationsData = []; window.firmData = {}; window.kiymetData = [];
     window.digerMasrafListesi = [ {id:'mc-gumruk',label:'GÜMRÜK H.',val:'1.500',cur:'EUR'},{id:'mc-belge',label:'BELGE',val:'0',cur:'EUR'},{id:'mc-plaka',label:'PLAKA+MTV',val:'0',cur:'EUR'},{id:'mc-nakliye',label:'NAKLİYE',val:'2.500',cur:'EUR'},{id:'mc-almanya',label:'ALMANYA',val:'5.000',cur:'EUR'},{id:'mc-ardiye',label:'ARDİYE',val:'0',cur:'EUR'},{id:'mc-tse',label:'TSE HARCI',val:'6.964',cur:'EUR'},{id:'mc-tsemuh',label:'TSE MÜH',val:'257',cur:'EUR'},{id:'mc-mmo',label:'MMO',val:'0',cur:'EUR'},{id:'mc-isik',label:'IŞIKLANDIRMA',val:'0',cur:'EUR'},{id:'mc-cekici',label:'ÇEKİCİ',val:'0',cur:'EUR'} ];
-
     window.fixExcelDate = function(val) { if(!val) return ''; if(typeof val==='number'||(!isNaN(val)&&Number(val)>30000)) { try { let d=new Date((Number(val)-25569)*86400*1000); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`; } catch(e){return val;} } if(typeof val==='string'&&val.includes('T')) { try { let d=new Date(val); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`; } catch(e){} } return String(val).trim(); };
     window.parseTRDate = function(dateStr) { if(!dateStr||dateStr.trim().length<8) return null; let parts=dateStr.trim().split(/[\.\-\/]/); if(parts.length!==3) return null; let d,m,y; if(parts[0].length===4){y=parseInt(parts[0],10);m=parseInt(parts[1],10)-1;d=parseInt(parts[2],10);}else{d=parseInt(parts[0],10);m=parseInt(parts[1],10)-1;y=parseInt(parts[2],10);if(y<100)y+=2000;} let date=new Date(y,m,d); date.setHours(0,0,0,0); return isNaN(date.getTime())?null:date; };
     window.formatTRDate = function(dateObj) { if(!dateObj||isNaN(dateObj.getTime())) return ""; return `${String(dateObj.getDate()).padStart(2,'0')}.${String(dateObj.getMonth()+1).padStart(2,'0')}.${dateObj.getFullYear()}`; };
@@ -936,7 +1049,8 @@
         try {
             let res=await fetch(GOOGLE_API_URL); let json=await res.json();
             if(json.status==="success") {
-                window.declarationsData=json.data.decl||[]; window.kiymetData=json.data.kiymet||[]; window.firmData=json.data.firm||{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
+                window.declarationsData=json.data.decl||[]; window.kiymetData=json.data.kiymet||[];
+                window.firmData=json.data.firm||{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
                 window.declarationsData.forEach(d=>{if(d){d.tarih=window.fixExcelDate(d.tarih);d.kiymVv=window.fixExcelDate(d.kiymVv);d.kiymGt=window.fixExcelDate(d.kiymGt);d.ekSure=window.fixExcelDate(d.ekSure);d.antTarih=window.fixExcelDate(d.antTarih);d.beynmCif=window.fixExcelDate(d.beynmCif);}});
                 Object.keys(window.firmData).forEach(fN=>{window.firmData[fN].forEach(p=>{if(p)p.tarih=window.fixExcelDate(p.tarih);});});
                 window.kiymetData.forEach(k=>{if(k)k.tarih=window.fixExcelDate(k.tarih);});
@@ -969,12 +1083,10 @@
 
     window.inlineEditDate = function(el,idx,field) { if(el.querySelector('input')) return; const cur=window.declarationsData[idx][field]||''; let iso=''; if(cur){const p=cur.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;} el.innerHTML=`<input type="date" value="${iso}" style="padding:4px;height:28px;font-size:12px;" onblur="window.saveInlineDate(this,${idx},'${field}')" onchange="window.saveInlineDate(this,${idx},'${field}')">`; const inp=el.querySelector('input'); inp.focus(); inp.showPicker&&inp.showPicker(); };
     window.saveInlineDate = function(input,idx,field) { const iso=input.value; let tr=''; if(iso){const p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;} if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{input.parentElement.innerHTML=tr||'-';} };
-
     window.calculateVehicleMetrics = function(data) {
         let today=new Date(); today.setHours(0,0,0,0);
         let E=window.parseTRDate(data.tarih),G=window.parseTRDate(data.ekSure),H=window.parseTRDate(data.antTarih),I=window.parseTRDate(data.beynmCif),J=window.parseTRDate(data.kiymVv),K=window.parseTRDate(data.kiymGt);
-        let nRaw=String(data.evrak||"Kapalı").trim().toLowerCase();
-        let isAcik=(nRaw==="açık"||nRaw==="false"||nRaw==="0");
+        let nRaw=String(data.evrak||"Kapalı").trim().toLowerCase(); let isAcik=(nRaw==="açık"||nRaw==="false"||nRaw==="0");
         let result={ilkSureSonu:"",klnSonTarih:"",klnGun:"",kiymGecen:"",sonGun:"",ardiye:0,gecenGun:""};
         if(!E) return result;
         let F=window.addDays(E,20); result.ilkSureSonu=window.formatTRDate(F);
@@ -991,7 +1103,6 @@
         if(gun>0){if(gun<=20)result.ardiye=gun*145;else if(gun<=50)result.ardiye=2900+(gun-20)*725;else if(gun<=80)result.ardiye=24650+(gun-50)*1160;else result.ardiye=59450+(gun-80)*1450;}
         return result;
     };
-
     window.declAutoCalc = function() {
         const val=(id)=>document.getElementById(id)?.value;
         const isoToTR=(iso)=>{if(!iso)return'';const p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
@@ -1006,9 +1117,9 @@
     };
 
     window.sortState={col:'tarih',asc:false};
-    window.sortData = function(context) { window.sortState.asc=!window.sortState.asc; const mult=window.sortState.asc?1:-1; const parseD=(dStr)=>{if(!dStr)return 0;let clean=window.fixExcelDate(dStr);let p=clean.split('.');if(p.length===3)return parseInt(p[2]+p[1]+p[0]);return 0;}; if(context==='decl'){window.declarationsData.sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('decl');window.renderDeclarationsTable();}else if(context==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('firm');window.renderFirmVehicles();}else if(context==='kiymet'){window.kiymetData.sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('kiymet');window.renderKiymetTable();} };
+    window.sortData = function(context) { window.sortState.asc=!window.sortState.asc; const mult=window.sortState.asc?1:-1; const parseD=(dStr)=>{if(!dStr)return 0;let clean=window.fixExcelDate(dStr);let p=clean.split('.');if(p.length===3)return parseInt(p[2]+p[1]+p[0]);return 0;};
+    if(context==='decl'){window.declarationsData.sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('decl');window.renderDeclarationsTable();}else if(context==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('firm');window.renderFirmVehicles();}else if(context==='kiymet'){window.kiymetData.sort((a,b)=>(parseD(a.tarih)-parseD(b.tarih))*mult);saveData('kiymet');window.renderKiymetTable();} };
     window.goToFilter = function(filterType) { window.renderView('declarations'); const el=document.getElementById('decl-status-filter'); if(el){el.value=filterType;window.renderDeclarationsTable();} };
-
     window.liveSearch = function(query) {
         const dropdown = document.getElementById('search-dropdown');
         if(!dropdown) return;
@@ -1025,7 +1136,6 @@
 
     window.searchGoTo = function(type,idx,firmName) { document.getElementById('search-dropdown').style.display='none'; document.getElementById('global-search-input').value=''; if(type==='decl'){window.renderView('declarations');setTimeout(()=>window.openDeclVehicleModal(idx,'decl'),150);}else if(type==='kiymet'){window.renderView('kiymetListesi');}else if(type==='firm'){window.currentFirm=firmName;window.renderView('firmDetails');setTimeout(()=>window.openDeclVehicleModal(idx,'firm'),150);} };
     window.handleGlobalSearch = function(query) { window.liveSearch(query); };
-
     window.updateDashboardStats = function() {
         if(!window.declarationsData) return;
         const total=window.declarationsData.length;
@@ -1081,7 +1191,8 @@
     };
 
     window.renderFirmsList = function() {
-        const grid=document.getElementById('firms-dynamic-grid'); if(!grid) return;
+        const grid=document.getElementById('firms-dynamic-grid');
+        if(!grid) return;
         const firms=Object.keys(window.firmData);
         if(firms.length===0){grid.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text-muted);">Henüz firma yok.</div>`;return;}
         grid.innerHTML=firms.map(firmName=>{
@@ -1096,7 +1207,8 @@
         if(window.lucide) lucide.createIcons();
     };
 
-    window.renderFirmDetails = function(fNameEscaped) { const fName=fNameEscaped.replace(/&quot;/g,'"'); window.currentFirm=fName; window.renderView('firmDetails'); document.getElementById('current-firm-title').innerText=fName; window.renderFirmVehicles(); };
+    window.renderFirmDetails = function(fNameEscaped) { const fName=fNameEscaped.replace(/&quot;/g,'"');
+    window.currentFirm=fName; window.renderView('firmDetails'); document.getElementById('current-firm-title').innerText=fName; window.renderFirmVehicles(); };
 
     window.renderFirmVehicles = function() {
         const tbody=document.getElementById('firm-vehicles-tbody'); if(!tbody||!window.currentFirm) return;
@@ -1148,7 +1260,6 @@
     window.closeKiymetModal=function(){document.getElementById('kiymet-modal').classList.add('hidden');};
     window.editKiymet=function(i){const k=window.kiymetData[i];['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id=>{if(document.getElementById('km-'+id))document.getElementById('km-'+id).value=k[id]||'';});document.getElementById('km-edit-index').value=i;document.getElementById('kiymet-modal').classList.remove('hidden');};
     window.saveNewKiymet=function(){const i=parseInt(document.getElementById('km-edit-index').value);const r={marka:document.getElementById('km-marka').value.toUpperCase(),model:document.getElementById('km-model').value.toUpperCase(),yil:document.getElementById('km-yil').value,renk:document.getElementById('km-renk').value.toUpperCase(),sasi:document.getElementById('km-sasi').value.toUpperCase(),tarih:document.getElementById('km-tarih').value,fatura:document.getElementById('km-fatura').value,kiymet:document.getElementById('km-kiymet').value,durum:document.getElementById('km-durum').value};if(i===-1)window.kiymetData.unshift(r);else window.kiymetData[i]=r;saveData('kiymet');window.closeKiymetModal();window.renderKiymetTable();};
-
     window.openDeclVehicleModal = function(idx=-1,context='decl') {
         window.currentModalContext=context; document.getElementById('decl-modal').classList.remove('hidden'); document.getElementById('decl-edit-idx').value=idx;
         const selFirma=document.getElementById('da-firma');
@@ -1167,19 +1278,17 @@
         if(!r.firma||!r.tarih){alert('Zorunlu alanları doldurun!');return;}
         if(window.currentModalContext==='decl'){let oldSasi=i===-1?null:window.declarationsData[i].sasi;if(i===-1){window.declarationsData.unshift({...r});if(!window.firmData[r.firma])window.firmData[r.firma]=[];if(!window.firmData[r.firma].find(x=>x.sasi===r.sasi))window.firmData[r.firma].unshift({...r});}else{window.declarationsData[i]=r;if(window.firmData[r.firma]){let fIdx=window.firmData[r.firma].findIndex(x=>x.sasi===oldSasi);if(fIdx!==-1)window.firmData[r.firma][fIdx]=r;}}saveData('decl');saveData('firm');window.renderDeclarationsTable();}
         else{let oldSasi=i===-1?null:window.firmData[window.currentFirm][i].sasi;if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];if(i===-1){window.firmData[window.currentFirm].unshift({...r});if(!window.declarationsData.find(x=>x.sasi===r.sasi))window.declarationsData.unshift({...r});}else{window.firmData[window.currentFirm][i]=r;let dIdx=window.declarationsData.findIndex(x=>x.sasi===oldSasi);if(dIdx!==-1)window.declarationsData[dIdx]=r;}saveData('firm');saveData('decl');window.renderFirmVehicles();}
-        window.closeDeclModal(); window.updateDashboardStats();
+        window.closeDeclModal();
+        window.updateDashboardStats();
     };
 
     window.openExcelModal=function(context){document.getElementById('excel-target-context').value=context;document.getElementById('excel-modal').classList.remove('hidden');};
     window.closeExcelModal=function(){document.getElementById('excel-modal').classList.add('hidden');document.getElementById('excel-file-input').value="";};
     window.processExcelData=function(input){if(!input.files||input.files.length===0)return;const reader=new FileReader();const targetContext=document.getElementById('excel-target-context').value;reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});let c=0;data.forEach(r=>{if(r.length>2&&!String(r[0]).toUpperCase().includes('MARKA')){let parsedEvrak="Kapalı";if(r.length>9){let nR=String(r[9]).trim().toLowerCase();if(nR==="false"||nR==="açık"||nR==="0")parsedEvrak="Açık";}if(targetContext==='firm'){const newVeh={firma:window.currentFirm,marka:r[0]||'',model:r[1]||'',yil:r[2]||'',renk:r[3]||'',sasi:r[4]||'',tarih:window.fixExcelDate(r[5]),beyanname:r[6]||'',fatura:r[7]||'',kiymet:r[8]||'',evrak:parsedEvrak};if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];window.firmData[window.currentFirm].unshift(newVeh);window.declarationsData.unshift(newVeh);}else{window.kiymetData.unshift({marka:r[0]||'',model:r[1]||'',yil:r[2]||'',renk:r[3]||'',sasi:r[4]||'',tarih:window.fixExcelDate(r[5]),fatura:r[6]||'',kiymet:r[7]||'',durum:r[8]||''});}c++;}});if(c>0){alert(c+' kayıt aktarıldı');if(targetContext==='firm'){saveData('firm');saveData('decl');window.renderFirmVehicles();window.updateDashboardStats();}else{saveData('kiymet');window.renderKiymetTable();}window.closeExcelModal();}}catch(err){alert('Hata');}};reader.readAsArrayBuffer(input.files[0]);};
-
     window.saveCalculatorState=function(){const val=(id)=>document.getElementById(id)?.value;const importerVal=document.querySelector('input[name="calc-importer"]:checked')?.value||"sahis";const state={type:val('calc-type'),importer:importerVal,igv:val('calc-igv'),kkdf:val('calc-kkdf'),gv:val('calc-gv'),kur:val('calc-kur-input'),fatura:val('calc-fatura'),curFatura:val('cur-calc-fatura'),navlun:val('calc-navlun'),curNavlun:val('cur-calc-navlun'),sigorta:val('calc-sigorta'),curSigorta:val('cur-calc-sigorta'),yurtdisi:val('calc-yurtdisi'),curYurtdisi:val('cur-calc-yurtdisi'),yurtici:val('calc-yurtici'),curYurtici:val('cur-calc-yurtici'),digerMasraflar:window.digerMasrafListesi.map(m=>({id:m.id,val:val(m.id),cur:val('cur-'+m.id)}))};localStorage.setItem('gumruk_calc_state',JSON.stringify(state));};
     window.loadCalculatorState=function(){const saved=localStorage.getItem('gumruk_calc_state');if(!saved)return false;try{const s=JSON.parse(saved);const setV=(id,v)=>{if(document.getElementById(id)&&v!==undefined)document.getElementById(id).value=v;};setV('calc-type',s.type);setV('calc-igv',s.igv);setV('calc-kkdf',s.kkdf);setV('calc-gv',s.gv);setV('calc-kur-input',s.kur);setV('calc-fatura',s.fatura);setV('cur-calc-fatura',s.curFatura);setV('calc-navlun',s.navlun);setV('cur-calc-navlun',s.curNavlun);setV('calc-sigorta',s.sigorta);setV('cur-calc-sigorta',s.curSigorta);setV('calc-yurtdisi',s.yurtdisi);setV('cur-calc-yurtdisi',s.curYurtdisi);setV('calc-yurtici',s.yurtici);setV('cur-calc-yurtici',s.curYurtici);if(s.importer){const radio=document.getElementById('sc-'+s.importer);if(radio)radio.checked=true;}if(s.digerMasraflar){s.digerMasraflar.forEach(m=>{const target=window.digerMasrafListesi.find(x=>x.id===m.id);if(target){target.val=m.val;target.cur=m.cur;}setV(m.id,m.val);setV('cur-'+m.id,m.cur);});}return true;}catch(e){return false;}};
     window.populateDigerMasraflar=function(){const container=document.getElementById('diger-masraflar-container');if(!container)return;container.innerHTML=window.digerMasrafListesi.map(m=>`<div class="input-group" style="margin-bottom:0;"><label>${m.label}</label><div style="display:flex;gap:6px;"><input id="${m.id}" type="text" oninput="window.formatCurrencyInput(this);window.calculateTaxes()" value="${m.val}" style="flex:1;"><select id="cur-${m.id}" onchange="window.calculateTaxes()" style="width:70px;"><option value="EUR" ${m.cur==='EUR'?'selected':''}>EUR</option><option value="USD" ${m.cur==='USD'?'selected':''}>USD</option><option value="TL" ${m.cur==='TL'?'selected':''}>TL</option></select></div></div>`).join('');};
-
     window.calculateTaxes=function(){const typeEl=document.getElementById('calc-type');const kurInputStr=document.getElementById('calc-kur-input')?.value||"50,98";const importerType=document.querySelector('input[name="calc-importer"]:checked')?.value||"sahis";const calcIgv=parseFloat(document.getElementById('calc-igv')?.value||0);const calcKkdf=parseFloat(document.getElementById('calc-kkdf')?.value||0);const calcGv=parseFloat(document.getElementById('calc-gv')?.value||10);window.exchangeRates.EUR=parseFloat(kurInputStr.replace(/\./g,'').replace(',','.'))||50.9822;const getValNum=(id)=>{const el=document.getElementById(id);return(!el||!el.value)?0:parseFloat(el.value.replace(/\./g,'').replace(',','.'));};const getValInTL=(id)=>{const val=getValNum(id);const curEl=document.getElementById('cur-'+id);const cur=curEl?curEl.value:'EUR';const rate=cur==='TL'?1:(window.exchangeRates[cur]||window.exchangeRates.EUR);return val*rate;};const faturaTL=getValInTL('calc-fatura');const navlunTL=getValInTL('calc-navlun');const sigortaTL=getValInTL('calc-sigorta');const yDisiTL=getValInTL('calc-yurtdisi');const yIciTL=getValInTL('calc-yurtici');let digerMasrafTL=0;if(window.digerMasrafListesi)window.digerMasrafListesi.forEach(m=>{digerMasrafTL+=getValInTL(m.id);});const digerMasrafEUR=digerMasrafTL/window.exchangeRates.EUR;const cifTL=faturaTL+navlunTL+sigortaTL;const gvMatrahiTL=cifTL+yDisiTL;const araToplamTL=gvMatrahiTL+yIciTL;const gvTutarTL=gvMatrahiTL*(calcGv/100);const igvTutarTL=gvMatrahiTL*(calcIgv/100);const kkdfTutarTL=gvMatrahiTL*(calcKkdf/100);const trtBandTL=(araToplamTL+gvTutarTL+igvTutarTL+kkdfTutarTL)*0.008;const dvTL=1606;const otvMatrahiTL=araToplamTL+gvTutarTL+igvTutarTL+kkdfTutarTL+trtBandTL+dvTL;let otvOrani=80;const sType=typeEl?typeEl.value:"";if(sType==='ic-1400'){otvOrani=importerType==='ithalatci'?45:80;}else if(sType==='ic-1600'){otvOrani=importerType==='ithalatci'?50:80;}else if(sType==='ic-2000'){otvOrani=importerType==='ithalatci'?80:130;}else if(sType==='ic-over2000'){otvOrani=importerType==='ithalatci'?130:220;}else if(sType==='hybrid-1800'){otvOrani=importerType==='ithalatci'?20:45;}else if(sType==='hybrid-2500'){otvOrani=importerType==='ithalatci'?35:80;}else if(sType==='phev-1600'){otvOrani=importerType==='ithalatci'?30:60;}else if(sType==='ev-160'){otvOrani=importerType==='ithalatci'?3:3;}else if(sType==='ticari-50'){otvOrani=50;}const otvTutariTL=otvMatrahiTL*(otvOrani/100);const kdvMatrahiTL=otvMatrahiTL+otvTutariTL;const kdvTutariTL=kdvMatrahiTL*0.20;const toplamVergiTL=gvTutarTL+igvTutarTL+kkdfTutarTL+otvTutariTL+kdvTutariTL;const genelMaliyetTL=toplamVergiTL+digerMasrafTL;const genelMaliyetEUR=genelMaliyetTL/window.exchangeRates.EUR;const set=(id,val)=>{const el=document.getElementById(id);if(el)el.innerHTML=val;};set('res-gv-matrah',window.formatNumber(gvMatrahiTL)+' ₺');set('res-gv-yuzde','%'+calcGv);set('res-gv-tutar',window.formatNumber(gvTutarTL)+' ₺');set('res-igv-yuzde','%'+calcIgv);set('res-igv-tutar',window.formatNumber(igvTutarTL)+' ₺');set('res-kkdf-yuzde','%'+calcKkdf);set('res-kkdf-tutar',window.formatNumber(kkdfTutarTL)+' ₺');set('res-ara-toplam',window.formatNumber(araToplamTL)+' ₺');set('res-otv-matrahi',window.formatNumber(otvMatrahiTL)+' ₺');set('res-otv-yuzde','(%'+otvOrani+')');set('res-hesaplanan-otv',window.formatNumber(otvTutariTL)+' ₺');set('res-kdv-tutar',window.formatNumber(kdvTutariTL)+' ₺');set('res-toplam-vergi',window.formatNumber(toplamVergiTL)+' ₺');set('res-diger-maliyet',window.formatNumber(digerMasrafTL)+' ₺');set('res-genel-maliyet',window.formatNumber(genelMaliyetTL)+' ₺');set('res-genel-eur',window.formatNumber(genelMaliyetEUR)+' €');window.saveCalculatorState();};
-
     window.renderView = function(viewName) {
         localStorage.setItem('gumruk_last_view', viewName);
         if(viewName==='firmDetails'&&window.currentFirm) localStorage.setItem('gumruk_last_firm',window.currentFirm);
@@ -1202,7 +1311,21 @@
     document.querySelectorAll('.nav-btn[data-view]').forEach(btn=>{btn.addEventListener('click',()=>{if(btn.dataset.view)window.renderView(btn.dataset.view);});});
 
     document.addEventListener('DOMContentLoaded',()=>{
-        if(localStorage.getItem('gumruk_auth')==='true'){document.getElementById('login-screen').style.display='none';}
+        
+        window.Auth.initOtpLogic();
+
+        if(localStorage.getItem('gumruk_auth')==='true'){
+            document.getElementById('login-screen').style.display='none';
+            let activeName = localStorage.getItem('gumruk_active_user_name') || 'Bayram';
+            document.getElementById('nav-user-name').innerText = activeName.split(' ')[0];
+            document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeName)}&background=1e3a5f&color=60a5fa&rounded=true`;
+        } else {
+            let remembered = localStorage.getItem('gumruk_remember_me');
+            if(remembered && window.Auth.users[remembered]) {
+                 window.Auth.finalizeLogin(window.Auth.users[remembered].name, remembered, true);
+            }
+        }
+
         const sidebarState=localStorage.getItem('gumruk_sidebar_state');
         if(sidebarState==='closed') document.querySelector('.sidebar').classList.add('collapsed');
         if(window.lucide) window.lucide.createIcons();
