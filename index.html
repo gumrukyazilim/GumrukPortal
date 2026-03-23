@@ -25,7 +25,11 @@
         .hidden { display: none !important; }
         
         .app-container { display: flex; height: 100vh; }
-        .sidebar { width: 260px; display: flex; flex-direction: column; background: var(--bg-surface); border-right: 1px solid var(--border-light); z-index: 10; }
+        
+        /* SIDEBAR & COLLAPSE ANIMATION */
+        .sidebar { width: 260px; display: flex; flex-direction: column; background: var(--bg-surface); border-right: 1px solid var(--border-light); z-index: 10; transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar.collapsed { margin-left: -260px; }
+        
         .sidebar-logo { padding: 28px 24px; display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 700; color: white; border-bottom: 1px solid var(--border-light); letter-spacing: -0.5px;}
         .sidebar-logo i { color: var(--primary); width: 24px; height: 24px; }
         .sidebar-nav { flex: 1; padding: 24px 16px; display: flex; flex-direction: column; gap: 6px; }
@@ -63,15 +67,8 @@
         .stat-info h3 { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; }
         .stat-value { font-size: 28px; font-weight: 600; color: white; letter-spacing:-0.5px;}
         
-        /* ÖZEL TABLO KAPSAYICISI (SCROLLBAR & SABİT BAŞLIK İÇİN) */
-        .table-wrapper { width: 100%; overflow: auto; max-height: calc(100vh - 260px); }
-        .table-wrapper::-webkit-scrollbar { width: 10px; height: 10px; }
-        .table-wrapper::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
-        .table-wrapper::-webkit-scrollbar-thumb { background: rgba(63, 63, 70, 0.8); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
-        .table-wrapper::-webkit-scrollbar-thumb:hover { background-color: rgba(113, 113, 122, 1); }
-
-        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
-        .data-table th { padding: 14px 16px; text-align: left; font-weight: 600; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #27272a; background: #000000; position: sticky; top: 0; z-index: 10;}
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { padding: 14px 16px; text-align: left; font-weight: 600; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #27272a; background: #000000; position: sticky; top: 0; z-index: 2;}
         .data-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; color: #e4e4e7; transition: 0.2s;}
         .data-table tbody tr { transition: background 0.15s ease; }
         .data-table tbody tr:hover td { background: var(--bg-surface-hover); }
@@ -123,6 +120,11 @@
         .firm-delete-btn { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; opacity: 0; border: 1px solid transparent;}
         .stat-card:hover .firm-delete-btn { opacity: 1; }
         .firm-delete-btn:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
         /* CLOUD SYNC TOAST */
         #sync-toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-surface); border: 1px solid var(--border-light); padding: 12px 20px; border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; transform: translateY(100px); opacity: 0; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 99999; }
@@ -151,7 +153,13 @@
 
     <div id="app-screen" class="app-container">
         <aside class="sidebar">
-            <div class="sidebar-logo"><i data-lucide="layers"></i><div><span>GümrükPortal</span><small style="font-size:10px;color:var(--success);display:block;font-weight:600;margin-top:2px;">Bulut Bağlantısı Aktif</small></div></div>
+            <div class="sidebar-logo">
+                <i data-lucide="layers"></i>
+                <div style="flex:1;">
+                    <span>GümrükPortal</span>
+                    <small style="font-size:10px;color:var(--success);display:block;font-weight:600;margin-top:2px;">Bulut Bağlantısı Aktif</small>
+                </div>
+            </div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard" style="width:18px;"></i><span>Sistem Özeti</span></button>
                 <button class="nav-item" data-view="declarations"><i data-lucide="car" style="width:18px;"></i><span>Gelen Araçlar</span></button>
@@ -165,22 +173,29 @@
                 <input type="file" id="import-backup-file" accept=".json" style="display:none;" onchange="window.importBackup(event)">
             </div>
         </aside>
+        
         <main class="main-content">
             <header class="top-header">
-                <div class="header-search" style="position:relative;">
-                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" 
-                            style="background:transparent; border:none; cursor:pointer; display:flex; align-items:center; color:var(--text-muted); padding:0;">
-                        <i data-lucide="search" style="width:16px; height:16px;"></i>
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <button onclick="window.toggleSidebar()" title="Menüyü Aç/Kapat" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:8px; border-radius:8px; transition:0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'; this.style.color='white';" onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted)';">
+                        <i data-lucide="menu" style="width:24px; height:24px;"></i>
                     </button>
-                    <input type="text" id="global-search-input" 
-                           oninput="window.liveSearch(this.value)"
-                           onblur="setTimeout(()=>{let d=document.getElementById('search-dropdown');if(d)d.style.display='none';},200)"
-                           placeholder="Marka, model, şasi, beyanname... yazın">
-                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"
-                            style="background:transparent; border:none; cursor:pointer; color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap; padding-left:8px; border-left:1px solid var(--border-light); margin-left:8px;">
-                        Ara
-                    </button>
-                    <div id="search-dropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:-1px; right:-1px; background:var(--bg-surface); border:1px solid var(--border-focus); border-radius:var(--radius-md); max-height:360px; overflow-y:auto; z-index:99999; box-shadow:0 20px 40px rgba(0,0,0,0.7);"></div>
+                    
+                    <div class="header-search" style="position:relative;">
+                        <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" 
+                                style="background:transparent; border:none; cursor:pointer; display:flex; align-items:center; color:var(--text-muted); padding:0;">
+                            <i data-lucide="search" style="width:16px; height:16px;"></i>
+                        </button>
+                        <input type="text" id="global-search-input" 
+                               oninput="window.liveSearch(this.value)"
+                               onblur="setTimeout(()=>{let d=document.getElementById('search-dropdown');if(d)d.style.display='none';},200)"
+                               placeholder="Marka, model, şasi, beyanname... yazın">
+                        <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)"
+                                style="background:transparent; border:none; cursor:pointer; color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap; padding-left:8px; border-left:1px solid var(--border-light); margin-left:8px;">
+                            Ara
+                        </button>
+                        <div id="search-dropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:-1px; right:-1px; background:var(--bg-surface); border:1px solid var(--border-focus); border-radius:var(--radius-md); max-height:360px; overflow-y:auto; z-index:99999; box-shadow:0 20px 40px rgba(0,0,0,0.7);"></div>
+                    </div>
                 </div>
                 
                 <div class="header-actions">
@@ -324,7 +339,7 @@
             </div>
         </div>
         <div class="glass-card fade-in" style="padding:0; overflow:hidden;">
-            <div class="table-wrapper">
+            <div style="overflow-x: auto;">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -353,7 +368,7 @@
                 <button class="btn-primary" onclick="window.openDeclVehicleModal(-1, 'decl')"><i data-lucide="plus" style="width:16px;"></i> Yeni Kayıt</button>
             </div>
             <div class="glass-card" style="padding:0; overflow:hidden;">
-                <div class="table-wrapper">
+                <div style="overflow-x: auto;">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -458,7 +473,7 @@
                 </div>
             </div>
             <div class="glass-card" style="padding:0; overflow:hidden;">
-                <div class="table-wrapper">
+                <div style="overflow-x: auto;">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -499,6 +514,13 @@
             const pw = document.getElementById('login-password').value;
             if(pw === 'Bayram2026') { localStorage.setItem('gumruk_auth', 'true'); document.getElementById('login-screen').style.opacity = '0'; setTimeout(() => { document.getElementById('login-screen').style.display = 'none'; }, 400);
             } else { document.getElementById('login-error').style.display = 'block'; document.getElementById('login-password').value = ''; }
+        };
+        
+        // SIDEBAR AÇ/KAPAT MOTORU (HAFIZALI)
+        window.toggleSidebar = function() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('gumruk_sidebar_state', sidebar.classList.contains('collapsed') ? 'closed' : 'open');
         };
 
         window.exchangeRates = { EUR: 50.9822, USD: 48.10, GBP: 58.50, TL: 1 };
@@ -996,6 +1018,12 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             if(localStorage.getItem('gumruk_auth') === 'true') { document.getElementById('login-screen').style.display = 'none'; }
+            
+            // Eğer sidebar daha önce kapatıldıysa, sayfa yüklenirken kapalı başlat
+            if(localStorage.getItem('gumruk_sidebar_state') === 'closed') {
+                document.querySelector('.sidebar').classList.add('collapsed');
+            }
+
             initViews(); 
             loadAllData(); // İlk açılışta Google Cloud'dan verileri çeker
         });
