@@ -1393,8 +1393,14 @@
             document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeName)}&background=1e3a5f&color=60a5fa&rounded=true`;
         } else {
             let remembered = localStorage.getItem('gumruk_remember_me');
-            if(remembered && window.Auth.users[remembered]) {
-                 window.Auth.finalizeLogin(window.Auth.users[remembered].name, remembered, true);
+            if(remembered) {
+                const emailEl = document.getElementById('log-email');
+                const rememberEl = document.getElementById('log-remember');
+                if(emailEl) emailEl.value = remembered;
+                if(rememberEl) rememberEl.checked = true;
+                if(window.Auth.users[remembered]) {
+                    window.Auth.finalizeLogin(window.Auth.users[remembered].name, remembered, true);
+                }
             }
         }
 
