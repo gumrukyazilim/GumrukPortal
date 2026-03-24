@@ -128,12 +128,15 @@
         .menu-toggle:hover { background:var(--bg-elevated); border-color:var(--border); color:var(--text-primary); }
         .menu-toggle i { width:18px; height:18px; }
 
-        .search-wrap { position:relative; display:flex; align-items:center; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-md); padding:0 14px; width:380px; height:40px; transition:0.2s; }
-        .search-wrap:focus-within { border-color:var(--border-active); box-shadow:0 0 0 3px rgba(59,130,246,0.08); }
-        .search-wrap > i { color:var(--text-muted); width:15px; height:15px; flex-shrink:0; }
-        .search-wrap input { background:transparent; color:var(--text-primary); padding:0 10px; flex:1; font-size:13.5px; border:none; outline:none;}
-        .search-wrap input::placeholder { color:var(--text-muted); }
-        #search-dropdown { display:none; position:absolute; top:calc(100% + 8px); left:-1px; right:-1px; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:var(--r-lg); max-height:380px; overflow-y:auto; z-index:99999; box-shadow:0 24px 48px rgba(0,0,0,0.7); }
+        .search-wrap { position:relative; display:flex; align-items:center; background:var(--bg-elevated); border:1.5px solid var(--border); border-radius:12px; padding:0 12px 0 14px; width:440px; height:44px; transition:border-color 0.2s, box-shadow 0.2s, background 0.2s; gap:10px; }
+        .search-wrap:focus-within { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.13); background:var(--bg-surface); }
+        .search-wrap .srch-icon { color:var(--text-muted); width:16px; height:16px; flex-shrink:0; transition:color 0.2s; pointer-events:none; }
+        .search-wrap:focus-within .srch-icon { color:var(--primary); }
+        .search-wrap input { background:transparent; color:var(--text-primary); flex:1; font-size:13.5px; border:none; outline:none; min-width:0; }
+        .search-wrap input::placeholder { color:var(--text-muted); font-size:13px; }
+        .search-kbd { display:inline-flex; align-items:center; gap:2px; font-size:10.5px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); border-radius:6px; padding:3px 8px; white-space:nowrap; flex-shrink:0; letter-spacing:0.2px; transition:opacity 0.15s; }
+        .search-wrap:focus-within .search-kbd { opacity:0; pointer-events:none; }
+        #search-dropdown { display:none; position:absolute; top:calc(100% + 8px); left:-1px; right:-1px; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:var(--r-lg); max-height:380px; overflow-y:auto; z-index:99999; box-shadow:0 24px 56px rgba(0,0,0,0.75); }
         .search-result-item { padding:11px 16px; cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; transition:background 0.15s; }
         .search-result-item:last-child { border-bottom:none; }
         .search-result-item:hover { background:var(--bg-hover); }
@@ -446,7 +449,7 @@
             <button class="nav-btn" data-view="declarations"><i data-lucide="car"></i><span>Gelen Araçlar</span></button>
             <button class="nav-btn" data-view="firms"><i data-lucide="building-2"></i><span>Firma Arşivi</span></button>
             <button class="nav-btn" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
-            <div class="sidebar-section-label" style="margin-top:8px;">Araçlar</div>
+            <div class="sidebar-section-label" style="margin-top:8px;">Hesaplamalar</div>
             <button class="nav-btn" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
         </nav>
         <div class="sidebar-footer">
@@ -461,10 +464,9 @@
             <div class="header-left">
                 <button class="menu-toggle" onclick="window.toggleSidebar()" title="Menüyü Aç/Kapat"><i data-lucide="menu"></i></button>
                 <div class="search-wrap">
-                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" style="background:transparent; border:none; cursor:pointer; display:flex; align-items:center; color:var(--text-muted); padding:0;"><i data-lucide="search" style="width:16px; height:16px;"></i></button>
-                    <input type="text" id="global-search-input" oninput="window.liveSearch(this.value)" onblur="setTimeout(()=>{let d=document.getElementById('search-dropdown');if(d)d.style.display='none';},200)" placeholder="Şasi, marka, beyanname no... yazın">
-                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" style="background:transparent; border:none; cursor:pointer; color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap; padding-left:8px; border-left:1px solid var(--border-light); margin-left:8px;">Ara</button>
-                    <span class="search-kbd" style="margin-left:8px; color:var(--text-muted); font-size:11px;">⌘K</span>
+                    <i data-lucide="search" class="srch-icon"></i>
+                    <input type="text" id="global-search-input" oninput="window.liveSearch(this.value)" onkeyup="if(event.key==='Enter') window.handleGlobalSearch(this.value)" onblur="setTimeout(()=>{let d=document.getElementById('search-dropdown');if(d)d.style.display='none';},200)" placeholder="Şasi, marka, beyanname no...">
+                    <span class="search-kbd">⌘K</span>
                     <div id="search-dropdown"></div>
                 </div>
             </div>
@@ -716,7 +718,7 @@
 <template id="tpl-calculator">
     <div class="page-hdr fade-in">
         <div class="page-hdr-left">
-            <div class="page-eyebrow">Araçlar</div>
+            <div class="page-eyebrow">Hesaplamalar</div>
             <h1 class="page-title">Vergi Hesaplama</h1>
         </div>
     </div>
@@ -934,7 +936,7 @@
             else localStorage.removeItem('gumruk_remember_me');
 
             document.getElementById('nav-user-name').innerText = name.split(' ')[0];
-            document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1e3a5f&color=60a5fa&rounded=true`;
+            const _avatarName = name.replace(/s*(.*?)/g, "").trim(); document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(_avatarName)}&background=1e3a5f&color=60a5fa&rounded=true`;
 
             const s = document.getElementById('login-screen');
             s.style.opacity = '0'; s.style.transform = 'scale(1.02)'; s.style.transition = 'all 0.4s ease';
@@ -1088,6 +1090,13 @@
                 if(json.data.users) {
                     window.Auth.users = json.data.users;
                     localStorage.setItem('gumruk_users', JSON.stringify(window.Auth.users));
+                    // Beni Hatırla: bulut verileri yüklendikten sonra otomatik giriş dene
+                    if(localStorage.getItem('gumruk_auth')!=='true') {
+                        const rem = localStorage.getItem('gumruk_remember_me');
+                        if(rem && window.Auth.users[rem]) {
+                            window.Auth.finalizeLogin(window.Auth.users[rem].name, rem, true);
+                        }
+                    }
                 }
 
                 window.declarationsData.forEach(d=>{if(d){d.tarih=window.fixExcelDate(d.tarih);d.kiymVv=window.fixExcelDate(d.kiymVv);d.kiymGt=window.fixExcelDate(d.kiymGt);d.ekSure=window.fixExcelDate(d.ekSure);d.antTarih=window.fixExcelDate(d.antTarih);d.beynmCif=window.fixExcelDate(d.beynmCif);}});
@@ -1390,7 +1399,7 @@
             document.getElementById('login-screen').style.display='none';
             let activeName = localStorage.getItem('gumruk_active_user_name') || 'Bayram';
             document.getElementById('nav-user-name').innerText = activeName.split(' ')[0];
-            document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeName)}&background=1e3a5f&color=60a5fa&rounded=true`;
+            const _cn = activeName.replace(/s*(.*?)/g, "").trim(); document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(_cn)}&background=1e3a5f&color=60a5fa&rounded=true`;
         } else {
             let remembered = localStorage.getItem('gumruk_remember_me');
             if(remembered) {
@@ -1408,6 +1417,14 @@
         if(sidebarState==='closed') document.querySelector('.sidebar').classList.add('collapsed');
         if(window.lucide) window.lucide.createIcons();
         loadAllData();
+        // Ctrl+K / Cmd+K → arama odağı
+        document.addEventListener('keydown', function(e) {
+            if((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                const inp = document.getElementById('global-search-input');
+                if(inp) { inp.focus(); inp.select(); }
+            }
+        });
     });
 </script>
 </body>
