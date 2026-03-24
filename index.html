@@ -936,7 +936,7 @@
             else localStorage.removeItem('gumruk_remember_me');
 
             document.getElementById('nav-user-name').innerText = name.split(' ')[0];
-            const _avatarName = name.replace(/s*(.*?)/g, "").trim(); document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(_avatarName)}&background=1e3a5f&color=60a5fa&rounded=true`;
+            const _avatarName = name.split(/[\s(]/)[0]; document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(_avatarName)}&background=1e3a5f&color=60a5fa&rounded=true`;
 
             const s = document.getElementById('login-screen');
             s.style.opacity = '0'; s.style.transform = 'scale(1.02)'; s.style.transition = 'all 0.4s ease';
@@ -946,7 +946,6 @@
         doLogout: function() {
             if(confirm('Oturumu kapatmak istiyor musunuz?')) {
                 localStorage.removeItem('gumruk_auth');
-                localStorage.removeItem('gumruk_remember_me');
                 location.reload();
             }
         },
@@ -1399,7 +1398,7 @@
             document.getElementById('login-screen').style.display='none';
             let activeName = localStorage.getItem('gumruk_active_user_name') || 'Bayram';
             document.getElementById('nav-user-name').innerText = activeName.split(' ')[0];
-            const _cn = activeName.replace(/s*(.*?)/g, "").trim(); document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(_cn)}&background=1e3a5f&color=60a5fa&rounded=true`;
+            const _cn = activeName.split(/[\s(]/)[0]; document.getElementById('nav-user-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(_cn)}&background=1e3a5f&color=60a5fa&rounded=true`;
         } else {
             let remembered = localStorage.getItem('gumruk_remember_me');
             if(remembered) {
