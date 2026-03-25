@@ -830,8 +830,6 @@
 </template>
 
 <script>
-    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxwhzxqivEyPn_aKFW2gsKtxkzGjL_k8N90bL22p1nGyrZcCsJWK4KmzBmRXuRXWn37Vw/exec";
-
     function showSyncToast(text, isSuccess = false) {
         const t = document.getElementById('sync-toast'); const icon = document.getElementById('sync-icon'); document.getElementById('sync-text').innerText = text;
         if(isSuccess) { icon.style.animation='none'; icon.style.border='none'; icon.innerHTML='<i data-lucide="check-circle" style="color:var(--success);width:16px;height:16px;"></i>'; if(window.lucide) lucide.createIcons(); }
@@ -877,19 +875,12 @@
     window.forceCloudSync = function() { loadAllData(); };
 
     async function loadAllData() {
-        showSyncToast("Buluttan veriler indiriliyor...");
-        try {
-            let res=await fetch(GOOGLE_API_URL); let json=await res.json();
-            if(json.status==="success") {
-                window.declarationsData=json.data.decl||[]; window.kiymetData=json.data.kiymet||[];
-                window.firmData=json.data.firm||{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
-                if(json.data.users) { window.Auth.users = json.data.users; localStorage.setItem('gumruk_users', JSON.stringify(window.Auth.users)); }
-                window.declarationsData.forEach(d=>{if(d){d.tarih=window.fixExcelDate(d.tarih);d.kiymVv=window.fixExcelDate(d.kiymVv);d.kiymGt=window.fixExcelDate(d.kiymGt);d.ekSure=window.fixExcelDate(d.ekSure);d.antTarih=window.fixExcelDate(d.antTarih);d.beynmCif=window.fixExcelDate(d.beynmCif);}});
-                Object.keys(window.firmData).forEach(fN=>{window.firmData[fN].forEach(p=>{if(p)p.tarih=window.fixExcelDate(p.tarih);});});
-                window.kiymetData.forEach(k=>{if(k)k.tarih=window.fixExcelDate(k.tarih);});
-                saveToLocal(); hideSyncToast("Veriler buluttan çekildi!",true);
-            } else { throw new Error("API Hatası"); }
-        } catch(e) { console.warn("Bulut bağlantısı kurulamadı."); hideSyncToast("Çevrimdışı mod.",false); loadFromLocal(); }
+        showSyncToast("Veriler yükleniyor...");
+        
+        // FİREBASE TAMAMLANANA KADAR GEÇİCİ OLARAK SADECE LOKAL VERİ ÇALIŞIR
+        loadFromLocal();
+        hideSyncToast("Sistem Hazır", true);
+
         const lastView=localStorage.getItem('gumruk_last_view')||'dashboard';
         if(lastView==='firmDetails'){const lF=localStorage.getItem('gumruk_last_firm');if(lF&&window.firmData[lF]){window.currentFirm=lF;window.renderView('firmDetails');if(document.getElementById('current-firm-title'))document.getElementById('current-firm-title').innerText=lF;}else{window.renderView('firms');}}else{window.renderView(lastView);}
     }
@@ -897,12 +888,9 @@
     function loadFromLocal() { try { const k=localStorage.getItem('gumrukKiymetData'); window.kiymetData=k&&k!=="null"?JSON.parse(k):[]; const d=localStorage.getItem('gumrukDeclData'); if(d&&d!=="null") window.declarationsData=JSON.parse(d); const f=localStorage.getItem('gumrukFirmData'); window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]}; } catch(e){} }
     function saveToLocal() { try { localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData)); localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData)); localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData)); } catch(e){} }
 
-    let cloudSaveTimeout=null;
     function saveData(type) {
-        saveToLocal(); showSyncToast("Buluta kaydediliyor..."); clearTimeout(cloudSaveTimeout);
-        cloudSaveTimeout=setTimeout(async()=>{
-            try { let payload={decl: window.declarationsData, firm: window.firmData, kiymet: window.kiymetData, users: window.Auth.users}; await fetch(GOOGLE_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)}); hideSyncToast("Buluta başarıyla kaydedildi!",true); } catch(e){hideSyncToast("Kaydedilemedi!",false);}
-        },1500);
+        saveToLocal(); 
+        // İLERLEYEN ADIMLARDA FİREBASE VERİTABANI (FIRESTORE) KAYIT İŞLEMLERİ BURAYA GELECEK
     }
 
     window.exportBackup = function() { const d={decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData}; const s="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(d)); const a=document.createElement('a'); a.setAttribute("href",s); a.setAttribute("download","gumruk_yedek.json"); document.body.appendChild(a); a.click(); a.remove(); };
@@ -1126,7 +1114,6 @@
     window.closeExcelModal=function(){document.getElementById('excel-modal').classList.add('hidden');document.getElementById('excel-file-input').value="";};
     window.processExcelData=function(input){if(!input.files||input.files.length===0)return;const reader=new FileReader();const targetContext=document.getElementById('excel-target-context').value;reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});let c=0;data.forEach(r=>{if(r.length>2&&!String(r[0]).toUpperCase().includes('MARKA')){let parsedEvrak="Kapalı";if(r.length>9){let nR=String(r[9]).trim().toLowerCase();if(nR==="false"||nR==="açık"||nR==="0")parsedEvrak="Açık";}if(targetContext==='firm'){const newVeh={firma:window.currentFirm,marka:r[0]||'',model:r[1]||'',yil:r[2]||'',renk:r[3]||'',sasi:r[4]||'',tarih:window.fixExcelDate(r[5]),beyanname:r[6]||'',fatura:r[7]||'',kiymet:r[8]||'',evrak:parsedEvrak};if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];window.firmData[window.currentFirm].unshift(newVeh);window.declarationsData.unshift(newVeh);}else{window.kiymetData.unshift({marka:r[0]||'',model:r[1]||'',yil:r[2]||'',renk:r[3]||'',sasi:r[4]||'',tarih:window.fixExcelDate(r[5]),fatura:r[6]||'',kiymet:r[7]||'',durum:r[8]||''});}c++;}});if(c>0){alert(c+' kayıt aktarıldı');if(targetContext==='firm'){saveData('firm');saveData('decl');window.renderFirmVehicles();window.updateDashboardStats();}else{saveData('kiymet');window.renderKiymetTable();}window.closeExcelModal();}}catch(err){alert('Hata');}};reader.readAsArrayBuffer(input.files[0]);};
 
-    // YENİ GELİŞMİŞ VERGİ HESAPLAMA MANTIĞI BURADA BAŞLIYOR 
     window.saveCalculatorState = function() {
         const val = (id) => document.getElementById(id)?.value || "";
         const tipVal = document.querySelector('input[name="calc-tip"]:checked')?.value || "AVRUPA";
@@ -1169,11 +1156,9 @@
     };
 
     window.populateDigerMasraflar = function () {
-        // Eski sistemdeki modülü devre dışı bıraktık. YENİ HTML tasarımında her şey statik/akıcı geliyor.
     };
 
     window.calculateTaxes = function () {
-        // Formüller birebir uyarlanmıştır
         const getV = (id) => {
             const el = document.getElementById(id);
             if (!el || !el.value) return 0;
@@ -1311,6 +1296,25 @@
         if(window.lucide) window.lucide.createIcons();
         loadAllData();
     });
+</script>
+    <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyDxlTVb_JsefQHCE8pFiOiDjMaEVZJNiI0",
+    authDomain: "gumruk-portal.firebaseapp.com",
+    projectId: "gumruk-portal",
+    storageBucket: "gumruk-portal.firebasestorage.app",
+    messagingSenderId: "782266851006",
+    appId: "1:782266851006:web:30aa74f32f2ed36da4c8ef"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
 </script>
 </body>
 </html>
