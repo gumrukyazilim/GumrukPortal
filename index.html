@@ -1099,13 +1099,47 @@
     };
     window.closeDeclModal=function(){document.getElementById('decl-modal').classList.add('hidden');};
 
-    window.saveDeclEntry = function() {
+window.saveDeclEntry = function() {
         const i=parseInt(document.getElementById('decl-edit-idx').value); const val=(id)=>document.getElementById(id)?.value.trim()||'';
         const formatD=(iso)=>{if(!iso)return'';const p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
         const r={firma:val('da-firma'),marka:val('da-marka').toUpperCase(),model:val('da-model').toUpperCase(),yil:val('da-yil'),renk:val('da-renk').toUpperCase(),sasi:val('da-sase').toUpperCase(),tarih:formatD(val('da-tarih')),ekSure:formatD(val('da-ekSure')),antTarih:formatD(val('da-antTarih')),beynmCif:formatD(val('da-beynmCif')),kiymVv:formatD(val('da-kiymVv')),kiymGt:formatD(val('da-kiymGt')),evrak:val('da-evrak'),beyanname:val('da-beyanname'),fatura:val('da-fatura'),kiymet:val('da-kiymet')};
+        
         if(!r.firma||!r.tarih){alert('Zorunlu alanları doldurun!');return;}
-        if(window.currentModalContext==='decl'){let oldSasi=i===-1?null:window.declarationsData[i].sasi;if(i===-1){window.declarationsData.unshift({...r});if(!window.firmData[r.firma])window.firmData[r.firma]=[];if(!window.firmData[r.firma].find(x=>x.sasi===r.sasi))window.firmData[r.firma].unshift({...r});}else{window.declarationsData[i]=r;if(window.firmData[r.firma]){let fIdx=window.firmData[r.firma].findIndex(x=>x.sasi===oldSasi);if(fIdx!==-1)window.firmData[r.firma][fIdx]=r;}}saveData('decl');saveData('firm');window.renderDeclarationsTable();}
-        else{let oldSasi=i===-1?null:window.firmData[window.currentFirm][i].sasi;if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];if(i===-1){window.firmData[window.currentFirm].unshift({...r});if(!window.declarationsData.find(x=>x.sasi===r.sasi))window.declarationsData.unshift({...r});}else{window.firmData[window.currentFirm][i]=r;let dIdx=window.declarationsData.findIndex(x=>x.sasi===oldSasi);if(dIdx!==-1)window.declarationsData[dIdx]=r;}saveData('firm');saveData('decl');window.renderFirmVehicles();}
+        
+        if(window.currentModalContext==='decl'){
+            let oldSasi=i===-1?null:window.declarationsData[i].sasi;
+            if(i===-1){
+                window.declarationsData.unshift({...r});
+                if(!window.firmData[r.firma])window.firmData[r.firma]=[];
+                if(!window.firmData[r.firma].find(x=>x.sasi===r.sasi))window.firmData[r.firma].unshift({...r});
+            }else{
+                window.declarationsData[i]=r;
+                if(window.firmData[r.firma]){
+                    let fIdx=window.firmData[r.firma].findIndex(x=>x.sasi===oldSasi);
+                    if(fIdx!==-1)window.firmData[r.firma][fIdx]=r;
+                }
+            }
+            saveData('decl');
+            window.renderDeclarationsTable();
+        }
+        else{
+            let oldSasi=i===-1?null:window.firmData[window.currentFirm][i].sasi;
+            if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];
+            if(i===-1){
+                window.firmData[window.currentFirm].unshift({...r});
+                if(!window.declarationsData.find(x=>x.sasi===r.sasi))window.declarationsData.unshift({...r});
+            }else{
+                window.firmData[window.currentFirm][i]=r;
+                let dIdx=window.declarationsData.findIndex(x=>x.sasi===oldSasi);
+                if(dIdx!==-1)window.declarationsData[dIdx]=r;
+            }
+            saveData('firm');
+            window.renderFirmVehicles();
+        }
+
+        // FİREBASE BULUT KAYDI TETİKLENİYOR
+        if(window.saveToCloud) window.saveToCloud(r, 'declarations');
+
         window.closeDeclModal();
         window.updateDashboardStats();
     };
@@ -1296,14 +1330,12 @@
         if(window.lucide) window.lucide.createIcons();
         loadAllData();
     });
-</script>
-    <script type="module">
-  // Import the functions you need from the SDKs you need
+<script type="module">
+  // Gerekli Firebase kütüphanelerini çağırıyoruz
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
-  // Your web app's Firebase configuration
+  // Senin config bilgilerin (Aynen koruyoruz)
   const firebaseConfig = {
     apiKey: "AIzaSyDxlTVb_JsefQHCE8pFiOiDjMaEVZJNiI0",
     authDomain: "gumruk-portal.firebaseapp.com",
@@ -1313,8 +1345,26 @@
     appId: "1:782266851006:web:30aa74f32f2ed36da4c8ef"
   };
 
-  // Initialize Firebase
+  // Firebase ve Veritabanını (Firestore) başlat
   const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Portalın içindeki "Kaydet" fonksiyonunu Firebase'e bağlıyoruz
+  window.saveToCloud = async (data, type) => {
+    try {
+      showSyncToast("Buluta kaydediliyor...");
+      await addDoc(collection(db, type), {
+        ...data,
+        saveTime: new Date()
+      });
+      hideSyncToast("Başarıyla kaydedildi!", true);
+    } catch (e) {
+      console.error("Hata:", e);
+      hideSyncToast("Hata oluştu!", false);
+    }
+  };
+
+  console.log("Firebase ve Veritabanı Bağlantısı Aktif!");
 </script>
 </body>
 </html>
