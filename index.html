@@ -11,38 +11,44 @@
         body { background: #f1f5f9; color: var(--dark); min-height: 100vh; display: flex; }
         
         /* GİRİŞ */
-        #login-page { position: fixed; inset: 0; background: #0f172a; display: none; align-items: center; justify-content: center; z-index: 9999; }
+        #login-page { position: fixed; inset: 0; background: radial-gradient(circle at top right, #1e293b, #0f172a); display: none; align-items: center; justify-content: center; z-index: 9999; }
         #login-page.active { display: flex; }
-        .login-card { background: white; padding: 2.5rem; border-radius: 1.5rem; width: 100%; max-width: 400px; text-align: center; }
+        .login-card { background: white; padding: 2.5rem; border-radius: 1.5rem; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
         .login-input { width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 0.5rem; outline: none; }
-        .login-btn { width: 100%; padding: 1rem; background: var(--primary); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; }
+        .login-btn { width: 100%; padding: 1rem; background: var(--primary); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; transition: var(--transition); }
+        .login-btn:hover { background: var(--primary-dark); transform: translateY(-2px); }
 
         /* PANEL */
         #main-content { display: none; width: 100%; }
         #main-content.active { display: flex; }
         .sidebar { width: var(--sidebar-width); background: var(--dark); color: white; height: 100vh; position: fixed; padding: 1.5rem; }
-        .nav-item { padding: 1rem; border-radius: 0.5rem; color: #94a3b8; cursor: pointer; display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
-        .nav-item.active { background: var(--primary); color: white; }
-        .main-wrapper { margin-left: var(--sidebar-width); flex: 1; padding: 2rem; }
+        .nav-item { padding: 1rem; border-radius: 0.5rem; color: #94a3b8; cursor: pointer; display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; transition: var(--transition); }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: var(--primary); }
+        .main-wrapper { margin-left: var(--sidebar-width); flex: 1; padding: 2rem; min-width: 0; }
         
         /* TABLO & KART */
-        .card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; margin-top: 1rem; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f8fafc; padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        td { padding: 1rem; border-bottom: 1px solid #f1f5f9; }
-        .badge { padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600; background: #dcfce7; color: #166534; }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; margin-top: 1.5rem; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { background: #f8fafc; padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; color: var(--secondary); font-size: 0.85rem; }
+        td { padding: 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+        tr:hover { background: #f8fafc; }
+        .badge { padding: 0.3rem 0.6rem; border-radius: 0.4rem; font-size: 0.75rem; font-weight: 600; }
+        .badge-cloud { background: #dcfce7; color: #166534; }
 
         /* MODAL */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 1rem; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 1.5rem; }
         .modal-overlay.active { display: flex; }
-        .modal { background: white; border-radius: 1rem; width: 100%; max-width: 900px; max-height: 90vh; overflow-y: auto; }
-        .modal-header { padding: 1.5rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .modal { background: white; border-radius: 1.25rem; width: 100%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .modal-header { padding: 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 1.5rem; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
-        .form-group label { display: block; font-size: 0.8rem; margin-bottom: 0.3rem; color: #64748b; }
-        .form-group input { width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 0.4rem; }
-        
-        #sync-toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--dark); color: white; padding: 1rem; border-radius: 0.5rem; display: none; z-index: 3000; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: #64748b; }
+        .form-group input { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.6rem; outline: none; transition: var(--transition); }
+        .form-group input:focus { border-color: var(--primary); ring: 2px var(--primary); }
+
+        #sync-toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--dark); color: white; padding: 1rem 1.5rem; border-radius: 1rem; display: none; align-items: center; gap: 0.8rem; z-index: 3000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
         .page-content { display: none; }
         .page-content.active { display: block; }
     </style>
@@ -51,32 +57,45 @@
 
     <div id="login-page" class="active">
         <div class="login-card">
+            <div style="background: var(--primary); width: 60px; height: 60px; border-radius: 1rem; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;"><i class="fas fa-box-open"></i></div>
             <h2>GümrükPortal</h2>
-            <p style="margin-bottom: 1.5rem; color: #64748b;">Giriş Yapın</p>
+            <p style="margin-bottom: 2rem; color: #64748b;">Lütfen giriş yapın</p>
             <input type="text" id="login-user" class="login-input" placeholder="Kullanıcı Adı" value="admin">
             <input type="password" id="login-pass" class="login-input" placeholder="Şifre" value="123456">
-            <button class="login-btn" onclick="checkLogin()">Giriş Yap</button>
+            <button class="login-btn" onclick="checkLogin()">Sisteme Giriş Yap</button>
         </div>
     </div>
 
     <div id="main-content">
         <aside class="sidebar">
-            <h3 style="margin-bottom: 2rem;"><i class="fas fa-box-open"></i> GümrükPortal</h3>
-            <div class="nav-item active" id="nav-decl" onclick="switchPage('decl')"><i class="fas fa-list"></i> Gelen Araçlar</div>
-            <div class="nav-item" id="nav-kiymet" onclick="switchPage('kiymet')"><i class="fas fa-file-invoice-dollar"></i> Kıymet Listesi</div>
-            <div class="nav-item" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</div>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem;">
+                <i class="fas fa-box-open" style="font-size: 1.5rem; color: var(--primary);"></i>
+                <span style="font-weight: 700; font-size: 1.2rem;">GümrükPortal</span>
+            </div>
+            <nav>
+                <div class="nav-item active" id="nav-decl" onclick="switchPage('decl')"><i class="fas fa-list"></i> Gelen Araçlar</div>
+                <div class="nav-item" id="nav-kiymet" onclick="switchPage('kiymet')"><i class="fas fa-file-invoice-dollar"></i> Kıymet Listesi</div>
+                <div class="nav-item" style="margin-top: 2rem; color: #ef4444;" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</div>
+            </nav>
         </aside>
 
         <main class="main-wrapper">
             <div id="page-decl" class="page-content active">
-                <div style="display: flex; justify-content: space-between;">
+                <div class="page-header">
                     <h1>Gelen Araçlar</h1>
-                    <button class="login-btn" style="width: auto; padding: 0.6rem 1.2rem;" onclick="openModal('decl')"><i class="fas fa-plus"></i> Yeni Araç</button>
+                    <button class="login-btn" style="width: auto; padding: 0.75rem 1.5rem;" onclick="openModal('decl')"><i class="fas fa-plus"></i> Yeni Araç Ekle</button>
                 </div>
-                <div class="card">
-                    <table>
+                <div class="card" style="overflow-x: auto;">
+                    <table id="decl-table">
                         <thead>
-                            <tr><th>Firma</th><th>Araç Bilgisi</th><th>Şasi No</th><th>Durum</th></tr>
+                            <tr>
+                                <th>Firma</th>
+                                <th>Marka/Model</th>
+                                <th>Şasi No</th>
+                                <th>Geliş Tarihi</th>
+                                <th>Beyanname/CIF</th>
+                                <th>İşlem</th>
+                            </tr>
                         </thead>
                         <tbody id="decl-body"></tbody>
                     </table>
@@ -84,14 +103,20 @@
             </div>
 
             <div id="page-kiymet" class="page-content">
-                <div style="display: flex; justify-content: space-between;">
+                <div class="page-header">
                     <h1>Kıymet Listesi</h1>
-                    <button class="login-btn" style="width: auto; padding: 0.6rem 1.2rem; background: var(--success);" onclick="openModal('kiymet')"><i class="fas fa-plus"></i> Yeni Kıymet</button>
+                    <button class="login-btn" style="width: auto; padding: 0.75rem 1.5rem; background: var(--success);" onclick="openModal('kiymet')"><i class="fas fa-plus"></i> Yeni Kıymet Ekle</button>
                 </div>
-                <div class="card">
-                    <table>
+                <div class="card" style="overflow-x: auto;">
+                    <table id="kiymet-table">
                         <thead>
-                            <tr><th>Marka/Model</th><th>Şasi No</th><th>Fatura/Kıymet</th><th>İşlem</th></tr>
+                            <tr>
+                                <th>Marka/Model</th>
+                                <th>Şasi No</th>
+                                <th>Fatura No</th>
+                                <th>Kıymet Tutarı</th>
+                                <th>Durum</th>
+                            </tr>
                         </thead>
                         <tbody id="kiymet-body"></tbody>
                     </table>
@@ -102,28 +127,37 @@
 
     <div id="modal-decl" class="modal-overlay">
         <div class="modal">
-            <div class="modal-header"><h3>Yeni Araç Kaydı</h3><button onclick="closeModal('decl')">X</button></div>
+            <div class="modal-header">
+                <h3>Yeni Araç Kaydı</h3>
+                <button onclick="closeModal('decl')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
             <div class="modal-body">
                 <div class="form-grid">
-                    <div class="form-group"><label>Firma</label><input type="text" id="d-firma"></div>
+                    <div class="form-group"><label>Firma Adı</label><input type="text" id="d-firma"></div>
                     <div class="form-group"><label>Marka</label><input type="text" id="d-marka"></div>
                     <div class="form-group"><label>Model</label><input type="text" id="d-model"></div>
-                    <div class="form-group"><label>Şasi</label><input type="text" id="d-sasi"></div>
-                    <div class="form-group"><label>Tarih</label><input type="date" id="d-tarih"></div>
+                    <div class="form-group"><label>Şasi No</label><input type="text" id="d-sase"></div>
+                    <div class="form-group"><label>Geliş Tarihi</label><input type="date" id="d-tarih"></div>
                     <div class="form-group"><label>Antrepo Tarihi</label><input type="date" id="d-ant"></div>
-                    <div class="form-group"><label>Beyanname/CIF</label><input type="text" id="d-cif"></div>
+                    <div class="form-group"><label>Beyanname/CIF No</label><input type="text" id="d-cif"></div>
                     <div class="form-group"><label>Kıymet VV</label><input type="text" id="d-vv"></div>
                     <div class="form-group"><label>Kıymet GT</label><input type="text" id="d-gt"></div>
                     <div class="form-group"><label>Evrak No</label><input type="text" id="d-evrak"></div>
                 </div>
-                <button class="login-btn" style="margin-top: 1.5rem;" onclick="saveDecl()">Buluta Kaydet</button>
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button class="login-btn" style="background: #e2e8f0; color: var(--dark); width: auto;" onclick="closeModal('decl')">İptal</button>
+                    <button class="login-btn" style="width: auto; padding: 0.75rem 2rem;" onclick="saveDecl()">Buluta Kaydet</button>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="modal-kiymet" class="modal-overlay">
         <div class="modal">
-            <div class="modal-header"><h3>Yeni Kıymet Kaydı</h3><button onclick="closeModal('kiymet')">X</button></div>
+            <div class="modal-header">
+                <h3>Yeni Kıymet Kaydı</h3>
+                <button onclick="closeModal('kiymet')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
             <div class="modal-body">
                 <div class="form-grid">
                     <div class="form-group"><label>Marka/Model</label><input type="text" id="k-marka"></div>
@@ -131,12 +165,15 @@
                     <div class="form-group"><label>Fatura No</label><input type="text" id="k-fatura"></div>
                     <div class="form-group"><label>Kıymet Tutarı</label><input type="text" id="k-tutar"></div>
                 </div>
-                <button class="login-btn" style="margin-top: 1.5rem; background: var(--success);" onclick="saveKiymet()">Kıymeti Kaydet</button>
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button class="login-btn" style="background: #e2e8f0; color: var(--dark); width: auto;" onclick="closeModal('kiymet')">İptal</button>
+                    <button class="login-btn" style="width: auto; padding: 0.75rem 2rem; background: var(--success);" onclick="saveKiymet()">Kıymeti Kaydet</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="sync-toast">İşlem yapılıyor...</div>
+    <div id="sync-toast"><i class="fas fa-spinner fa-spin"></i> <span id="toast-text">Bağlanıyor...</span></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -152,14 +189,17 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // PANEL YÖNETİMİ
+        // GİRİŞ KONTROLÜ
         window.checkLogin = () => {
-            if(document.getElementById('login-user').value === 'admin' && document.getElementById('login-pass').value === '123456') {
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+            if(u === 'admin' && p === '123456') {
                 document.getElementById('login-page').classList.remove('active');
                 document.getElementById('main-content').classList.add('active');
-            } else alert("Hatalı!");
+            } else alert("Kullanıcı adı veya şifre hatalı!");
         };
 
+        // SAYFA DEĞİŞTİRME
         window.switchPage = (p) => {
             document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -170,49 +210,87 @@
         window.openModal = (m) => document.getElementById('modal-'+m).classList.add('active');
         window.closeModal = (m) => document.getElementById('modal-'+m).classList.remove('active');
 
-        // VERİ KAYIT
+        function showToast(text, isDone = false) {
+            const t = document.getElementById('sync-toast');
+            document.getElementById('toast-text').innerText = text;
+            t.style.display = 'flex';
+            if(isDone) setTimeout(() => t.style.display = 'none', 2000);
+        }
+
+        // VERİLERİ BULUTA KAYDETME (ARAÇLAR)
         window.saveDecl = async () => {
             const d = {
                 firma: document.getElementById('d-firma').value,
                 marka: document.getElementById('d-marka').value,
                 model: document.getElementById('d-model').value,
-                sasi: document.getElementById('d-sasi').value,
+                sasi: document.getElementById('d-sasi').value.toUpperCase(),
                 tarih: document.getElementById('d-tarih').value,
                 ant: document.getElementById('d-ant').value,
                 cif: document.getElementById('d-cif').value,
                 vv: document.getElementById('d-vv').value,
                 gt: document.getElementById('d-gt').value,
-                evrak: document.getElementById('d-evrak').value
+                evrak: document.getElementById('d-evrak').value,
+                saveTime: new Date().toISOString()
             };
-            await set(push(ref(db, 'declarations')), d);
-            closeModal('decl');
+            if(!d.firma || !d.sasi) { alert("Firma ve Şasi No zorunludur!"); return; }
+            
+            showToast("Buluta işleniyor...");
+            try {
+                await set(push(ref(db, 'declarations')), d);
+                showToast("Kayıt Başarılı!", true);
+                closeModal('decl');
+                // Formu temizle
+                document.querySelectorAll('#modal-decl input').forEach(i => i.value = '');
+            } catch(e) { alert("Hata: " + e.message); }
         };
 
+        // KIYMET KAYDETME
         window.saveKiymet = async () => {
             const k = {
                 marka: document.getElementById('k-marka').value,
-                sasi: document.getElementById('k-sasi').value,
+                sasi: document.getElementById('k-sasi').value.toUpperCase(),
                 fatura: document.getElementById('k-fatura').value,
-                tutar: document.getElementById('k-tutar').value
+                tutar: document.getElementById('k-tutar').value,
+                saveTime: new Date().toISOString()
             };
-            await set(push(ref(db, 'kiymet_listesi')), k);
-            closeModal('kiymet');
+            showToast("Kıymet kaydediliyor...");
+            try {
+                await set(push(ref(db, 'kiymet_listesi')), k);
+                showToast("Kıymet Başarıyla Eklendi!", true);
+                closeModal('kiymet');
+                document.querySelectorAll('#modal-kiymet input').forEach(i => i.value = '');
+            } catch(e) { alert("Hata!"); }
         };
 
-        // ANLIK DİNLEME
+        // VERİLERİ ANLIK DİNLEME VE TABLOYA BASMA
         onValue(ref(db, 'declarations'), (s) => {
             const b = document.getElementById('decl-body'); b.innerHTML = '';
-            s.forEach(c => {
-                const v = c.val();
-                b.innerHTML += `<tr><td><b>${v.firma}</b></td><td>${v.marka} ${v.model}</td><td><code>${v.sasi}</code></td><td><span class="badge">Bulutta</span></td></tr>`;
+            const items = [];
+            s.forEach(c => items.push(c.val()));
+            items.reverse().forEach(v => {
+                b.innerHTML += `<tr>
+                    <td><b>${v.firma}</b></td>
+                    <td>${v.marka} ${v.model}</td>
+                    <td><code>${v.sasi}</code></td>
+                    <td>${v.tarih || '-'}</td>
+                    <td>${v.cif || '-'}</td>
+                    <td><span class="badge badge-cloud"><i class="fas fa-check"></i> Bulutta</span></td>
+                </tr>`;
             });
         });
 
         onValue(ref(db, 'kiymet_listesi'), (s) => {
             const b = document.getElementById('kiymet-body'); b.innerHTML = '';
-            s.forEach(c => {
-                const v = c.val();
-                b.innerHTML += `<tr><td>${v.marka}</td><td><code>${v.sasi}</code></td><td>${v.fatura} / ${v.tutar}</td><td><i class="fas fa-check-circle" style="color:var(--success)"></i></td></tr>`;
+            const items = [];
+            s.forEach(c => items.push(c.val()));
+            items.reverse().forEach(v => {
+                b.innerHTML += `<tr>
+                    <td>${v.marka}</td>
+                    <td><code>${v.sasi}</code></td>
+                    <td>${v.fatura}</td>
+                    <td>${v.tutar}</td>
+                    <td><i class="fas fa-check-circle" style="color:var(--success)"></i> Aktif</td>
+                </tr>`;
             });
         });
     </script>
