@@ -1,367 +1,3 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GümrükPortal Cloud — Enterprise</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <style>
-        :root{--bg-main:#000;--bg-surface:#0a0d12;--bg-surface-hover:#18181b;--bg-elevated:#111620;--bg-hover:#161d2a;--border:rgba(255,255,255,0.06);--border-active:rgba(59,130,246,0.4);--primary:#3b82f6;--primary-hover:#2563eb;--accent:#60a5fa;--text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#475569;--danger:#ef4444;--success:#10b981;--warning:#f59e0b;--kiymet-color:#a855f7;--font-family:'Inter',-apple-system,sans-serif;--r-xl:20px;--r-lg:14px;--r-md:10px;--r-sm:7px;--sidebar-w:268px;--header-h:68px}
-        *{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-family);background:var(--bg-main);color:var(--text-primary);min-height:100vh;overflow-x:hidden;font-size:14px;-webkit-font-smoothing:antialiased}button,input,select{font-family:inherit;outline:none;border:none}.hidden{display:none!important}
-        #login-screen{position:fixed;inset:0;z-index:99999;background:radial-gradient(ellipse at 30% 20%,rgba(59,130,246,0.18) 0%,transparent 55%),radial-gradient(ellipse at 80% 80%,rgba(168,85,247,0.12) 0%,transparent 50%),#030507;display:flex;align-items:center;justify-content:center}
-        .login-card{width:440px;padding:40px;background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.01) 100%);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r-xl);box-shadow:0 40px 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.06);position:relative;overflow:hidden}
-        .login-logo{width:56px;height:56px;border-radius:16px;margin:0 auto 24px;background:linear-gradient(135deg,var(--primary) 0%,#7c3aed 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(59,130,246,0.4)}
-        .login-title{font-size:24px;font-weight:700;text-align:center;letter-spacing:-0.5px;margin-bottom:6px;color:#fff}.login-sub{text-align:center;color:var(--text-secondary);font-size:13px;margin-bottom:28px}
-        .login-input-wrap{position:relative;margin-bottom:16px}.login-input-wrap>i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:18px;height:18px;z-index:2;pointer-events:none}
-        .login-input-wrap input{width:100%;padding:14px 16px 14px 46px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--r-md);color:#fff;font-size:14px;transition:0.2s}
-        .login-input-wrap input:focus{border-color:var(--border-active);background:rgba(59,130,246,0.06);box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
-        .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--primary) 0%,#7c3aed 100%);color:#fff;font-size:14px;font-weight:600;border-radius:var(--r-md);cursor:pointer;transition:0.2s;box-shadow:0 4px 16px rgba(59,130,246,0.35)}
-        .login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(59,130,246,0.45)}
-        .auth-error{color:var(--danger);text-align:center;margin-top:14px;font-size:12.5px;display:none;padding:10px;background:rgba(239,68,68,0.1);border-radius:var(--r-sm);border:1px solid rgba(239,68,68,0.2)}
-        .app-wrap{display:flex;height:100vh;overflow:hidden}
-        .sidebar{width:var(--sidebar-w);flex-shrink:0;display:flex;flex-direction:column;background:var(--bg-surface);border-right:1px solid var(--border);transition:margin-left 0.3s cubic-bezier(0.4,0,0.2,1);z-index:20}.sidebar.collapsed{margin-left:calc(-1 * var(--sidebar-w))}
-        .sidebar-brand{padding:24px 22px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
-        .brand-icon{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--primary) 0%,#7c3aed 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(59,130,246,0.35)}.brand-icon i{color:#fff;width:18px;height:18px}
-        .brand-name{font-size:16px;font-weight:700;letter-spacing:-0.3px;white-space:nowrap;color:#fff}
-        .brand-status{display:flex;align-items:center;gap:5px;margin-top:2px}.status-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse-dot 2s infinite}@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}.brand-status span{font-size:10px;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:0.5px}
-        .sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:2px}
-        .sidebar-section-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;padding:10px 10px 6px}
-        .nav-btn{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border-radius:var(--r-md);color:var(--text-secondary);font-size:13.5px;font-weight:500;background:transparent;cursor:pointer;transition:all 0.18s;position:relative}.nav-btn i{width:17px;height:17px;flex-shrink:0}.nav-btn:hover{background:var(--bg-hover);color:var(--text-primary)}.nav-btn.active{background:linear-gradient(135deg,rgba(59,130,246,0.15) 0%,rgba(59,130,246,0.05) 100%);color:var(--primary);font-weight:600}.nav-btn.active::before{content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;border-radius:0 2px 2px 0;background:var(--primary)}
-        .sidebar-footer{padding:14px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
-        .footer-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;border-radius:var(--r-md);background:transparent;color:var(--text-secondary);font-size:12.5px;font-weight:500;cursor:pointer;transition:0.18s;border:1px solid transparent}.footer-btn i{width:15px;height:15px;flex-shrink:0}.footer-btn:hover{background:var(--bg-hover);border-color:var(--border);color:var(--text-primary)}.footer-btn.primary-subtle{color:var(--primary);border-color:rgba(59,130,246,0.2);background:rgba(59,130,246,0.05)}.footer-btn.primary-subtle:hover{background:rgba(59,130,246,0.1)}
-        .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-        .top-header{height:var(--header-h);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(3,5,7,0.8);border-bottom:1px solid var(--border);backdrop-filter:blur(16px);gap:16px;flex-shrink:0;z-index:10;overflow:visible}
-        .header-left{display:flex;align-items:center;gap:14px}
-        .menu-toggle{width:38px;height:38px;border-radius:var(--r-md);background:transparent;border:1px solid transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:0.18s}.menu-toggle:hover{background:var(--bg-elevated);border-color:var(--border);color:var(--text-primary)}
-        .search-wrap{position:relative;display:flex;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--r-md);padding:0 14px;width:380px;height:40px;transition:0.2s;overflow:visible}.search-wrap:focus-within{border-color:var(--border-active);box-shadow:0 0 0 3px rgba(59,130,246,0.08)}.search-wrap>i{color:var(--text-muted);width:15px;height:15px;flex-shrink:0}.search-wrap input{background:transparent;color:var(--text-primary);padding:0 10px;flex:1;font-size:13.5px;border:none;outline:none}
-        .header-right{display:flex;align-items:center;gap:10px}
-        .hdr-icon-btn{width:38px;height:38px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:0.18s}.hdr-icon-btn:hover{border-color:rgba(255,255,255,0.12);color:var(--text-primary);background:var(--bg-hover)}
-        .divider-v{width:1px;height:24px;background:var(--border)}
-        .user-pill{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 6px;border-radius:20px;border:1px solid var(--border);background:var(--bg-elevated);cursor:pointer;transition:0.18s}.user-pill:hover{border-color:rgba(255,255,255,0.12);background:var(--bg-hover)}.user-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover}.user-info .user-name{font-size:13px;font-weight:600;color:var(--text-primary);line-height:1.2}.user-info .user-role{font-size:11px;color:var(--text-secondary)}
-        .view-area{flex:1;overflow-y:auto;padding:36px 32px;scroll-behavior:smooth}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeUp 0.3s ease forwards}
-        .page-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px}.page-eyebrow{font-size:11px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px}.page-title{font-size:26px;font-weight:700;letter-spacing:-0.5px;color:var(--text-primary)}.page-sub{font-size:13px;color:var(--text-secondary);margin-top:4px}.page-actions{display:flex;align-items:center;gap:10px}
-        .card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg)}.card-pad{padding:24px}
-        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:28px}
-        .stat-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}.stat-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.1);box-shadow:0 12px 28px rgba(0,0,0,0.3)}
-        .stat-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}.stat-icon-box{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}.stat-icon-box i{width:20px;height:20px}.stat-icon-box.blue{background:rgba(59,130,246,0.12);color:var(--primary)}.stat-icon-box.green{background:rgba(16,185,129,0.12);color:var(--success)}.stat-icon-box.yellow{background:rgba(245,158,11,0.12);color:var(--warning)}.stat-icon-box.purple{background:rgba(168,85,247,0.12);color:var(--kiymet-color)}
-        .stat-trend{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px}.stat-trend.up{background:rgba(16,185,129,0.1);color:var(--success)}.stat-trend.warn{background:rgba(245,158,11,0.1);color:var(--warning)}
-        .stat-value{font-size:34px;font-weight:700;letter-spacing:-1px;color:var(--text-primary);line-height:1;margin-bottom:4px}.stat-label{font-size:13px;color:var(--text-secondary);font-weight:500}
-        .stat-bar{height:3px;border-radius:2px;margin-top:16px;background:rgba(255,255,255,0.06);overflow:hidden}.stat-bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease}.stat-bar-fill.green{background:linear-gradient(90deg,var(--success),#34d399)}.stat-bar-fill.yellow{background:linear-gradient(90deg,var(--warning),#fcd34d)}.stat-bar-fill.purple{background:linear-gradient(90deg,var(--kiymet-color),#c084fc)}
-        .table-wrap{overflow:auto;max-height:calc(100vh - var(--header-h) - 200px)}.table-wrap::-webkit-scrollbar{width:10px;height:10px}.table-wrap::-webkit-scrollbar-track{background:rgba(0,0,0,0.2);border-radius:4px}.table-wrap::-webkit-scrollbar-thumb{background:rgba(63,63,70,0.8);border-radius:4px;border:2px solid transparent;background-clip:padding-box}.table-wrap::-webkit-scrollbar-thumb:hover{background-color:rgba(113,113,122,1)}
-        .data-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}.data-table th{padding:11px 14px;text-align:left;font-weight:600;color:var(--text-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--border);background:var(--bg-surface);position:sticky;top:0;z-index:10;white-space:nowrap}.data-table td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.03);color:#cbd5e1;vertical-align:middle;transition:0.2s;white-space:nowrap}.data-table tbody tr{transition:background 0.12s}.data-table tbody tr:hover td{background:var(--bg-hover)}
-        .row-kiymette td{background:rgba(168,85,247,0.06)!important;border-bottom-color:rgba(168,85,247,0.12)!important}.row-kiymette:hover td{background:rgba(168,85,247,0.1)!important}
-        .row-beklemede td{background:rgba(245,158,11,0.03)!important}.row-beklemede:hover td{background:rgba(245,158,11,0.06)!important}
-        .row-kapali td{opacity:0.4}.row-kapali:hover td{opacity:0.65}
-        .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:600;letter-spacing:0.2px}.badge-warning{background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)}.badge-success{background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2)}.badge-danger{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2)}.badge-dark{background:rgba(255,255,255,0.04);color:var(--text-secondary);border:1px solid var(--border)}
-        .badge-kiymette{background:rgba(168,85,247,0.15);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);box-shadow:0 0 10px rgba(168,85,247,0.2);animation:pulse-purple 2s infinite}@keyframes pulse-purple{0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,0.4)}50%{box-shadow:0 0 0 5px rgba(168,85,247,0)}}
-        .urgent-pulse{animation:pulse-alarm 1.5s infinite;border-radius:5px;display:inline-block;padding:2px 8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);color:#f87171;font-weight:700;font-size:12px}@keyframes pulse-alarm{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)}70%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
-        .btn-primary{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:var(--primary);color:#fff;border-radius:var(--r-md);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.18s;box-shadow:0 2px 8px rgba(59,130,246,0.25)}.btn-primary:hover{background:var(--primary-hover);box-shadow:0 4px 14px rgba(59,130,246,0.35);transform:translateY(-1px)}
-        .btn-sm{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;background:var(--bg-elevated);color:var(--text-primary);border-radius:var(--r-md);font-size:12.5px;font-weight:500;cursor:pointer;transition:0.18s;border:1px solid var(--border)}.btn-sm:hover{background:var(--bg-hover);border-color:rgba(255,255,255,0.1)}.btn-danger{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25)!important}
-        .icon-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:var(--r-sm);transition:0.15s;cursor:pointer;border:1px solid transparent;color:var(--text-secondary);background:transparent}.icon-btn:hover{background:var(--bg-hover);border-color:var(--border);color:var(--text-primary)}.text-danger-btn{color:#f87171}.text-danger-btn:hover{background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.2)}
-        .toolbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:18px}.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:10px}
-        .input-group{margin-bottom:18px;position:relative}.input-group label{display:block;margin-bottom:6px;font-size:11.5px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
-        input[type="text"],input[type="password"],input[type="date"],select{width:100%;padding:10px 12px;border-radius:var(--r-md);background:rgba(255,255,255,0.03);color:var(--text-primary);border:1px solid var(--border);font-size:13px;transition:0.18s}input[type="text"]:focus,input[type="date"]:focus,select:focus{border-color:var(--border-active);background:rgba(59,130,246,0.04);box-shadow:0 0 0 3px rgba(59,130,246,0.08);outline:none}select{background-color:var(--bg-elevated)}input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(0.4);cursor:pointer}
-        .custom-cb{appearance:none;-webkit-appearance:none;width:15px;height:15px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:0.15s;margin:0;vertical-align:middle}.custom-cb::before{content:"";width:7px;height:7px;background:#fff;transform:scale(0);transition:0.15s;border-radius:1px;clip-path:polygon(14% 44%,0 65%,50% 100%,100% 16%,80% 0%,43% 62%)}.custom-cb:checked{background:var(--primary);border-color:var(--primary)}.custom-cb:checked::before{transform:scale(1)}
-        .inline-date{cursor:pointer;position:relative;min-width:90px;padding:5px 7px!important;border-radius:var(--r-sm);transition:0.15s;border:1px solid transparent}.inline-date:hover{background:rgba(255,255,255,0.04);border-color:var(--border)}.inline-date:hover::after{content:'✎';position:absolute;right:6px;top:8px;font-size:10px;color:var(--text-muted)}
-        .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);z-index:9000;display:flex;align-items:center;justify-content:center}.modal-box{background:var(--bg-elevated);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r-xl);padding:0;width:95%;max-width:700px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 40px 80px rgba(0,0,0,0.7)}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:24px 28px;border-bottom:1px solid var(--border);flex-shrink:0}.modal-header h2{font-size:18px;font-weight:700;letter-spacing:-0.3px}.modal-body{padding:28px;overflow-y:auto;flex:1}.modal-footer{padding:20px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;background:var(--bg-surface)}
-        .modal-section{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:var(--r-md);padding:20px;margin-bottom:20px}.modal-section-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:16px}
-        #decl-preview-box{background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.15);border-radius:var(--r-md);padding:18px;margin-bottom:20px}.metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.metric-item{text-align:center}.metric-label{font-size:10.5px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px}.metric-value{font-size:15px;font-weight:700;color:var(--text-primary)}
-        .firms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}.firm-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}.firm-card:hover{border-color:rgba(59,130,246,0.3);transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,0.3)}.firm-card-icon{width:42px;height:42px;border-radius:10px;background:rgba(59,130,246,0.1);color:var(--primary);display:flex;align-items:center;justify-content:center;margin-bottom:14px}.firm-card-icon i{width:20px;height:20px}.firm-card-name{font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:4px}.firm-card-count{font-size:12px;color:var(--text-secondary)}.firm-delete-btn{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;transition:0.18s;opacity:0;border:1px solid transparent}.firm-card:hover .firm-delete-btn{opacity:1}.firm-delete-btn:hover{background:rgba(239,68,68,0.1);color:var(--danger);border-color:rgba(239,68,68,0.2)}
-        .calc-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:32px}
-        .result-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px;position:sticky;top:0}.result-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}.result-row+.result-row{border-top:1px solid rgba(255,255,255,0.04)}.result-label{font-size:12.5px;color:var(--text-secondary)}.result-value{font-size:13px;font-weight:600;color:var(--text-primary)}
-        .result-total{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,var(--primary) 0%,#7c3aed 100%);padding:20px;border-radius:var(--r-md);margin-top:16px}.result-total-label{font-size:15px;font-weight:600;color:rgba(255,255,255,0.9)}.result-total-value{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px}.result-total-sub{font-size:11px;color:rgba(255,255,255,0.65);margin-top:2px;text-align:right}
-        .segmented-control{display:flex;background:rgba(255,255,255,0.04);padding:3px;border-radius:var(--r-sm);border:1px solid var(--border);position:relative}.segmented-control input{display:none}.segmented-control label{flex:1;text-align:center;padding:7px 0;font-size:12.5px;font-weight:500;color:var(--text-secondary);cursor:pointer;z-index:2;border-radius:5px;margin:0;transition:color 0.2s}.segmented-control .slider{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);background:var(--bg-hover);border-radius:5px;transition:0.3s cubic-bezier(0.4,0,0.2,1);border:1px solid var(--border);z-index:1}.segmented-control input:nth-child(3):checked~.slider{left:50%}.segmented-control input:checked+label{color:var(--text-primary);font-weight:600}
-        .segmented-3 label{flex:1}.segmented-3 .slider{width:calc(33.33% - 2px)}.segmented-3 input:nth-of-type(1):checked~.slider{left:3px}.segmented-3 input:nth-of-type(2):checked~.slider{left:33.33%}.segmented-3 input:nth-of-type(3):checked~.slider{left:calc(66.66% - 3px)}
-        #sync-toast{position:fixed;bottom:24px;right:24px;background:var(--bg-elevated);border:1px solid var(--border);padding:12px 18px;border-radius:var(--r-lg);box-shadow:0 16px 40px rgba(0,0,0,0.5);display:flex;align-items:center;gap:12px;transform:translateY(100px);opacity:0;transition:0.4s cubic-bezier(0.175,0.885,0.32,1.275);z-index:99999}#sync-toast.show{transform:translateY(0);opacity:1}.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0}@keyframes spin{to{transform:rotate(360deg)}}
-        .text-primary-c{color:var(--primary)}.text-success{color:var(--success)}.text-warning{color:var(--warning)}.text-danger{color:var(--danger)}.text-muted{color:var(--text-muted)}.text-secondary{color:var(--text-secondary)}.font-medium{font-weight:500}.font-bold{font-weight:600}.font-extrabold{font-weight:700}.sortable-th{cursor:pointer}.sortable-th:hover{color:var(--text-primary)}
-        /* FIRMA DROPDOWN FIX */
-        select.firm-select{background:#fff!important;color:#111!important;border:1px solid #d1d5db!important;font-weight:600}select.firm-select option{background:#fff;color:#111;padding:8px}select.firm-select:focus{border-color:var(--primary)!important;box-shadow:0 0 0 3px rgba(59,130,246,0.15)}
-        .firm-search-wrap{position:relative}.firm-search-input{width:100%;padding:10px 12px 10px 36px;border-radius:var(--r-md);background:#fff!important;color:#111!important;border:1px solid #d1d5db!important;font-size:13px}.firm-search-input::placeholder{color:#9ca3af}.firm-search-input:focus{border-color:var(--primary)!important;box-shadow:0 0 0 3px rgba(59,130,246,0.15);outline:none}
-        .firm-dropdown-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d1d5db;border-radius:0 0 var(--r-md) var(--r-md);max-height:180px;overflow-y:auto;z-index:100;display:none;box-shadow:0 8px 20px rgba(0,0,0,0.15)}.firm-dropdown-list.show{display:block}.firm-dropdown-item{padding:10px 14px;cursor:pointer;color:#111;font-size:13px;font-weight:500;border-bottom:1px solid #f1f5f9;transition:0.1s}.firm-dropdown-item:hover{background:#eff6ff;color:var(--primary)}
-        /* TOOLTIP */
-        .tip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(59,130,246,0.15);color:var(--primary);font-size:10px;font-weight:700;cursor:help;margin-left:6px;flex-shrink:0}.tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1e293b;color:#f1f5f9;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:400;white-space:nowrap;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:280px;white-space:normal;line-height:1.4}
-        /* KUR PANELİ */
-        .kur-panel{display:flex;gap:12px;align-items:flex-end;padding:16px;background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.15);border-radius:var(--r-md);margin-bottom:20px}.kur-badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px}.kur-live{background:rgba(16,185,129,0.1);color:var(--success);border:1px solid rgba(16,185,129,0.2)}.kur-manual{background:rgba(245,158,11,0.1);color:var(--warning);border:1px solid rgba(245,158,11,0.2)}
-        .kur-fetch-btn{padding:8px 16px;background:var(--primary);color:#fff;border-radius:var(--r-md);font-size:12px;font-weight:600;cursor:pointer;transition:0.2s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;border:none}.kur-fetch-btn:hover{background:var(--primary-hover)}
-        /* CIF/EXW TOGGLE */
-        .teslim-toggle{display:flex;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}.teslim-opt{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;transition:0.2s;color:var(--text-secondary)}.teslim-opt.active{background:var(--primary);color:#fff}
-        /* HESAPLAMA SONUÇ TABLOSU */
-        .calc-result-table{width:100%;border-collapse:collapse;font-size:13px}.calc-result-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04)}.calc-result-table .label-col{color:var(--text-secondary);font-weight:500}.calc-result-table .value-col{text-align:right;font-weight:600;color:var(--text-primary)}.calc-result-table .section-header td{font-size:10.5px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.6px;padding-top:18px;border-bottom:1px solid rgba(59,130,246,0.15)}.calc-result-table .total-row td{font-weight:700;color:#fff;font-size:14px;border-top:2px solid var(--border);padding-top:14px}.calc-result-table .grand-total td{background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.02));font-size:16px;font-weight:800;padding:16px 14px;border-radius:var(--r-md)}
-        /* COLOR-CODED CALC SECTIONS */
-        .calc-section{border-radius:var(--r-lg);padding:24px;margin-bottom:20px;border:1px solid}
-        .calc-section.blue{background:rgba(59,130,246,0.04);border-color:rgba(59,130,246,0.15)}.calc-section.blue .calc-sec-title{color:#60a5fa}
-        .calc-section.red{background:rgba(239,68,68,0.04);border-color:rgba(239,68,68,0.12)}.calc-section.red .calc-sec-title{color:#f87171}
-        .calc-section.green{background:rgba(16,185,129,0.04);border-color:rgba(16,185,129,0.12)}.calc-section.green .calc-sec-title{color:#34d399}
-        .calc-section.purple{background:rgba(168,85,247,0.04);border-color:rgba(168,85,247,0.12)}.calc-section.purple .calc-sec-title{color:#c084fc}
-        .calc-sec-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:18px;text-transform:uppercase;letter-spacing:0.5px}.calc-sec-title i{width:18px;height:18px}
-        /* LIVE SEARCH DROPDOWN */
-        #live-search-dropdown{display:none;position:absolute;top:calc(100% + 8px);left:-14px;right:-14px;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:var(--r-lg);max-height:420px;overflow-y:auto;z-index:999999;box-shadow:0 24px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(59,130,246,0.1)}
-        #live-search-dropdown.show{display:block}
-        .ls-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;transition:0.12s}.ls-item:hover{background:var(--bg-hover)}
-        .ls-item-title{font-weight:600;color:#fff;font-size:13px}.ls-item-sub{font-size:11px;color:var(--text-muted);margin-top:2px}.ls-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap}
-        .gtip-display{padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:var(--r-md);font-family:monospace;font-size:14px;font-weight:700;color:#60a5fa;letter-spacing:1px;text-align:center;margin-top:8px}
-        .export-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(16,185,129,0.1);color:var(--success);border:1px solid rgba(16,185,129,0.25);border-radius:var(--r-md);font-size:12px;font-weight:600;cursor:pointer;transition:0.2s}.export-btn:hover{background:rgba(16,185,129,0.2)}
-    </style>
-</head>
-<body>
-
-<div id="sync-toast"><div id="sync-icon" class="spinner"></div><span id="sync-text" style="font-size:13px;font-weight:500;">Firebase ile eşzamanlanıyor...</span></div>
-
-<div id="login-screen">
-    <div class="login-card">
-        <div class="login-logo"><i data-lucide="shield-check" style="color:#fff;width:24px;height:24px;"></i></div>
-        <h1 class="login-title">GümrükPortal</h1>
-        <p class="login-sub">Firebase Cloud Yönetim Paneli</p>
-        <div id="auth-alert" class="auth-error"></div>
-        <div class="login-input-wrap"><i data-lucide="mail"></i><input type="text" id="log-email" placeholder="Kullanıcı adı veya e-posta" value="admin" onkeyup="if(event.key==='Enter')window.doLogin()"></div>
-        <div class="login-input-wrap"><i data-lucide="lock"></i><input type="password" id="log-pass" placeholder="Şifreniz" onkeyup="if(event.key==='Enter')window.doLogin()"></div>
-        <button class="login-btn" onclick="window.doLogin()">Sisteme Giriş Yap</button>
-    </div>
-</div>
-
-<div id="app-screen" class="app-wrap">
-    <aside class="sidebar">
-        <div class="sidebar-brand"><div class="brand-icon"><i data-lucide="layers"></i></div><div class="brand-text"><div class="brand-name">GümrükPortal</div><div class="brand-status"><span class="status-dot"></span><span>Firebase Canlı</span></div></div></div>
-        <nav class="sidebar-nav">
-            <div class="sidebar-section-label">Genel Bakış</div>
-            <button class="nav-btn active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Sistem Özeti</span></button>
-            <div class="sidebar-section-label" style="margin-top:8px;">Yönetim</div>
-            <button class="nav-btn" data-view="declarations"><i data-lucide="car"></i><span>Gelen Araçlar</span></button>
-            <button class="nav-btn" data-view="firms"><i data-lucide="building-2"></i><span>Firma Arşivi</span></button>
-            <button class="nav-btn" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
-            <div class="sidebar-section-label" style="margin-top:8px;">Araçlar</div>
-            <button class="nav-btn" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
-        </nav>
-        <div class="sidebar-footer">
-            <button class="footer-btn primary-subtle" onclick="window.forceCloudSync()"><i data-lucide="refresh-cw"></i> Firebase Eşitle</button>
-            <button class="footer-btn" onclick="document.getElementById('import-backup-file').click()"><i data-lucide="upload"></i> Yedek İçe Aktar</button>
-            <input type="file" id="import-backup-file" accept=".json" style="display:none;" onchange="window.importBackup(event)">
-        </div>
-    </aside>
-    <main class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')"><i data-lucide="menu"></i></button>
-                <div class="search-wrap" style="width:460px;">
-                    <i data-lucide="search" style="width:16px;height:16px;color:var(--text-muted);flex-shrink:0;pointer-events:none;"></i>
-                    <input type="text" id="global-search-input" autocomplete="off" oninput="window.liveSearch(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();window.handleGlobalSearch(this.value);}" placeholder="Şasi, marka, model, beyanname no arayın..." style="font-size:13px;">
-                    <button id="search-btn" onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" style="background:var(--primary);color:#fff;border:none;padding:7px 16px;border-radius:var(--r-sm);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:8px;transition:all 0.2s;display:flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(59,130,246,0.3);" onmouseover="this.style.background='var(--primary-hover)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(59,130,246,0.4)'" onmouseout="this.style.background='var(--primary)';this.style.transform='none';this.style.boxShadow='0 2px 6px rgba(59,130,246,0.3)'"><i data-lucide="search" style="width:13px;height:13px;"></i>Ara</button>
-                    <div id="live-search-dropdown"></div>
-                </div>
-            </div>
-            <div class="header-right">
-                <button class="hdr-icon-btn" onclick="window.exportBackup()" title="Yedek İndir"><i data-lucide="download"></i></button>
-                <div class="divider-v"></div>
-                <div class="user-pill" onclick="if(confirm('Çıkış?')){localStorage.removeItem('gumruk_auth');location.reload();}">
-                    <img src="https://ui-avatars.com/api/?name=Bayram&background=1e3a5f&color=60a5fa&rounded=true" class="user-avatar">
-                    <div class="user-info"><div class="user-name">Bayram</div><div class="user-role">Yönetici</div></div>
-                </div>
-            </div>
-        </header>
-        <div id="view-container" class="view-area"></div>
-    </main>
-</div>
-
-<!-- MODALS -->
-<div id="decl-modal" class="modal-backdrop hidden">
-    <div class="modal-box">
-        <div class="modal-header"><h2 id="decl-modal-title">Araç Detayları</h2><button onclick="window.closeDeclModal()" class="icon-btn"><i data-lucide="x"></i></button></div>
-        <div class="modal-body">
-            <input type="hidden" id="decl-edit-idx" value="-1">
-            <div class="modal-section"><div class="modal-section-title">Araç Bilgileri</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div class="input-group"><label>Firma * <span class="tip" data-tip="Firma adını yazarak arayabilirsiniz">?</span></label><div class="firm-search-wrap"><i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#9ca3af;pointer-events:none;z-index:2;"></i><input type="text" class="firm-search-input" id="da-firma-search" placeholder="Firma ara..." oninput="window.filterFirmDropdown(this.value)" onfocus="document.getElementById('da-firma-list').classList.add('show')" onblur="setTimeout(()=>document.getElementById('da-firma-list').classList.remove('show'),200)"><div class="firm-dropdown-list" id="da-firma-list"></div><input type="hidden" id="da-firma" value=""></div></div><div class="input-group"><label>Şasi No</label><input type="text" id="da-sase"></div><div class="input-group"><label>Marka</label><input type="text" id="da-marka"></div><div class="input-group"><label>Model</label><input type="text" id="da-model"></div><div class="input-group"><label>Yıl</label><input type="text" id="da-yil"></div><div class="input-group"><label>Renk</label><input type="text" id="da-renk"></div></div></div>
-            <div class="modal-section"><div class="modal-section-title">Gümrük Bilgileri</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div class="input-group"><label>Teslim Şekli <span class="tip" data-tip="CIF: Navlun+Sigorta dahil. EXW: Fabrika teslim, navlun ayrı girilir">?</span></label><div class="teslim-toggle" id="da-teslim-toggle"><div class="teslim-opt active" onclick="window.setTeslim('CIF',this)">CIF</div><div class="teslim-opt" onclick="window.setTeslim('EXW',this)">EXW</div></div><input type="hidden" id="da-teslim" value="CIF"></div><div class="input-group"><label>Geliş Tarihi *</label><input type="date" id="da-tarih" onchange="window.declAutoCalc()"></div><div class="input-group"><label>Ek Süre</label><input type="date" id="da-ekSure" onchange="window.declAutoCalc()"></div><div class="input-group"><label>Antrepo</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div><div class="input-group"><label>Beyanname T.</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div><div class="input-group"><label>Beyanname No</label><input type="text" id="da-beyanname"></div><div class="input-group"><label>Evrak Durumu</label><select id="da-evrak" onchange="window.declAutoCalc()"><option value="Kapalı">Kapalı</option><option value="Açık">İşlemde (Açık)</option></select></div></div></div>
-            <div class="modal-section"><div class="modal-section-title">Kıymet & Finans</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div class="input-group"><label>Kıymet Veriliş T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc()"></div><div class="input-group"><label>Kıymet Geliş T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc()"></div><div class="input-group"><label>Fatura (€)</label><input type="text" id="da-fatura" oninput="window.formatCurrencyInput(this)"></div><div class="input-group"><label>Kıymet (€)</label><input type="text" id="da-kiymet" oninput="window.formatCurrencyInput(this)"></div></div></div>
-            <div id="decl-preview-box"><div class="modal-section-title" style="margin-bottom:14px;">Sistem Metrikleri</div><div class="metrics-grid"><div class="metric-item"><div class="metric-label">İlk Süre</div><div class="metric-value" id="da-prev-ilkSure">-</div></div><div class="metric-item"><div class="metric-label">Kalan Gün</div><div class="metric-value" id="da-prev-klnGun">-</div></div><div class="metric-item"><div class="metric-label">Ardiye</div><div class="metric-value text-danger" id="da-prev-ardiye">-</div></div><div class="metric-item"><div class="metric-label">Son Gün</div><div class="metric-value" id="da-prev-sonGun">-</div></div><div class="metric-item"><div class="metric-label">Kıymette</div><div class="metric-value" id="da-prev-kiymGecen">-</div></div></div></div>
-        </div>
-        <div class="modal-footer"><button onclick="window.closeDeclModal()" class="btn-sm">İptal</button><button onclick="window.saveDeclEntry()" class="btn-primary"><i data-lucide="save"></i> Kaydet</button></div>
-    </div>
-</div>
-
-<div id="kiymet-modal" class="modal-backdrop hidden">
-    <div class="modal-box" style="max-width:520px;"><div class="modal-header"><h2>Kıymet Kaydı</h2><button onclick="window.closeKiymetModal()" class="icon-btn"><i data-lucide="x"></i></button></div><div class="modal-body"><input type="hidden" id="km-edit-index" value="-1"><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div class="input-group"><label>Marka</label><input id="km-marka" type="text"></div><div class="input-group"><label>Model</label><input id="km-model" type="text"></div><div class="input-group"><label>Yıl</label><input id="km-yil" type="text"></div><div class="input-group"><label>Renk</label><input id="km-renk" type="text"></div></div><div class="input-group"><label>Şasi No</label><input id="km-sasi" type="text"></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;"><div class="input-group"><label>Geliş T.</label><input id="km-tarih" type="date"></div><div class="input-group"><label>Fatura (€)</label><input id="km-fatura" type="text" oninput="window.formatCurrencyInput(this)"></div><div class="input-group"><label>Kıymet (€)</label><input id="km-kiymet" type="text" oninput="window.formatCurrencyInput(this)"></div></div><div class="input-group"><label>Durum / Not</label><input id="km-durum" type="text" placeholder="Örn: İade, Mahkeme..."></div></div><div class="modal-footer"><button class="btn-sm" onclick="window.closeKiymetModal()">İptal</button><button class="btn-primary" onclick="window.saveNewKiymet()"><i data-lucide="save"></i> Kaydet</button></div></div>
-</div>
-
-<div id="excel-modal" class="modal-backdrop hidden">
-    <div class="modal-box" style="max-width:480px;"><div class="modal-header"><h2>Excel'den İçe Aktar</h2><button onclick="window.closeExcelModal()" class="icon-btn"><i data-lucide="x"></i></button></div><div class="modal-body" style="text-align:center;"><p id="excel-modal-desc" style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-bottom:24px;">Sütun: Marka, Model, Yıl, Renk, Şasi, Tarih, Beyanname, Fatura, Kıymet, Durum</p><div onclick="document.getElementById('excel-file-input').click()" style="border:2px dashed rgba(255,255,255,0.1);border-radius:var(--r-lg);padding:36px 20px;cursor:pointer;background:rgba(255,255,255,0.02);transition:0.2s;"><p style="font-weight:600;color:#fff;">Dosya Seçin</p></div><input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none;" onchange="window.processExcelData(this)"><input type="hidden" id="excel-target-context" value="kiymet"></div><div class="modal-footer"><button class="btn-sm" onclick="window.closeExcelModal()">İptal</button></div></div>
-</div>
-
-<!-- TEMPLATES -->
-<template id="tpl-dashboard">
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Genel Bakış</div><h1 class="page-title">Sistem Özeti</h1></div></div>
-    <div class="stats-grid fade-in">
-        <div class="stat-card" onclick="window.goToFilter('kiymet')"><div class="stat-card-top"><div class="stat-icon-box purple"><i data-lucide="clock"></i></div><span class="stat-trend warn">Aktif</span></div><div class="stat-value" id="dash-kiymet">0</div><div class="stat-label">Kıymette Bekleyen</div><div class="stat-bar"><div class="stat-bar-fill purple" style="width:0%"></div></div></div>
-        <div class="stat-card" onclick="window.goToFilter('acik')"><div class="stat-card-top"><div class="stat-icon-box yellow"><i data-lucide="alert-triangle"></i></div><span class="stat-trend warn">İşlemde</span></div><div class="stat-value" id="dash-ambar">0</div><div class="stat-label">Açık İşlem</div><div class="stat-bar"><div class="stat-bar-fill yellow" style="width:0%"></div></div></div>
-        <div class="stat-card" onclick="window.goToFilter('all')"><div class="stat-card-top"><div class="stat-icon-box green"><i data-lucide="check-circle-2"></i></div><span class="stat-trend up">Toplam</span></div><div class="stat-value" id="dash-total">0</div><div class="stat-label">Toplam Araç</div><div class="stat-bar"><div class="stat-bar-fill green" style="width:100%"></div></div></div>
-    </div>
-</template>
-
-<template id="tpl-firms">
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firmalar</div><h1 class="page-title">Firma Arşivi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button></div></div>
-    <div id="firms-dynamic-grid" class="firms-grid fade-in"></div>
-</template>
-
-<template id="tpl-firmDetails">
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firma Detayı</div><h1 class="page-title" id="current-firm-title">Firma</h1></div><div class="page-actions"><button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button><button class="btn-sm" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button><button id="firm-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"></i> Sil (<span id="firm-selected-count">0</span>)</button><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button></div></div>
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ ↕</th><th>BEYANNAME</th><th>FATURA</th><th>KIYMET</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div>
-</template>
-
-<template id="tpl-declarations">
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Gümrük Kayıtları</div><h1 class="page-title">Gelen Araçlar</h1></div></div>
-    <div class="toolbar fade-in"><div class="toolbar-left"><select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="width:220px;padding:8px 12px;background:var(--bg-main);"><option value="all">Tüm Araçlar</option><option value="acik">Açık İşlemler</option><option value="kiymet">Kıymette Bekleyenler</option></select><button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'decl')"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div>
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="decl-selectAll" onclick="window.toggleAllDeclarations(this.checked)"></th><th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('decl')">G.TARİHİ ↕</th><th>İLK SÜRE</th><th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th><th>DURUM</th><th>FATURA</th><th>ARDİYE</th><th style="text-align:center;">VERGİ</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="declarations-tbody"></tbody></table></div></div>
-</template>
-
-<template id="tpl-kiymetListesi">
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Arşiv</div><h1 class="page-title">Kıymet Listesi</h1></div></div>
-    <div class="toolbar fade-in"><div class="toolbar-left"><button id="kiymet-delete-btn" class="btn-sm btn-danger hidden" onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2"></i> Sil (<span id="kiymet-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-sm" onclick="window.openExcelModal('kiymet')"><i data-lucide="file-spreadsheet"></i> Excel</button><button class="btn-primary" onclick="window.openKiymetModal()"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div>
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)"></th><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('kiymet')">G.TARİHİ ↕</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div>
-</template>
-
-<template id="tpl-calculator">
-    <div class="page-hdr fade-in">
-        <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Gelişmiş Vergi & Maliyet Hesaplama</h1><p class="page-sub">TCMB kurları · GTİP otomatik · ÖTV akıllı öneri</p></div>
-        <div class="page-actions"><button class="export-btn" onclick="window.exportCalcExcel()"><i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Excel</button><button class="export-btn" onclick="window.exportCalcWord()" style="margin-left:8px;background:rgba(59,130,246,0.1);color:var(--primary);border-color:rgba(59,130,246,0.25);"><i data-lucide="file-text" style="width:14px;height:14px;"></i> Sunum Çıktısı</button></div>
-    </div>
-    <div class="kur-panel fade-in">
-        <div class="input-group" style="margin:0;flex:1;"><label>Para Birimi</label><select id="calc-currency" onchange="window.calculateTaxes()" style="background:var(--bg-elevated);"><option value="EUR" selected>EUR (€)</option><option value="USD">USD ($)</option></select></div>
-        <div class="input-group" style="margin:0;flex:1;"><label>EUR/TL</label><input id="calc-kur-eur" type="text" value="38,50" oninput="window.calculateTaxes()" style="font-weight:700;"></div>
-        <div class="input-group" style="margin:0;flex:1;"><label>USD/TL</label><input id="calc-kur-usd" type="text" value="36,20" oninput="window.calculateTaxes()" style="font-weight:700;"></div>
-        <div style="display:flex;flex-direction:column;gap:4px;"><button class="kur-fetch-btn" onclick="window.fetchTCMBKur()"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> TCMB Kur Çek</button><span id="kur-status" class="kur-badge kur-manual" style="font-size:10px;">Manuel Kur</span></div>
-    </div>
-    <div class="calc-grid fade-in">
-        <div>
-            <div class="calc-section blue">
-                <div class="calc-sec-title"><i data-lucide="car"></i> Araç & Fatura Bilgileri</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
-                    <div class="input-group" style="margin:0;"><label>Yakıt Tipi</label><select id="calc-yakit" onchange="window.updateGTIP()" style="background:var(--bg-elevated);"><option value="BENZİNLİ">Benzinli</option><option value="DİZEL">Dizel</option><option value="ELEKTRİK">Elektrikli</option><option value="PLUG-IN">Plug-in Hibrit</option><option value="BENZİN HİBRİT">Benzin Hibrit</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>Motor Hacmi</label><select id="calc-motor" onchange="window.updateGTIP()" style="background:var(--bg-elevated);"><option value="0-1000">0–1000 cc</option><option value="1000-1500">1000–1500</option><option value="1500-1600">1500–1600</option><option value="1600-2000" selected>1600–2000</option><option value="2000-2500">2000–2500</option><option value="2500-3000">2500–3000</option><option value="3000+">3000+</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>Teslim Şekli</label><div class="teslim-toggle"><div class="teslim-opt active" onclick="window.setCalcTeslim('CIF',this)">CIF</div><div class="teslim-opt" onclick="window.setCalcTeslim('EXW',this)">EXW</div></div><input type="hidden" id="calc-teslim" value="CIF"></div>
-                </div>
-                <div class="gtip-display" id="gtip-display">GTİP: 8703.2319.1200</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
-                    <div class="input-group" style="margin:0;"><label>Fatura Tutarı</label><input id="calc-fatura" type="text" value="100.500" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Navlun</label><input id="calc-navlun" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Sigorta</label><input id="calc-sigorta" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Yurt Dışı Gider</label><input id="calc-yurtdisi" type="text" value="100" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Yurt İçi (₺)</label><input id="calc-yurtici" type="text" value="25.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Damga V. (₺)</label><input id="calc-damga" type="text" value="1.605" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                </div>
-            </div>
-            <div class="calc-section red">
-                <div class="calc-sec-title"><i data-lucide="percent"></i> Vergi Oranları</div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-                    <div class="input-group" style="margin:0;"><label>ÖTV % <span class="tip" data-tip="GTİP ve matraha göre otomatik önerilir">?</span></label><select id="calc-otv-oran" onchange="window.calculateTaxes()" style="background:var(--bg-elevated);"><option value="0">%0</option><option value="25">%25</option><option value="45">%45</option><option value="50">%50</option><option value="55">%55</option><option value="65">%65</option><option value="70">%70</option><option value="75">%75</option><option value="80">%80</option><option value="90">%90</option><option value="100">%100</option><option value="150">%150</option><option value="170">%170</option><option value="220" selected>%220</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>KDV %</label><input id="calc-kdv-oran" type="text" value="20" oninput="window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Gümrük V. %</label><select id="calc-gv-oran" onchange="window.calculateTaxes()" style="background:var(--bg-elevated);"><option value="0">%0</option><option value="6">%6</option><option value="10" selected>%10</option><option value="22">%22</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>İlave G.V. % <span class="tip" data-tip="Çin menşeli: %40">?</span></label><select id="calc-ilave-gv-oran" onchange="window.calculateTaxes()" style="background:var(--bg-elevated);"><option value="0">%0</option><option value="10">%10</option><option value="25" selected>%25</option><option value="30">%30</option><option value="40">%40 (Çin)</option><option value="60">%60</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>KKDF %</label><select id="calc-kkdf-oran" onchange="window.calculateTaxes()" style="background:var(--bg-elevated);"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>ATR'siz GV %</label><input id="calc-atr-oran" type="text" value="0" oninput="window.calculateTaxes()"></div>
-                </div>
-            </div>
-            <div class="calc-section green">
-                <div class="calc-sec-title"><i data-lucide="wallet"></i> Araç Tipi & Masraflar</div>
-                <div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><div class="segmented-control segmented-3" style="width:260px;"><input type="radio" id="tip-avrupa" name="calc-tip" value="AVRUPA" checked onchange="window.calculateTaxes()"><label for="tip-avrupa">Avrupa</label><input type="radio" id="tip-amerikan" name="calc-tip" value="AMERİKAN" onchange="window.calculateTaxes()"><label for="tip-amerikan">Amerikan</label><input type="radio" id="tip-defender" name="calc-tip" value="DEFENDER" onchange="window.calculateTaxes()"><label for="tip-defender">Defender</label><div class="slider"></div></div></div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="input-group" style="margin:0;"><label>Gümrük H. (€)</label><input id="calc-gumruk" type="text" value="2.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Nakliye (€)</label><input id="calc-nakliye" type="text" value="2.500" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Almanya (€)</label><input id="calc-almanya" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Ardiye (₺)</label><input id="calc-ardiye-tl" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>TSE Müh. (₺)</label><input id="calc-tse-muh-tl" type="text" value="13.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>TSE Harcı (₺)</label><input id="calc-tse-harci-manual" type="text" value="5.412" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:14px;padding:10px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:var(--r-md);font-size:11px;"><div><span style="color:var(--text-muted)">MMO:</span> <strong id="res-mmo">0 ₺</strong></div><div><span style="color:var(--text-muted)">Işık:</span> <strong id="res-isik">0 ₺</strong></div><div><span style="color:var(--text-muted)">Çekici:</span> <strong id="res-cekici">0 ₺</strong></div></div>
-            </div>
-            <div class="calc-section purple">
-                <div class="calc-sec-title"><i data-lucide="receipt"></i> Satış / Kesilecek Fatura</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="input-group" style="margin:0;"><label>Eklenen Kâr (₺)</label><input id="calc-s-kar" type="text" value="100.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()" style="border-color:rgba(168,85,247,0.4);"></div>
-                    <div class="input-group" style="margin:0;"><label>G.Giriş KDV (₺)</label><input id="calc-s-giris-kdv" type="text" value="1.037.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Gelir Vergisi (₺)</label><input id="calc-s-gelir-vergisi" type="text" value="25.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Tescil Masrafı (₺)</label><input id="calc-s-tescil" type="text" value="15.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                </div>
-            </div>
-        </div>
-        <div>
-            <div class="result-panel">
-                <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">Vergi & Maliyet Özeti <span id="res-gtip-mini" style="font-size:11px;font-weight:600;color:var(--primary);font-family:monospace;"></span></div>
-                <table class="calc-result-table">
-                    <tr class="section-header"><td colspan="2">Gümrük Vergileri</td></tr>
-                    <tr><td class="label-col">CIF Kıymet (TL)</td><td class="value-col" id="res-cif">0 ₺</td></tr>
-                    <tr><td class="label-col">GV Matrahı</td><td class="value-col" id="res-gv-matrah">0 ₺</td></tr>
-                    <tr><td class="label-col">G.V Tutarı</td><td class="value-col" id="res-gv-tutar">0 ₺</td></tr>
-                    <tr><td class="label-col">İlave GV</td><td class="value-col" id="res-ilave-gv">0 ₺</td></tr>
-                    <tr><td class="label-col">ATR'siz GV</td><td class="value-col" id="res-atr-tutar">0 ₺</td></tr>
-                    <tr><td class="label-col" style="color:var(--primary);font-weight:600;">Ara Toplam</td><td class="value-col" id="res-ara-toplam" style="color:var(--primary);">0 ₺</td></tr>
-                    <tr class="section-header"><td colspan="2">ÖTV & KDV</td></tr>
-                    <tr><td class="label-col">TRT (%0.8)</td><td class="value-col" id="res-trt">0 ₺</td></tr>
-                    <tr><td class="label-col">ÖTV Matrahı</td><td class="value-col" id="res-otv-matrahi">0 ₺</td></tr>
-                    <tr><td class="label-col">Hesaplanan ÖTV</td><td class="value-col" id="res-otv-tutar" style="color:var(--danger);">0 ₺</td></tr>
-                    <tr><td class="label-col">KDV Matrahı</td><td class="value-col" id="res-kdv-matrahi">0 ₺</td></tr>
-                    <tr><td class="label-col">KDV Tutarı</td><td class="value-col" id="res-kdv-tutar">0 ₺</td></tr>
-                    <tr><td class="label-col">KKDF</td><td class="value-col" id="res-kkdf-tutar">0 ₺</td></tr>
-                    <tr class="total-row"><td>VERGİ TOPLAMI</td><td class="value-col" id="res-toplam-vergi" style="color:var(--danger);">0 ₺</td></tr>
-                    <tr class="section-header"><td colspan="2">Masraflar</td></tr>
-                    <tr><td class="label-col">Araç+Vergi (EUR)</td><td class="value-col" id="res-arac-vergi-eur">0 €</td></tr>
-                    <tr><td class="label-col">Diğer Masraflar</td><td class="value-col" id="res-diger-tl" style="color:var(--warning);">0 ₺</td></tr>
-                    <tr class="section-header"><td colspan="2">Kesilecek Fatura</td></tr>
-                    <tr><td class="label-col">ÖTV Matrahı + Kâr</td><td class="value-col" id="res-s-toplam-matrah">0 ₺</td></tr>
-                    <tr><td class="label-col">Hesaplanan ÖTV (Satış)</td><td class="value-col" id="res-s-hesaplanan-otv">0 ₺</td></tr>
-                    <tr><td class="label-col">ÖTV'nin KDV'si</td><td class="value-col" id="res-s-otv-kdv">0 ₺</td></tr>
-                    <tr><td class="label-col">G.Giriş KDV'si</td><td class="value-col" id="res-s-giris-kdv-out">0 ₺</td></tr>
-                    <tr><td class="label-col">Gelir Vergisi</td><td class="value-col" id="res-s-gelir-vergisi-out">0 ₺</td></tr>
-                    <tr><td class="label-col">Tescil Masrafı</td><td class="value-col" id="res-s-tescil-out">0 ₺</td></tr>
-                </table>
-                <div class="result-total" style="background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.05));border:1px solid rgba(16,185,129,0.3);margin-top:16px;"><span class="result-total-label" style="color:var(--success);">FİNAL MALİYET</span><div><div id="res-genel-eur" class="result-total-sub" style="color:rgba(255,255,255,0.6);">0 €</div><strong id="res-genel-maliyet" class="result-total-value" style="color:#fff;">0 ₺</strong></div></div>
-                <div class="result-total" style="background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(168,85,247,0.05));border:1px solid rgba(168,85,247,0.3);margin-top:12px;"><span class="result-total-label" style="color:var(--kiymet-color);">KESİLECEK FATURA</span><strong id="res-s-kesilecek-fatura" class="result-total-value" style="color:#fff;">0 ₺</strong></div>
-            </div>
-        </div>
-    </div>
-</template>
-
-<template id="tpl-searchResults">
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Arama</div><h1 class="page-title">Sonuçlar: "<span id="search-query-display" style="color:var(--primary);"></span>"</h1></div></div>
-    <div id="search-results-container" class="fade-in" style="display:flex;flex-direction:column;gap:18px;"></div>
-</template>
-
-<!-- ═══════════ FIREBASE SDK ═══════════ -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyDxlTVb_JsefQHCE8pFiOiDjMaEVZJNiI0",
-    authDomain: "gumruk-portal.firebaseapp.com",
-    databaseURL: "https://gumruk-portal-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "gumruk-portal",
-    appId: "1:782266851006:web:30aa74f32f2ed36da4c8ef"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// Firebase'e kaydet
-window._firebaseSave = async function(payload) {
-    try { await set(ref(db, 'portal_data'), payload); return true; }
-    catch(e) { console.error("Firebase save error:", e); return false; }
-};
-
-// Firebase'den yükle
-window._firebaseLoad = async function() {
-    try {
-        const snapshot = await get(ref(db, 'portal_data'));
-        if(snapshot.exists()) return snapshot.val();
-        return null;
-    } catch(e) { console.error("Firebase load error:", e); return null; }
-};
-
-// Firebase hazır olduğunda verileri yükle
-window._firebaseReady = true;
-if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
-</script>
-
-<!-- ═══════════ ANA UYGULAMA MOTORU ═══════════ -->
 <script>
     function showSyncToast(text,ok=false){const t=document.getElementById('sync-toast'),ic=document.getElementById('sync-icon');document.getElementById('sync-text').innerText=text;if(ok){ic.style.animation='none';ic.style.border='none';ic.innerHTML='<i data-lucide="check-circle" style="color:var(--success);width:16px;height:16px;"></i>';if(window.lucide)lucide.createIcons();}else{ic.innerHTML='';ic.style.border='2px solid rgba(255,255,255,0.1)';ic.style.borderTopColor='var(--primary)';ic.style.animation='spin 1s linear infinite';}t.classList.add('show');}
     function hideSyncToast(text,ok=true){showSyncToast(text,ok);setTimeout(()=>document.getElementById('sync-toast').classList.remove('show'),2500);}
@@ -377,7 +13,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.formatNumber=function(v){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;return n.toLocaleString('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0});};
     window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
-    // ═══ FIREBASE CLOUD SYNC ═══
     function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));}catch(e){}}
     function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);}catch(e){}}
 
@@ -423,10 +58,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.inlineEditDate=function(el,idx,field){if(el.querySelector('input'))return;let cur=window.declarationsData[idx][field]||'';let iso='';if(cur){let p=cur.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}el.innerHTML=`<input type="date" value="${iso}" style="padding:4px;height:28px;font-size:12px;" onblur="window.saveInlineDate(this,${idx},'${field}')" onchange="window.saveInlineDate(this,${idx},'${field}')">`;let inp=el.querySelector('input');inp.focus();inp.showPicker&&inp.showPicker();};
     window.saveInlineDate=function(inp,idx,field){let iso=inp.value;let tr='';if(iso){let p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;}if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{inp.parentElement.innerHTML=tr||'-';}};
 
-    // ═══ DÜZELTILMIŞ calculateVehicleMetrics ═══
-    // Evrak durumu SON GÜN hesabını ETKİLEMEZ
-    // K.VER/K.GEL arasındaki gün farkı SON GÜN'e eklenir
-    // KALAN GÜN = SON GÜN - BUGÜN
     window.calculateVehicleMetrics=function(data){
         let today=new Date();today.setHours(0,0,0,0);
         let E=window.parseTRDate(data.tarih),G=window.parseTRDate(data.ekSure),H=window.parseTRDate(data.antTarih);
@@ -434,31 +65,14 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         let result={ilkSureSonu:"",klnSonTarih:"",klnGun:"",kiymGecen:"",sonGun:"",ardiye:0,gecenGun:""};
         if(!E)return result;
         let F=window.addDays(E,20);result.ilkSureSonu=window.formatTRDate(F);
-        // L = KLN.SON TARİH
         let L_date=null;
-        if(I){L_date=window.addDays(I,29);}
-        else if(H){result.klnSonTarih="Süresiz";}
-        else if(G){L_date=window.addDays(G>F?G:F,29);}
-        else{L_date=F;}
+        if(I){L_date=window.addDays(I,29);}else if(H){result.klnSonTarih="Süresiz";}else if(G){L_date=window.addDays(G>F?G:F,29);}else{L_date=F;}
         if(L_date)result.klnSonTarih=window.formatTRDate(L_date);
-        // N = Kıymette geçen süre (ÖNCE hesapla)
         let kiymGecen=0;
-        if(J){if(K){kiymGecen=window.diffDaysSigned(K,J);result.kiymGecen=kiymGecen;}else{result.kiymGecen="Kıymette";}}
-        else if(H&&!I){result.kiymGecen="Süresiz";}
-        // O = SON GÜN (evrak durumundan BAĞIMSIZ)
+        if(J){if(K){kiymGecen=window.diffDaysSigned(K,J);result.kiymGecen=kiymGecen;}else{result.kiymGecen="Kıymette";}}else if(H&&!I){result.kiymGecen="Süresiz";}
         let sonGunDate=null;
-        if(!J&&!K){result.sonGun=result.klnSonTarih||"";sonGunDate=L_date;}
-        else if(J&&!K){result.sonGun="Kıymette";sonGunDate=null;}
-        else if(J&&K&&L_date){sonGunDate=window.addDays(L_date,kiymGecen);result.sonGun=window.formatTRDate(sonGunDate);}
-        else if(!L_date){result.sonGun="Süresiz";sonGunDate=null;}
-        // M = KALAN GÜN (SON GÜN'e göre)
-        if(result.klnSonTarih==="Süresiz"&&!J&&!K){result.klnGun="Süresiz";}
-        else if(J&&!K){if(L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else result.klnGun="Süresiz";}
-        else if(sonGunDate){let d=window.diffDaysSigned(sonGunDate,today);result.klnGun=d<0?0:d;}
-        else if(I){let p30=window.addDays(I,30);result.klnGun=p30>today?window.diffDaysSigned(p30,today):0;}
-        else if(!H&&L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}
-        else{result.klnGun="Süresiz";}
-        // Ardiye
+        if(!J&&!K){result.sonGun=result.klnSonTarih||"";sonGunDate=L_date;}else if(J&&!K){result.sonGun="Kıymette";sonGunDate=null;}else if(J&&K&&L_date){sonGunDate=window.addDays(L_date,kiymGecen);result.sonGun=window.formatTRDate(sonGunDate);}else if(!L_date){result.sonGun="Süresiz";sonGunDate=null;}
+        if(result.klnSonTarih==="Süresiz"&&!J&&!K){result.klnGun="Süresiz";}else if(J&&!K){if(L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else result.klnGun="Süresiz";}else if(sonGunDate){let d=window.diffDaysSigned(sonGunDate,today);result.klnGun=d<0?0:d;}else if(I){let p30=window.addDays(I,30);result.klnGun=p30>today?window.diffDaysSigned(p30,today):0;}else if(!H&&L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else{result.klnGun="Süresiz";}
         let gun=window.diffDaysSigned(today,E)+1;result.gecenGun=gun;
         if(gun>0){if(gun<=20)result.ardiye=gun*145;else if(gun<=50)result.ardiye=2900+(gun-20)*725;else if(gun<=80)result.ardiye=24650+(gun-50)*1160;else result.ardiye=59450+(gun-80)*1450;}
         return result;
@@ -479,24 +93,154 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.sortData=function(ctx){window.sortState.asc=!window.sortState.asc;let mul=window.sortState.asc?1:-1;let pD=s=>{if(!s)return 0;let c=window.fixExcelDate(s);let p=c.split('.');return p.length===3?parseInt(p[2]+p[1]+p[0]):0;};if(ctx==='decl'){window.declarationsData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('decl');window.renderDeclarationsTable();}else if(ctx==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('firm');window.renderFirmVehicles();}else if(ctx==='kiymet'){window.kiymetData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('kiymet');window.renderKiymetTable();}};
     window.goToFilter=function(f){window.renderView('declarations');let el=document.getElementById('decl-status-filter');if(el){el.value=f;window.renderDeclarationsTable();}};
 
-    // ═══ TÜRKÇE HARF DUYARSIZ ARAMA ═══
-    window.handleGlobalSearch=function(query){
-        // Canlı dropdown'ı kapat
-        let dd=document.getElementById('live-search-dropdown');if(dd){dd.classList.remove('show');dd.innerHTML='';}
-        if(!query||query.trim().length<2){return;}
-        let q=query.toLocaleLowerCase('tr').trim();
-        let match=v=>v&&String(v).toLocaleLowerCase('tr').includes(q);
-        let decR=[],kiyR=[],firR=[];
-        (window.declarationsData||[]).forEach((d,i)=>{if(match(d.sasi)||match(d.marka)||match(d.model)||match(d.firma)||match(d.beyanname)||match(d.yil)||match(d.renk))decR.push({data:d,index:i});});
-        Object.keys(window.firmData||{}).forEach(fn=>{(window.firmData[fn]||[]).forEach((d,i)=>{if(match(d.sasi)||match(d.marka)||match(d.model)||match(fn)||match(d.beyanname))firR.push({firm:fn,data:d,index:i});});});
-        (window.kiymetData||[]).forEach((k,i)=>{if(match(k.sasi)||match(k.marka)||match(k.model)||match(k.durum))kiyR.push({data:k,index:i});});
-        window.renderView('searchResults');document.getElementById('search-query-display').innerText=query;
-        let c=document.getElementById('search-results-container'),html='';
-        if(decR.length>0){html+=`<div class="card card-pad"><h3 style="margin-bottom:16px;font-size:16px;">Gelen Araçlar (${decR.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>İŞLEM</th></tr></thead><tbody>`+decR.map(r=>`<tr><td>${r.data.firma}</td><td>${r.data.marka} ${r.data.model}</td><td style="font-family:monospace;">${r.data.sasi}</td><td><button class="btn-sm" onclick="window.openDeclVehicleModal(${r.index},'decl')">Aç</button></td></tr>`).join('')+`</tbody></table></div>`;}
-        if(firR.length>0){html+=`<div class="card card-pad"><h3 style="margin-bottom:16px;font-size:16px;">Firmalar (${firR.length})</h3><table class="data-table"><thead><tr><th>FİRMA</th><th>ARAÇ</th><th>ŞASİ</th><th>İŞLEM</th></tr></thead><tbody>`+firR.map(r=>`<tr><td>${r.firm}</td><td>${r.data.marka} ${r.data.model}</td><td style="font-family:monospace;">${r.data.sasi}</td><td><button class="btn-sm" onclick="window.currentFirm='${r.firm.replace(/"/g,'&quot;').replace(/'/g,"\\'")}';window.openDeclVehicleModal(${r.index},'firm')">Aç</button></td></tr>`).join('')+`</tbody></table></div>`;}
-        if(kiyR.length>0){html+=`<div class="card card-pad"><h3 style="margin-bottom:16px;font-size:16px;">Kıymet (${kiyR.length})</h3><table class="data-table"><thead><tr><th>ARAÇ</th><th>ŞASİ</th><th>FATURA</th><th>KIYMET</th></tr></thead><tbody>`+kiyR.map(r=>`<tr><td>${r.data.marka} ${r.data.model}</td><td style="font-family:monospace;">${r.data.sasi}</td><td>${r.data.fatura?window.formatNumber(r.data.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${r.data.kiymet?window.formatNumber(r.data.kiymet)+' €':'-'}</td></tr>`).join('')+`</tbody></table></div>`;}
-        if(!html)html='<div class="card card-pad" style="text-align:center;padding:48px;color:var(--text-muted);">Kayıt bulunamadı.</div>';
-        c.innerHTML=html;if(window.lucide)lucide.createIcons();
+    let _searchTimeout=null;
+    window.liveSearch=function(query){
+        clearTimeout(_searchTimeout);
+        let dd=document.getElementById('live-search-dropdown');if(!dd)return;
+        if(!query||query.trim().length<2){dd.classList.remove('show');dd.innerHTML='';return;}
+        _searchTimeout=setTimeout(()=>{
+            let qWords = query.toLocaleLowerCase('tr').trim().split(/\s+/);
+            let match = v => v && qWords.every(qw => v.toLocaleLowerCase('tr').includes(qw));
+            let items=[];
+            
+            (window.declarationsData||[]).forEach((d,i)=>{
+                let searchStr = `${d.sasi||''} ${d.marka||''} ${d.model||''} ${d.firma||''} ${d.beyanname||''}`;
+                if(match(searchStr)) items.push({type:'decl',idx:i,title:`${d.marka||''} ${d.model||''}`.trim()||'(Araç)',sub:`${d.firma||''} · ${d.sasi||'-'}${d.beyanname?' · Byn:'+d.beyanname:''}`,badge:'Gelen',color:'var(--primary)'});
+            });
+            (window.kiymetData||[]).forEach((k,i)=>{
+                let searchStr = `${k.sasi||''} ${k.marka||''} ${k.model||''} ${k.durum||''}`;
+                if(match(searchStr)) items.push({type:'kiymet',idx:i,title:`${k.marka||''} ${k.model||''}`.trim(),sub:`Şasi: ${k.sasi||'-'}`,badge:'Kıymet',color:'var(--kiymet-color)'});
+            });
+            Object.keys(window.firmData||{}).forEach(fn=>{
+                (window.firmData[fn]||[]).forEach((d,i)=>{
+                    let searchStr = `${d.sasi||''} ${d.marka||''} ${d.model||''} ${fn}`;
+                    if(match(searchStr)) items.push({type:'firm',idx:i,firmName:fn,title:`${d.marka||''} ${d.model||''}`.trim(),sub:`${fn} · ${d.sasi||'-'}`,badge:'Firma',color:'var(--success)'});
+                });
+            });
+            
+            if(!items.length){dd.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Kayıt bulunamadı</div>';}
+            else{dd.innerHTML=items.slice(0,15).map(r=>`<div class="ls-item" onmousedown="window.searchGoTo('${r.type}',${r.idx},'${(r.firmName||'').replace(/'/g,"\\'")}')"><div><div class="ls-item-title">${r.title||'(Bilinmiyor)'}</div><div class="ls-item-sub">${r.sub}</div></div><span class="ls-badge" style="background:${r.color}22;color:${r.color};">${r.badge}</span></div>`).join('')+(items.length>15?`<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:11px;">+${items.length-15} daha</div>`:'');}
+            dd.classList.add('show');
+        }, 300);
+    };
+    
+    window.searchGoTo=function(type,idx,firmName){
+        let dd=document.getElementById('live-search-dropdown');if(dd)dd.classList.remove('show');
+        document.getElementById('global-search-input').value='';
+        if(type==='decl'){window.renderView('declarations');setTimeout(()=>window.openDeclVehicleModal(idx,'decl'),150);}
+        else if(type==='kiymet'){window.renderView('kiymetListesi');}
+        else if(type==='firm'){window.currentFirm=firmName;window.renderView('firmDetails');setTimeout(()=>window.openDeclVehicleModal(idx,'firm'),150);}
+    };
+    window.handleGlobalSearch=function(v){window.liveSearch(v);};
+
+    // ═══ GÜNLÜK TCMB KURU ÇEKME (CANLI DEĞİL, GÜNÜN KURU) ═══
+    window.fetchTCMBKur = async function(auto = false) {
+        let st = document.getElementById('kur-status');
+        if(st){ st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB Çekiliyor...'; st.className = 'kur-badge kur-manual'; }
+        
+        try {
+            // TCMB today.xml'i okuyan güvenli proxy endpoint'i
+            // tcmb.gov.tr'den direkt XML çekip "ForexSelling" değerlerini alır
+            const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://www.tcmb.gov.tr/kurlar/today.xml");
+            
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('TCMB API hatası');
+            
+            const data = await response.json();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+            
+            const currencies = xmlDoc.getElementsByTagName("Currency");
+            let usdRate = null;
+            let eurRate = null;
+            
+            for (let i = 0; i < currencies.length; i++) {
+                let code = currencies[i].getAttribute("CurrencyCode");
+                let sellingNode = currencies[i].getElementsByTagName("ForexSelling")[0];
+                
+                if (sellingNode && sellingNode.textContent) {
+                    let rateStr = sellingNode.textContent;
+                    let rate = parseFloat(rateStr.replace(',', '.'));
+                    if (code === "USD") usdRate = rate;
+                    if (code === "EUR") eurRate = rate;
+                }
+            }
+            
+            if (!usdRate || !eurRate) throw new Error('Kurlar XML içinde bulunamadı');
+            
+            if (document.getElementById('calc-kur-usd')) {
+                document.getElementById('calc-kur-usd').value = usdRate.toFixed(4).replace('.', ',');
+            }
+            if (document.getElementById('calc-kur-eur')) {
+                document.getElementById('calc-kur-eur').value = eurRate.toFixed(4).replace('.', ',');
+            }
+            
+            if(st){ st.innerHTML = '✓ TCMB Döviz Satış'; st.className = 'kur-badge kur-live'; }
+            
+            // Başarılı çekimi kaydet
+            localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({
+                usd: usdRate,
+                eur: eurRate,
+                date: new Date().toLocaleDateString('tr-TR')
+            }));
+            
+            window.calculateTaxes();
+            if(!auto) hideSyncToast("TCMB Günlük Satış Kuru çekildi!", true);
+            
+        } catch (error) {
+            console.warn("TCMB Kur Çekme Hatası:", error);
+            // Hata durumunda son kaydedilmiş TCMB kurunu yükle
+            try {
+                let lastKur = JSON.parse(localStorage.getItem('gumruk_tcmb_last_kur'));
+                if (lastKur && lastKur.usd && lastKur.eur) {
+                    if (document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = lastKur.usd.toFixed(4).replace('.', ',');
+                    if (document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = lastKur.eur.toFixed(4).replace('.', ',');
+                    if(st){ st.innerHTML = '⚠ Son TCMB Kuru (' + lastKur.date + ')'; st.className = 'kur-badge kur-manual'; }
+                } else {
+                    if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
+                }
+            } catch(e) {
+                if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
+            }
+            
+            if(!auto) hideSyncToast("TCMB Bağlantı Hatası!", false);
+        }
+        if(window.lucide) lucide.createIcons();
+    };
+
+    window.exportCalcExcel=function(){
+        let rows=[['KALEM','DEĞER']];
+        document.querySelectorAll('.calc-result-table tr').forEach(tr=>{
+            let cells=tr.querySelectorAll('td');
+            if(cells.length>=2)rows.push([cells[0].innerText.trim(),cells[1].innerText.trim()]);
+            else if(cells.length===1)rows.push([cells[0].innerText.trim(),'']);
+        });
+        let fm=document.getElementById('res-genel-maliyet');if(fm)rows.push(['FİNAL MALİYET',fm.innerText]);
+        let kf=document.getElementById('res-s-kesilecek-fatura');if(kf)rows.push(['KESİLECEK FATURA',kf.innerText]);
+        if(typeof XLSX!=='undefined'){
+            let ws=XLSX.utils.aoa_to_sheet(rows);let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Vergi Hesaplama');
+            XLSX.writeFile(wb,'Sifir_Otomobil_Maliyet_Analizi.xlsx');
+        }
+    };
+
+    window.exportToWord = function() {
+        const getV = id => document.getElementById(id) ? document.getElementById(id).innerText : '';
+        const getI = id => document.getElementById(id) ? document.getElementById(id).value : '';
+        const content = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>Maliyet Analizi</title><style>body{font-family:Arial,sans-serif;color:#333;}h1{color:#1e3a8a;text-align:center;border-bottom:2px solid #3b82f6;padding-bottom:10px;}h3{color:#2563eb;margin-top:20px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th,td{border:1px solid #cbd5e1;padding:8px 12px;text-align:left;}th{background-color:#f1f5f9;color:#0f172a;}.total-row{background-color:#e0f2fe;font-weight:bold;}.final-row{background-color:#10b981;color:white;font-weight:bold;font-size:16px;}</style></head>
+            <body>
+                <h1>Sıfır Otomobil İthalat Maliyet ve Vergi Analizi</h1>
+                <p style="text-align: right;"><b>Tarih:</b> ${new Date().toLocaleDateString('tr-TR')}</p>
+                <h3>1. Araç ve Temel Bilgiler</h3>
+                <table><tr><th>GTİP Kodu</th><td>${getV('res-gtip-mini')}</td></tr><tr><th>Teslim Şekli</th><td>${getI('calc-teslim')}</td></tr><tr><th>Kur Bazi</th><td>${getI('calc-currency')}</td></tr><tr><th>Fatura Tutarı</th><td>${getI('calc-fatura')}</td></tr></table>
+                <h3>2. Gümrük ve Vergi Matrahları</h3>
+                <table><tr><th>CIF Kıymet (TL)</th><td>${getV('res-cif')}</td></tr><tr><th>Gümrük Vergisi Tutarı</th><td>${getV('res-gv-tutar')}</td></tr><tr><th>İlave Gümrük Vergisi</th><td>${getV('res-ilave-gv')}</td></tr><tr><th>ÖTV Matrahı</th><td>${getV('res-otv-matrahi')}</td></tr><tr><th>Hesaplanan ÖTV Tutarı</th><td style="color:#ef4444; font-weight:bold;">${getV('res-otv-tutar')}</td></tr><tr><th>Gümrük Giriş KDV Tutarı</th><td>${getV('res-s-giris-kdv-out')}</td></tr><tr class="total-row"><th>TOPLAM VERGİ YÜKÜ</th><td style="color:#ef4444;">${getV('res-toplam-vergi')}</td></tr></table>
+                <h3>3. Kesilecek Fatura Detayları</h3>
+                <table><tr><th>Eklenen Kâr</th><td>${getI('calc-s-kar')} ₺</td></tr><tr><th>Gelir Vergisi</th><td>${getV('res-s-gelir-vergisi-out')}</td></tr><tr><th>Tescil Masrafı</th><td>${getV('res-s-tescil-out')}</td></tr><tr class="final-row"><th>TOPLAM KESİLECEK FATURA</th><td>${getV('res-s-kesilecek-fatura')}</td></tr></table>
+            </body></html>`;
+        const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Maliyet_Analizi.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     };
 
     window.updateDashboardStats=function(){if(!window.declarationsData)return;let t=window.declarationsData.length;let ki=window.declarationsData.filter(d=>d.kiymVv&&!d.kiymGt).length;let ac=window.declarationsData.filter(d=>{let e=(d.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';}).length;if(document.getElementById('dash-total'))document.getElementById('dash-total').innerText=t;if(document.getElementById('dash-kiymet'))document.getElementById('dash-kiymet').innerText=ki;if(document.getElementById('dash-ambar'))document.getElementById('dash-ambar').innerText=ac;};
@@ -549,7 +293,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 
     window.openDeclVehicleModal=function(idx=-1,ctx='decl'){
         window.currentModalContext=ctx;document.getElementById('decl-modal').classList.remove('hidden');document.getElementById('decl-edit-idx').value=idx;
-        // Firma listesini oluştur (aranabilir)
         let firmList=document.getElementById('da-firma-list');
         if(firmList)firmList.innerHTML=Object.keys(window.firmData).map(f=>`<div class="firm-dropdown-item" onmousedown="window.selectFirm('${f.replace(/'/g,"\\'")}')">${f}</div>`).join('');
         let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
@@ -581,7 +324,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         'PLUG-IN':{'0-1000':'8703.6010.0000','1000-1500':'8703.6010.0000','1500-1600':'8703.6010.0000','1600-2000':'8703.6010.0000','2000-2500':'8703.6010.0000','2500-3000':'8703.6010.0000','3000+':'8703.6010.0000'},
         'BENZİN HİBRİT':{'0-1000':'8703.4010.0000','1000-1500':'8703.4010.0000','1500-1600':'8703.4010.0000','1600-2000':'8703.4010.0000','2000-2500':'8703.4010.0000','2500-3000':'8703.4010.0000','3000+':'8703.4010.0000'}
     };
-    // ÖTV oto-öneri: yakıt + motor → önerilen ÖTV %
     window.OTV_SUGGEST={
         'BENZİNLİ':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
         'DİZEL':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
@@ -590,332 +332,57 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         'BENZİN HİBRİT':{'0-1000':70,'1000-1500':70,'1500-1600':80,'1600-2000':80,'2000-2500':150,'2500-3000':150,'3000+':150}
     };
 
-    window.updateGTIP=function(){
+    // ═══ STATE KALICILIĞI DÜZELTİLDİ (ÖTV'yi ve diğerlerini EZMEZ) ═══
+    window.saveCalcState=function(){
+        const inputs=['calc-currency','calc-kur-eur','calc-kur-usd','calc-yakit','calc-motor','calc-teslim','calc-fatura','calc-navlun','calc-sigorta','calc-yurtdisi','calc-yurtici','calc-damga','calc-otv-oran','calc-kdv-oran','calc-gv-oran','calc-ilave-gv-oran','calc-kkdf-oran','calc-atr-oran','calc-gumruk','calc-nakliye','calc-almanya','calc-ardiye-tl','calc-tse-muh-tl','calc-tse-harci-manual','calc-s-kar','calc-s-giris-kdv','calc-s-gelir-vergisi','calc-s-tescil'];
+        const state={};
+        inputs.forEach(id=>{let el=document.getElementById(id);if(el)state[id]=el.value;});
+        let tip=document.querySelector('input[name="calc-tip"]:checked');
+        if(tip)state['calc-tip']=tip.value;
+        localStorage.setItem('gumruk_calc_state_v6',JSON.stringify(state)); 
+    };
+
+    window.loadCalcState=function(){
+        let saved=localStorage.getItem('gumruk_calc_state_v6');
+        if(!saved) return false;
+        try{
+            let state=JSON.parse(saved);
+            Object.keys(state).forEach(id=>{
+                let el=document.getElementById(id);
+                if(el&&id!=='calc-tip')el.value=state[id];
+            });
+            if(state['calc-tip']){
+                let tip=document.getElementById('tip-'+state['calc-tip'].toLowerCase());
+                if(tip)tip.checked=true;
+            }
+            if(state['calc-teslim']){
+               document.querySelectorAll('.teslim-opt').forEach(o => o.classList.remove('active'));
+               let activeOpt = Array.from(document.querySelectorAll('.teslim-opt')).find(o => o.innerText === state['calc-teslim']);
+               if(activeOpt) activeOpt.classList.add('active');
+            }
+            return true;
+        }catch(e){
+            return false;
+        }
+    };
+
+    // SADECE MANUEL SEÇİMDE ÖTV'Yİ GÜNCELLE, İLK YÜKLEMEDE KARIŞMA
+    window.updateGTIP=function(isInitialLoad = false){
         let yakit=document.getElementById('calc-yakit')?.value||'BENZİNLİ';
         let motor=document.getElementById('calc-motor')?.value||'1600-2000';
         let gtip=window.GTIP_TABLE[yakit]?.[motor]||'8703.2319.1200';
         let otv=window.OTV_SUGGEST[yakit]?.[motor]||220;
-        // GTİP göster
+        
         let gd=document.getElementById('gtip-display');if(gd)gd.innerText='GTİP: '+gtip;
         let gm=document.getElementById('res-gtip-mini');if(gm)gm.innerText=gtip;
-        // ÖTV dropdown'ı güncelle
-        let otvSel=document.getElementById('calc-otv-oran');
-        if(otvSel){otvSel.value=String(otv);if(!otvSel.value)otvSel.value='220';}
-        window.calculateTaxes();
-    };
-
-    // ═══ CANLI ARAMA — TAMAMEN YENİDEN YAZILDI ═══
-    // Sorun: onblur dropdown'ı kapatıyordu, tıklama yetişemiyordu
-    // Çözüm: mousedown kullanımı + document click listener
-    let _searchTimeout=null;
-    let _searchDropdownHover=false; // dropdown üzerindeyken kapatma
-
-    window.liveSearch=function(query){
-        clearTimeout(_searchTimeout);
-        let dd=document.getElementById('live-search-dropdown');
-        if(!dd)return;
-        if(!query||query.trim().length<2){dd.classList.remove('show');dd.innerHTML='';return;}
-        _searchTimeout=setTimeout(()=>{
-            let q=query.toLocaleLowerCase('tr').trim();
-            let match=v=>v&&String(v).toLocaleLowerCase('tr').includes(q);
-            let items=[];
-            // Gelen Araçlar
-            (window.declarationsData||[]).forEach((d,i)=>{
-                if(match(d.sasi)||match(d.marka)||match(d.model)||match(d.firma)||match(d.beyanname)||match(d.yil)||match(d.renk)){
-                    items.push({type:'decl',idx:i,
-                        title:`${d.marka||''} ${d.model||''}`.trim()||'(Araç)',
-                        sub:`${d.firma||''} · Şasi: ${d.sasi||'-'}${d.beyanname?' · Byn: '+d.beyanname:''}`,
-                        badge:'Gelen Araç',color:'59,130,246'});
-                }
-            });
-            // Kıymet
-            (window.kiymetData||[]).forEach((k,i)=>{
-                if(match(k.sasi)||match(k.marka)||match(k.model)||match(k.durum)){
-                    items.push({type:'kiymet',idx:i,
-                        title:`${k.marka||''} ${k.model||''}`.trim()||'(Kıymet)',
-                        sub:`Şasi: ${k.sasi||'-'} ${k.durum?'· '+k.durum:''}`,
-                        badge:'Kıymet',color:'168,85,247'});
-                }
-            });
-            // Firmalar
-            Object.keys(window.firmData||{}).forEach(fn=>{
-                (window.firmData[fn]||[]).forEach((d,i)=>{
-                    if(match(d.sasi)||match(d.marka)||match(d.model)||match(fn)||match(d.beyanname)){
-                        items.push({type:'firm',idx:i,firmName:fn,
-                            title:`${d.marka||''} ${d.model||''}`.trim()||'(Araç)',
-                            sub:`${fn} · Şasi: ${d.sasi||'-'}`,
-                            badge:'Firma',color:'16,185,129'});
-                    }
-                });
-            });
-
-            if(!items.length){
-                dd.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;"><i data-lucide="search-x" style="width:24px;height:24px;margin:0 auto 8px;display:block;opacity:0.5;"></i>"'+query+'" için kayıt bulunamadı</div>';
-            }else{
-                dd.innerHTML=items.slice(0,12).map(r=>`<div class="ls-item" onmousedown="event.preventDefault();window.searchGoTo('${r.type}',${r.idx},'${(r.firmName||'').replace(/'/g,"\\'")}')"><div style="flex:1;min-width:0;"><div class="ls-item-title">${r.title}</div><div class="ls-item-sub">${r.sub}</div></div><span class="ls-badge" style="background:rgba(${r.color},0.12);color:rgb(${r.color});border:1px solid rgba(${r.color},0.2);">${r.badge}</span></div>`).join('')
-                    +(items.length>12?`<div style="padding:10px;text-align:center;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);">Toplam ${items.length} sonuç · Enter ile tümünü gör</div>`:'')
-                    +`<div style="padding:8px 14px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted);display:flex;justify-content:space-between;"><span>${items.length} sonuç</span><span>ESC ile kapat</span></div>`;
-            }
-            dd.classList.add('show');
-            if(window.lucide)lucide.createIcons();
-        },250); // 250ms debounce
-    };
-
-    // Dropdown dışına tıklayınca kapat
-    document.addEventListener('mousedown',function(e){
-        let dd=document.getElementById('live-search-dropdown');
-        let sw=document.querySelector('.search-wrap');
-        if(dd&&sw&&!sw.contains(e.target)){dd.classList.remove('show');}
-    });
-    // ESC ile kapat
-    document.addEventListener('keydown',function(e){
-        if(e.key==='Escape'){let dd=document.getElementById('live-search-dropdown');if(dd)dd.classList.remove('show');}
-    });
-
-    window.searchGoTo=function(type,idx,firmName){
-        let dd=document.getElementById('live-search-dropdown');if(dd){dd.classList.remove('show');dd.innerHTML='';}
-        let inp=document.getElementById('global-search-input');if(inp)inp.value='';
-        if(type==='decl'){
-            window.renderView('declarations');
-            setTimeout(()=>window.openDeclVehicleModal(idx,'decl'),200);
-        }else if(type==='kiymet'){
-            window.renderView('kiymetListesi');
-        }else if(type==='firm'){
-            window.currentFirm=firmName;
-            window.renderView('firmDetails');
-            setTimeout(()=>window.openDeclVehicleModal(idx,'firm'),200);
-        }
-    };
-
-    // ═══ EXCEL EXPORT ═══
-    window.exportCalcExcel=function(){
-        let rows=[['KALEM','DEĞER']];
-        document.querySelectorAll('.calc-result-table tr').forEach(tr=>{
-            let cells=tr.querySelectorAll('td');
-            if(cells.length>=2)rows.push([cells[0].innerText.trim(),cells[1].innerText.trim()]);
-            else if(cells.length===1)rows.push([cells[0].innerText.trim(),'']);
-        });
-        // Final ve Kesilecek Fatura
-        let fm=document.getElementById('res-genel-maliyet');if(fm)rows.push(['FİNAL MALİYET',fm.innerText]);
-        let kf=document.getElementById('res-s-kesilecek-fatura');if(kf)rows.push(['KESİLECEK FATURA',kf.innerText]);
-        if(typeof XLSX!=='undefined'){
-            let ws=XLSX.utils.aoa_to_sheet(rows);let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Vergi Hesaplama');
-            XLSX.writeFile(wb,'vergi_hesaplama.xlsx');
-        }else{
-            let csv=rows.map(r=>r.join(';')).join('\n');
-            let a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='vergi_hesaplama.csv';document.body.appendChild(a);a.click();a.remove();
-        }
-    };
-
-    // ═══ TCMB KUR ÇEKME — 3 KATMANLI FALLBACK ═══
-    // TCMB today.xml her iş günü saat ~15:30'da güncellenir
-    // Hafta sonu veya CORS hatası için fallback API'ler kullanılır
-    window._kurAutoFetched=false;
-    window.fetchTCMBKur=async function(){
-        let st=document.getElementById('kur-status');
-        if(st){st.innerHTML='⏳ Kurlar çekiliyor...';st.className='kur-badge kur-manual';}
-        let success=false;
-        let eurVal=null, usdVal=null;
-
-        // ── 1. TCMB today.xml (CORS proxy üzerinden) ──
-        const proxyUrls=[
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?',
-            'https://api.codetabs.com/v1/proxy?quest='
-        ];
-        for(let proxy of proxyUrls){
-            if(success)break;
-            try{
-                let url=proxy+encodeURIComponent('https://www.tcmb.gov.tr/kurlar/today.xml');
-                let res=await fetch(url,{signal:AbortSignal.timeout(6000)});
-                if(!res.ok)continue;
-                let xml=await res.text();
-                if(!xml.includes('Currency'))continue;
-                let parser=new DOMParser();
-                let doc=parser.parseFromString(xml,'text/xml');
-                doc.querySelectorAll('Currency').forEach(c=>{
-                    let code=c.getAttribute('CurrencyCode');
-                    // ForexSelling = Döviz Satış kuru
-                    let selling=c.querySelector('ForexSelling');
-                    if(!selling||!selling.textContent)return;
-                    let val=parseFloat(selling.textContent.replace(',','.'));
-                    if(isNaN(val)||val<=0)return;
-                    if(code==='USD')usdVal=val;
-                    if(code==='EUR')eurVal=val;
-                });
-                if(eurVal&&usdVal)success=true;
-            }catch(e){console.warn('TCMB proxy hatası ('+proxy+'):',e);}
-        }
-
-        // ── 2. Fallback: exchangerate-api ──
-        if(!success){
-            try{
-                let res=await fetch('https://api.exchangerate-api.com/v4/latest/TRY',{signal:AbortSignal.timeout(6000)});
-                if(res.ok){let data=await res.json();
-                    if(data.rates?.EUR){eurVal=1/data.rates.EUR;success=true;}
-                    if(data.rates?.USD){usdVal=1/data.rates.USD;success=true;}
-                }
-            }catch(e){console.warn('exchangerate-api hatası:',e);}
-        }
-
-        // ── 3. Fallback: open.er-api ──
-        if(!success){
-            try{
-                let res=await fetch('https://open.er-api.com/v6/latest/EUR',{signal:AbortSignal.timeout(6000)});
-                if(res.ok){let d=await res.json();
-                    if(d.rates?.TRY){eurVal=d.rates.TRY;success=true;}
-                    if(d.rates?.TRY&&d.rates?.USD){usdVal=d.rates.TRY/d.rates.USD;}
-                }
-            }catch(e){console.warn('open.er-api hatası:',e);}
-        }
-
-        // ── Sonuçları uygula ──
-        if(success){
-            if(eurVal){let el=document.getElementById('calc-kur-eur');if(el)el.value=eurVal.toFixed(4).replace('.',',');}
-            if(usdVal){let el=document.getElementById('calc-kur-usd');if(el)el.value=usdVal.toFixed(4).replace('.',',');}
-            if(st){st.innerHTML='✓ Döviz Satış Kuru';st.className='kur-badge kur-live';}
-            localStorage.setItem('gumruk_last_kur',JSON.stringify({eur:eurVal,usd:usdVal,date:new Date().toISOString()}));
-        }else{
-            // Hafta sonu kontrolü
-            let today=new Date();let dayOfWeek=today.getDay();
-            let msg=(dayOfWeek===0||dayOfWeek===6)?'Hafta sonu — Manuel girin':'Kur çekilemedi — Manuel girin';
-            if(st){st.innerHTML='⚠ '+msg;st.className='kur-badge kur-manual';}
-            // Son kaydedilmiş kuru yükle
-            try{let last=JSON.parse(localStorage.getItem('gumruk_last_kur'));
-                if(last?.eur&&last?.usd){
-                    if(document.getElementById('calc-kur-eur'))document.getElementById('calc-kur-eur').value=last.eur.toFixed(4).replace('.',',');
-                    if(document.getElementById('calc-kur-usd'))document.getElementById('calc-kur-usd').value=last.usd.toFixed(4).replace('.',',');
-                    if(st){st.innerHTML='⚠ Son kayıtlı kur ('+new Date(last.date).toLocaleDateString('tr')+')';st.className='kur-badge kur-manual';}
-                }
-            }catch(e){}
+        
+        if(!isInitialLoad) {
+            let otvSel=document.getElementById('calc-otv-oran');
+            if(otvSel){otvSel.value=String(otv);if(!otvSel.value)otvSel.value='220';}
         }
         window.calculateTaxes();
-        if(window.lucide)lucide.createIcons();
     };
 
-    // ═══ HESAPLAMA STATE KALICILIĞI (localStorage) ═══
-    // Tüm calculator input değerlerini kaydeder
-    window._calcInputIds=['calc-currency','calc-kur-eur','calc-kur-usd','calc-yakit','calc-motor','calc-teslim','calc-fatura','calc-navlun','calc-sigorta','calc-yurtdisi','calc-yurtici','calc-damga','calc-otv-oran','calc-kdv-oran','calc-gv-oran','calc-ilave-gv-oran','calc-kkdf-oran','calc-atr-oran','calc-gumruk','calc-nakliye','calc-almanya','calc-ardiye-tl','calc-tse-muh-tl','calc-tse-harci-manual','calc-s-kar','calc-s-giris-kdv','calc-s-gelir-vergisi','calc-s-tescil'];
-
-    window.saveCalcState=function(){
-        let state={};
-        window._calcInputIds.forEach(id=>{let el=document.getElementById(id);if(el)state[id]=el.value;});
-        // Araç tipi radio
-        let tipEl=document.querySelector('input[name="calc-tip"]:checked');if(tipEl)state['calc-tip']=tipEl.value;
-        localStorage.setItem('gumruk_calc_state_v3',JSON.stringify(state));
-    };
-
-    window.loadCalcState=function(){
-        let saved=localStorage.getItem('gumruk_calc_state_v3');if(!saved)return false;
-        try{
-            let s=JSON.parse(saved);
-            window._calcInputIds.forEach(id=>{let el=document.getElementById(id);if(el&&s[id]!==undefined)el.value=s[id];});
-            // Araç tipi radio
-            if(s['calc-tip']){let r=document.getElementById('tip-'+s['calc-tip'].toLowerCase());if(r)r.checked=true;}
-            // CIF/EXW toggle senkronize
-            if(s['calc-teslim']){let toggle=document.getElementById('calc-teslim');if(toggle)toggle.value=s['calc-teslim'];
-                document.querySelectorAll('#tpl-calculator .teslim-opt, .calc-section .teslim-opt').forEach(o=>{o.classList.toggle('active',o.textContent.trim()===s['calc-teslim']);});}
-            return true;
-        }catch(e){return false;}
-    };
-
-    // ═══ WORD / SUNUM ÇIKTISI (Profesyonel Müşteri Dokümanı) ═══
-    window.exportCalcWord=function(){
-        let gV=id=>{let el=document.getElementById(id);return el?el.innerText||el.value||'-':'-';};
-        let kurEUR=document.getElementById('calc-kur-eur')?.value||'-';
-        let kurUSD=document.getElementById('calc-kur-usd')?.value||'-';
-        let yakit=document.getElementById('calc-yakit')?.value||'-';
-        let motor=document.getElementById('calc-motor')?.value||'-';
-        let gtip=document.getElementById('gtip-display')?.innerText||'-';
-        let teslim=document.getElementById('calc-teslim')?.value||'CIF';
-        let tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
-
-        let html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Vergi Hesaplama Raporu</title>
-<style>
-body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#1e293b;line-height:1.6}
-h1{font-size:22px;color:#1e3a5f;border-bottom:3px solid #3b82f6;padding-bottom:12px;margin-bottom:8px}
-.subtitle{color:#64748b;font-size:13px;margin-bottom:30px}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-.info-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px}
-.info-box .label{font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
-.info-box .value{font-size:16px;font-weight:700;color:#1e293b;margin-top:4px}
-table{width:100%;border-collapse:collapse;margin:20px 0;font-size:13px}
-th{background:#1e3a5f;color:white;padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
-td{padding:10px 14px;border-bottom:1px solid #e2e8f0}
-tr:nth-child(even){background:#f8fafc}
-.section-row td{background:#eff6ff;font-weight:700;color:#1e40af;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-top:2px solid #bfdbfe}
-.total-row td{background:#1e3a5f;color:white;font-weight:700;font-size:14px}
-.grand-total{background:linear-gradient(135deg,#059669,#10b981);color:white;padding:20px;border-radius:10px;text-align:center;margin:24px 0}
-.grand-total .amount{font-size:28px;font-weight:800;letter-spacing:-0.5px}
-.grand-total .label{font-size:12px;opacity:0.85;margin-bottom:6px}
-.fatura-total{background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;padding:20px;border-radius:10px;text-align:center;margin:12px 0}
-.fatura-total .amount{font-size:28px;font-weight:800}
-.fatura-total .label{font-size:12px;opacity:0.85;margin-bottom:6px}
-.footer{margin-top:40px;padding-top:16px;border-top:2px solid #e2e8f0;color:#94a3b8;font-size:11px;display:flex;justify-content:space-between}
-@media print{body{margin:20px}}
-</style></head><body>
-<h1>Sıfır Otomobil İthalat — Vergi & Maliyet Hesaplaması</h1>
-<div class="subtitle">Hazırlanma Tarihi: ${tarih} · GümrükPortal Enterprise</div>
-
-<div class="info-grid">
-<div class="info-box"><div class="label">Yakıt Tipi / Motor</div><div class="value">${yakit} · ${motor}</div></div>
-<div class="info-box"><div class="label">GTİP Kodu</div><div class="value">${gtip}</div></div>
-<div class="info-box"><div class="label">Teslim Şekli</div><div class="value">${teslim}</div></div>
-<div class="info-box"><div class="label">Döviz Kurları</div><div class="value">EUR: ${kurEUR} ₺ · USD: ${kurUSD} ₺</div></div>
-</div>
-
-<table>
-<thead><tr><th style="width:60%">Kalem</th><th style="text-align:right">Tutar</th></tr></thead>
-<tbody>
-<tr class="section-row"><td colspan="2">Gümrük Vergileri</td></tr>
-<tr><td>CIF Kıymet (TL)</td><td style="text-align:right">${gV('res-cif')}</td></tr>
-<tr><td>GV Matrahı</td><td style="text-align:right">${gV('res-gv-matrah')}</td></tr>
-<tr><td>Gümrük Vergisi Tutarı</td><td style="text-align:right">${gV('res-gv-tutar')}</td></tr>
-<tr><td>İlave Gümrük Vergisi</td><td style="text-align:right">${gV('res-ilave-gv')}</td></tr>
-<tr><td>ATR'siz GV</td><td style="text-align:right">${gV('res-atr-tutar')}</td></tr>
-<tr><td style="font-weight:600;color:#1e40af">Ara Toplam</td><td style="text-align:right;font-weight:600;color:#1e40af">${gV('res-ara-toplam')}</td></tr>
-
-<tr class="section-row"><td colspan="2">ÖTV & KDV</td></tr>
-<tr><td>TRT Bandrol (%0.8)</td><td style="text-align:right">${gV('res-trt')}</td></tr>
-<tr><td>ÖTV Matrahı</td><td style="text-align:right">${gV('res-otv-matrahi')}</td></tr>
-<tr><td>Hesaplanan ÖTV</td><td style="text-align:right;color:#dc2626;font-weight:700">${gV('res-otv-tutar')}</td></tr>
-<tr><td>KDV Matrahı</td><td style="text-align:right">${gV('res-kdv-matrahi')}</td></tr>
-<tr><td>KDV Tutarı (%20)</td><td style="text-align:right">${gV('res-kdv-tutar')}</td></tr>
-<tr><td>KKDF Tutarı</td><td style="text-align:right">${gV('res-kkdf-tutar')}</td></tr>
-<tr class="total-row"><td>GÜMRÜK VERGİ TOPLAMI</td><td style="text-align:right">${gV('res-toplam-vergi')}</td></tr>
-
-<tr class="section-row"><td colspan="2">Diğer Masraflar</td></tr>
-<tr><td>Araç + Vergi (EUR)</td><td style="text-align:right">${gV('res-arac-vergi-eur')}</td></tr>
-<tr><td>Diğer Masraflar Toplamı</td><td style="text-align:right">${gV('res-diger-tl')}</td></tr>
-
-<tr class="section-row"><td colspan="2">Kesilecek Fatura Hesabı</td></tr>
-<tr><td>ÖTV Matrahı + Eklenen Kâr</td><td style="text-align:right">${gV('res-s-toplam-matrah')}</td></tr>
-<tr><td>Hesaplanan ÖTV (Satış)</td><td style="text-align:right">${gV('res-s-hesaplanan-otv')}</td></tr>
-<tr><td>ÖTV'nin KDV'si</td><td style="text-align:right">${gV('res-s-otv-kdv')}</td></tr>
-<tr><td>G. Giriş KDV'si</td><td style="text-align:right">${gV('res-s-giris-kdv-out')}</td></tr>
-<tr><td>Gelir Vergisi</td><td style="text-align:right">${gV('res-s-gelir-vergisi-out')}</td></tr>
-<tr><td>Tescil Masrafı</td><td style="text-align:right">${gV('res-s-tescil-out')}</td></tr>
-</tbody></table>
-
-<div class="grand-total"><div class="label">FİNAL MALİYET</div><div class="amount">${gV('res-genel-maliyet')}</div><div style="font-size:13px;opacity:0.8;margin-top:4px">${gV('res-genel-eur')}</div></div>
-<div class="fatura-total"><div class="label">TOPLAM KESİLECEK FATURA</div><div class="amount">${gV('res-s-kesilecek-fatura')}</div></div>
-
-<div class="footer"><span>GümrükPortal Enterprise · ${tarih}</span><span>Bu belge bilgi amaçlıdır. Resmi belge yerine geçmez.</span></div>
-</body></html>`;
-
-        // Yeni sekmede aç (yazdırma + PDF kaydetme için ideal)
-        let win=window.open('','_blank');
-        if(win){win.document.write(html);win.document.close();}
-        else{
-            // Popup engellendiyse dosya olarak indir
-            let blob=new Blob([html],{type:'application/msword'});
-            let a=document.createElement('a');a.href=URL.createObjectURL(blob);
-            a.download='Vergi_Raporu_'+tarih.replace(/\s/g,'_')+'.doc';
-            document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
-        }
-    };
-
-    // ═══ ARANABİLİR FİRMA DROPDOWN ═══
     window.filterFirmDropdown=function(query){
         let list=document.getElementById('da-firma-list');if(!list)return;
         let firms=Object.keys(window.firmData);
@@ -930,8 +397,6 @@ tr:nth-child(even){background:#f8fafc}
         document.getElementById('da-firma-search').value=name;
         document.getElementById('da-firma-list').classList.remove('show');
     };
-
-    // ═══ CIF/EXW TOGGLE ═══
     window.setTeslim=function(val,el){
         document.getElementById('da-teslim').value=val;
         el.parentElement.querySelectorAll('.teslim-opt').forEach(o=>o.classList.remove('active'));
@@ -941,31 +406,27 @@ tr:nth-child(even){background:#f8fafc}
         document.getElementById('calc-teslim').value=val;
         el.parentElement.querySelectorAll('.teslim-opt').forEach(o=>o.classList.remove('active'));
         el.classList.add('active');
-        // EXW seçilince navlun alanlarını göster
-        let ns=document.getElementById('calc-navlun-section');
-        if(ns){if(val==='EXW')ns.style.opacity='1';else ns.style.opacity='0.5';}
         window.calculateTaxes();
     };
 
-    // ═══ ARAÇTAN VERGİ HESAPLAMA ═══
     window.openVehicleCalc=function(idx){
         let d=window.declarationsData[idx];if(!d)return;
         window.renderView('calculator');
         setTimeout(()=>{
-            if(d.fatura&&document.getElementById('calc-fatura'))document.getElementById('calc-fatura').value=d.fatura;
+            if(d.fatura&&document.getElementById('calc-fatura')){
+                document.getElementById('calc-fatura').value=window.formatNumber(d.fatura);
+            }
             window.calculateTaxes();
         },100);
     };
 
-    // ═══ GELİŞMİŞ VERGİ HESAPLAMA ═══
     window.calculateTaxes=function(){
         let gV=id=>{let el=document.getElementById(id);if(!el||!el.value)return 0;return parseFloat(String(el.value).replace(/\./g,"").replace(/,/g,".").trim())||0;};
         let sH=(id,v,eur=false)=>{let el=document.getElementById(id);if(el)el.innerText=window.formatNumber(v)+(eur?' €':' ₺');};
 
-        // Kur belirleme (para birimine göre)
         let currency=document.getElementById('calc-currency')?.value||'EUR';
-        let kurEUR=gV("calc-kur-eur")||38.50;
-        let kurUSD=gV("calc-kur-usd")||36.20;
+        let kurEUR=gV("calc-kur-eur")||51.1069;
+        let kurUSD=gV("calc-kur-usd")||44.3684;
         let kur=currency==='EUR'?kurEUR:kurUSD;
 
         let fat=gV("calc-fatura"),nav=gV("calc-navlun"),sig=gV("calc-sigorta"),yd=gV("calc-yurtdisi"),yi=gV("calc-yurtici"),dmg=gV("calc-damga");
@@ -973,8 +434,10 @@ tr:nth-child(even){background:#f8fafc}
         let tip=document.querySelector('input[name="calc-tip"]:checked')?.value||"AVRUPA";
         let gH=gV("calc-gumruk"),nkl=gV("calc-nakliye"),alm=gV("calc-almanya"),ardTL=gV("calc-ardiye-tl"),tseMTL=gV("calc-tse-muh-tl"),tseHTL=gV("calc-tse-harci-manual");
 
-        // Satış alanları
-        let sK=gV("calc-s-kar"),sgK=gV("calc-s-giris-kdv"),sGV=gV("calc-s-gelir-vergisi"),sTsc=gV("calc-s-tescil");
+        let sK=gV("calc-s-kar"),sGV=gV("calc-s-gelir-vergisi"),sTsc=gV("calc-s-tescil");
+        
+        let teslim=document.getElementById('calc-teslim')?.value||'CIF';
+        if(teslim==='CIF'){nav=0;sig=0;}
 
         let topD=fat+nav+sig+yd;
         let fTL=fat*kur,nTL=nav*kur,sTL=sig*kur,cif=fTL+nTL+sTL,ydTL=yd*kur;
@@ -986,29 +449,28 @@ tr:nth-child(even){background:#f8fafc}
         let topV=kdvT+trt+otvT+atrT+dmg+gvT+ilvT,top=topV+kkdfT;
         let aEUR=kur?(top/kur)+topD:0,aTL=aEUR*kur;
 
-        // Tip bazlı otomatik masraflar
         let mmo=tip==="DEFENDER"?60000:0,isik=tip==="AMERİKAN"?65000:0,cek=tip==="AMERİKAN"?25000:0;
         let dEUR=gH+nkl+alm+(kur?(ardTL+tseHTL+tseMTL+mmo+isik+cek)/kur:0),dTL=dEUR*kur;
         let gEUR=aEUR+dEUR,gTL=aTL+dTL;
 
-        // Kesilecek Fatura Hesabı
-        let sM=otvM+sK; // ÖTV Matrahı + Kâr
+        let sM=otvM+sK; 
         let sOTV=sM*(otvO/100);
-        let sKDV=sOTV*(kdvO/100);
-        let sTopVergi=sOTV+sKDV+sgK;
-        let sFat=sTopVergi+otvM+sGV+sTsc;
+        let sKDV=(sM+sOTV)*(kdvO/100);
+        let sGirisKdv=otvM*(kdvO/100);
+        
+        if(document.getElementById('calc-s-giris-kdv')) document.getElementById('calc-s-giris-kdv').value = window.formatNumber(sGirisKdv);
+        
+        let sFat=sM+sOTV+sKDV+sGV+sTsc;
 
-        // Sonuçları göster
         sH("res-cif",cif);sH("res-gv-matrah",gvM);sH("res-gv-tutar",gvT);sH("res-ilave-gv",ilvT);sH("res-atr-tutar",atrT);sH("res-ara-toplam",araT);
         sH("res-trt",trt);sH("res-otv-matrahi",otvM);sH("res-otv-tutar",otvT);sH("res-kdv-matrahi",kdvM);sH("res-kdv-tutar",kdvT);sH("res-kkdf-tutar",kkdfT);
         sH("res-toplam-vergi",top);sH("res-arac-vergi-eur",aEUR,true);
         sH("res-mmo",mmo);sH("res-isik",isik);sH("res-cekici",cek);
         sH("res-diger-eur",dEUR,true);sH("res-diger-tl",dTL);sH("res-genel-eur",gEUR,true);sH("res-genel-maliyet",gTL);
-        // Kesilecek fatura sonuçları
         sH("res-s-toplam-matrah",sM);sH("res-s-hesaplanan-otv",sOTV);sH("res-s-otv-kdv",sKDV);
-        sH("res-s-giris-kdv-out",sgK);sH("res-s-gelir-vergisi-out",sGV);sH("res-s-tescil-out",sTsc);sH("res-s-kesilecek-fatura",sFat);
-        // Son hesaplamayı localStorage'a kaydet
-        if(window.saveCalcState)window.saveCalcState();
+        sH("res-s-giris-kdv-out",sGirisKdv);sH("res-s-gelir-vergisi-out",sGV);sH("res-s-tescil-out",sTsc);sH("res-s-kesilecek-fatura",sFat);
+
+        window.saveCalcState();
     };
 
     window.renderView=function(vn){
@@ -1017,22 +479,26 @@ tr:nth-child(even){background:#f8fafc}
         let c=document.getElementById('view-container'),t=document.getElementById('tpl-'+vn);
         if(!t)return;c.innerHTML='';c.appendChild(t.content.cloneNode(true));
         document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===vn));
-        if(vn==='dashboard')window.updateDashboardStats();if(vn==='declarations')window.renderDeclarationsTable();if(vn==='kiymetListesi')window.renderKiymetTable();if(vn==='firms')window.renderFirmsList();
+        
+        if(vn==='dashboard')window.updateDashboardStats();
+        if(vn==='declarations')window.renderDeclarationsTable();
+        if(vn==='kiymetListesi')window.renderKiymetTable();
+        if(vn==='firms')window.renderFirmsList();
         if(vn==='firmDetails'){if(document.getElementById('current-firm-title')&&window.currentFirm)document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();}
         if(vn==='calculator'){
-            // Kayıtlı state varsa yükle
-            if(window.loadCalcState)window.loadCalcState();
-            window.updateGTIP();window.calculateTaxes();
-            // İlk açılışta otomatik kur çek (sayfa başına 1 kez)
-            if(!window._kurAutoFetched){window._kurAutoFetched=true;setTimeout(()=>window.fetchTCMBKur(),500);}
+            window.updateGTIP(true); // "true" => İlk yükleme, ÖTV'yi sıfırlama
+            window.loadCalcState();  // Senin kaydettiğin form değerlerini geri getir
+            window.calculateTaxes(); // Son hesabı ekrana bas
         }
         if(window.lucide)lucide.createIcons();
     };
 
     document.querySelectorAll('.nav-btn[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.view)window.renderView(b.dataset.view);}));
+    
     document.addEventListener('DOMContentLoaded',()=>{
         if(localStorage.getItem('gumruk_auth')==='true')document.getElementById('login-screen').style.display='none';
         if(window.lucide)lucide.createIcons();
+        window.fetchTCMBKur(true); // Sayfa açılınca kurları otomatik çek
         if(window._firebaseReady)loadAllData();
     });
 </script>
