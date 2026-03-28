@@ -497,16 +497,7 @@
                 </div>
             </div>
             
-            <div class="calc-section purple">
-                <div class="calc-sec-title"><i data-lucide="receipt"></i> Satış / Kesilecek Fatura</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="input-group" style="margin:0;"><label>Eklenen Kâr (₺)</label><input id="calc-s-kar" type="text" value="100.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()" style="border-color:rgba(168,85,247,0.4);"></div>
-                    <div class="input-group" style="margin:0;"><label>G.Giriş KDV (₺)</label><input id="calc-s-giris-kdv" type="text" value="0" readonly style="color:var(--text-muted);"></div>
-                    <div class="input-group" style="margin:0;"><label>Gelir Vergisi (₺)</label><input id="calc-s-gelir-vergisi" type="text" value="25.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Tescil Masrafı (₺)</label><input id="calc-s-tescil" type="text" value="15.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                </div>
             </div>
-        </div>
         
         <div>
             <div class="result-panel">
@@ -534,14 +525,6 @@
                     <tr class="section-header"><td colspan="2">Masraflar</td></tr>
                     <tr><td class="label-col">Araç+Vergi (EUR)</td><td class="value-col" id="res-arac-vergi-eur">0 €</td></tr>
                     <tr><td class="label-col">Diğer Masraflar</td><td class="value-col" id="res-diger-tl" style="color:var(--warning);">0 ₺</td></tr>
-                    
-                    <tr class="section-header"><td colspan="2">Kesilecek Fatura</td></tr>
-                    <tr><td class="label-col">ÖTV Matrahı + Kâr</td><td class="value-col" id="res-s-toplam-matrah">0 ₺</td></tr>
-                    <tr><td class="label-col">Hesaplanan ÖTV (Satış)</td><td class="value-col" id="res-s-hesaplanan-otv">0 ₺</td></tr>
-                    <tr><td class="label-col">ÖTV'nin KDV'si</td><td class="value-col" id="res-s-otv-kdv">0 ₺</td></tr>
-                    <tr><td class="label-col">G.Giriş KDV'si</td><td class="value-col" id="res-s-giris-kdv-out" style="color:var(--success)">0 ₺</td></tr>
-                    <tr><td class="label-col">Gelir Vergisi</td><td class="value-col" id="res-s-gelir-vergisi-out">0 ₺</td></tr>
-                    <tr><td class="label-col">Tescil Masrafı</td><td class="value-col" id="res-s-tescil-out">0 ₺</td></tr>
                 </table>
                 <div class="result-total" style="background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.05));border:1px solid rgba(16,185,129,0.3);margin-top:16px;">
                     <span class="result-total-label" style="color:var(--success);">FİNAL MALİYET</span>
@@ -549,10 +532,6 @@
                         <div id="res-genel-eur" class="result-total-sub" style="color:rgba(255,255,255,0.6);">0 €</div>
                         <strong id="res-genel-maliyet" class="result-total-value" style="color:#fff;">0 ₺</strong>
                     </div>
-                </div>
-                <div class="result-total" style="background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(168,85,247,0.05));border:1px solid rgba(168,85,247,0.3);margin-top:12px;">
-                    <span class="result-total-label" style="color:var(--kiymet-color);">KESİLECEK FATURA</span>
-                    <strong id="res-s-kesilecek-fatura" class="result-total-value" style="color:#fff;">0 ₺</strong>
                 </div>
             </div>
         </div>
@@ -596,226 +575,497 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 </script>
 
 <script>
-    // ... (üstteki tüm fonksiyonlar aynı kalıyor: showSyncToast, doLogin, fixExcelDate vb.)
+    // TOAST ve GENEL MANTIK
+    function showSyncToast(text,ok=false){const t=document.getElementById('sync-toast'),ic=document.getElementById('sync-icon');document.getElementById('sync-text').innerText=text;if(ok){ic.style.animation='none';ic.style.border='none';ic.innerHTML='<i data-lucide="check-circle" style="color:var(--success);width:16px;height:16px;"></i>';if(window.lucide)lucide.createIcons();}else{ic.innerHTML='';ic.style.border='2px solid rgba(255,255,255,0.1)';ic.style.borderTopColor='var(--primary)';ic.style.animation='spin 1s linear infinite';}t.classList.add('show');}
+    function hideSyncToast(text,ok=true){showSyncToast(text,ok);setTimeout(()=>document.getElementById('sync-toast').classList.remove('show'),2500);}
 
-    // GTİP ve ÖTV tabloları aynı kalıyor
-    window.GTIP_TABLE = { /* ... aynı ... */ };
-    window.OTV_SUGGEST = { /* ... aynı ... */ };
+    window.doLogin=function(){const u=document.getElementById('log-email').value.trim();const p=document.getElementById('log-pass').value;if((u==='admin'&&p==='Bayram2026')||(u==='admin@gumruk.com'&&p==='Bayram2026')){localStorage.setItem('gumruk_auth','true');const s=document.getElementById('login-screen');s.style.opacity='0';s.style.transition='all 0.4s';setTimeout(()=>s.style.display='none',400);}else{document.getElementById('auth-alert').innerText='Hatalı giriş bilgisi.';document.getElementById('auth-alert').style.display='block';}};
 
-    // ====================== KALICILIK + HESAPLAMA ======================
-    window.saveCalcState = function() {
-        const inputs = [
-            'calc-currency', 'calc-kur-eur', 'calc-kur-usd',
-            'calc-yakit', 'calc-motor', 'calc-teslim',
-            'calc-fatura', 'calc-navlun', 'calc-sigorta', 
-            'calc-yurtdisi', 'calc-yurtici', 'calc-damga',
-            'calc-otv-oran', 'calc-kdv-oran', 'calc-gv-oran',
-            'calc-ilave-gv-oran', 'calc-kkdf-oran', 'calc-atr-oran',
-            'calc-gumruk', 'calc-nakliye', 'calc-almanya',
-            'calc-ardiye-tl', 'calc-tse-muh-tl', 'calc-tse-harci-manual',
-            'calc-s-kar', 'calc-s-gelir-vergisi', 'calc-s-tescil'
-        ];
+    window.declarationsData=[]; window.firmData={}; window.kiymetData=[];
+    
+    window.fixExcelDate=function(v){if(!v)return'';if(typeof v==='number'||(!isNaN(v)&&Number(v)>30000)){try{let d=new Date((Number(v)-25569)*86400*1000);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}catch(e){return v;}}if(typeof v==='string'&&v.includes('T')){try{let d=new Date(v);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}catch(e){}}return String(v).trim();};
+    window.parseTRDate=function(s){if(!s||s.trim().length<8)return null;let p=s.trim().split(/[\.\-\/]/);if(p.length!==3)return null;let d,m,y;if(p[0].length===4){y=parseInt(p[0]);m=parseInt(p[1])-1;d=parseInt(p[2]);}else{d=parseInt(p[0]);m=parseInt(p[1])-1;y=parseInt(p[2]);if(y<100)y+=2000;}let dt=new Date(y,m,d);dt.setHours(0,0,0,0);return isNaN(dt.getTime())?null:dt;};
+    window.formatTRDate=function(d){if(!d||isNaN(d.getTime()))return"";return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;};
+    window.addDays=function(d,n){if(!d)return null;let r=new Date(d);r.setDate(r.getDate()+Number(n));return r;};
+    window.diffDaysSigned=function(a,b){if(!a||!b)return 0;return Math.round((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())-Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/(864e5));};
+    window.formatNumber=function(v){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;return n.toLocaleString('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0});};
+    window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
-        const state = {};
-        inputs.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) state[id] = el.value;
-        });
+    // CLOUD SYNC
+    function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));}catch(e){}}
+    function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);}catch(e){}}
 
-        // Teslim tipi
-        const teslim = document.getElementById('calc-teslim')?.value || 'CIF';
-        state['calc-teslim'] = teslim;
+    let cloudSaveTimeout=null;
+    function saveData(type){
+        saveToLocal();
+        showSyncToast("Firebase'e kaydediliyor...");
+        clearTimeout(cloudSaveTimeout);
+        cloudSaveTimeout=setTimeout(async()=>{
+            if(window._firebaseSave){
+                let ok=await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData});
+                if(ok)hideSyncToast("Firebase'e kaydedildi!",true);else hideSyncToast("Kayıt başarısız!",false);
+            }else{hideSyncToast("Firebase henüz hazır değil",false);}
+        },1500);
+    }
 
-        // Araç tipi (Avrupa / Amerikan / Defender)
-        const tipRadio = document.querySelector('input[name="calc-tip"]:checked');
-        if (tipRadio) state['calc-tip'] = tipRadio.value;
+    window.forceCloudSync=function(){loadAllData();};
 
-        localStorage.setItem('gumruk_calc_state_v7', JSON.stringify(state));
-    };
-
-    window.loadCalcState = function() {
-        const saved = localStorage.getItem('gumruk_calc_state_v7');
-        if (!saved) return;
-
-        try {
-            const state = JSON.parse(saved);
-            Object.keys(state).forEach(key => {
-                const el = document.getElementById(key);
-                if (el) el.value = state[key];
-            });
-
-            // Teslim tipi aktifleştir
-            if (state['calc-teslim']) {
-                document.querySelectorAll('.teslim-opt').forEach(opt => {
-                    opt.classList.toggle('active', opt.innerText === state['calc-teslim']);
-                });
+    async function loadAllData(){
+        showSyncToast("Firebase'den veriler çekiliyor...");
+        if(window._firebaseLoad){
+            let data=await window._firebaseLoad();
+            if(data){
+                window.declarationsData=data.decl||[];
+                window.firmData=data.firm||{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
+                window.kiymetData=data.kiymet||[];
+                
+                window.declarationsData.forEach(d=>{if(d){d.tarih=window.fixExcelDate(d.tarih);d.kiymVv=window.fixExcelDate(d.kiymVv);d.kiymGt=window.fixExcelDate(d.kiymGt);d.ekSure=window.fixExcelDate(d.ekSure);d.antTarih=window.fixExcelDate(d.antTarih);d.beynmCif=window.fixExcelDate(d.beynmCif);}});
+                Object.keys(window.firmData).forEach(fn=>{(window.firmData[fn]||[]).forEach(p=>{if(p)p.tarih=window.fixExcelDate(p.tarih);});});
+                window.kiymetData.forEach(k=>{if(k)k.tarih=window.fixExcelDate(k.tarih);});
+                
+                saveToLocal();
+                hideSyncToast("Firebase'den çekildi!",true);
+            }else{
+                hideSyncToast("Çevrimdışı mod.",false);
+                loadFromLocal();
             }
-
-            // Araç tipi seçimi
-            if (state['calc-tip']) {
-                const radio = document.getElementById('tip-' + state['calc-tip'].toLowerCase());
-                if (radio) radio.checked = true;
-            }
-
-        } catch(e) { console.log("Calc state yüklenemedi"); }
-    };
-
-    // ====================== GTİP GÜNCELLEME ======================
-    window.updateGTIP = function(isInitial = false) {
-        const yakit = document.getElementById('calc-yakit')?.value || 'BENZİNLİ';
-        const motor = document.getElementById('calc-motor')?.value || '1600-2000';
-
-        const gtip = window.GTIP_TABLE[yakit]?.[motor] || '8703.2319.1200';
-        const otv  = window.OTV_SUGGEST[yakit]?.[motor] || 220;
-
-        const gtipEl = document.getElementById('gtip-display');
-        if (gtipEl) gtipEl.innerText = 'GTİP: ' + gtip;
-
-        if (!isInitial) {
-            const otvSel = document.getElementById('calc-otv-oran');
-            if (otvSel) otvSel.value = String(otv);
+        }else{
+            loadFromLocal();
+            hideSyncToast("Firebase bekleniyor...",false);
         }
+        
+        let lv=localStorage.getItem('gumruk_last_view')||'dashboard';
+        if(lv==='firmDetails'){
+            let lf=localStorage.getItem('gumruk_last_firm');
+            if(lf&&window.firmData[lf]){window.currentFirm=lf;window.renderView('firmDetails');}else window.renderView('firms');
+        }else window.renderView(lv);
+    }
 
+    window._onFirebaseReady=function(){loadAllData();};
+
+    window.exportBackup=function(){let d={decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData};let a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(d));a.download="gumruk_yedek.json";document.body.appendChild(a);a.click();a.remove();};
+    window.importBackup=function(event){let file=event.target.files[0];if(!file)return;let r=new FileReader();r.onload=function(e){try{let d=JSON.parse(e.target.result);if(d.decl){window.declarationsData=d.decl;window.kiymetData=d.kiymet||[];if(d.firm)window.firmData=d.firm;saveData('all');alert("Yüklendi!");location.reload();}}catch(err){alert("Hata!");}};r.readAsText(file);document.getElementById('import-backup-file').value="";};
+
+    // CRUD FONKSİYONLARI
+    window.addNewFirm=function(){let n=prompt("Firma Adı:");if(n&&n.trim()){let name=n.trim().toUpperCase();if(!window.firmData[name]){window.firmData[name]=[];saveData('firm');window.renderView('firms');}}};
+    window.deleteFirm=function(fn,e){e.stopPropagation();let name=fn.replace(/&quot;/g,'"');if(confirm(`'${name}' firmasını SİL?`)){delete window.firmData[name];saveData('firm');window.renderView('firms');}};
+    window.deleteDeclaration=function(i){if(confirm('Sil?')){window.declarationsData.splice(i,1);saveData('decl');window.renderDeclarationsTable();}};
+    window.deleteFirmVehicle=function(i){if(confirm('Sil?')){window.firmData[window.currentFirm].splice(i,1);saveData('firm');window.renderFirmVehicles();}};
+
+    window.inlineEditDate=function(el,idx,field){if(el.querySelector('input'))return;let cur=window.declarationsData[idx][field]||'';let iso='';if(cur){let p=cur.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}el.innerHTML=`<input type="date" value="${iso}" style="padding:4px;height:28px;font-size:12px;" onblur="window.saveInlineDate(this,${idx},'${field}')" onchange="window.saveInlineDate(this,${idx},'${field}')">`;let inp=el.querySelector('input');inp.focus();inp.showPicker&&inp.showPicker();};
+    window.saveInlineDate=function(inp,idx,field){let iso=inp.value;let tr='';if(iso){let p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;}if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{inp.parentElement.innerHTML=tr||'-';}};
+
+    // MANTIK: ARDİYE VE SÜRELER
+    window.calculateVehicleMetrics=function(data){
+        let today=new Date();today.setHours(0,0,0,0);
+        let E=window.parseTRDate(data.tarih),G=window.parseTRDate(data.ekSure),H=window.parseTRDate(data.antTarih);
+        let I=window.parseTRDate(data.beynmCif),J=window.parseTRDate(data.kiymVv),K=window.parseTRDate(data.kiymGt);
+        let result={ilkSureSonu:"",klnSonTarih:"",klnGun:"",kiymGecen:"",sonGun:"",ardiye:0,gecenGun:""};
+        if(!E)return result;
+        
+        let F=window.addDays(E,20);result.ilkSureSonu=window.formatTRDate(F);
+        
+        let L_date=null;
+        if(I){L_date=window.addDays(I,29);}
+        else if(H){result.klnSonTarih="Süresiz";}
+        else if(G){L_date=window.addDays(G>F?G:F,29);}
+        else{L_date=F;}
+        
+        if(L_date)result.klnSonTarih=window.formatTRDate(L_date);
+        
+        let kiymGecen=0;
+        if(J){if(K){kiymGecen=window.diffDaysSigned(K,J);result.kiymGecen=kiymGecen;}else{result.kiymGecen="Kıymette";}}
+        else if(H&&!I){result.kiymGecen="Süresiz";}
+        
+        let sonGunDate=null;
+        if(!J&&!K){result.sonGun=result.klnSonTarih||"";sonGunDate=L_date;}
+        else if(J&&!K){result.sonGun="Kıymette";sonGunDate=null;}
+        else if(J&&K&&L_date){sonGunDate=window.addDays(L_date,kiymGecen);result.sonGun=window.formatTRDate(sonGunDate);}
+        else if(!L_date){result.sonGun="Süresiz";sonGunDate=null;}
+        
+        if(result.klnSonTarih==="Süresiz"&&!J&&!K){result.klnGun="Süresiz";}
+        else if(J&&!K){if(L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else result.klnGun="Süresiz";}
+        else if(sonGunDate){let d=window.diffDaysSigned(sonGunDate,today);result.klnGun=d<0?0:d;}
+        else if(I){let p30=window.addDays(I,30);result.klnGun=p30>today?window.diffDaysSigned(p30,today):0;}
+        else if(!H&&L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}
+        else{result.klnGun="Süresiz";}
+        
+        let gun=window.diffDaysSigned(today,E)+1;result.gecenGun=gun;
+        if(gun>0){if(gun<=20)result.ardiye=gun*145;else if(gun<=50)result.ardiye=2900+(gun-20)*725;else if(gun<=80)result.ardiye=24650+(gun-50)*1160;else result.ardiye=59450+(gun-80)*1450;}
+        return result;
+    };
+
+    window.declAutoCalc=function(){
+        let val=id=>document.getElementById(id)?.value;
+        let isoToTR=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
+        let data={tarih:isoToTR(val('da-tarih')),ekSure:isoToTR(val('da-ekSure')),antTarih:isoToTR(val('da-antTarih')),beynmCif:isoToTR(val('da-beynmCif')),kiymVv:isoToTR(val('da-kiymVv')),kiymGt:isoToTR(val('da-kiymGt')),evrak:val('da-evrak')};
+        if(!data.tarih)return;let m=window.calculateVehicleMetrics(data);
+        let set=(id,v)=>{if(document.getElementById(id))document.getElementById(id).innerHTML=v;};
+        
+        set('da-prev-ilkSure',m.ilkSureSonu||'-');
+        let kh='-';if(m.klnGun!==''&&m.klnGun!=='Süresiz'){let v=parseInt(m.klnGun);if(v<=5)kh=`<span class="text-danger font-bold">${v} Gün</span>`;else if(v<=20)kh=`<span class="text-warning">${v} Gün</span>`;else kh=`<span class="text-success">${v} Gün</span>`;}else if(m.klnGun==='Süresiz')kh='<span class="text-muted">Süresiz</span>';
+        set('da-prev-klnGun',kh);
+        set('da-prev-ardiye',window.formatNumber(m.ardiye)+' ₺');
+        set('da-prev-sonGun',m.sonGun||'-');
+        set('da-prev-kiymGecen',m.kiymGecen!==''?m.kiymGecen:'-');
+    };
+
+    window.sortState={col:'tarih',asc:false};
+    window.sortData=function(ctx){window.sortState.asc=!window.sortState.asc;let mul=window.sortState.asc?1:-1;let pD=s=>{if(!s)return 0;let c=window.fixExcelDate(s);let p=c.split('.');return p.length===3?parseInt(p[2]+p[1]+p[0]):0;};if(ctx==='decl'){window.declarationsData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('decl');window.renderDeclarationsTable();}else if(ctx==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('firm');window.renderFirmVehicles();}else if(ctx==='kiymet'){window.kiymetData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('kiymet');window.renderKiymetTable();}};
+    window.goToFilter=function(f){window.renderView('declarations');let el=document.getElementById('decl-status-filter');if(el){el.value=f;window.renderDeclarationsTable();}};
+
+    // DÜZELTİLMİŞ CANLI ARAMA
+    let _searchTimeout=null;
+    window.liveSearch=function(query){
+        clearTimeout(_searchTimeout);
+        let dd=document.getElementById('live-search-dropdown');if(!dd)return;
+        if(!query||query.trim().length<2){dd.classList.remove('show');dd.innerHTML='';return;}
+        
+        _searchTimeout=setTimeout(()=>{
+            let qWords = query.toLocaleLowerCase('tr').trim().split(/\s+/);
+            let match = v => v && qWords.every(qw => v.toLocaleLowerCase('tr').includes(qw));
+            let items=[];
+            
+            (window.declarationsData||[]).forEach((d,i)=>{
+                let searchStr = `${d.sasi||''} ${d.marka||''} ${d.model||''} ${d.firma||''} ${d.beyanname||''}`;
+                if(match(searchStr)) items.push({type:'decl',idx:i,title:`${d.marka||''} ${d.model||''}`.trim()||'(Araç)',sub:`${d.firma||''} · ${d.sasi||'-'}${d.beyanname?' · Byn:'+d.beyanname:''}`,badge:'Gelen',color:'59,130,246'});
+            });
+            (window.kiymetData||[]).forEach((k,i)=>{
+                let searchStr = `${k.sasi||''} ${k.marka||''} ${k.model||''} ${k.durum||''}`;
+                if(match(searchStr)) items.push({type:'kiymet',idx:i,title:`${k.marka||''} ${k.model||''}`.trim(),sub:`Şasi: ${k.sasi||'-'}`,badge:'Kıymet',color:'168,85,247'});
+            });
+            Object.keys(window.firmData||{}).forEach(fn=>{
+                (window.firmData[fn]||[]).forEach((d,i)=>{
+                    let searchStr = `${d.sasi||''} ${d.marka||''} ${d.model||''} ${fn}`;
+                    if(match(searchStr)) items.push({type:'firm',idx:i,firmName:fn,title:`${d.marka||''} ${d.model||''}`.trim(),sub:`${fn} · ${d.sasi||'-'}`,badge:'Firma',color:'16,185,129'});
+                });
+            });
+            
+            if(!items.length){
+                dd.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Kayıt bulunamadı</div>';
+            }else{
+                dd.innerHTML=items.slice(0,12).map(r=>`<div class="ls-item" onmousedown="event.preventDefault();window.searchGoTo('${r.type}',${r.idx},'${(r.firmName||'').replace(/'/g,"\\'")}')"><div><div class="ls-item-title">${r.title||'(Bilinmiyor)'}</div><div class="ls-item-sub">${r.sub}</div></div><span class="ls-badge" style="background:rgba(${r.color},0.12);color:rgb(${r.color});border:1px solid rgba(${r.color},0.2);">${r.badge}</span></div>`).join('')+(items.length>12?`<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:11px;">+${items.length-12} daha</div>`:'');
+            }
+            dd.classList.add('show');
+            if(window.lucide)lucide.createIcons();
+        }, 300);
+    };
+    
+    document.addEventListener('mousedown',function(e){
+        let dd=document.getElementById('live-search-dropdown');
+        let sw=document.querySelector('.search-wrap');
+        if(dd&&sw&&!sw.contains(e.target)){dd.classList.remove('show');}
+    });
+
+    window.searchGoTo=function(type,idx,firmName){
+        let dd=document.getElementById('live-search-dropdown');if(dd){dd.classList.remove('show');dd.innerHTML='';}
+        let inp=document.getElementById('global-search-input');if(inp)inp.value='';
+        if(type==='decl'){window.renderView('declarations');setTimeout(()=>window.openDeclVehicleModal(idx,'decl'),150);}
+        else if(type==='kiymet'){window.renderView('kiymetListesi');}
+        else if(type==='firm'){window.currentFirm=firmName;window.renderView('firmDetails');setTimeout(()=>window.openDeclVehicleModal(idx,'firm'),150);}
+    };
+    window.handleGlobalSearch=function(v){window.liveSearch(v);};
+
+    // TCMB KUR ÇEKME (GÜVENLİ PROXY)
+    window.fetchTCMBKur = async function(auto = false) {
+        let st = document.getElementById('kur-status');
+        if(st){ st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB Çekiliyor...'; st.className = 'kur-badge kur-manual'; }
+        
+        try {
+            const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://www.tcmb.gov.tr/kurlar/today.xml");
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('TCMB API hatası');
+            
+            const data = await response.json();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+            
+            const currencies = xmlDoc.getElementsByTagName("Currency");
+            let usdRate = null;
+            let eurRate = null;
+            
+            for (let i = 0; i < currencies.length; i++) {
+                let code = currencies[i].getAttribute("CurrencyCode");
+                let sellingNode = currencies[i].getElementsByTagName("ForexSelling")[0];
+                if (sellingNode && sellingNode.textContent) {
+                    let rate = parseFloat(sellingNode.textContent.replace(',', '.'));
+                    if (code === "USD") usdRate = rate;
+                    if (code === "EUR") eurRate = rate;
+                }
+            }
+            
+            if (!usdRate || !eurRate) throw new Error('Kurlar bulunamadı');
+            
+            if (document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = usdRate.toFixed(4).replace('.', ',');
+            if (document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = eurRate.toFixed(4).replace('.', ',');
+            
+            if(st){ st.innerHTML = '✓ TCMB Döviz Satış'; st.className = 'kur-badge kur-live'; }
+            
+            localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({ usd: usdRate, eur: eurRate, date: new Date().toLocaleDateString('tr-TR') }));
+            
+            window.calculateTaxes();
+            if(!auto) hideSyncToast("TCMB Kuru Çekildi!", true);
+            
+        } catch (error) {
+            console.warn("TCMB Kur Çekme Hatası:", error);
+            try {
+                let lastKur = JSON.parse(localStorage.getItem('gumruk_tcmb_last_kur'));
+                if (lastKur && lastKur.usd && lastKur.eur) {
+                    if (document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = lastKur.usd.toFixed(4).replace('.', ',');
+                    if (document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = lastKur.eur.toFixed(4).replace('.', ',');
+                    if(st){ st.innerHTML = '⚠ Son TCMB Kuru (' + lastKur.date + ')'; st.className = 'kur-badge kur-manual'; }
+                } else {
+                    if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
+                }
+            } catch(e) {
+                if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
+            }
+            if(!auto) hideSyncToast("TCMB Bağlantı Hatası!", false);
+        }
+        if(window.lucide) lucide.createIcons();
+    };
+
+    // EXCEL VE WORD (PROFESYONEL SUNUM) ÇIKTILARI (GÜNCELLENDİ)
+    window.exportCalcExcel=function(){
+        let rows=[['KALEM','DEĞER']];
+        document.querySelectorAll('.calc-result-table tr').forEach(tr=>{
+            let cells=tr.querySelectorAll('td');
+            if(cells.length>=2)rows.push([cells[0].innerText.trim(),cells[1].innerText.trim()]);
+            else if(cells.length===1)rows.push([cells[0].innerText.trim(),'']);
+        });
+        let fm=document.getElementById('res-genel-maliyet');if(fm)rows.push(['FİNAL MALİYET',fm.innerText]);
+        if(typeof XLSX!=='undefined'){
+            let ws=XLSX.utils.aoa_to_sheet(rows);let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Vergi Hesaplama');
+            XLSX.writeFile(wb,'Sifir_Otomobil_Maliyet_Analizi.xlsx');
+        }
+    };
+
+    window.exportToWord = function() {
+        const getV = id => document.getElementById(id) ? document.getElementById(id).innerText : '';
+        const getI = id => document.getElementById(id) ? document.getElementById(id).value : '';
+        const content = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>Maliyet Analizi</title><style>body{font-family:Arial,sans-serif;color:#333;}h1{color:#1e3a8a;text-align:center;border-bottom:2px solid #3b82f6;padding-bottom:10px;}h3{color:#2563eb;margin-top:20px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th,td{border:1px solid #cbd5e1;padding:8px 12px;text-align:left;}th{background-color:#f1f5f9;color:#0f172a;}.total-row{background-color:#e0f2fe;font-weight:bold;}.final-row{background-color:#10b981;color:white;font-weight:bold;font-size:16px;}</style></head>
+            <body>
+                <h1>Sıfır Otomobil İthalat Maliyet ve Vergi Analizi</h1>
+                <p style="text-align: right;"><b>Tarih:</b> ${new Date().toLocaleDateString('tr-TR')}</p>
+                <h3>1. Araç ve Temel Bilgiler</h3>
+                <table><tr><th>GTİP Kodu</th><td>${getV('res-gtip-mini')}</td></tr><tr><th>Teslim Şekli</th><td>${getI('calc-teslim')}</td></tr><tr><th>Kur Bazi</th><td>${getI('calc-currency')}</td></tr><tr><th>Fatura Tutarı</th><td>${getI('calc-fatura')}</td></tr></table>
+                <h3>2. Gümrük ve Vergi Matrahları</h3>
+                <table><tr><th>CIF Kıymet (TL)</th><td>${getV('res-cif')}</td></tr><tr><th>Gümrük Vergisi Tutarı</th><td>${getV('res-gv-tutar')}</td></tr><tr><th>İlave Gümrük Vergisi</th><td>${getV('res-ilave-gv')}</td></tr><tr><th>ÖTV Matrahı</th><td>${getV('res-otv-matrahi')}</td></tr><tr><th>Hesaplanan ÖTV Tutarı</th><td style="color:#ef4444; font-weight:bold;">${getV('res-otv-tutar')}</td></tr><tr><th>Gümrük Giriş KDV Tutarı</th><td>${getV('res-kdv-tutar')}</td></tr><tr class="total-row"><th>TOPLAM VERGİ YÜKÜ</th><td style="color:#ef4444;">${getV('res-toplam-vergi')}</td></tr></table>
+                <h3>3. Maliyet Detayları</h3>
+                <table><tr><th>Araç + Vergi (EUR)</th><td>${getV('res-arac-vergi-eur')}</td></tr><tr><th>Diğer Masraflar</th><td>${getV('res-diger-tl')}</td></tr><tr class="final-row"><th>FİNAL MALİYET</th><td>${getV('res-genel-maliyet')}</td></tr></table>
+            </body></html>`;
+        const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Maliyet_Analizi.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
+
+    window.updateDashboardStats=function(){if(!window.declarationsData)return;let t=window.declarationsData.length;let ki=window.declarationsData.filter(d=>d.kiymVv&&!d.kiymGt).length;let ac=window.declarationsData.filter(d=>{let e=(d.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';}).length;if(document.getElementById('dash-total'))document.getElementById('dash-total').innerText=t;if(document.getElementById('dash-kiymet'))document.getElementById('dash-kiymet').innerText=ki;if(document.getElementById('dash-ambar'))document.getElementById('dash-ambar').innerText=ac;};
+
+    window.renderDeclarationsTable=function(){
+        let tbody=document.getElementById('declarations-tbody');if(!tbody)return;
+        let fv=document.getElementById('decl-status-filter')?.value||'all';
+        let list=window.declarationsData.map((d,i)=>({data:d,origIdx:i}));
+        if(fv==='acik')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';});
+        else if(fv==='kiymet')list=list.filter(x=>x.data.kiymVv&&!x.data.kiymGt);
+        if(!list.length){tbody.innerHTML=`<tr><td colspan="18" style="text-align:center;padding:48px;color:var(--text-muted);">Kayıt bulunamadı.</td></tr>`;return;}
+        tbody.innerHTML=list.map(item=>{
+            let d=item.data,i=item.origIdx,m=window.calculateVehicleMetrics(d);
+            let isKiymette=d.kiymVv&&!d.kiymGt;
+            let isAcik=(d.evrak||'').toLocaleLowerCase('tr')==='açık'||(d.evrak||'').toLocaleLowerCase('tr')==='acik';
+            let isKapali=!isAcik&&(m.klnGun===0||m.klnGun==='0');
+            let rc=isKiymette?'row-kiymette':isAcik&&!isKiymette?'row-beklemede':isKapali?'row-kapali':'';
+            let kh='-';
+            if(m.klnGun===0||m.klnGun==='0')kh='<span style="color:#52525b;">0</span>';
+            else if(m.klnGun!==''&&m.klnGun!=='Süresiz'){let v=parseInt(m.klnGun);if(isNaN(v)||v<=0)kh='<span style="color:#52525b;">0</span>';else if(v<=5)kh=`<span class="urgent-pulse">${v}</span>`;else if(v<=20)kh=`<span class="text-warning">${v}</span>`;else kh=`<span class="text-success">${v}</span>`;}
+            else if(m.klnGun==='Süresiz')kh='<span class="text-muted">Süresiz</span>';
+            let sh=m.sonGun||'-';
+            if(m.sonGun==='Kıymette')sh='<span class="badge badge-kiymette">Kıymette</span>';
+            else if(m.sonGun&&m.sonGun!=='Süresiz')sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
+            let evBadge=isAcik?'<span class="badge badge-warning">Açık</span>':'<span class="badge badge-dark">Kapalı</span>';
+            return `<tr class="${rc}"><td style="text-align:center;"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td><td><span class="font-bold" style="color:#fff;">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''}</span></td><td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td><td class="inline-date" onclick="window.inlineEditDate(this,${i},'tarih')">${d.tarih||'-'}</td><td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td><td class="inline-date" onclick="window.inlineEditDate(this,${i},'ekSure')">${d.ekSure||'-'}</td><td class="inline-date" onclick="window.inlineEditDate(this,${i},'antTarih')">${d.antTarih||'-'}</td><td class="inline-date" onclick="window.inlineEditDate(this,${i},'beynmCif')">${d.beynmCif||'-'}</td><td class="inline-date" onclick="window.inlineEditDate(this,${i},'kiymVv')">${d.kiymVv||'-'}</td><td class="inline-date" onclick="window.inlineEditDate(this,${i},'kiymGt')">${d.kiymGt||'-'}</td><td>${m.klnSonTarih||'-'}</td><td class="font-bold">${kh}</td><td>${sh}</td><td>${evBadge}</td><td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td><td style="color:var(--danger);font-weight:600;">${window.formatNumber(m.ardiye)} ₺</td><td style="text-align:center;"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.openDeclVehicleModal(${i},'decl')"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteDeclaration(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;
+        }).join('');
+        document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();if(window.lucide)lucide.createIcons();
+    };
+
+    window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div></div>`;}).join('');if(window.lucide)lucide.createIcons();};
+    window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
+    window.renderFirmVehicles=function(){let tb=document.getElementById('firm-vehicles-tbody');if(!tb||!window.currentFirm)return;let arr=window.firmData[window.currentFirm]||[];if(!arr.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:48px;color:var(--text-muted);">Araç yok.</td></tr>';return;}tb.innerHTML=arr.map((d,i)=>`<tr><td style="text-align:center;"><input type="checkbox" class="custom-cb firm-cb" value="${i}" onclick="window.toggleFirmCb()"></td><td><span class="font-bold" style="color:#fff;">${d.marka||'-'} ${d.model||'-'}</span></td><td>${d.yil||'-'}</td><td>${d.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${d.sasi||'-'}</td><td>${d.tarih||'-'}</td><td>${d.beyanname||'-'}</td><td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${d.kiymet?window.formatNumber(d.kiymet)+' €':'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.openDeclVehicleModal(${i},'firm')"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`).join('');document.getElementById('firm-select-all').checked=false;window.toggleFirmCb();if(window.lucide)lucide.createIcons();};
+    window.renderKiymetTable=function(){let tb=document.getElementById('kiymet-tbody');if(!tb)return;tb.innerHTML=window.kiymetData.map((k,i)=>{let dc=k.durum&&k.durum.toUpperCase().includes('MAHKEME')?'badge-danger':(k.durum&&k.durum.toUpperCase().includes('YOK')?'badge-dark':'badge-warning');return`<tr><td style="text-align:center;"><input type="checkbox" class="custom-cb kiymet-cb" value="${i}" onclick="window.toggleKiymetCb()"></td><td><span class="font-bold" style="color:#fff;">${k.marka||'-'} ${k.model||'-'}</span></td><td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura?window.formatNumber(k.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${k.kiymet?window.formatNumber(k.kiymet)+' €':'-'}</td><td>${k.durum?`<span class="badge ${dc}">${k.durum}</span>`:'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.editKiymet(${i})"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteKiymet(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;}).join('');document.getElementById('kiymet-selectAll').checked=false;window.toggleKiymetCb();if(window.lucide)lucide.createIcons();};
+
+    window.toggleDeclCb=function(){let c=document.querySelectorAll('.decl-cb:checked'),b=document.getElementById('decl-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('decl-sel-count').innerText=c.length;}else b.classList.add('hidden');}};
+    window.toggleAllDeclarations=function(v){document.querySelectorAll('.decl-cb').forEach(c=>c.checked=v);window.toggleDeclCb();};
+    window.bulkDeleteDeclarations=function(){let c=document.querySelectorAll('.decl-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a).forEach(i=>window.declarationsData.splice(i,1));saveData('decl');window.renderDeclarationsTable();}};
+    window.toggleAllFirmVehicles=function(v){document.querySelectorAll('.firm-cb').forEach(c=>c.checked=v);window.toggleFirmCb();};
+    window.toggleFirmCb=function(){let c=document.querySelectorAll('.firm-cb:checked'),b=document.getElementById('firm-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('firm-selected-count').innerText=c.length;}else b.classList.add('hidden');}};
+    window.bulkDeleteFirmVehicles=function(){let c=document.querySelectorAll('.firm-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a).forEach(i=>window.firmData[window.currentFirm].splice(i,1));saveData('firm');window.renderFirmVehicles();}};
+    window.toggleSelectAllKiymet=function(v){document.querySelectorAll('.kiymet-cb').forEach(c=>c.checked=v);window.toggleKiymetCb();};
+    window.toggleKiymetCb=function(){let c=document.querySelectorAll('.kiymet-cb:checked'),b=document.getElementById('kiymet-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('kiymet-sel-count').innerText=c.length;}else b.classList.add('hidden');}};
+    window.deleteSelectedKiymets=function(){let c=document.querySelectorAll('.kiymet-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a).forEach(i=>window.kiymetData.splice(i,1));saveData('kiymet');window.renderKiymetTable();}};
+    window.deleteKiymet=function(i){if(confirm('Sil?')){window.kiymetData.splice(i,1);saveData('kiymet');window.renderKiymetTable();}};
+    window.openKiymetModal=function(){document.getElementById('kiymet-modal').classList.remove('hidden');document.getElementById('km-edit-index').value='-1';};
+    window.closeKiymetModal=function(){document.getElementById('kiymet-modal').classList.add('hidden');};
+    window.editKiymet=function(i){let k=window.kiymetData[i];['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id=>{if(document.getElementById('km-'+id))document.getElementById('km-'+id).value=k[id]||'';});document.getElementById('km-edit-index').value=i;document.getElementById('kiymet-modal').classList.remove('hidden');};
+    window.saveNewKiymet=function(){let i=parseInt(document.getElementById('km-edit-index').value);let r={marka:document.getElementById('km-marka').value.toUpperCase(),model:document.getElementById('km-model').value.toUpperCase(),yil:document.getElementById('km-yil').value,renk:document.getElementById('km-renk').value.toUpperCase(),sasi:document.getElementById('km-sasi').value.toUpperCase(),tarih:document.getElementById('km-tarih').value,fatura:document.getElementById('km-fatura').value,kiymet:document.getElementById('km-kiymet').value,durum:document.getElementById('km-durum').value};if(i===-1)window.kiymetData.unshift(r);else window.kiymetData[i]=r;saveData('kiymet');window.closeKiymetModal();window.renderKiymetTable();};
+
+    window.openDeclVehicleModal=function(idx=-1,ctx='decl'){
+        window.currentModalContext=ctx;document.getElementById('decl-modal').classList.remove('hidden');document.getElementById('decl-edit-idx').value=idx;
+        let firmList=document.getElementById('da-firma-list');
+        if(firmList)firmList.innerHTML=Object.keys(window.firmData).map(f=>`<div class="firm-dropdown-item" onmousedown="window.selectFirm('${f.replace(/'/g,"\\'")}')">${f}</div>`).join('');
+        let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
+        if(idx===-1||!d){['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','fatura','kiymet'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});document.getElementById('da-tarih').value=new Date().toISOString().split('T')[0];document.getElementById('da-evrak').value='Kapalı';
+        let defFirm=ctx==='firm'?window.currentFirm:(Object.keys(window.firmData)[0]||'');document.getElementById('da-firma').value=defFirm;document.getElementById('da-firma-search').value=defFirm;}
+        else{document.getElementById('da-firma').value=d.firma||'';document.getElementById('da-firma-search').value=d.firma||'';['marka','model','yil','renk'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});if(document.getElementById('da-sase'))document.getElementById('da-sase').value=d.sasi||'';['ekSure','antTarih','beynmCif','kiymVv','kiymGt'].forEach(id=>{if(document.getElementById('da-'+id)){let iso='';if(d[id]){let p=d[id].split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-'+id).value=iso;}});if(document.getElementById('da-tarih')){let iso='';if(d.tarih){let p=d.tarih.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-tarih').value=iso;}['beyanname','fatura','kiymet'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});let isA=(d.evrak||'').toLocaleLowerCase('tr')==='açık';if(document.getElementById('da-evrak'))document.getElementById('da-evrak').value=isA?'Açık':'Kapalı';}
+        if(ctx==='firm')document.getElementById('decl-preview-box').classList.add('hidden');else{document.getElementById('decl-preview-box').classList.remove('hidden');window.declAutoCalc();}
+    };
+    window.closeDeclModal=function(){document.getElementById('decl-modal').classList.add('hidden');};
+    window.saveDeclEntry=function(){
+        let i=parseInt(document.getElementById('decl-edit-idx').value);let val=id=>document.getElementById(id)?.value.trim()||'';
+        let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
+        let r={firma:val('da-firma'),marka:val('da-marka').toUpperCase(),model:val('da-model').toUpperCase(),yil:val('da-yil'),renk:val('da-renk').toUpperCase(),sasi:val('da-sase').toUpperCase(),tarih:fD(val('da-tarih')),ekSure:fD(val('da-ekSure')),antTarih:fD(val('da-antTarih')),beynmCif:fD(val('da-beynmCif')),kiymVv:fD(val('da-kiymVv')),kiymGt:fD(val('da-kiymGt')),evrak:val('da-evrak'),beyanname:val('da-beyanname'),fatura:val('da-fatura'),kiymet:val('da-kiymet')};
+        if(!r.firma||!r.tarih){alert('Zorunlu alanları doldurun!');return;}
+        if(window.currentModalContext==='decl'){let os=i===-1?null:window.declarationsData[i].sasi;if(i===-1){window.declarationsData.unshift({...r});if(!window.firmData[r.firma])window.firmData[r.firma]=[];if(!window.firmData[r.firma].find(x=>x.sasi===r.sasi))window.firmData[r.firma].unshift({...r});}else{window.declarationsData[i]=r;if(window.firmData[r.firma]){let fi=window.firmData[r.firma].findIndex(x=>x.sasi===os);if(fi!==-1)window.firmData[r.firma][fi]=r;}}saveData('decl');saveData('firm');window.renderDeclarationsTable();}
+        else{let os=i===-1?null:window.firmData[window.currentFirm][i].sasi;if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];if(i===-1){window.firmData[window.currentFirm].unshift({...r});if(!window.declarationsData.find(x=>x.sasi===r.sasi))window.declarationsData.unshift({...r});}else{window.firmData[window.currentFirm][i]=r;let di=window.declarationsData.findIndex(x=>x.sasi===os);if(di!==-1)window.declarationsData[di]=r;}saveData('firm');saveData('decl');window.renderFirmVehicles();}
+        window.closeDeclModal();window.updateDashboardStats();
+    };
+
+    window.openExcelModal=function(ctx){document.getElementById('excel-target-context').value=ctx;document.getElementById('excel-modal').classList.remove('hidden');};
+    window.closeExcelModal=function(){document.getElementById('excel-modal').classList.add('hidden');document.getElementById('excel-file-input').value="";};
+    window.processExcelData=function(input){if(!input.files||!input.files.length)return;let reader=new FileReader();let ctx=document.getElementById('excel-target-context').value;reader.onload=function(e){try{let wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});let data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});let c=0;data.forEach(r=>{if(r.length>2&&!String(r[0]).toUpperCase().includes('MARKA')){if(ctx==='firm'){let nv={firma:window.currentFirm,marka:r[0]||'',model:r[1]||'',yil:r[2]||'',renk:r[3]||'',sasi:r[4]||'',tarih:window.fixExcelDate(r[5]),beyanname:r[6]||'',fatura:r[7]||'',kiymet:r[8]||'',evrak:'Açık'};if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];window.firmData[window.currentFirm].unshift(nv);window.declarationsData.unshift(nv);}else{window.kiymetData.unshift({marka:r[0]||'',model:r[1]||'',yil:r[2]||'',renk:r[3]||'',sasi:r[4]||'',tarih:window.fixExcelDate(r[5]),fatura:r[6]||'',kiymet:r[7]||'',durum:r[8]||''});}c++;}});if(c>0){alert(c+' kayıt aktarıldı');if(ctx==='firm'){saveData('firm');saveData('decl');window.renderFirmVehicles();window.updateDashboardStats();}else{saveData('kiymet');window.renderKiymetTable();}window.closeExcelModal();}}catch(err){alert('Hata');}};reader.readAsArrayBuffer(input.files[0]);};
+
+    // ═══ GTİP TAM TABLOSU ═══
+    window.GTIP_TABLE={
+        'BENZİNLİ':{'0-1000':'8703.2110.1000','1000-1500':'8703.2210.1000','1500-1600':'8703.2319.1100','1600-2000':'8703.2319.1200','2000-2500':'8703.2319.1300','2500-3000':'8703.2319.1300','3000+':'8703.2410.1000'},
+        'DİZEL':{'0-1000':'8703.3110.1000','1000-1500':'8703.3110.1000','1500-1600':'8703.3219.1100','1600-2000':'8703.3219.1200','2000-2500':'8703.3219.1300','2500-3000':'8703.3319.1011','3000+':'8703.3319.1012'},
+        'ELEKTRİK':{'0-1000':'8703.8010.0029','1000-1500':'8703.8010.0029','1500-1600':'8703.8010.0029','1600-2000':'8703.8010.0029','2000-2500':'8703.8010.0029','2500-3000':'8703.8010.0029','3000+':'8703.8010.0029'},
+        'PLUG-IN':{'0-1000':'8703.6010.0000','1000-1500':'8703.6010.0000','1500-1600':'8703.6010.0000','1600-2000':'8703.6010.0000','2000-2500':'8703.6010.0000','2500-3000':'8703.6010.0000','3000+':'8703.6010.0000'},
+        'BENZİN HİBRİT':{'0-1000':'8703.4010.0000','1000-1500':'8703.4010.0000','1500-1600':'8703.4010.0000','1600-2000':'8703.4010.0000','2000-2500':'8703.4010.0000','2500-3000':'8703.4010.0000','3000+':'8703.4010.0000'}
+    };
+    window.OTV_SUGGEST={
+        'BENZİNLİ':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
+        'DİZEL':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
+        'ELEKTRİK':{'0-1000':25,'1000-1500':25,'1500-1600':25,'1600-2000':25,'2000-2500':55,'2500-3000':55,'3000+':55},
+        'PLUG-IN':{'0-1000':45,'1000-1500':45,'1500-1600':45,'1600-2000':75,'2000-2500':75,'2500-3000':75,'3000+':75},
+        'BENZİN HİBRİT':{'0-1000':70,'1000-1500':70,'1500-1600':80,'1600-2000':80,'2000-2500':150,'2500-3000':150,'3000+':150}
+    };
+
+    // ═══ STATE KALICILIĞI (GÜNCEL) ═══
+    window.saveCalcState=function(){
+        const inputs=['calc-currency','calc-kur-eur','calc-kur-usd','calc-yakit','calc-motor','calc-teslim','calc-fatura','calc-navlun','calc-sigorta','calc-yurtdisi','calc-yurtici','calc-damga','calc-otv-oran','calc-kdv-oran','calc-gv-oran','calc-ilave-gv-oran','calc-kkdf-oran','calc-atr-oran','calc-gumruk','calc-nakliye','calc-almanya','calc-ardiye-tl','calc-tse-muh-tl','calc-tse-harci-manual'];
+        const state={};
+        inputs.forEach(id=>{let el=document.getElementById(id);if(el)state[id]=el.value;});
+        let tip=document.querySelector('input[name="calc-tip"]:checked');
+        if(tip)state['calc-tip']=tip.value;
+        localStorage.setItem('gumruk_calc_state_v7',JSON.stringify(state)); 
+    };
+
+    window.loadCalcState=function(){
+        let saved=localStorage.getItem('gumruk_calc_state_v7');
+        if(!saved) return false;
+        try{
+            let state=JSON.parse(saved);
+            Object.keys(state).forEach(id=>{
+                let el=document.getElementById(id);
+                if(el&&id!=='calc-tip')el.value=state[id];
+            });
+            if(state['calc-tip']){
+                let tip=document.getElementById('tip-'+state['calc-tip'].toLowerCase());
+                if(tip)tip.checked=true;
+            }
+            if(state['calc-teslim']){
+               document.querySelectorAll('.teslim-opt').forEach(o => o.classList.remove('active'));
+               let activeOpt = Array.from(document.querySelectorAll('.teslim-opt')).find(o => o.innerText === state['calc-teslim']);
+               if(activeOpt) activeOpt.classList.add('active');
+            }
+            return true;
+        }catch(e){
+            return false;
+        }
+    };
+
+    window.updateGTIP=function(isInitialLoad = false){
+        let yakit=document.getElementById('calc-yakit')?.value||'BENZİNLİ';
+        let motor=document.getElementById('calc-motor')?.value||'1600-2000';
+        let gtip=window.GTIP_TABLE[yakit]?.[motor]||'8703.2319.1200';
+        let otv=window.OTV_SUGGEST[yakit]?.[motor]||220;
+        
+        let gd=document.getElementById('gtip-display');if(gd)gd.innerText='GTİP: '+gtip;
+        let gm=document.getElementById('res-gtip-mini');if(gm)gm.innerText=gtip;
+        
+        if(!isInitialLoad) {
+            let otvSel=document.getElementById('calc-otv-oran');
+            if(otvSel){otvSel.value=String(otv);if(!otvSel.value)otvSel.value='220';}
+        }
         window.calculateTaxes();
     };
 
-    // ====================== ANA HESAPLAMA (KESİLECEK FATURA KALDIRILDI) ======================
-    window.calculateTaxes = function() {
-        const gV = id => {
-            const el = document.getElementById(id);
-            if (!el || !el.value) return 0;
-            return parseFloat(String(el.value).replace(/\./g, '').replace(/,/g, '.')) || 0;
-        };
+    window.calculateTaxes=function(){
+        let gV=id=>{let el=document.getElementById(id);if(!el||!el.value)return 0;return parseFloat(String(el.value).replace(/\./g,"").replace(/,/g,".").trim())||0;};
+        let sH=(id,v,eur=false)=>{let el=document.getElementById(id);if(el)el.innerText=window.formatNumber(v)+(eur?' €':' ₺');};
 
-        const sH = (id, v) => {
-            const el = document.getElementById(id);
-            if (el) el.innerText = window.formatNumber(v) + ' ₺';
-        };
+        let currency=document.getElementById('calc-currency')?.value||'EUR';
+        let kurEUR=gV("calc-kur-eur")||51.1069;
+        let kurUSD=gV("calc-kur-usd")||44.3684;
+        let kur=currency==='EUR'?kurEUR:kurUSD;
 
-        const currency = document.getElementById('calc-currency')?.value || 'EUR';
-        const kurEUR = gV('calc-kur-eur') || 51.1069;
-        const kurUSD = gV('calc-kur-usd') || 44.3684;
-        const kur = currency === 'EUR' ? kurEUR : kurUSD;
+        let fat=gV("calc-fatura"),nav=gV("calc-navlun"),sig=gV("calc-sigorta"),yd=gV("calc-yurtdisi"),yi=gV("calc-yurtici"),dmg=gV("calc-damga");
+        let otvO=gV("calc-otv-oran"),kdvO=gV("calc-kdv-oran"),atrO=gV("calc-atr-oran"),kkdf=gV("calc-kkdf-oran"),gvO=gV("calc-gv-oran"),ilvO=gV("calc-ilave-gv-oran");
+        let tip=document.querySelector('input[name="calc-tip"]:checked')?.value||"AVRUPA";
+        let gH=gV("calc-gumruk"),nkl=gV("calc-nakliye"),alm=gV("calc-almanya"),ardTL=gV("calc-ardiye-tl"),tseMTL=gV("calc-tse-muh-tl"),tseHTL=gV("calc-tse-harci-manual");
 
-        const fat = gV('calc-fatura');
-        const nav = gV('calc-navlun');
-        const sig = gV('calc-sigorta');
-        const yd  = gV('calc-yurtdisi');
-        const yi  = gV('calc-yurtici');
-        const dmg = gV('calc-damga');
+        let teslim=document.getElementById('calc-teslim')?.value||'CIF';
+        if(teslim==='CIF'){nav=0;sig=0;}
 
-        const otvO = gV('calc-otv-oran');
-        const kdvO = gV('calc-kdv-oran');
-        const gvO  = gV('calc-gv-oran');
-        const ilvO = gV('calc-ilave-gv-oran');
-        const atrO = gV('calc-atr-oran');
-        const kkdf = gV('calc-kkdf-oran');
+        let topD=fat+nav+sig+yd;
+        let fTL=fat*kur,nTL=nav*kur,sTL=sig*kur,cif=fTL+nTL+sTL,ydTL=yd*kur;
+        let gvM=cif+ydTL,araT=gvM+yi;
+        let atrT=gvM*(atrO/100),gvT=gvM*(gvO/100),ilvT=gvM*(ilvO/100);
+        let trt=(araT+dmg+gvT+ilvT)*0.008;
+        let otvM=araT+trt+dmg+atrT+gvT+ilvT;
+        let otvT=otvM*(otvO/100),kdvM=otvM+otvT,kdvT=kdvM*(kdvO/100),kkdfT=kkdf?gvM*(kkdf/100):0;
+        let topV=kdvT+trt+otvT+atrT+dmg+gvT+ilvT,top=topV+kkdfT;
+        let aEUR=kur?(top/kur)+topD:0,aTL=aEUR*kur;
 
-        const gH = gV('calc-gumruk');
-        const nkl = gV('calc-nakliye');
-        const alm = gV('calc-almanya');
-        const ardTL = gV('calc-ardiye-tl');
-        const tseM = gV('calc-tse-muh-tl');
-        const tseH = gV('calc-tse-harci-manual');
+        let mmo=tip==="DEFENDER"?60000:0,isik=tip==="AMERİKAN"?65000:0,cek=tip==="AMERİKAN"?25000:0;
+        let dEUR=gH+nkl+alm+(kur?(ardTL+tseHTL+tseMTL+mmo+isik+cek)/kur:0),dTL=dEUR*kur;
+        let gEUR=aEUR+dEUR,gTL=aTL+dTL;
 
-        const sKar = gV('calc-s-kar');
-        const sGelirV = gV('calc-s-gelir-vergisi');
-        const sTescil = gV('calc-s-tescil');
+        sH("res-cif",cif);sH("res-gv-matrah",gvM);sH("res-gv-tutar",gvT);sH("res-ilave-gv",ilvT);sH("res-atr-tutar",atrT);sH("res-ara-toplam",araT);
+        sH("res-trt",trt);sH("res-otv-matrahi",otvM);sH("res-otv-tutar",otvT);sH("res-kdv-matrahi",kdvM);sH("res-kdv-tutar",kdvT);sH("res-kkdf-tutar",kkdfT);
+        sH("res-toplam-vergi",top);sH("res-arac-vergi-eur",aEUR,true);
+        sH("res-mmo",mmo);sH("res-isik",isik);sH("res-cekici",cek);
+        sH("res-diger-eur",dEUR,true);sH("res-diger-tl",dTL);sH("res-genel-eur",gEUR,true);sH("res-genel-maliyet",gTL);
 
-        const teslim = document.getElementById('calc-teslim')?.value || 'CIF';
-        let cif = (fat + nav + sig + yd) * kur;
-
-        // Gümrük + İlave GV hesabı
-        let gvMatrah = cif + (yd * kur);
-        let gvTutar = gvMatrah * (gvO / 100);
-        let ilaveGV = gvMatrah * (ilvO / 100);
-        let atrTutar = gvMatrah * (atrO / 100);
-
-        let araToplam = gvMatrah + yi;
-
-        let trt = (araToplam + dmg + gvTutar + ilaveGV) * 0.008;
-        let otvMatrah = araToplam + trt + dmg + atrTutar + gvTutar + ilaveGV;
-        let otvTutar = otvMatrah * (otvO / 100);
-        let kdvMatrah = otvMatrah + otvTutar;
-        let kdvTutar = kdvMatrah * (kdvO / 100);
-        let kkdfTutar = kkdf ? gvMatrah * (kkdf / 100) : 0;
-
-        let toplamVergi = otvTutar + kdvTutar + trt + gvTutar + ilaveGV + atrTutar + dmg + kkdfTutar;
-
-        // Masraflar
-        let digerMasrafTL = ardTL + tseM + tseH;
-        let digerMasrafEUR = gH + nkl + alm + (digerMasrafTL / kur);
-
-        let genelMaliyetEUR = (toplamVergi / kur) + (fat + nav + sig + yd) + digerMasrafEUR;
-        let genelMaliyetTL = genelMaliyetEUR * kur;
-
-        // Sonuçları ekrana yaz
-        sH('res-cif', cif);
-        sH('res-gv-matrah', gvMatrah);
-        sH('res-gv-tutar', gvTutar);
-        sH('res-ilave-gv', ilaveGV);
-        sH('res-atr-tutar', atrTutar);
-        sH('res-ara-toplam', araToplam);
-
-        sH('res-trt', trt);
-        sH('res-otv-matrahi', otvMatrah);
-        sH('res-otv-tutar', otvTutar);
-        sH('res-kdv-matrahi', kdvMatrah);
-        sH('res-kdv-tutar', kdvTutar);
-        sH('res-kkdf-tutar', kkdfTutar);
-        sH('res-toplam-vergi', toplamVergi);
-
-        sH('res-arac-vergi-eur', (toplamVergi / kur) + fat + nav + sig + yd, true);
-        sH('res-diger-tl', digerMasrafTL);
-        sH('res-genel-maliyet', genelMaliyetTL);
-
-        window.saveCalcState();   // ← Her hesaplamada kaydediyor
+        window.saveCalcState();
     };
 
-    // ====================== RENDER VE YÜKLEME ======================
-    window.renderView = function(vn) {
-        localStorage.setItem('gumruk_last_view', vn);
-        if (vn === 'firmDetails' && window.currentFirm) 
-            localStorage.setItem('gumruk_last_firm', window.currentFirm);
-
-        let c = document.getElementById('view-container');
-        let t = document.getElementById('tpl-' + vn);
-        if (!t) return;
-        c.innerHTML = '';
-        c.appendChild(t.content.cloneNode(true));
-
-        document.querySelectorAll('.nav-btn').forEach(b => 
-            b.classList.toggle('active', b.dataset.view === vn)
-        );
-
-        if (vn === 'dashboard') window.updateDashboardStats();
-        if (vn === 'declarations') window.renderDeclarationsTable();
-        if (vn === 'kiymetListesi') window.renderKiymetTable();
-        if (vn === 'firms') window.renderFirmsList();
-        if (vn === 'firmDetails') {
-            if (document.getElementById('current-firm-title')) 
-                document.getElementById('current-firm-title').innerText = window.currentFirm;
-            window.renderFirmVehicles();
-        }
-
-        if (vn === 'calculator') {
-            window.updateGTIP(true);     // ilk açılış
-            window.loadCalcState();      // kaydedilen değerleri yükle
-            window.calculateTaxes();     // hesaplama yap
-        }
-
-        if (window.lucide) lucide.createIcons();
-    };
-
-    // DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', () => {
-        if (localStorage.getItem('gumruk_auth') === 'true') 
-            document.getElementById('login-screen').style.display = 'none';
-
-        if (window.lucide) lucide.createIcons();
+    window.renderView=function(vn){
+        localStorage.setItem('gumruk_last_view',vn);
+        if(vn==='firmDetails'&&window.currentFirm)localStorage.setItem('gumruk_last_firm',window.currentFirm);
+        let c=document.getElementById('view-container'),t=document.getElementById('tpl-'+vn);
+        if(!t)return;c.innerHTML='';c.appendChild(t.content.cloneNode(true));
+        document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===vn));
         
-        window.fetchTCMBKur(true);   // otomatik kur çek
-        if (window._firebaseReady) loadAllData();
+        if(vn==='dashboard')window.updateDashboardStats();
+        if(vn==='declarations')window.renderDeclarationsTable();
+        if(vn==='kiymetListesi')window.renderKiymetTable();
+        if(vn==='firms')window.renderFirmsList();
+        if(vn==='firmDetails'){if(document.getElementById('current-firm-title')&&window.currentFirm)document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();}
+        if(vn==='calculator'){
+            window.loadCalcState();
+            window.updateGTIP(true);
+            window.calculateTaxes();
+        }
+        if(window.lucide)lucide.createIcons();
+    };
+
+    document.querySelectorAll('.nav-btn[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.view)window.renderView(b.dataset.view);}));
+    
+    document.addEventListener('DOMContentLoaded',()=>{
+        if(localStorage.getItem('gumruk_auth')==='true')document.getElementById('login-screen').style.display='none';
+        if(window.lucide)lucide.createIcons();
+        window.fetchTCMBKur(true);
+        if(window._firebaseReady)loadAllData();
     });
 </script>
 </body>
