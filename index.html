@@ -8,13 +8,11 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script>
-        // Sayfa yüklenirken temayı ayarla (Titremeyi önlemek için)
         let savedTheme = localStorage.getItem('gumruk_theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
     <style>
         :root {
-            /* DARK THEME (DEFAULT) */
             --bg-main: #000000;
             --bg-surface: #0a0d12;
             --bg-surface-hover: #18181b;
@@ -26,8 +24,6 @@
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
             --text-muted: #475569;
-            
-            /* SABİT RENKLER */
             --primary: #3b82f6; --primary-hover: #2563eb; --accent: #60a5fa;
             --danger: #ef4444; --success: #10b981; --warning: #f59e0b; 
             --kiymet-color: #a855f7; 
@@ -38,7 +34,6 @@
         }
 
         [data-theme="light"] {
-            /* LIGHT THEME (GÜNDÜZ MODU) */
             --bg-main: #f1f5f9;
             --bg-surface: #ffffff;
             --bg-surface-hover: #f8fafc;
@@ -245,7 +240,6 @@
         .result-label { font-size:12.5px; color:var(--text-secondary); }
         .result-value { font-size:13px; font-weight:600; color:var(--text-primary); }
         
-        /* Özet Kutuları Rengi (Temaya Bağlı Değil, Her Zaman Beyaz Yazı) */
         .result-total { display:flex; justify-content:space-between; align-items:center; padding:20px; border-radius:var(--r-md); margin-top:16px; }
         .result-total-label { font-size:15px; font-weight:600; color:rgba(255,255,255,0.9) !important; }
         .result-total-value { font-size:22px; font-weight:800; color:#fff !important; letter-spacing:-0.5px; }
@@ -326,7 +320,6 @@
         .mevzuat-table th, .mevzuat-table td { border:1px solid var(--border); padding:10px; text-align:left; }
         .mevzuat-table th { background:var(--input-bg); color:var(--text-primary); font-weight:600; }
         
-        /* Checkbox Switch Eşitleme */
         .check-wrap { display:flex; align-items:center; gap:6px; font-size:11px; cursor:pointer; color:var(--primary); font-weight:600; background:rgba(59,130,246,0.05); padding:4px 8px; border-radius:4px; border:1px solid rgba(59,130,246,0.2); }
     </style>
 </head>
@@ -540,30 +533,17 @@
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Bilgi Bankası</div><h1 class="page-title">2026 Mart Gümrük Mevzuatı Rehberi</h1></div></div>
     <div class="card card-pad fade-in mevzuat-container">
         <p>Aşağıdaki bilgiler, <strong>Mart 2026</strong> itibarıyla sıfır otomobil ithalatı süreçleri için en güncel gümrük düzenlemelerini ve vergi oranlarını içermektedir.</p>
-        
         <h2>1. İthalat Rejimi Kararı ve Tarife Cetveli (2026)</h2>
         <p>30 Aralık 2025 tarihli Resmi Gazete'de yayımlanan <strong>2026 İthalat Rejimi Kararı (Karar No: 10790)</strong> ile Türk Gümrük Tarife Cetveli güncellenmiştir.</p>
-        <ul>
-            <li><strong>Yürürlük:</strong> 1 Ocak 2026</li>
-            <li><strong>GTİP Değişiklikleri:</strong> Elektrikli ve hibrit araçların tarife alt pozisyonları daha spesifik hale getirilmiştir.</li>
-        </ul>
-        
         <h2>2. İlave Gümrük Vergisi (İGV) ve Ek Mali Yükümlülükler</h2>
-        <div class="mevzuat-warn">
-            <strong>⚠️ Önemli:</strong> AB ve STA dışı ülkelerden ithalatlarda katı ek mali yükümlülükler getirilmiştir.
-        </div>
         <table class="mevzuat-table">
-            <thead>
-                <tr><th>Araç Tipi</th><th>İlave Gümrük Vergisi (İGV)</th><th>Minimum Tutar</th></tr>
-            </thead>
+            <thead><tr><th>Araç Tipi</th><th>İlave Gümrük Vergisi (İGV)</th><th>Minimum Tutar</th></tr></thead>
             <tbody>
                 <tr><td>İçten Yanmalı & Tam Hibrit</td><td>%25 (veya %40 Çin)</td><td>6.000 USD</td></tr>
                 <tr><td>Plug-in Hibrit</td><td>%30</td><td>7.000 USD</td></tr>
                 <tr><td>Tam Elektrikli (BEV)</td><td>%30</td><td>8.500 USD</td></tr>
             </tbody>
         </table>
-        <p><em>Not:</em> Standart Gümrük Vergisi binek araç için <strong>%10</strong> uygulanmaya devam etmektedir.</p>
-        
         <h2>3. ÖTV Oranları ve Elektrikli Araçlar (2026)</h2>
         <p>Elektrikli araçlarda (BEV) ÖTV oranı, motor gücüne ve vergisiz matraha göre değişiklik göstermektedir:</p>
         <div class="mevzuat-info">
@@ -574,13 +554,12 @@
             • Matrahı 1.650.000 TL’ye kadar olanlar: <strong>%65 ÖTV</strong><br>
             • Matrahı 1.650.000 TL’yi aşanlar: <strong>%75 ÖTV</strong>
         </div>
-        <p>Hesaplama sistemimiz, girdiğiniz fatura tutarına göre ÖTV matrahını hesaplayıp, yukarıdaki dilimlere göre ÖTV oranını <strong>otomatik olarak değiştirir.</strong></p>
     </div>
 </template>
 
 <template id="tpl-calculator">
     <div class="page-hdr fade-in">
-        <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Gelişmiş Vergi & Maliyet Hesaplama</h1><p class="page-sub">TCMB kurları · GTİP otomatik · ÖTV akıllı öneri</p></div>
+        <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Gelişmiş Vergi & Maliyet Hesaplama</h1></div>
         <div class="page-actions">
             <button class="export-btn word" onclick="window.exportToWord()"><i data-lucide="file-text" style="width:14px;height:14px;"></i> Sunum / Word Çıktısı</button>
             <button class="export-btn" onclick="window.exportCalcExcel()"><i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Excel Çıktı Al</button>
@@ -856,7 +835,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 </script>
 
 <script>
-    // Gece/Gündüz Modu (Dark/Light Theme Toggle)
     window.toggleTheme = function() {
         let html = document.documentElement;
         let current = html.getAttribute('data-theme');
@@ -865,7 +843,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         localStorage.setItem('gumruk_theme', next);
     };
 
-    // TOAST ve GENEL MANTIK
     function showSyncToast(text,ok=false){const t=document.getElementById('sync-toast'),ic=document.getElementById('sync-icon');document.getElementById('sync-text').innerText=text;if(ok){ic.style.animation='none';ic.style.border='none';ic.innerHTML='<i data-lucide="check-circle" style="color:var(--success);width:16px;height:16px;"></i>';if(window.lucide)lucide.createIcons();}else{ic.innerHTML='';ic.style.border='2px solid rgba(255,255,255,0.1)';ic.style.borderTopColor='var(--primary)';ic.style.animation='spin 1s linear infinite';}t.classList.add('show');}
     function hideSyncToast(text,ok=true){showSyncToast(text,ok);setTimeout(()=>document.getElementById('sync-toast').classList.remove('show'),2500);}
 
@@ -881,7 +858,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.formatNumber=function(v){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;return n.toLocaleString('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0});};
     window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
-    // CLOUD SYNC
     function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));}catch(e){}}
     function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);}catch(e){}}
 
@@ -985,7 +961,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.inlineEditDate=function(el,idx,field){if(el.querySelector('input'))return;let cur=window.declarationsData[idx][field]||'';let iso='';if(cur){let p=cur.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}el.innerHTML=`<input type="date" value="${iso}" style="padding:4px;height:28px;font-size:12px;" onblur="window.saveInlineDate(this,${idx},'${field}')" onchange="window.saveInlineDate(this,${idx},'${field}')">`;let inp=el.querySelector('input');inp.focus();inp.showPicker&&inp.showPicker();};
     window.saveInlineDate=function(inp,idx,field){let iso=inp.value;let tr='';if(iso){let p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;}if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{inp.parentElement.innerHTML=tr||'-';}};
 
-    // MANTIK: ARDİYE VE SÜRELER
     window.calculateVehicleMetrics=function(data){
         let today=new Date();today.setHours(0,0,0,0);
         let E=window.parseTRDate(data.tarih),G=window.parseTRDate(data.ekSure),H=window.parseTRDate(data.antTarih);
@@ -1044,7 +1019,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.sortData=function(ctx){window.sortState.asc=!window.sortState.asc;let mul=window.sortState.asc?1:-1;let pD=s=>{if(!s)return 0;let c=window.fixExcelDate(s);let p=c.split('.');return p.length===3?parseInt(p[2]+p[1]+p[0]):0;};if(ctx==='decl'){window.declarationsData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('decl');window.renderDeclarationsTable();}else if(ctx==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('firm');window.renderFirmVehicles();}else if(ctx==='kiymet'){window.kiymetData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('kiymet');window.renderKiymetTable();}};
     window.goToFilter=function(f){window.renderView('declarations');let el=document.getElementById('decl-status-filter');if(el){el.value=f;window.renderDeclarationsTable();}};
 
-    // DÜZELTİLMİŞ CANLI ARAMA
     let _searchTimeout=null;
     window.liveSearch=function(query){
         clearTimeout(_searchTimeout);
@@ -1155,7 +1129,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(window.lucide) lucide.createIcons();
     };
 
-    // EXCEL VE WORD ÇIKTILARI
     window.exportCalcExcel=function(){
         let rows=[['KALEM','DEĞER']];
         document.querySelectorAll('.calc-result-table tr').forEach(tr=>{
@@ -1256,7 +1229,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         document.body.removeChild(a);
     };
 
-    // ═══ GTİP TAM TABLOSU ═══
     window.GTIP_TABLE={
         'BENZİNLİ':{'0-1000':'8703.2110.1000','1000-1500':'8703.2210.1000','1500-1600':'8703.2319.1100','1600-2000':'8703.2319.1200','2000-2500':'8703.2319.1300','2500-3000':'8703.2319.1300','3000+':'8703.2410.1000'},
         'DİZEL':{'0-1000':'8703.3110.1000','1000-1500':'8703.3110.1000','1500-1600':'8703.3219.1100','1600-2000':'8703.3219.1200','2000-2500':'8703.3219.1300','2500-3000':'8703.3319.1011','3000+':'8703.3319.1012'},
@@ -1265,7 +1237,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         'BENZİN HİBRİT':{'0-1000':'8703.4010.0000','1000-1500':'8703.4010.0000','1500-1600':'8703.4010.0000','1600-2000':'8703.4010.0000','2000-2500':'8703.4010.0000','2500-3000':'8703.4010.0000','3000+':'8703.4010.0000'}
     };
 
-    // ═══ STATE KALICILIĞI (GÜNCEL) ═══
     window._calcInputIds=['calc-currency','calc-kur-eur','calc-kur-usd','calc-yakit','calc-motor','calc-teslim','calc-fatura','calc-navlun','calc-sigorta','calc-yurtdisi','calc-yurtici','calc-damga','calc-otv-oran','calc-kdv-oran','calc-gv-oran','calc-ilave-gv-oran','calc-kkdf-oran','calc-atr-oran','calc-gumruk','calc-nakliye','calc-almanya','calc-ardiye-tl','calc-tse-muh-tl','calc-tse-harci-manual', 'mtv-tur', 'mtv-tescil', 'mtv-hacim', 'mtv-yas', 'mtv-deger'];
 
     window.saveCalcState=function(){
@@ -1571,13 +1542,12 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         sH("res-mmo",mmo);sH("res-isik",isik);sH("res-cekici",cek);
         sH("res-diger-eur",dEUR,true);sH("res-diger-tl",dTL);sH("res-genel-eur",gEUR,true);sH("res-genel-maliyet",gTL);
 
-        // KDV MATRAHI = TAŞIT DEĞERİ EŞİTLEMESİ (MTV)
         let mtvOtoDeger = document.getElementById('mtv-oto-deger');
         if (mtvOtoDeger && mtvOtoDeger.checked) {
             let mtvDegerInput = document.getElementById('mtv-deger');
             if(mtvDegerInput) {
                 mtvDegerInput.value = window.formatNumber(kdvM);
-                window.calculateMTV(); // MTV'yi güncelle
+                window.calculateMTV();
             }
         }
 
