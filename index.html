@@ -935,8 +935,45 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window._onFirebaseReady=function(){loadAllData();};
 
     window.exportBackup=function(){let d={decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData};let a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(d));a.download="gumruk_yedek.json";document.body.appendChild(a);a.click();a.remove();};
-    window.importBackup=function(event){let file=event.target.files[0];if(!file)return;let r=new FileReader();r.onload=function(e){try{let d=JSON.parse(e.target.result);if(d.decl){window.declarationsData=d.decl;window.kiymetData=d.kiymet||[];if(d.firm)window.firmData=d.firm;saveData('all');alert("window.importBackup=function(event){let file=event.target.files[0];if(!file)return;let r=new FileReader();r.onload=function(e){try{let d=JSON.parse(e.target.result);if(d.decl){window.declarationsData=d.decl;window.kiymetData=d.kiymet||[];if(d.firm)window.firmData=d.firm;saveData('all');alert("Araçlar alındı! Buluta aktarılıyor, lütfen bekleyin...");setTimeout(()=>location.reload(), 2500);}}catch(err){alert("Hata!");}};r.readAsText(file);document.getElementById('import-backup-file').value="";};Yüklendi!");location.reload();}}catch(err){alert("Hata!");}};r.readAsText(file);document.getElementById('import-backup-file').value="";};
-
+window.importBackup = async function(event) {
+    let file = event.target.files[0];
+    if(!file) return;
+    let r = new FileReader();
+    r.onload = async function(e) {
+        try {
+            let d = JSON.parse(e.target.result);
+            if(d.decl) {
+                window.declarationsData = d.decl;
+                window.kiymetData = d.kiymet || [];
+                if(d.firm) window.firmData = d.firm;
+                
+                saveToLocal(); // Önce tarayıcıya kazıyalım
+                alert("Dosya okundu! Şimdi Firebase bulutuna yazılıyor... Lütfen 'Tamam'a bastıktan sonra uyarı gelene kadar BEKLEYİN.");
+                
+                if(window._firebaseSave) {
+                    let ok = await window._firebaseSave({
+                        decl: window.declarationsData, 
+                        firm: window.firmData, 
+                        kiymet: window.kiymetData
+                    });
+                    
+                    if(ok) {
+                        alert("BÜYÜK BAŞARI! 144 Araç ve tüm veriler Firebase'e işlendi. Sistem yenileniyor.");
+                        location.reload(); // Sadece yükleme bitince yenile!
+                    } else {
+                        alert("HATA: Buluta aktarılamadı. İnternet bağlantınızı kontrol edin.");
+                    }
+                }
+            } else {
+                alert("Yüklenen dosyanın içi boş!");
+            }
+        } catch(err) {
+            alert("Dosya okunurken hata oluştu!");
+        }
+    };
+    r.readAsText(file);
+    document.getElementById('import-backup-file').value = "";
+};
     // CRUD FONKSİYONLARI
     window.addNewFirm=function(){let n=prompt("Firma Adı:");if(n&&n.trim()){let name=n.trim().toUpperCase();if(!window.firmData[name]){window.firmData[name]=[];saveData('firm');window.renderView('firms');}}};
     window.deleteFirm=function(fn,e){e.stopPropagation();let name=fn.replace(/&quot;/g,'"');if(confirm(`'${name}' firmasını SİL?`)){delete window.firmData[name];saveData('firm');window.renderView('firms');}};
