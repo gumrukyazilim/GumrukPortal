@@ -838,7 +838,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// YOL DÜZELTİLDİ: enterprise_master -> portal_data
 window._firebaseSave = async function(payload) {
     try { await set(ref(db, 'portal_data'), payload); return true; }
     catch(e) { console.error("Firebase save error:", e); return false; }
@@ -935,45 +934,48 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window._onFirebaseReady=function(){loadAllData();};
 
     window.exportBackup=function(){let d={decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData};let a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(d));a.download="gumruk_yedek.json";document.body.appendChild(a);a.click();a.remove();};
-window.importBackup = async function(event) {
-    let file = event.target.files[0];
-    if(!file) return;
-    let r = new FileReader();
-    r.onload = async function(e) {
-        try {
-            let d = JSON.parse(e.target.result);
-            if(d.decl) {
-                window.declarationsData = d.decl;
-                window.kiymetData = d.kiymet || [];
-                if(d.firm) window.firmData = d.firm;
-                
-                saveToLocal(); // Önce tarayıcıya kazıyalım
-                alert("Dosya okundu! Şimdi Firebase bulutuna yazılıyor... Lütfen 'Tamam'a bastıktan sonra uyarı gelene kadar BEKLEYİN.");
-                
-                if(window._firebaseSave) {
-                    let ok = await window._firebaseSave({
-                        decl: window.declarationsData, 
-                        firm: window.firmData, 
-                        kiymet: window.kiymetData
-                    });
+    
+    // GÜNCELLENMİŞ VE HATASIZ YEDEK YÜKLEME KODU
+    window.importBackup = async function(event) {
+        let file = event.target.files[0];
+        if(!file) return;
+        let r = new FileReader();
+        r.onload = async function(e) {
+            try {
+                let d = JSON.parse(e.target.result);
+                if(d.decl) {
+                    window.declarationsData = d.decl;
+                    window.kiymetData = d.kiymet || [];
+                    if(d.firm) window.firmData = d.firm;
                     
-                    if(ok) {
-                        alert("BÜYÜK BAŞARI! 144 Araç ve tüm veriler Firebase'e işlendi. Sistem yenileniyor.");
-                        location.reload(); // Sadece yükleme bitince yenile!
-                    } else {
-                        alert("HATA: Buluta aktarılamadı. İnternet bağlantınızı kontrol edin.");
+                    saveToLocal(); // Önce tarayıcıya kazıyalım
+                    alert("Dosya okundu! Şimdi Firebase bulutuna yazılıyor... Lütfen 'Tamam'a bastıktan sonra uyarı gelene kadar BEKLEYİN.");
+                    
+                    if(window._firebaseSave) {
+                        let ok = await window._firebaseSave({
+                            decl: window.declarationsData, 
+                            firm: window.firmData, 
+                            kiymet: window.kiymetData
+                        });
+                        
+                        if(ok) {
+                            alert("BÜYÜK BAŞARI! 144 Araç ve tüm veriler Firebase'e işlendi. Sistem yenileniyor.");
+                            location.reload(); // Sadece yükleme bitince yenile!
+                        } else {
+                            alert("HATA: Buluta aktarılamadı.");
+                        }
                     }
+                } else {
+                    alert("Yüklenen dosyanın içi boş!");
                 }
-            } else {
-                alert("Yüklenen dosyanın içi boş!");
+            } catch(err) {
+                alert("Dosya okunurken hata oluştu!");
             }
-        } catch(err) {
-            alert("Dosya okunurken hata oluştu!");
-        }
+        };
+        r.readAsText(file);
+        document.getElementById('import-backup-file').value = "";
     };
-    r.readAsText(file);
-    document.getElementById('import-backup-file').value = "";
-};
+
     // CRUD FONKSİYONLARI
     window.addNewFirm=function(){let n=prompt("Firma Adı:");if(n&&n.trim()){let name=n.trim().toUpperCase();if(!window.firmData[name]){window.firmData[name]=[];saveData('firm');window.renderView('firms');}}};
     window.deleteFirm=function(fn,e){e.stopPropagation();let name=fn.replace(/&quot;/g,'"');if(confirm(`'${name}' firmasını SİL?`)){delete window.firmData[name];saveData('firm');window.renderView('firms');}};
@@ -1042,7 +1044,7 @@ window.importBackup = async function(event) {
     window.sortData=function(ctx){window.sortState.asc=!window.sortState.asc;let mul=window.sortState.asc?1:-1;let pD=s=>{if(!s)return 0;let c=window.fixExcelDate(s);let p=c.split('.');return p.length===3?parseInt(p[2]+p[1]+p[0]):0;};if(ctx==='decl'){window.declarationsData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('decl');window.renderDeclarationsTable();}else if(ctx==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('firm');window.renderFirmVehicles();}else if(ctx==='kiymet'){window.kiymetData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('kiymet');window.renderKiymetTable();}};
     window.goToFilter=function(f){window.renderView('declarations');let el=document.getElementById('decl-status-filter');if(el){el.value=f;window.renderDeclarationsTable();}};
 
-    // CANLI ARAMA
+    // DÜZELTİLMİŞ CANLI ARAMA
     let _searchTimeout=null;
     window.liveSearch=function(query){
         clearTimeout(_searchTimeout);
@@ -1094,7 +1096,7 @@ window.importBackup = async function(event) {
     };
     window.handleGlobalSearch=function(v){window.liveSearch(v);};
 
-    // TCMB KUR ÇEKME (PROXY İLE GÜVENLİ)
+    // TCMB KUR ÇEKME 
     window.fetchTCMBKur = async function(auto = false) {
         let st = document.getElementById('kur-status');
         if(st){ st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB Çekiliyor...'; st.className = 'kur-badge kur-manual'; }
@@ -1148,7 +1150,7 @@ window.importBackup = async function(event) {
             } catch(e) {
                 if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
             }
-            if(!auto) hideSyncToast("TCMB Bağlantı Hatası! Eğer yerel dosyadan (file:///) çalışıyorsanız, sol alttaki 'Yedek İçe Aktar' butonunu kullanmayı unutmayın.", false);
+            if(!auto) hideSyncToast("TCMB Bağlantı Hatası!", false);
         }
         if(window.lucide) lucide.createIcons();
     };
@@ -1273,11 +1275,11 @@ window.importBackup = async function(event) {
         if(tip)state['calc-tip']=tip.value;
         let mtvOtoDeger = document.getElementById('mtv-oto-deger');
         if(mtvOtoDeger) state['mtv-oto-deger'] = mtvOtoDeger.checked;
-        localStorage.setItem('gumruk_calc_state_v11',JSON.stringify(state)); 
+        localStorage.setItem('gumruk_calc_state_v12',JSON.stringify(state)); 
     };
 
     window.loadCalcState=function(){
-        let saved=localStorage.getItem('gumruk_calc_state_v11');
+        let saved=localStorage.getItem('gumruk_calc_state_v12');
         if(!saved) return false;
         try{
             let state=JSON.parse(saved);
@@ -1426,7 +1428,7 @@ window.importBackup = async function(event) {
         const deger = parseFloat(degerStr.replace(/\./g, "").replace(/,/g, ".")) || 0;
 
         let mtv = 0;
-        let yasTarife2 = (yas <= 1) ? 0 : (yas <= 3) ? 1 : 2;
+        let yasTarife2 = (yas <= 1) ? 0 : (yas <= 3) ? 1 : 2; 
 
         if (tur === 'otomobil' || tur === 'elektrikli') {
             if (tescil === 'pre2018') {
