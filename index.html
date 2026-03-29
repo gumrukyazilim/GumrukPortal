@@ -35,7 +35,6 @@
         button, input, select { font-family:inherit; outline:none; border:none; }
         .hidden { display:none !important; }
         
-        /* MÜŞTERİ YETKİ GİZLEME SINIFI */
         .hidden-role { display: none !important; }
         
         #login-screen { position:fixed; inset:0; z-index:99999; background: radial-gradient(ellipse at 30% 20%,rgba(59,130,246,0.18) 0%,transparent 55%),radial-gradient(ellipse at 80% 80%,rgba(168,85,247,0.12) 0%,transparent 50%),var(--bg-main); display:flex; align-items:center; justify-content:center; }
@@ -88,7 +87,7 @@
         .search-wrap:focus-within { border-color:var(--primary); box-shadow:0 0 0 4px rgba(59,130,246,0.1); }
         .search-wrap > i { color:var(--primary); width:20px; height:20px; flex-shrink:0; }
         .search-wrap input { background:transparent; color:var(--text-primary); padding:0 12px; flex:1; font-size:14.5px; border:none; outline:none; }
-        #live-search-dropdown { display:none; position:absolute; top:calc(100% + 8px); left:-14px; right:-14px; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:var(--r-lg); max-height:420px; overflow-y:auto; z-index:999999; box-shadow:0 24px 60px rgba(0,0,0,0.3); }
+        #live-search-dropdown { display:none; position:absolute; top:calc(100% + 8px); left:-14px; right:-14px; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:var(--r-lg); max-height:420px; overflow-y:auto; z-index:999999; box-shadow:0 24px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(59,130,246,0.1); }
         #live-search-dropdown.show { display:block; }
         .ls-item { padding:12px 16px; cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; transition:0.12s; }
         .ls-item:hover { background:var(--bg-hover); }
@@ -143,9 +142,9 @@
         
         .table-wrap { overflow:auto; max-height:calc(100vh - var(--header-h) - 200px); }
         .table-wrap::-webkit-scrollbar { width:10px; height:10px; }
-        .table-wrap::-webkit-scrollbar-track { background:rgba(0,0,0,0.05); border-radius:4px; }
-        .table-wrap::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.3); border-radius:4px; border:2px solid transparent; background-clip:padding-box; }
-        .table-wrap::-webkit-scrollbar-thumb:hover { background-color:rgba(128,128,128,0.5); }
+        .table-wrap::-webkit-scrollbar-track { background:rgba(0,0,0,0.2); border-radius:4px; }
+        .table-wrap::-webkit-scrollbar-thumb { background:rgba(63,63,70,0.8); border-radius:4px; border:2px solid transparent; background-clip:padding-box; }
+        .table-wrap::-webkit-scrollbar-thumb:hover { background-color:rgba(113,113,122,1); }
         
         .data-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12.5px; }
         .data-table th { padding:11px 14px; text-align:left; font-weight:600; color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px; border-bottom:1px solid var(--border); background:var(--bg-surface); position:sticky; top:0; z-index:10; white-space:nowrap; }
@@ -186,8 +185,8 @@
         
         .input-group { margin-bottom:18px; position:relative; }
         .input-group label { display:block; margin-bottom:6px; font-size:11.5px; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.4px; }
-        input[type="text"], input[type="password"], input[type="date"], select { width:100%; padding:10px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-size:13px; transition:0.18s; }
-        input[type="text"]:focus, input[type="date"]:focus, select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.1); outline:none; }
+        input[type="text"], input[type="password"], input[type="date"], select, textarea { width:100%; padding:10px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-size:13px; transition:0.18s; font-family:var(--font-family); outline:none; }
+        input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
         
         select { background-color:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); }
         select option { background-color:var(--bg-surface); color:var(--text-primary); }
@@ -212,7 +211,7 @@
         .modal-footer { padding:20px 28px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; flex-shrink:0; background:var(--bg-surface); }
         
         .modal-section { background:var(--input-bg); border:1px solid var(--border); border-radius:var(--r-md); padding:20px; margin-bottom:20px; }
-        .modal-section-title { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:16px; }
+        .modal-section-title { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:16px; border-bottom: 1px solid var(--border); padding-bottom: 6px;}
         
         #decl-preview-box { background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.15); border-radius:var(--r-md); padding:18px; margin-bottom:20px; }
         .metrics-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
@@ -289,7 +288,7 @@
         .tcgb-grid { display: grid; grid-template-columns: repeat(8, 1fr); border-top: 1px solid #2f5d34; border-left: 1px solid #2f5d34; }
         .tcgb-box { border-right: 1px solid #2f5d34; border-bottom: 1px solid #2f5d34; padding: 6px; position: relative; }
         .tcgb-label { font-size: 10px; font-weight: bold; color: #2f5d34; margin-bottom: 4px; display: block; text-transform: uppercase; }
-        .tcgb-input { width: 100%; border: none; background: transparent; font-family: monospace; font-size: 13px; outline: none; resize: none; color: #000; font-weight: 600; }
+        .tcgb-input { width: 100%; border: none; background: transparent; font-family: monospace; font-size: 13px; outline: none; resize: none; color: #000; font-weight: 600; padding:0; }
         .tcgb-input:focus { background: rgba(59,130,246,0.05); }
         .tcgb-table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 4px; }
         .tcgb-table th { border-bottom: 1px solid #ccc; font-size: 10px; color: #555; padding-bottom: 2px; }
@@ -422,21 +421,31 @@
                     <input id="tcgb-22" class="tcgb-input">
                 </div>
 
-                <div class="tcgb-box" style="grid-column:span 5;">
+                <div class="tcgb-box" style="grid-column:span 4;">
                     <span class="tcgb-label">31 Kaplar ve Eşyanın Tanımı (Marka, Numaralar, Şasi)</span>
                     <textarea id="tcgb-31" class="tcgb-input" rows="7"></textarea>
                 </div>
                 <div class="tcgb-box" style="grid-column:span 1;">
                     <span class="tcgb-label">33 Eşya Kodu</span>
-                    <input id="tcgb-33" class="tcgb-input">
+                    <input id="tcgb-33" class="tcgb-input" style="margin-bottom:8px;">
+                    <span class="tcgb-label">34 Menşe Ülke</span>
+                    <input id="tcgb-34" class="tcgb-input">
+                </div>
+                <div class="tcgb-box" style="grid-column:span 1;">
+                    <span class="tcgb-label">35 Brüt Ağırlık (kg)</span>
+                    <input id="tcgb-35" class="tcgb-input" style="margin-bottom:8px;">
+                    <span class="tcgb-label">36 Tercih</span>
+                    <input id="tcgb-36" class="tcgb-input">
                 </div>
                 <div class="tcgb-box" style="grid-column:span 1;">
                     <span class="tcgb-label">37 Rejim</span>
-                    <input id="tcgb-37" class="tcgb-input" value="4000">
+                    <input id="tcgb-37" class="tcgb-input" value="4000" style="margin-bottom:8px;">
                 </div>
                 <div class="tcgb-box" style="grid-column:span 1;">
                     <span class="tcgb-label">38 Net Ağırlık (kg)</span>
-                    <input id="tcgb-38" class="tcgb-input">
+                    <input id="tcgb-38" class="tcgb-input" style="margin-bottom:8px;">
+                    <span class="tcgb-label">39 Kota</span>
+                    <input id="tcgb-39" class="tcgb-input">
                 </div>
 
                 <div class="tcgb-box" style="grid-column:span 8;">
@@ -490,6 +499,20 @@
         </div> 
         <div class="modal-body"> 
             <input type="hidden" id="decl-edit-idx" value="-1"> 
+            
+            <div class="modal-section">
+                <div class="modal-section-title">Beyanname Ön Bilgileri (Kutu 2, 33, 35, 38)</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="input-group" style="grid-column: span 2; margin-bottom:0;">
+                        <label>Gönderici / İhracatçı Firma (Kutu 2)</label>
+                        <input type="text" id="da-gonderici" placeholder="Örn: HM AUTOMOBILE...">
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;"><label>GTİP / Eşya Kodu (Kutu 33)</label><input type="text" id="da-gtip" placeholder="Örn: 8703.2319.1200"></div>
+                    <div class="input-group" style="margin-bottom:0;"><label>Brüt Ağırlık (kg) (Kutu 35)</label><input type="text" id="da-brut" placeholder="Örn: 2450"></div>
+                    <div class="input-group" style="margin-bottom:0;"><label>Net Ağırlık (kg) (Kutu 38)</label><input type="text" id="da-net" placeholder="Örn: 2385"></div>
+                </div>
+            </div>
+
             <div class="modal-section">
                 <div class="modal-section-title">Araç Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
@@ -1292,11 +1315,15 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         window.renderView('beyanname');
 
         setTimeout(() => {
-            // Eşleştirme ve Doldurma
+            // Eşleştirme ve Doldurma (AŞAMA 1 Uyumlu)
+            if(document.getElementById('tcgb-2')) document.getElementById('tcgb-2').value = d.gonderici || '';
             if(document.getElementById('tcgb-8')) document.getElementById('tcgb-8').value = d.firma || '';
-            if(document.getElementById('tcgb-14')) document.getElementById('tcgb-14').value = d.firma || ''; // Temsilci/Firma
+            if(document.getElementById('tcgb-14')) document.getElementById('tcgb-14').value = d.firma || '';
             if(document.getElementById('tcgb-20')) document.getElementById('tcgb-20').value = d.teslim || 'CIF';
             if(document.getElementById('tcgb-22')) document.getElementById('tcgb-22').value = `EUR - ${d.fatura ? window.formatNumber(d.fatura) : ''}`;
+            if(document.getElementById('tcgb-33')) document.getElementById('tcgb-33').value = d.gtip || '';
+            if(document.getElementById('tcgb-35')) document.getElementById('tcgb-35').value = d.brut || '';
+            if(document.getElementById('tcgb-38')) document.getElementById('tcgb-38').value = d.net || '';
             
             let kutu31Text = "";
             if(d.marka) kutu31Text += `MARKA: ${d.marka}\n`;
@@ -1531,13 +1558,14 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(firmList)firmList.innerHTML=Object.keys(window.firmData).map(f=>`<div class="firm-dropdown-item" onmousedown="window.selectFirm('${f.replace(/'/g,"\\'")}')">${f}</div>`).join('');
         let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
         if(idx===-1||!d){
-            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','fatura','kiymet','evrakLink'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
+            // YENİ EKLENEN ALANLAR SIFIRLANIYOR
+            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','fatura','kiymet','evrakLink','gonderici','gtip','brut','net'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
             document.getElementById('da-tarih').value=new Date().toISOString().split('T')[0];document.getElementById('da-evrak').value='Kapalı';
             let defFirm=ctx==='firm'?window.currentFirm:(Object.keys(window.firmData)[0]||'');document.getElementById('da-firma').value=defFirm;document.getElementById('da-firma-search').value=defFirm;
         }
         else{
             document.getElementById('da-firma').value=d.firma||'';document.getElementById('da-firma-search').value=d.firma||'';
-            ['marka','model','yil','renk'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
+            ['marka','model','yil','renk','gonderici','gtip','brut','net'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
             if(document.getElementById('da-sase'))document.getElementById('da-sase').value=d.sasi||'';
             if(document.getElementById('da-evrakLink'))document.getElementById('da-evrakLink').value=d.evrakLink||'';
             ['ekSure','antTarih','beynmCif','kiymVv','kiymGt'].forEach(id=>{if(document.getElementById('da-'+id)){let iso='';if(d[id]){let p=d[id].split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-'+id).value=iso;}});
@@ -1553,13 +1581,16 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.saveDeclEntry=function(){
         let i=parseInt(document.getElementById('decl-edit-idx').value);let val=id=>document.getElementById(id)?.value.trim()||'';
         let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
+        
+        // YENİ EKLENEN BEYANNAME ÖN BİLGİLERİ (GÖNDERİCİ, GTİP, AĞIRLIKLAR) KAYDEDİLİYOR
         let r={
             firma:val('da-firma'),marka:val('da-marka').toUpperCase(),model:val('da-model').toUpperCase(),
             yil:val('da-yil'),renk:val('da-renk').toUpperCase(),sasi:val('da-sase').toUpperCase(),
             tarih:fD(val('da-tarih')),ekSure:fD(val('da-ekSure')),antTarih:fD(val('da-antTarih')),
             beynmCif:fD(val('da-beynmCif')),kiymVv:fD(val('da-kiymVv')),kiymGt:fD(val('da-kiymGt')),
             evrak:val('da-evrak'),beyanname:val('da-beyanname'),fatura:val('da-fatura'),kiymet:val('da-kiymet'),
-            evrakLink:val('da-evrakLink')
+            evrakLink:val('da-evrakLink'),
+            gonderici:val('da-gonderici'), gtip:val('da-gtip'), brut:val('da-brut'), net:val('da-net')
         };
         if(!r.firma||!r.tarih){alert('Zorunlu alanları doldurun!');return;}
         
