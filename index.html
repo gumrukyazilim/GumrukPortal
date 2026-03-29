@@ -688,17 +688,17 @@
         </div>
         <div class="input-group" style="margin:0;flex:1;">
             <label>EUR/TL (Satış)</label>
-            <input id="calc-kur-eur" type="text" value="51,1069" oninput="window.calculateTaxes()" style="font-weight:700;">
+            <input id="calc-kur-eur" type="text" value="51,1069" oninput="window.calculateTaxes()" style="font-weight:700; color:var(--primary); font-size:15px;">
         </div>
         <div class="input-group" style="margin:0;flex:1;">
             <label>USD/TL (Satış)</label>
-            <input id="calc-kur-usd" type="text" value="44,3684" oninput="window.calculateTaxes()" style="font-weight:700;">
+            <input id="calc-kur-usd" type="text" value="44,3684" oninput="window.calculateTaxes()" style="font-weight:700; color:var(--primary); font-size:15px;">
         </div>
-        <div style="display:flex;flex-direction:column;gap:4px;">
-            <button class="kur-fetch-btn" onclick="window.fetchTCMBKur()">
-                <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> TCMB Kur Çek
+        <div style="display:flex;flex-direction:column;gap:8px;justify-content:flex-end;margin-bottom:2px;">
+            <button class="btn-primary" style="height:42px; padding:0 24px; font-size:14px; border-radius:8px;" onclick="window.fetchTCMBKur()">
+                <i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> TCMB Kuru Çek
             </button>
-            <span id="kur-status" class="kur-badge kur-live" style="font-size:10px;">2026 Kurları Aktif</span>
+            <span id="kur-status" class="kur-badge kur-manual" style="font-size:10.5px; text-align:center;">Güncelleme Bekleniyor</span>
         </div>
     </div>
     <div class="calc-grid fade-in">
@@ -1433,35 +1433,49 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         }, 150);
     };
 
-    window.fetchTCMBKur = async function(auto=false) {
+    window.fetchTCMBKur = async function(auto = false) {
         let st = document.getElementById('kur-status');
-        if(st) { st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> Bekleyin...'; st.className = 'kur-badge kur-manual'; }
+        if(st){ st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> Bağlanıyor...'; st.className = 'kur-badge kur-manual'; }
+        if(window.lucide) lucide.createIcons();
+        
         try {
-            const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://www.tcmb.gov.tr/kurlar/today.xml"));
-            const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
-            const cur = xml.getElementsByTagName("Currency");
-            let uRate=null, eRate=null;
-            for(let i=0; i<cur.length; i++) {
-                let code = cur[i].getAttribute("CurrencyCode");
-                let sell = cur[i].getElementsByTagName("ForexSelling")[0];
-                if(sell && sell.textContent) {
-                    let rate = parseFloat(sell.textContent.trim().replace(',','.'));
-                    if(code==="USD") uRate = rate;
-                    if(code==="EUR") eRate = rate;
+            // TCMB Güvenlik duvarını aşmak için güçlendirilmiş JSON Endpoint
+            const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://www.tcmb.gov.tr/kurlar/today.xml");
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('Proxy Hatası');
+            
+            const data = await response.json();
+            if(!data.contents) throw new Error('İçerik boş');
+
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+            const currencies = xmlDoc.getElementsByTagName("Currency");
+            
+            let usdRate = null, eurRate = null;
+            for (let i = 0; i < currencies.length; i++) {
+                let code = currencies[i].getAttribute("CurrencyCode");
+                let sellingNode = currencies[i].getElementsByTagName("ForexSelling")[0];
+                if (sellingNode && sellingNode.textContent) {
+                    let rate = parseFloat(sellingNode.textContent.replace(',', '.'));
+                    if (code === "USD") usdRate = rate;
+                    if (code === "EUR") eurRate = rate;
                 }
             }
-            if(uRate && eRate) {
-                if(document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = uRate.toFixed(4).replace('.',',');
-                if(document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = eRate.toFixed(4).replace('.',',');
-                if(st) { st.innerHTML = '✓ TCMB 15:30 Kuru'; st.className = 'kur-badge kur-live'; }
-                if(!auto) alert("TCMB Resmi Gösterge Kuru başarıyla çekildi!");
+            
+            if (usdRate && eurRate) {
+                if (document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = usdRate.toFixed(4).replace('.', ',');
+                if (document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = eurRate.toFixed(4).replace('.', ',');
+                if(st){ st.innerHTML = '✓ 15:30 Güncel Kur'; st.className = 'kur-badge kur-live'; }
+                if(!auto) alert("Harika! TCMB kurları başarıyla çekildi.\n\nEUR: " + eurRate + " ₺\nUSD: " + usdRate + " ₺");
                 window.calculateTaxes();
-            } else { throw new Error("Kurlar xml'de yok"); }
-        } catch(e) {
-            if(st) { st.innerHTML = '⚠ Bağlantı Hatası (Manuel)'; st.className = 'kur-badge kur-manual'; }
-            if(!auto) alert("TCMB sunucusuna bağlanılamadı. Kuru el ile girebilirsiniz.");
+            } else {
+                throw new Error('Kur verisi ayrıştırılamadı');
+            }
+        } catch (error) {
+            console.error("Kur hatası:", error);
+            if(st){ st.innerHTML = '⚠ TCMB Bağlantı Hatası'; st.className = 'kur-badge kur-manual'; }
+            if(!auto) alert("TCMB sunucusu şu an banka kısıtlamaları nedeniyle yanıt vermiyor.\nLütfen güncel kuru virgül (,) kullanarak kutulara el ile giriniz.");
         }
-        if(window.lucide) lucide.createIcons();
     };
 
     window.exportCalcExcel=function(){
