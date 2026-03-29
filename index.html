@@ -65,7 +65,7 @@
         .nav-btn { display:flex; align-items:center; gap:11px; width:100%; padding:10px 12px; border-radius:var(--r-md); color:var(--text-secondary); font-size:13.5px; font-weight:500; background:transparent; cursor:pointer; transition:all 0.18s; position:relative; }
         .nav-btn i { width:17px; height:17px; flex-shrink:0; }
         .nav-btn:hover { background:var(--bg-hover); color:var(--text-primary); }
-        .nav-btn.active { background:rgba(59,130,246,0.1); color:var(--primary); font-weight:600; }
+        .nav-btn.active { background:linear-gradient(135deg,rgba(59,130,246,0.15) 0%,rgba(59,130,246,0.05) 100%); color:var(--primary); font-weight:600; }
         .nav-btn.active::before { content:''; position:absolute; left:0; top:25%; bottom:25%; width:3px; border-radius:0 2px 2px 0; background:var(--primary); }
         
         .sidebar-footer { padding:14px 12px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:6px; }
@@ -153,8 +153,8 @@
         .row-kiymette:hover td { background:rgba(168,85,247,0.1)!important; }
         .row-beklemede td { background:rgba(245,158,11,0.03)!important; }
         .row-beklemede:hover td { background:rgba(245,158,11,0.06)!important; }
-        .row-kapali td { opacity:0.4; }
-        .row-kapali:hover td { opacity:0.65; }
+        .row-kapali td { opacity:0.6; }
+        .row-kapali:hover td { opacity:0.8; }
         
         .badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:5px; font-size:11px; font-weight:600; letter-spacing:0.2px; }
         .badge-warning { background:rgba(245,158,11,0.1); color:#fbbf24; border:1px solid rgba(245,158,11,0.2); }
@@ -185,7 +185,11 @@
         .input-group label { display:block; margin-bottom:6px; font-size:11.5px; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.4px; }
         input[type="text"], input[type="password"], input[type="date"], select { width:100%; padding:10px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-size:13px; transition:0.18s; }
         input[type="text"]:focus, input[type="date"]:focus, select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.1); outline:none; }
-        select { background-color:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border); }
+        
+        /* AÇILIR MENÜ DÜZELTMESİ (GÜNDÜZ/GECE MODU) */
+        select { background-color:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); }
+        select option { background-color:var(--bg-surface); color:var(--text-primary); }
+        
         input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(0.5); cursor:pointer; }
         [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(0.5); }
         
@@ -265,10 +269,6 @@
         .sortable-th { cursor:pointer; }
         .sortable-th:hover { color:var(--text-primary); }
         
-        select.firm-select { background:var(--input-bg)!important; color:var(--text-primary)!important; border:1px solid var(--border)!important; font-weight:600; }
-        select.firm-select option { background:var(--bg-elevated); color:var(--text-primary); padding:8px; }
-        select.firm-select:focus { border-color:var(--primary)!important; box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
-        
         .firm-search-wrap { position:relative; }
         .firm-search-input { width:100%; padding:10px 12px 10px 36px; border-radius:var(--r-md); background:var(--input-bg)!important; color:var(--text-primary)!important; border:1px solid var(--border)!important; font-size:13px; }
         .firm-search-input::placeholder { color:var(--text-muted); }
@@ -299,7 +299,7 @@
         .calc-result-table .value-col { text-align:right; font-weight:600; color:var(--text-primary); }
         .calc-result-table .section-header td { font-size:10.5px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.6px; padding-top:18px; border-bottom:1px solid rgba(59,130,246,0.15); }
         .calc-result-table .total-row td { font-weight:700; color:var(--text-primary); font-size:14px; border-top:2px solid var(--border); padding-top:14px; }
-        .calc-result-table .grand-total td { background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.02)); font-size:16px; font-weight:800; padding:16px 14px; border-radius:var(--r-md); }
+        .calc-result-table .grand-total td { background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.02)); font-size:16px; font-weight:800; padding:16px 14px; border-radius:var(--r-md); color:var(--text-primary); }
         
         .calc-section { border-radius:var(--r-lg); padding:24px; margin-bottom:20px; border:1px solid; }
         .calc-section.blue { background:rgba(59,130,246,0.04); border-color:rgba(59,130,246,0.15); }
@@ -328,6 +328,7 @@
         .mevzuat-container h3 { font-size: 16px; color: var(--primary); margin: 20px 0 12px; font-weight: 600; }
         .mevzuat-container ul { list-style-type: disc; margin-left: 24px; margin-bottom: 16px; }
         .mevzuat-container li { margin-bottom: 6px; }
+        .mevzuat-container strong { color: var(--text-primary); }
         .mevzuat-warn { background: rgba(245,158,11,0.05); border-left: 4px solid var(--warning); padding: 16px; border-radius: 0 var(--r-md) var(--r-md) 0; margin: 20px 0; }
         .mevzuat-info { background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.2); padding: 16px; border-radius: var(--r-md); margin: 20px 0; }
         .mevzuat-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
@@ -533,7 +534,7 @@
 
 <template id="tpl-declarations"> 
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Gümrük Kayıtları</div><h1 class="page-title">Gelen Araçlar</h1></div></div> 
-    <div class="toolbar fade-in"><div class="toolbar-left"><select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="width:220px;padding:8px 12px;background:var(--bg-main);color:var(--text-primary);border:1px solid var(--border);"><option value="all">Tüm Araçlar</option><option value="acik">Açık İşlemler</option><option value="kiymet">Kıymette Bekleyenler</option></select><button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'decl')"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div> 
+    <div class="toolbar fade-in"><div class="toolbar-left"><select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="width:220px;padding:8px 12px;"><option value="all">Tüm Araçlar</option><option value="acik">Açık İşlemler</option><option value="kiymet">Kıymette Bekleyenler</option></select><button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'decl')"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div> 
     <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="decl-selectAll" onclick="window.toggleAllDeclarations(this.checked)"></th><th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('decl')">G.TARİHİ ↕</th><th>İLK SÜRE</th><th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th><th>DURUM</th><th>FATURA</th><th>ARDİYE</th><th style="text-align:center;">VERGİ</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="declarations-tbody"></tbody></table></div></div> 
 </template>
 
@@ -590,7 +591,7 @@
     <div class="kur-panel fade-in">
         <div class="input-group" style="margin:0;flex:1;">
             <label>Para Birimi</label>
-            <select id="calc-currency" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
+            <select id="calc-currency" onchange="window.calculateTaxes()">
                 <option value="EUR" selected>EUR (€)</option>
                 <option value="USD">USD ($)</option>
             </select>
@@ -617,7 +618,7 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
                     <div class="input-group" style="margin:0;">
                         <label>Yakıt Tipi</label>
-                        <select id="calc-yakit" onchange="window.handleYakitChange()" style="background:var(--input-bg);">
+                        <select id="calc-yakit" onchange="window.handleYakitChange()">
                             <option value="BENZİNLİ">Benzinli</option>
                             <option value="DİZEL">Dizel</option>
                             <option value="ELEKTRİK">Elektrikli</option>
@@ -627,7 +628,7 @@
                     </div>
                     <div class="input-group" style="margin:0;">
                         <label>Motor Hacmi</label>
-                        <select id="calc-motor" onchange="window.updateGTIP()" style="background:var(--input-bg);">
+                        <select id="calc-motor" onchange="window.updateGTIP()">
                             <option value="0-1000">0–1000 cc</option>
                             <option value="1000-1500">1000–1500</option>
                             <option value="1500-1600">1500–1600</option>
@@ -662,7 +663,7 @@
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                     <div class="input-group" style="margin:0;">
                         <label>ÖTV %</label>
-                        <select id="calc-otv-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
+                        <select id="calc-otv-oran" onchange="window.calculateTaxes()">
                             <option value="0">%0</option>
                             <option value="25">%25</option>
                             <option value="45">%45</option>
@@ -682,17 +683,17 @@
                     <div class="input-group" style="margin:0;"><label>KDV %</label><input id="calc-kdv-oran" type="text" value="20" oninput="window.calculateTaxes()"></div>
                     <div class="input-group" style="margin:0;">
                         <label>Gümrük V. %</label>
-                        <select id="calc-gv-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
+                        <select id="calc-gv-oran" onchange="window.calculateTaxes()">
                             <option value="0">%0</option><option value="6">%6</option><option value="10" selected>%10</option><option value="22">%22</option>
                         </select>
                     </div>
                     <div class="input-group" style="margin:0;">
                         <label>İlave G.V. %</label>
-                        <select id="calc-ilave-gv-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
+                        <select id="calc-ilave-gv-oran" onchange="window.calculateTaxes()">
                             <option value="0">%0</option><option value="10">%10</option><option value="25" selected>%25</option><option value="30">%30</option><option value="40">%40 (Çin)</option><option value="60">%60</option>
                         </select>
                     </div>
-                    <div class="input-group" style="margin:0;"><label>KKDF %</label><select id="calc-kkdf-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
+                    <div class="input-group" style="margin:0;"><label>KKDF %</label><select id="calc-kkdf-oran" onchange="window.calculateTaxes()"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
                     <div class="input-group" style="margin:0;"><label>ATR'siz GV %</label><input id="calc-atr-oran" type="text" value="0" oninput="window.calculateTaxes()"></div>
                 </div>
             </div>
@@ -727,7 +728,7 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
                     <div class="input-group" style="margin:0;">
                         <label>Araç Türü</label>
-                        <select id="mtv-tur" onchange="window.handleMTVTuruChange()" style="background:var(--input-bg);">
+                        <select id="mtv-tur" onchange="window.handleMTVTuruChange()">
                             <option value="otomobil" selected>Otomobil / Arazi Taşıtı</option>
                             <option value="elektrikli">Tam Elektrikli (BEV - %25 MTV)</option>
                             <option value="motosiklet">Motosiklet</option>
@@ -739,14 +740,14 @@
                     </div>
                     <div class="input-group" style="margin:0;">
                         <label>İlk Tescil Yılı</label>
-                        <select id="mtv-tescil" onchange="window.calculateMTV()" style="background:var(--input-bg);">
+                        <select id="mtv-tescil" onchange="window.calculateMTV()">
                             <option value="post2018">01/01/2018 Sonrası</option>
                             <option value="pre2018">31/12/2017 ve Öncesi</option>
                         </select>
                     </div>
                     <div class="input-group" style="margin:0;">
                         <label>Yaş Grubu</label>
-                        <select id="mtv-yas" onchange="window.calculateMTV()" style="background:var(--input-bg);">
+                        <select id="mtv-yas" onchange="window.calculateMTV()">
                             <option value="0">1 - 3 Yaş</option>
                             <option value="1">4 - 6 Yaş</option>
                             <option value="2">7 - 11 Yaş</option>
@@ -756,7 +757,7 @@
                     </div>
                     <div class="input-group" style="margin:0;">
                         <label>Kriter (cm³ / kW / vb.)</label>
-                        <select id="mtv-hacim" onchange="window.calculateMTV()" style="background:var(--input-bg);">
+                        <select id="mtv-hacim" onchange="window.calculateMTV()">
                         </select>
                     </div>
                     <div class="input-group" style="margin:0; grid-column:span 2;">
@@ -1106,7 +1107,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     };
     window.handleGlobalSearch=function(v){window.liveSearch(v);};
 
-    // HESAP MAKİNESİNİ ARAÇTAN AÇMA FONKSİYONU
     window.openVehicleCalc = function(idx) {
         let d = window.declarationsData[idx];
         if(!d) return;
@@ -1275,7 +1275,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.saveDeclEntry=function(){
         let i=parseInt(document.getElementById('decl-edit-idx').value);let val=id=>document.getElementById(id)?.value.trim()||'';
         let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
-        let r={firma:val('da-firma'),marka:val('da-marka').toUpperCase(),model:val('da-model').toUpperCase(),yil:val('da-yil'),renk:val('da-renk').toUpperCase(),sasi:val('da-sase').toUpperCase(),tarih:fD(val('da-tarih')),ekSure:fD(val('da-ekSure')),antTarih:fD(val('da-antTarih')),beynmCif:fD(val('da-kiymVv')),kiymGt:fD(val('da-kiymGt')),evrak:val('da-evrak'),beyanname:val('da-beyanname'),fatura:val('da-fatura'),kiymet:val('da-kiymet')};
+        let r={firma:val('da-firma'),marka:val('da-marka').toUpperCase(),model:val('da-model').toUpperCase(),yil:val('da-yil'),renk:val('da-renk').toUpperCase(),sasi:val('da-sase').toUpperCase(),tarih:fD(val('da-tarih')),ekSure:fD(val('da-ekSure')),antTarih:fD(val('da-antTarih')),beynmCif:fD(val('da-beynmCif')),kiymVv:fD(val('da-kiymVv')),kiymGt:fD(val('da-kiymGt')),evrak:val('da-evrak'),beyanname:val('da-beyanname'),fatura:val('da-fatura'),kiymet:val('da-kiymet')};
         if(!r.firma||!r.tarih){alert('Zorunlu alanları doldurun!');return;}
         if(window.currentModalContext==='decl'){let os=i===-1?null:window.declarationsData[i].sasi;if(i===-1){window.declarationsData.unshift({...r});if(!window.firmData[r.firma])window.firmData[r.firma]=[];if(!window.firmData[r.firma].find(x=>x.sasi===r.sasi))window.firmData[r.firma].unshift({...r});}else{window.declarationsData[i]=r;if(window.firmData[r.firma]){let fi=window.firmData[r.firma].findIndex(x=>x.sasi===os);if(fi!==-1)window.firmData[r.firma][fi]=r;}}saveData('decl');saveData('firm');window.renderDeclarationsTable();}
         else{let os=i===-1?null:window.firmData[window.currentFirm][i].sasi;if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];if(i===-1){window.firmData[window.currentFirm].unshift({...r});if(!window.declarationsData.find(x=>x.sasi===r.sasi))window.declarationsData.unshift({...r});}else{window.firmData[window.currentFirm][i]=r;let di=window.declarationsData.findIndex(x=>x.sasi===os);if(di!==-1)window.declarationsData[di]=r;}saveData('firm');saveData('decl');window.renderFirmVehicles();}
@@ -1303,21 +1303,25 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 
     window._calcInputIds=['calc-currency','calc-kur-eur','calc-kur-usd','calc-yakit','calc-motor','calc-teslim','calc-fatura','calc-navlun','calc-sigorta','calc-yurtdisi','calc-yurtici','calc-damga','calc-otv-oran','calc-kdv-oran','calc-gv-oran','calc-ilave-gv-oran','calc-kkdf-oran','calc-atr-oran','calc-gumruk','calc-nakliye','calc-almanya','calc-ardiye-tl','calc-tse-muh-tl','calc-tse-harci-manual', 'mtv-tur', 'mtv-tescil', 'mtv-hacim', 'mtv-yas', 'mtv-deger'];
 
+    window._isRestoring = false;
+
     window.saveCalcState=function(){
+        if(window._isRestoring) return;
         const state={};
         window._calcInputIds.forEach(id=>{let el=document.getElementById(id);if(el)state[id]=el.value;});
         let tip=document.querySelector('input[name="calc-tip"]:checked');
         if(tip)state['calc-tip']=tip.value;
         let mtvOtoDeger = document.getElementById('mtv-oto-deger');
         if(mtvOtoDeger) state['mtv-oto-deger'] = mtvOtoDeger.checked;
-        localStorage.setItem('gumruk_calc_state_v14',JSON.stringify(state)); 
+        localStorage.setItem('gumruk_calc_state_v15',JSON.stringify(state)); 
     };
 
     window.loadCalcState=function(){
-        let saved=localStorage.getItem('gumruk_calc_state_v14');
+        let saved=localStorage.getItem('gumruk_calc_state_v15');
         if(!saved) return false;
         try{
             let state=JSON.parse(saved);
+            window._isRestoring = true;
             
             if(state['calc-yakit']){
                 let y = document.getElementById('calc-yakit');
@@ -1345,8 +1349,10 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                 let mtvOto = document.getElementById('mtv-oto-deger');
                 if(mtvOto) mtvOto.checked = state['mtv-oto-deger'];
             }
+            window._isRestoring = false;
             return true;
         }catch(e){
+            window._isRestoring = false;
             return false;
         }
     };
@@ -1393,8 +1399,8 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(!isInitialLoad) {
             let otvSel=document.getElementById('calc-otv-oran');
             if(otvSel){otvSel.value=String(otv);if(!otvSel.value)otvSel.value='220';}
+            window.calculateTaxes();
         }
-        window.calculateTaxes();
     };
 
     window.handleMTVTuruChange = function(isInitialLoad = false) {
@@ -1636,8 +1642,11 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(vn==='firms')window.renderFirmsList();
         if(vn==='firmDetails'){if(document.getElementById('current-firm-title')&&window.currentFirm)document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();}
         if(vn==='calculator'){
+            window._isRestoring = true;
             window.handleYakitChange(true); 
             window.handleMTVTuruChange(true); 
+            window._isRestoring = false;
+            
             window.loadCalcState();
             window.updateGTIP(true);
             window.calculateTaxes();
