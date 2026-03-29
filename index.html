@@ -35,6 +35,7 @@
         button, input, select { font-family:inherit; outline:none; border:none; }
         .hidden { display:none !important; }
         
+        /* MÜŞTERİ YETKİ GİZLEME SINIFI */
         .hidden-role { display: none !important; }
         
         #login-screen { position:fixed; inset:0; z-index:99999; background: radial-gradient(ellipse at 30% 20%,rgba(59,130,246,0.18) 0%,transparent 55%),radial-gradient(ellipse at 80% 80%,rgba(168,85,247,0.12) 0%,transparent 50%),var(--bg-main); display:flex; align-items:center; justify-content:center; }
@@ -280,6 +281,14 @@
         .firm-dropdown-item { padding:10px 14px; cursor:pointer; color:var(--text-primary); font-size:13px; font-weight:500; border-bottom:1px solid var(--border); transition:0.1s; }
         .firm-dropdown-item:hover { background:var(--bg-hover); color:var(--primary); }
         
+        /* YENİ OTO-TAMAMLAMA ARAMA LİSTESİ (GÖNDERİCİ VE GTİP İÇİN) */
+        .autocomplete-list { position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:0 0 var(--r-md) var(--r-md); max-height:220px; overflow-y:auto; z-index:9999; display:none; box-shadow:0 12px 28px rgba(0,0,0,0.4); }
+        .autocomplete-list.show { display:block; }
+        .autocomplete-item { padding:10px 14px; cursor:pointer; color:var(--text-primary); font-size:12.5px; border-bottom:1px solid var(--border); transition:0.1s; display:flex; flex-direction:column; gap:4px; }
+        .autocomplete-item:hover { background:var(--bg-hover); border-left:3px solid var(--primary); padding-left:11px; }
+        .ac-title { font-weight:700; color:var(--primary); }
+        .ac-sub { font-size:11px; color:var(--text-muted); }
+        
         .tip { position:relative; display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:rgba(59,130,246,0.15); color:var(--primary); font-size:10px; font-weight:700; cursor:help; margin-left:6px; flex-shrink:0; }
         .tip:hover::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:#1e293b; color:#f1f5f9; padding:8px 12px; border-radius:8px; font-size:11px; font-weight:400; white-space:nowrap; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,0.3); max-width:280px; white-space:normal; line-height:1.4; }
         
@@ -501,15 +510,22 @@
             <input type="hidden" id="decl-edit-idx" value="-1"> 
             
             <div class="modal-section">
-                <div class="modal-section-title">Beyanname Ön Bilgileri (Kutu 2, 33, 35, 38)</div>
+                <div class="modal-section-title">Beyanname Ön Bilgileri (Arama Motorlu)</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group" style="grid-column: span 2; margin-bottom:0;">
+                    <div class="input-group" style="grid-column: span 2; margin-bottom:0; position:relative;">
                         <label>Gönderici / İhracatçı Firma (Kutu 2)</label>
-                        <input type="text" id="da-gonderici" placeholder="Örn: HM AUTOMOBILE...">
+                        <input type="text" id="da-gonderici" placeholder="Firma adı veya ID yazın..." oninput="window.filterGonderici(this.value)" onfocus="window.filterGonderici(this.value)" onblur="setTimeout(()=>document.getElementById('da-gonderici-list').classList.remove('show'),200)" autocomplete="off">
+                        <div id="da-gonderici-list" class="autocomplete-list"></div>
                     </div>
-                    <div class="input-group" style="margin-bottom:0;"><label>GTİP / Eşya Kodu (Kutu 33)</label><input type="text" id="da-gtip" placeholder="Örn: 8703.2319.1200"></div>
-                    <div class="input-group" style="margin-bottom:0;"><label>Brüt Ağırlık (kg) (Kutu 35)</label><input type="text" id="da-brut" placeholder="Örn: 2450"></div>
-                    <div class="input-group" style="margin-bottom:0;"><label>Net Ağırlık (kg) (Kutu 38)</label><input type="text" id="da-net" placeholder="Örn: 2385"></div>
+                    <div class="input-group" style="margin-bottom:0; position:relative;">
+                        <label>GTİP / Eşya Kodu (Kutu 33)</label>
+                        <input type="text" id="da-gtip" placeholder="8703... veya elektrikli..." oninput="window.filterGTIP(this.value)" onfocus="window.filterGTIP(this.value)" onblur="setTimeout(()=>document.getElementById('da-gtip-list').classList.remove('show'),200)" autocomplete="off">
+                        <div id="da-gtip-list" class="autocomplete-list"></div>
+                    </div>
+                    <div style="display:flex; gap:14px;">
+                        <div class="input-group" style="margin-bottom:0; flex:1;"><label>Brüt Ağırlık (kg)</label><input type="text" id="da-brut" placeholder="Örn: 2450"></div>
+                        <div class="input-group" style="margin-bottom:0; flex:1;"><label>Net Ağırlık (kg)</label><input type="text" id="da-net" placeholder="Örn: 2385"></div>
+                    </div>
                 </div>
             </div>
 
@@ -530,15 +546,22 @@
                     <div class="input-group"><label>Model</label><input type="text" id="da-model"></div>
                     <div class="input-group"><label>Yıl</label><input type="text" id="da-yil"></div>
                     <div class="input-group"><label>Renk</label><input type="text" id="da-renk"></div>
+                    
                     <div class="input-group" style="grid-column: span 2;">
                         <label>Evrak (Drive/Bulut Linki)</label>
-                        <div style="position:relative;">
-                            <i data-lucide="link" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--primary);pointer-events:none;z-index:2;"></i>
-                            <input type="text" id="da-evrakLink" placeholder="https://drive.google.com/..." style="padding-left:32px; border-color:var(--border-active);">
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <div style="position:relative; flex:1;">
+                                <i data-lucide="link" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--primary);pointer-events:none;z-index:2;"></i>
+                                <input type="text" id="da-evrakLink" placeholder="https://drive.google.com/..." style="padding-left:32px; border-color:var(--border-active);">
+                            </div>
+                            <button class="btn-sm" style="height:40px; border-color:var(--primary); color:var(--primary);" onclick="let l=document.getElementById('da-evrakLink').value; if(l){window.open(l, '_blank');}else{alert('Lütfen önce bir link yapıştırın!');}">
+                                <i data-lucide="external-link" style="width:14px;height:14px;"></i> Git
+                            </button>
                         </div>
                     </div>
                 </div>
             </div> 
+            
             <div class="modal-section">
                 <div class="modal-section-title">Gümrük Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
@@ -985,6 +1008,135 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 </script>
 
 <script>
+    // --- YENİ EKLENEN VERİ LİSTELERİ ---
+    window.GondericiList = [
+        {id: "21US000661501", ad: "34 LLC SUNA TATAR"},
+        {id: "19GB000236431", ad: "ADA AUTO LTD UK"},
+        {id: "21DE000666122", ad: "AG AUTOMOBILE"},
+        {id: "21DE000666246", ad: "AREACARS INC ERDAL KOC"},
+        {id: "21DE000663913", ad: "AUTO INCEVTIVES VENTURES"},
+        {id: "21DE000669113", ad: "AUTOZENTRUM BOCHOLT GMBH"},
+        {id: "21DE000663231", ad: "AZIZ AKSEKI IMPORT EXPORT"},
+        {id: "21DE000674849", ad: "ELITAL INTERNATIONAL GMBH"},
+        {id: "21DE000691540", ad: "ELITE-LEASING GMBH"},
+        {id: "21DE000691538", ad: "FORUTRANSPORTE GMBH"},
+        {id: "18DE000009009", ad: "FMM LEASING"},
+        {id: "21SE000684970", ad: "FORDON CITY SVRIGE AB"},
+        {id: "21DE000669203", ad: "GRAND INVESTMENT"},
+        {id: "2117000672396", ad: "GRUPPO M SRI:"},
+        {id: "20CA000473008", ad: "IDAP INC"},
+        {id: "ISDE000011237", ad: "KALKAN AUTOMOBILE GMBH"},
+        {id: "21C2000679666", ad: "KINGSMARQUE INTERNATION"},
+        {id: "21CA000669624", ad: "LAVAGGIO AUTO INC"},
+        {id: "21DE000610044", ad: "LEASING NIEDERRHEIN GMBH"},
+        {id: "21L0000672399", ad: "NEW ELEGANCE SAR L"},
+        {id: "19DE000455219", ad: "REICHENHALLER AUTO"},
+        {id: "21DE000669116", ad: "S P ASSEKURANZ VERMITTLUNGS"},
+        {id: "19DB000441612", ad: "SABA CARS GMBH"},
+        {id: "21DE000612631", ad: "SOLUTION PARK4UVERMIETUNG"},
+        {id: "21DB000675000", ad: "SOLUTION-PARK4U VERMIETUNG"},
+        {id: "21NC000663240", ad: "STRADA CARS BV"},
+        {id: "21DE000690775", ad: "TUTUT DEUTSCHLAND GMBH"},
+        {id: "21CA000666241", ad: "UNITED CAME AUTOS INTERN"},
+        {id: "21DE000662519", ad: "AUTO KAYA"},
+        {id: "22DE000776599", ad: "DON-ART GMBH"},
+        {id: "22DE000771790", ad: "NRW LOGISTIK GMBH"},
+        {id: "24AT000920857", ad: "THE PRESTIGE EVENTS GMBH"},
+        {id: "23DE000809946", ad: "CK VIP RENT GMBH"},
+        {id: "25DE000962665", ad: "WINKLER HANDELS UND VERTRIEBS GMBH"},
+        {id: "23DE000821743", ad: "FORTUNA LEAING FLEET SERVICE GMBH"},
+        {id: "25DE000986598", ad: "US MOBILE DE"},
+        {id: "21DE000637236", ad: "AUTOHAUS TÖFF TÖFF GMBH"},
+        {id: "25DE000992490", ad: "HM AUTOMOBİLE"},
+        {id: "25DE000991628", ad: "AUTOLINE INH BRESCHAK LUKAS"}
+    ];
+
+    window.GTIPList = [
+        {kod: "8703.21.10.10.00", desc: "Silindir hacmi 1000 cm³’ü geçmeyen binek otomobilleri (yeni)"},
+        {kod: "8703.22.10.10.00", desc: "Silindir hacmi 1000-1500 cm³ binek otomobilleri (yeni)"},
+        {kod: "8703.23.11.00.00", desc: "Silindir hacmi 1500-3000 cm³ motorlu karavanlar (yeni)"},
+        {kod: "8703.23.19.11.00", desc: "1500-1600 cm³ binek otomobilleri (yeni)"},
+        {kod: "8703.23.19.12.00", desc: "1600-2000 cm³ binek otomobilleri (yeni)"},
+        {kod: "8703.23.19.13.00", desc: "2000 cm³ üstü binek otomobilleri (yeni)"},
+        {kod: "8703.24.10.10.00", desc: "Silindir hacmi 3000 cm³ üstü binek otomobilleri (yeni)"},
+        {kod: "8703.31.10.10.00", desc: "Silindir hacmi 1500 cm³’e kadar binek otomobilleri (yeni)"},
+        {kod: "8703.32.11.00.00", desc: "Silindir hacmi 1500-2500 cm³ motorlu karavanlar (yeni)"},
+        {kod: "8703.32.19.11.00", desc: "1500-1600 cm³ binek otomobilleri (yeni)"},
+        {kod: "8703.32.19.12.00", desc: "1600-2000 cm³ binek otomobilleri (yeni)"},
+        {kod: "8703.32.19.13.00", desc: "2000 cm³ üstü binek otomobilleri (yeni)"},
+        {kod: "8703.33.11.00.00", desc: "Silindir hacmi 2500 cm³ üstü motorlu karavanlar (yeni)"},
+        {kod: "8703.33.19.10.11", desc: "2500-3000 cm³ binek otomobilleri (yeni)"},
+        {kod: "8703.33.19.10.12", desc: "3000 cm³ üstü binek otomobilleri (yeni)"},
+        {kod: "8703.40.10.00.00", desc: "Benzinli + elektrik hibrit (harici şarj hariç)"},
+        {kod: "8703.50.00.00.00", desc: "Dizel + elektrik hibrit (harici şarj hariç)"},
+        {kod: "8703.60.10.00.00", desc: "Benzinli + elektrik hibrit (harici şarj edilebilen)"},
+        {kod: "8703.70.00.00.00", desc: "Dizel + elektrik hibrit (harici şarj edilebilen)"},
+        {kod: "8703.80.10.00.11", desc: "Sadece elektrikli (içten yanmalı motoru olmayan)"},
+        {kod: "8703.80.10.00.19", desc: "Sadece elektrikli – Diğerleri (yeni)"},
+        {kod: "8703.10.11.00.00", desc: "Kar üzerinde hareket eden veya golf taşıtları"},
+        {kod: "8703.10.18.00.00", desc: "Kar/golf taşıtları – Diğerleri"},
+        {kod: "8704.21.31.00.00", desc: "Dizel, Brüt ≤5 ton, silindir >2500 cm³ (yeni)"},
+        {kod: "8704.21.91.00.00", desc: "Dizel, Brüt ≤5 ton, silindir ≤2500 cm³ (yeni)"},
+        {kod: "8704.22.91.00.00", desc: "Dizel, Brüt 5-20 ton (yeni)"},
+        {kod: "8704.23.91.00.00", desc: "Dizel, Brüt ≥20 ton (yeni)"},
+        {kod: "8704.31.31.00.00", desc: "Benzinli, Brüt ≤5 ton, silindir >2800 cm³ (yeni)"},
+        {kod: "8704.31.91.00.00", desc: "Benzinli, Brüt ≤5 ton, silindir ≤2800 cm³ (yeni)"},
+        {kod: "8704.32.91.00.00", desc: "Benzinli, Brüt >5 ton (yeni)"},
+        {kod: "8704.41.31.00.00", desc: "Dizel Hibrit, brüt ≤5 ton, silindir >2500 cm³ (yeni)"},
+        {kod: "8704.41.91.00.00", desc: "Dizel Hibrit, brüt ≤5 ton, silindir ≤2500 cm³ (yeni)"},
+        {kod: "8704.42.91.00.00", desc: "Dizel Hibrit, brüt 5-20 ton (yeni)"},
+        {kod: "8704.43.91.00.00", desc: "Dizel Hibrit, brüt ≥20 ton (yeni)"},
+        {kod: "8704.51.31.00.00", desc: "Benzin Hibrit, brüt ≤5 ton, silindir >2800 cm³ (yeni)"},
+        {kod: "8704.51.91.00.00", desc: "Benzin Hibrit, brüt ≤5 ton, silindir ≤2800 cm³ (yeni)"},
+        {kod: "8704.52.91.00.00", desc: "Benzin Hibrit, brüt >5 ton (yeni)"},
+        {kod: "8704.60.00.00.00", desc: "Sadece elektrik motorundan tahrikli eşya taşıma araçları"},
+        {kod: "8704.10.10.11.00", desc: "Karayolu dışı damperli (belirli silindir hacimli)"},
+        {kod: "8704.10.10.19.00", desc: "Karayolu dışı damperli – Diğerleri"}
+    ];
+
+    window.filterGonderici = function(val) {
+        let listEl = document.getElementById('da-gonderici-list');
+        if(!listEl) return;
+        let q = val.toLocaleLowerCase('tr').trim();
+        let matches = window.GondericiList;
+        if(q) {
+            matches = window.GondericiList.filter(g => g.ad.toLocaleLowerCase('tr').includes(q) || g.id.toLocaleLowerCase('tr').includes(q));
+        }
+        if(matches.length > 0) {
+            listEl.innerHTML = matches.map(g => `<div class="autocomplete-item" onmousedown="window.selectGonderici('${g.id}', '${g.ad.replace(/'/g, "\\'")}')"><span class="ac-title">${g.ad}</span><span class="ac-sub">ID: ${g.id}</span></div>`).join('');
+            listEl.classList.add('show');
+        } else {
+            listEl.classList.remove('show');
+        }
+    };
+    
+    window.selectGonderici = function(id, ad) {
+        document.getElementById('da-gonderici').value = `${id} - ${ad}`;
+        document.getElementById('da-gonderici-list').classList.remove('show');
+    };
+
+    window.filterGTIP = function(val) {
+        let listEl = document.getElementById('da-gtip-list');
+        if(!listEl) return;
+        let q = val.toLocaleLowerCase('tr').trim();
+        let matches = window.GTIPList;
+        if(q) {
+            matches = window.GTIPList.filter(g => g.kod.replace(/\./g,'').includes(q.replace(/\./g,'')) || g.desc.toLocaleLowerCase('tr').includes(q));
+        }
+        if(matches.length > 0) {
+            listEl.innerHTML = matches.map(g => `<div class="autocomplete-item" onmousedown="window.selectGTIP('${g.kod}')"><span class="ac-title">${g.kod}</span><span class="ac-sub">${g.desc}</span></div>`).join('');
+            listEl.classList.add('show');
+        } else {
+            listEl.classList.remove('show');
+        }
+    };
+    
+    window.selectGTIP = function(kod) {
+        document.getElementById('da-gtip').value = kod;
+        document.getElementById('da-gtip-list').classList.remove('show');
+    };
+    // ------------------------------------------
+
     window.toggleTheme = function() {
         let html = document.documentElement;
         let current = html.getAttribute('data-theme');
@@ -1305,7 +1457,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         setTimeout(() => window.calculateTaxes(), 100);
     };
 
-    // BEYANNAME OTOMATİK VERİ DOLDURMA FONKSİYONU
     window.openBeyanname = function(idx, ctx) {
         let d = null;
         if(ctx === 'decl') d = window.declarationsData[idx];
@@ -1315,7 +1466,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         window.renderView('beyanname');
 
         setTimeout(() => {
-            // Eşleştirme ve Doldurma (AŞAMA 1 Uyumlu)
             if(document.getElementById('tcgb-2')) document.getElementById('tcgb-2').value = d.gonderici || '';
             if(document.getElementById('tcgb-8')) document.getElementById('tcgb-8').value = d.firma || '';
             if(document.getElementById('tcgb-14')) document.getElementById('tcgb-14').value = d.firma || '';
@@ -1628,21 +1778,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.closeExcelModal=function(){document.getElementById('excel-modal').classList.add('hidden');document.getElementById('excel-file-input').value="";};
     window.processExcelData=function(input){if(!input.files||!input.files.length)return;let reader=new FileReader();let ctx=document.getElementById('excel-target-context').value;reader.onload=function(e){try{let wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});let data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});let c=0;data.forEach(r=>{if(r.length>2&&!String(r[0]).toUpperCase().includes('MARKA')){if(ctx==='firm'){let nv={firma:window.currentFirm,marka:r[0]||'',model:r[1]||'',yil:r[2]||'',renk:r[3]||'',sasi:r[4]||'',tarih:window.fixExcelDate(r[5]),beyanname:r[6]||'',fatura:r[7]||'',kiymet:r[8]||'',evrak:'Açık',evrakLink:''};if(!window.firmData[window.currentFirm])window.firmData[window.currentFirm]=[];window.firmData[window.currentFirm].unshift(nv);window.declarationsData.unshift(nv);}else{window.kiymetData.unshift({marka:r[0]||'',model:r[1]||'',yil:r[2]||'',renk:r[3]||'',sasi:r[4]||'',tarih:window.fixExcelDate(r[5]),fatura:r[6]||'',kiymet:r[7]||'',durum:r[8]||''});}c++;}});if(c>0){alert(c+' kayıt aktarıldı');if(ctx==='firm'){saveData('firm');saveData('decl');window.renderFirmVehicles();window.updateDashboardStats();}else{saveData('kiymet');window.renderKiymetTable();}window.closeExcelModal();}}catch(err){alert('Hata');}};reader.readAsArrayBuffer(input.files[0]);};
 
-    window.GTIP_TABLE={
-        'BENZİNLİ':{'0-1000':'8703.2110.1000','1000-1500':'8703.2210.1000','1500-1600':'8703.2319.1100','1600-2000':'8703.2319.1200','2000-2500':'8703.2319.1300','2500-3000':'8703.2319.1300','3000+':'8703.2410.1000'},
-        'DİZEL':{'0-1000':'8703.3110.1000','1000-1500':'8703.3110.1000','1500-1600':'8703.3219.1100','1600-2000':'8703.3219.1200','2000-2500':'8703.3219.1300','2500-3000':'8703.3319.1011','3000+':'8703.3319.1012'},
-        'ELEKTRİK':{'<=160':'8703.8010.0029','>160':'8703.8010.0029'},
-        'PLUG-IN':{'0-1000':'8703.6010.0000','1000-1500':'8703.6010.0000','1500-1600':'8703.6010.0000','1600-2000':'8703.6010.0000','2000-2500':'8703.6010.0000','2500-3000':'8703.6010.0000','3000+':'8703.6010.0000'},
-        'BENZİN HİBRİT':{'0-1000':'8703.4010.0000','1000-1500':'8703.4010.0000','1500-1600':'8703.4010.0000','1600-2000':'8703.4010.0000','2000-2500':'8703.4010.0000','2500-3000':'8703.4010.0000','3000+':'8703.4010.0000'}
-    };
-    window.OTV_SUGGEST={
-        'BENZİNLİ':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
-        'DİZEL':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
-        'ELEKTRİK':{'<=160':25,'>160':65},
-        'PLUG-IN':{'0-1000':45,'1000-1500':45,'1500-1600':45,'1600-2000':75,'2000-2500':75,'2500-3000':75,'3000+':75},
-        'BENZİN HİBRİT':{'0-1000':70,'1000-1500':70,'1500-1600':80,'1600-2000':80,'2000-2500':150,'2500-3000':150,'3000+':150}
-    };
-
     window._calcInputIds=['calc-currency','calc-kur-eur','calc-kur-usd','calc-yakit','calc-motor','calc-teslim','calc-fatura','calc-navlun','calc-sigorta','calc-yurtdisi','calc-yurtici','calc-damga','calc-otv-oran','calc-kdv-oran','calc-gv-oran','calc-ilave-gv-oran','calc-kkdf-oran','calc-atr-oran','calc-gumruk','calc-nakliye','calc-almanya','calc-ardiye-tl','calc-tse-muh-tl','calc-tse-harci-manual', 'mtv-tur', 'mtv-tescil', 'mtv-hacim', 'mtv-yas', 'mtv-deger'];
 
     window._isRestoring = false;
@@ -1730,10 +1865,26 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     };
 
     window.updateGTIP=function(isInitialLoad = false){
+        // GTIP_TABLE ve OTV_SUGGEST arka planda kalsın, vergi ekranı için lazım.
+        const GTIP_TABLE={
+            'BENZİNLİ':{'0-1000':'8703.21.10.10.00','1000-1500':'8703.22.10.10.00','1500-1600':'8703.23.19.11.00','1600-2000':'8703.23.19.12.00','2000-2500':'8703.23.19.13.00','2500-3000':'8703.23.19.13.00','3000+':'8703.24.10.10.00'},
+            'DİZEL':{'0-1000':'8703.31.10.10.00','1000-1500':'8703.31.10.10.00','1500-1600':'8703.32.19.11.00','1600-2000':'8703.32.19.12.00','2000-2500':'8703.32.19.13.00','2500-3000':'8703.33.19.10.11','3000+':'8703.33.19.10.12'},
+            'ELEKTRİK':{'<=160':'8703.80.10.00.11','>160':'8703.80.10.00.19'},
+            'PLUG-IN':{'0-1000':'8703.60.10.00.00','1000-1500':'8703.60.10.00.00','1500-1600':'8703.60.10.00.00','1600-2000':'8703.60.10.00.00','2000-2500':'8703.60.10.00.00','2500-3000':'8703.60.10.00.00','3000+':'8703.60.10.00.00'},
+            'BENZİN HİBRİT':{'0-1000':'8703.40.10.00.00','1000-1500':'8703.40.10.00.00','1500-1600':'8703.40.10.00.00','1600-2000':'8703.40.10.00.00','2000-2500':'8703.40.10.00.00','2500-3000':'8703.40.10.00.00','3000+':'8703.40.10.00.00'}
+        };
+        const OTV_SUGGEST={
+            'BENZİNLİ':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
+            'DİZEL':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
+            'ELEKTRİK':{'<=160':25,'>160':65},
+            'PLUG-IN':{'0-1000':45,'1000-1500':45,'1500-1600':45,'1600-2000':75,'2000-2500':75,'2500-3000':75,'3000+':75},
+            'BENZİN HİBRİT':{'0-1000':70,'1000-1500':70,'1500-1600':80,'1600-2000':80,'2000-2500':150,'2500-3000':150,'3000+':150}
+        };
+
         let yakit=document.getElementById('calc-yakit')?.value||'BENZİNLİ';
         let motor=document.getElementById('calc-motor')?.value||'1600-2000';
-        let gtip=window.GTIP_TABLE[yakit]?.[motor]||'8703.2319.1200';
-        let otv=window.OTV_SUGGEST[yakit]?.[motor]||220;
+        let gtip=GTIP_TABLE[yakit]?.[motor]||'8703.23.19.12.00';
+        let otv=OTV_SUGGEST[yakit]?.[motor]||220;
         
         let gd=document.getElementById('gtip-display');if(gd)gd.innerText='GTİP: '+gtip;
         let gm=document.getElementById('res-gtip-mini');if(gm)gm.innerText=gtip;
