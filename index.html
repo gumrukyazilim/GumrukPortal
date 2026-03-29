@@ -528,7 +528,7 @@
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Genel Bakış</div><h1 class="page-title">Sistem Özeti</h1></div></div>
     <div class="stats-grid fade-in">
         <div class="stat-card" onclick="window.goToFilter('kiymet')"><div class="stat-card-top"><div class="stat-icon-box purple"><i data-lucide="clock"></i></div><span class="stat-trend warn">Aktif</span></div><div class="stat-value" id="dash-kiymet">0</div><div class="stat-label">Kıymette Bekleyen</div><div class="stat-bar"><div class="stat-bar-fill purple" style="width:0%"></div></div></div>
-        <div class="stat-card" onclick="window.goToFilter('acik')"><div class="stat-card-top"><div class="stat-icon-box yellow"><i data-lucide="alert-triangle"></i></div><span class="stat-trend warn">İşlemde</span></div><div class="stat-value" id="dash-ambar">0</div><div class="stat-label">Açık İşlem</div><div class="stat-bar"><div class="stat-bar-fill yellow" style="width:0%"></div></div></div>
+        <div class="stat-card" onclick="window.goToFilter('acik')"><div class="stat-card-top"><div class="stat-icon-box yellow"><i data-lucide="alert-triangle"></i></div><span class="stat-trend warn">İşlemde</span></div><div class="stat-value" id="dash-ambar">0</div><div class="stat-label">Açık EVRAK</div><div class="stat-bar"><div class="stat-bar-fill yellow" style="width:0%"></div></div></div>
         <div class="stat-card" onclick="window.goToFilter('all')"><div class="stat-card-top"><div class="stat-icon-box green"><i data-lucide="check-circle-2"></i></div><span class="stat-trend up">Toplam</span></div><div class="stat-value" id="dash-total">0</div><div class="stat-label">Toplam Araç</div><div class="stat-bar"><div class="stat-bar-fill green" style="width:100%"></div></div></div>
     </div>
 </template>
@@ -540,7 +540,7 @@
 
 <template id="tpl-firmDetails"> 
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firma Detayı</div><h1 class="page-title" id="current-firm-title">Firma</h1></div><div class="page-actions"><button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button><button class="btn-sm" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button><button id="firm-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"></i> Sil (<span id="firm-selected-count">0</span>)</button><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button></div></div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ ↕</th><th>BEYANNAME</th><th>FATURA</th><th>KIYMET</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div> 
+    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ ↕</th><th>BEYANNAME</th><th>FATURA</th><th>KIYMET</th><th style="text-align:center;">EVRAK</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-declarations"> 
@@ -559,14 +559,14 @@
     <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr>
         <th style="width:40px;text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb" id="decl-selectAll" onclick="window.toggleAllDeclarations(this.checked)"></th>
         <th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('decl')">G.TARİHİ ↕</th><th>İLK SÜRE</th><th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th><th>DURUM</th><th>FATURA</th><th>ARDİYE</th>
-        <th style="text-align:center;" class="admin-only">VERGİ</th><th style="text-align:center;">İŞLEM</th>
+        <th style="text-align:center;" class="admin-only">VERGİ</th><th style="text-align:center;">EVRAK</th>
     </tr></thead><tbody id="declarations-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-kiymetListesi"> 
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Arşiv</div><h1 class="page-title">Kıymet Listesi</h1></div></div> 
     <div class="toolbar fade-in"><div class="toolbar-left"><button id="kiymet-delete-btn" class="btn-sm btn-danger hidden" onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2"></i> Sil (<span id="kiymet-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-sm" onclick="window.openExcelModal('kiymet')"><i data-lucide="file-spreadsheet"></i> Excel</button><button class="btn-primary" onclick="window.openKiymetModal()"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)"></th><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('kiymet')">G.TARİHİ ↕</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div> 
+    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)"></th><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('kiymet')">G.TARİHİ ↕</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th style="text-align:center;">EVRAK</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-mevzuat">
