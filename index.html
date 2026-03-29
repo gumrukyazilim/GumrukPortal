@@ -881,12 +881,31 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(window._firebaseLoad){
             let data=await window._firebaseLoad();
             if(data){
-                window.declarationsData=data.decl||[];
-                window.firmData=data.firm||{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
-                window.kiymetData=data.kiymet||[];
+                // Firebase Array Bug Önlemi: Gelen veriyi her halükarda filtreleyip Array'e zorluyoruz
+                let dRaw = data.decl || [];
+                window.declarationsData = (Array.isArray(dRaw) ? dRaw : Object.values(dRaw)).filter(x=>x);
                 
-                window.declarationsData.forEach(d=>{if(d){d.tarih=window.fixExcelDate(d.tarih);d.kiymVv=window.fixExcelDate(d.kiymVv);d.kiymGt=window.fixExcelDate(d.kiymGt);d.ekSure=window.fixExcelDate(d.ekSure);d.antTarih=window.fixExcelDate(d.antTarih);d.beynmCif=window.fixExcelDate(d.beynmCif);}});
-                Object.keys(window.firmData).forEach(fn=>{(window.firmData[fn]||[]).forEach(p=>{if(p)p.tarih=window.fixExcelDate(p.tarih);});});
+                let kRaw = data.kiymet || [];
+                window.kiymetData = (Array.isArray(kRaw) ? kRaw : Object.values(kRaw)).filter(x=>x);
+                
+                window.firmData = data.firm || {"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
+                Object.keys(window.firmData).forEach(fn => {
+                    let fRaw = window.firmData[fn] || [];
+                    window.firmData[fn] = (Array.isArray(fRaw) ? fRaw : Object.values(fRaw)).filter(x=>x);
+                    window.firmData[fn].forEach(p=>{if(p)p.tarih=window.fixExcelDate(p.tarih);});
+                });
+                
+                window.declarationsData.forEach(d=>{
+                    if(d){
+                        d.tarih=window.fixExcelDate(d.tarih);
+                        d.kiymVv=window.fixExcelDate(d.kiymVv);
+                        d.kiymGt=window.fixExcelDate(d.kiymGt);
+                        d.ekSure=window.fixExcelDate(d.ekSure);
+                        d.antTarih=window.fixExcelDate(d.antTarih);
+                        d.beynmCif=window.fixExcelDate(d.beynmCif);
+                    }
+                });
+                
                 window.kiymetData.forEach(k=>{if(k)k.tarih=window.fixExcelDate(k.tarih);});
                 
                 saveToLocal();
@@ -911,7 +930,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 
     window.exportBackup=function(){let d={decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData};let a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(d));a.download="gumruk_yedek.json";document.body.appendChild(a);a.click();a.remove();};
     
-    // GÜNCELLENMİŞ VE HATASIZ YEDEK YÜKLEME KODU
     window.importBackup = async function(event) {
         let file = event.target.files[0];
         if(!file) return;
@@ -936,7 +954,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                         
                         if(ok) {
                             alert("BÜYÜK BAŞARI! 144 Araç ve tüm veriler Firebase'e işlendi. Sistem yenileniyor.");
-                            location.reload(); // Sadece yükleme bitince yenile!
+                            location.reload(); 
                         } else {
                             alert("HATA: Buluta aktarılamadı.");
                         }
@@ -1303,7 +1321,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                 <option value="0-1000">0–1000 cc</option>
                 <option value="1000-1500">1000–1500</option>
                 <option value="1500-1600">1500–1600</option>
-                <option value="1600-2000">1600–2000</option>
+                <option value="1600-2000" selected>1600–2000</option>
                 <option value="2000-2500">2000–2500</option>
                 <option value="2500-3000">2500–3000</option>
                 <option value="3000+">3000+</option>
@@ -1547,7 +1565,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
             let mtvDegerInput = document.getElementById('mtv-deger');
             if(mtvDegerInput) {
                 mtvDegerInput.value = window.formatNumber(kdvM);
-                window.calculateMTV();
+                window.calculateMTV(); 
             }
         }
 
