@@ -838,14 +838,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// YOL DÜZELTİLDİ: enterprise_master -> portal_data
 window._firebaseSave = async function(payload) {
-    try { await set(ref(db, 'enterprise_master'), payload); return true; }
+    try { await set(ref(db, 'portal_data'), payload); return true; }
     catch(e) { console.error("Firebase save error:", e); return false; }
 };
 
 window._firebaseLoad = async function() {
     try {
-        const snapshot = await get(ref(db, 'enterprise_master'));
+        const snapshot = await get(ref(db, 'portal_data'));
         if(snapshot.exists()) return snapshot.val();
         return null;
     } catch(e) { console.error("Firebase load error:", e); return null; }
@@ -879,7 +880,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.addDays=function(d,n){if(!d)return null;let r=new Date(d);r.setDate(r.getDate()+Number(n));return r;};
     window.diffDaysSigned=function(a,b){if(!a||!b)return 0;return Math.round((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())-Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/(864e5));};
     window.formatNumber=function(v){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;return n.toLocaleString('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0});};
-    window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
+    window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip++','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
     // CLOUD SYNC
     function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));}catch(e){}}
@@ -1004,7 +1005,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.sortData=function(ctx){window.sortState.asc=!window.sortState.asc;let mul=window.sortState.asc?1:-1;let pD=s=>{if(!s)return 0;let c=window.fixExcelDate(s);let p=c.split('.');return p.length===3?parseInt(p[2]+p[1]+p[0]):0;};if(ctx==='decl'){window.declarationsData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('decl');window.renderDeclarationsTable();}else if(ctx==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('firm');window.renderFirmVehicles();}else if(ctx==='kiymet'){window.kiymetData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('kiymet');window.renderKiymetTable();}};
     window.goToFilter=function(f){window.renderView('declarations');let el=document.getElementById('decl-status-filter');if(el){el.value=f;window.renderDeclarationsTable();}};
 
-    // DÜZELTİLMİŞ CANLI ARAMA
+    // CANLI ARAMA
     let _searchTimeout=null;
     window.liveSearch=function(query){
         clearTimeout(_searchTimeout);
@@ -1110,12 +1111,12 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
             } catch(e) {
                 if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
             }
-            if(!auto) hideSyncToast("TCMB Bağlantı Hatası!", false);
+            if(!auto) hideSyncToast("TCMB Bağlantı Hatası! Eğer yerel dosyadan (file:///) çalışıyorsanız, sol alttaki 'Yedek İçe Aktar' butonunu kullanmayı unutmayın.", false);
         }
         if(window.lucide) lucide.createIcons();
     };
 
-    // EXCEL VE WORD (PROFESYONEL SUNUM) ÇIKTILARI
+    // EXCEL VE WORD ÇIKTILARI
     window.exportCalcExcel=function(){
         let rows=[['KALEM','DEĞER']];
         document.querySelectorAll('.calc-result-table tr').forEach(tr=>{
@@ -1224,12 +1225,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         'PLUG-IN':{'0-1000':'8703.6010.0000','1000-1500':'8703.6010.0000','1500-1600':'8703.6010.0000','1600-2000':'8703.6010.0000','2000-2500':'8703.6010.0000','2500-3000':'8703.6010.0000','3000+':'8703.6010.0000'},
         'BENZİN HİBRİT':{'0-1000':'8703.4010.0000','1000-1500':'8703.4010.0000','1500-1600':'8703.4010.0000','1600-2000':'8703.4010.0000','2000-2500':'8703.4010.0000','2500-3000':'8703.4010.0000','3000+':'8703.4010.0000'}
     };
-    window.OTV_SUGGEST={
-        'BENZİNLİ':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
-        'DİZEL':{'0-1000':70,'1000-1500':80,'1500-1600':80,'1600-2000':150,'2000-2500':150,'2500-3000':220,'3000+':220},
-        'PLUG-IN':{'0-1000':45,'1000-1500':45,'1500-1600':45,'1600-2000':75,'2000-2500':75,'2500-3000':75,'3000+':75},
-        'BENZİN HİBRİT':{'0-1000':70,'1000-1500':70,'1500-1600':80,'1600-2000':80,'2000-2500':150,'2500-3000':150,'3000+':150}
-    };
 
     // ═══ STATE KALICILIĞI (GÜNCEL) ═══
     window._calcInputIds=['calc-currency','calc-kur-eur','calc-kur-usd','calc-yakit','calc-motor','calc-teslim','calc-fatura','calc-navlun','calc-sigorta','calc-yurtdisi','calc-yurtici','calc-damga','calc-otv-oran','calc-kdv-oran','calc-gv-oran','calc-ilave-gv-oran','calc-kkdf-oran','calc-atr-oran','calc-gumruk','calc-nakliye','calc-almanya','calc-ardiye-tl','calc-tse-muh-tl','calc-tse-harci-manual', 'mtv-tur', 'mtv-tescil', 'mtv-hacim', 'mtv-yas', 'mtv-deger'];
@@ -1239,16 +1234,17 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         window._calcInputIds.forEach(id=>{let el=document.getElementById(id);if(el)state[id]=el.value;});
         let tip=document.querySelector('input[name="calc-tip"]:checked');
         if(tip)state['calc-tip']=tip.value;
-        localStorage.setItem('gumruk_calc_state_v10',JSON.stringify(state)); 
+        let mtvOtoDeger = document.getElementById('mtv-oto-deger');
+        if(mtvOtoDeger) state['mtv-oto-deger'] = mtvOtoDeger.checked;
+        localStorage.setItem('gumruk_calc_state_v11',JSON.stringify(state)); 
     };
 
     window.loadCalcState=function(){
-        let saved=localStorage.getItem('gumruk_calc_state_v10');
+        let saved=localStorage.getItem('gumruk_calc_state_v11');
         if(!saved) return false;
         try{
             let state=JSON.parse(saved);
             
-            // Yakıt Tipi ve MTV Türü için özel işlem 
             if(state['calc-yakit']){
                 let y = document.getElementById('calc-yakit');
                 if(y) { y.value = state['calc-yakit']; window.handleYakitChange(true); }
@@ -1260,7 +1256,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 
             Object.keys(state).forEach(id=>{
                 let el=document.getElementById(id);
-                if(el && id!=='calc-tip' && id!=='calc-yakit' && id!=='mtv-tur') el.value=state[id];
+                if(el && id!=='calc-tip' && id!=='calc-yakit' && id!=='mtv-tur' && id!=='mtv-oto-deger') el.value=state[id];
             });
             if(state['calc-tip']){
                 let tip=document.getElementById('tip-'+state['calc-tip'].toLowerCase());
@@ -1271,13 +1267,16 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                let activeOpt = Array.from(document.querySelectorAll('.teslim-opt')).find(o => o.innerText === state['calc-teslim']);
                if(activeOpt) activeOpt.classList.add('active');
             }
+            if(state['mtv-oto-deger'] !== undefined) {
+                let mtvOto = document.getElementById('mtv-oto-deger');
+                if(mtvOto) mtvOto.checked = state['mtv-oto-deger'];
+            }
             return true;
         }catch(e){
             return false;
         }
     };
 
-    // ═══ YAKIT VE GTİP DİNAMİK DEĞİŞİMİ ═══
     window.handleYakitChange = function(isInitialLoad = false) {
         let yakit = document.getElementById('calc-yakit')?.value || 'BENZİNLİ';
         let motorSel = document.getElementById('calc-motor');
@@ -1312,21 +1311,13 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         let yakit=document.getElementById('calc-yakit')?.value||'BENZİNLİ';
         let motor=document.getElementById('calc-motor')?.value||'1600-2000';
         let gtip=window.GTIP_TABLE[yakit]?.[motor]||'8703.2319.1200';
-        let otv=window.OTV_SUGGEST[yakit]?.[motor]||220;
         
         let gd=document.getElementById('gtip-display');if(gd)gd.innerText='GTİP: '+gtip;
         let gm=document.getElementById('res-gtip-mini');if(gm)gm.innerText=gtip;
         
-        // Elektrikliyse ÖTV'yi ezmiyoruz (Aşağıdaki calculateTaxes içinde dinamik ezecek)
-        if(!isInitialLoad && yakit !== 'ELEKTRİK') {
-            let otvSel=document.getElementById('calc-otv-oran');
-            if(otvSel){otvSel.value=String(otv);if(!otvSel.value)otvSel.value='220';}
-        }
-        
         if(!isInitialLoad) window.calculateTaxes();
     };
 
-    // ═══ MTV İÇİN DİNAMİK DROPDOWN ═══
     window.handleMTVTuruChange = function(isInitialLoad = false) {
         let tur = document.getElementById('mtv-tur')?.value || 'otomobil';
         let hacimSel = document.getElementById('mtv-hacim');
@@ -1388,7 +1379,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(!isInitialLoad) window.calculateMTV();
     };
 
-    // ═══ 2026 MTV HESAPLAMA ═══
     window.calculateMTV=function(){
         const tur = document.getElementById('mtv-tur')?.value || 'otomobil';
         const tescil = document.getElementById('mtv-tescil')?.value || 'post2018'; 
@@ -1399,7 +1389,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         const deger = parseFloat(degerStr.replace(/\./g, "").replace(/,/g, ".")) || 0;
 
         let mtv = 0;
-        let yasTarife2 = (yas <= 1) ? 0 : (yas <= 3) ? 1 : 2; 
+        let yasTarife2 = (yas <= 1) ? 0 : (yas <= 3) ? 1 : 2;
 
         if (tur === 'otomobil' || tur === 'elektrikli') {
             if (tescil === 'pre2018') {
@@ -1514,7 +1504,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         let trt=(araT+dmg+gvT+ilvT)*0.008;
         let otvM=araT+trt+dmg+atrT+gvT+ilvT;
         
-        // ELEKTRİKLİ ARAÇ ÖTV MATRAH DİNAMİĞİ (1.650.000 TL SINIRI)
         let yakit=document.getElementById('calc-yakit')?.value||'BENZİNLİ';
         if (yakit === 'ELEKTRİK') {
             let motor = document.getElementById('calc-motor')?.value;
@@ -1523,7 +1512,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
             } else {
                 otvO = (otvM <= 1650000) ? 0.65 : 0.75;
             }
-            // Arayüzdeki dropdown'ı da güncelle
             let otvSel = document.getElementById('calc-otv-oran');
             if (otvSel && parseFloat(otvSel.value) !== (otvO * 100)) {
                 otvSel.value = String(otvO * 100);
@@ -1548,11 +1536,13 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         let mtvOtoDeger = document.getElementById('mtv-oto-deger');
         if (mtvOtoDeger && mtvOtoDeger.checked) {
             let mtvDegerInput = document.getElementById('mtv-deger');
-            if(mtvDegerInput) mtvDegerInput.value = window.formatNumber(kdvM);
+            if(mtvDegerInput) {
+                mtvDegerInput.value = window.formatNumber(kdvM);
+                window.calculateMTV(); // MTV'yi güncelle
+            }
         }
 
         window.saveCalcState();
-        if(typeof window.calculateMTV === 'function') window.calculateMTV();
     };
 
     window.renderView=function(vn){
