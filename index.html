@@ -106,7 +106,7 @@
         .user-info .user-name { font-size:13px; font-weight:600; color:var(--text-primary); line-height:1.2; }
         .user-info .user-role { font-size:11px; color:var(--text-secondary); }
         
-        .view-area { flex:1; overflow-y:auto; padding:36px 32px; scroll-behavior:smooth; }
+        .view-area { flex:1; overflow-y:auto; padding:36px 32px; scroll-behavior:smooth; position:relative; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation:fadeUp 0.3s ease forwards; }
         
@@ -284,60 +284,23 @@
         .tip { position:relative; display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:rgba(59,130,246,0.15); color:var(--primary); font-size:10px; font-weight:700; cursor:help; margin-left:6px; flex-shrink:0; }
         .tip:hover::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:#1e293b; color:#f1f5f9; padding:8px 12px; border-radius:8px; font-size:11px; font-weight:400; white-space:nowrap; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,0.3); max-width:280px; white-space:normal; line-height:1.4; }
         
-        .kur-panel { display:flex; gap:12px; align-items:flex-end; padding:16px; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.15); border-radius:var(--r-md); margin-bottom:20px; }
-        .kur-badge { padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
-        .kur-live { background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.2); }
-        .kur-manual { background:rgba(245,158,11,0.1); color:var(--warning); border:1px solid rgba(245,158,11,0.2); }
-        .kur-fetch-btn { padding:8px 16px; background:var(--primary); color:#fff; border-radius:var(--r-md); font-size:12px; font-weight:600; cursor:pointer; transition:0.2s; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; border:none; }
-        .kur-fetch-btn:hover { background:var(--primary-hover); }
+        /* TCGB ÖZEL CSS (YAZDIRMA DESTEKLİ) */
+        .tcgb-container { background:#fff; color:#000; width:100%; max-width:1000px; margin:0 auto; font-family:Arial, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden; }
+        .tcgb-grid { display: grid; grid-template-columns: repeat(8, 1fr); border-top: 1px solid #2f5d34; border-left: 1px solid #2f5d34; }
+        .tcgb-box { border-right: 1px solid #2f5d34; border-bottom: 1px solid #2f5d34; padding: 6px; position: relative; }
+        .tcgb-label { font-size: 10px; font-weight: bold; color: #2f5d34; margin-bottom: 4px; display: block; text-transform: uppercase; }
+        .tcgb-input { width: 100%; border: none; background: transparent; font-family: monospace; font-size: 13px; outline: none; resize: none; color: #000; font-weight: 600; }
+        .tcgb-input:focus { background: rgba(59,130,246,0.05); }
+        .tcgb-table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 4px; }
+        .tcgb-table th { border-bottom: 1px solid #ccc; font-size: 10px; color: #555; padding-bottom: 2px; }
         
-        .teslim-toggle { display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; }
-        .teslim-opt { flex:1; padding:10px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; transition:0.2s; color:var(--text-secondary); }
-        .teslim-opt.active { background:var(--primary); color:#fff; }
-        
-        .calc-result-table { width:100%; border-collapse:collapse; font-size:13px; }
-        .calc-result-table td { padding:10px 14px; border-bottom:1px solid var(--border); }
-        .calc-result-table .label-col { color:var(--text-secondary); font-weight:500; }
-        .calc-result-table .value-col { text-align:right; font-weight:600; color:var(--text-primary); }
-        .calc-result-table .section-header td { font-size:10.5px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.6px; padding-top:18px; border-bottom:1px solid rgba(59,130,246,0.15); }
-        .calc-result-table .total-row td { font-weight:700; color:var(--text-primary); font-size:14px; border-top:2px solid var(--border); padding-top:14px; }
-        .calc-result-table .grand-total td { background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.02)); font-size:16px; font-weight:800; padding:16px 14px; border-radius:var(--r-md); color:var(--text-primary); }
-        
-        .calc-section { border-radius:var(--r-lg); padding:24px; margin-bottom:20px; border:1px solid; }
-        .calc-section.blue { background:rgba(59,130,246,0.04); border-color:rgba(59,130,246,0.15); }
-        .calc-section.blue .calc-sec-title { color:var(--primary); }
-        .calc-section.red { background:rgba(239,68,68,0.04); border-color:rgba(239,68,68,0.12); }
-        .calc-section.red .calc-sec-title { color:var(--danger); }
-        .calc-section.green { background:rgba(16,185,129,0.04); border-color:rgba(16,185,129,0.12); }
-        .calc-section.green .calc-sec-title { color:var(--success); }
-        .calc-section.purple { background:rgba(168,85,247,0.04); border-color:rgba(168,85,247,0.12); }
-        .calc-section.purple .calc-sec-title { color:var(--kiymet-color); }
-        
-        .calc-section.orange { background:rgba(249,115,22,0.03); border-color:rgba(249,115,22,0.15); }
-        .calc-section.orange .calc-sec-title { color:var(--warning); }
-        
-        .calc-sec-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; margin-bottom:18px; text-transform:uppercase; letter-spacing:0.5px; }
-        .calc-sec-title i { width:18px; height:18px; }
-        .gtip-display { padding:10px 14px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:var(--r-md); font-family:monospace; font-size:14px; font-weight:700; color:var(--primary); letter-spacing:1px; text-align:center; margin-top:8px; }
-        
-        .export-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.25); border-radius:var(--r-md); font-size:12px; font-weight:600; cursor:pointer; transition:0.2s; }
-        .export-btn:hover { background:rgba(16,185,129,0.2); }
-        .export-btn.word { background:rgba(59,130,246,0.1); color:var(--primary); border-color:rgba(59,130,246,0.25); }
-        .export-btn.word:hover { background:rgba(59,130,246,0.2); }
-
-        .mevzuat-container { max-width: 900px; margin: 0 auto; color: var(--text-primary); font-size: 14px; line-height: 1.6; }
-        .mevzuat-container h2 { font-size: 20px; color: var(--text-primary); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin: 28px 0 16px; font-weight: 700; }
-        .mevzuat-container h3 { font-size: 16px; color: var(--primary); margin: 20px 0 12px; font-weight: 600; }
-        .mevzuat-container ul { list-style-type: disc; margin-left: 24px; margin-bottom: 16px; }
-        .mevzuat-container li { margin-bottom: 6px; }
-        .mevzuat-container strong { color: var(--text-primary); }
-        .mevzuat-warn { background: rgba(245,158,11,0.05); border-left: 4px solid var(--warning); padding: 16px; border-radius: 0 var(--r-md) var(--r-md) 0; margin: 20px 0; }
-        .mevzuat-info { background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.2); padding: 16px; border-radius: var(--r-md); margin: 20px 0; }
-        .mevzuat-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-        .mevzuat-table th, .mevzuat-table td { border: 1px solid var(--border); padding: 10px; text-align: left; }
-        .mevzuat-table th { background: var(--input-bg); color: var(--text-primary); font-weight: 600; }
-        
-        .check-wrap { display:flex; align-items:center; gap:6px; font-size:11px; cursor:pointer; color:var(--primary); font-weight:600; background:rgba(59,130,246,0.05); padding:4px 8px; border-radius:4px; border:1px solid rgba(59,130,246,0.2); }
+        @media print {
+            body * { visibility: hidden; }
+            #tcgb-print-area, #tcgb-print-area * { visibility: visible; }
+            #tcgb-print-area { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; }
+            .sidebar, .top-header, .page-hdr, .page-actions { display: none !important; }
+            body { background: #fff; }
+        }
     </style>
 </head>
 <body>
@@ -408,38 +371,112 @@
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Resmi Evraklar</div><h1 class="page-title">Gümrük Beyannamesi (TCGB)</h1></div>
         <div class="page-actions">
-            <button class="btn-primary" onclick="alert('Detaylar eklendikten sonra yazdırma özelliği aktif edilecek.')"><i data-lucide="printer"></i> Formu Yazdır</button>
+            <button class="btn-primary" onclick="window.print()"><i data-lucide="printer"></i> Formu Yazdır</button>
         </div>
     </div>
-    <div class="card card-pad fade-in">
-        <div style="background:var(--input-bg); border:1px solid var(--border); border-radius:var(--r-md); padding:20px; font-family:monospace;">
-            <h2 style="text-align:center; color:var(--text-primary); margin-bottom:20px; border-bottom:2px solid var(--border); padding-bottom:10px;">T.C. GÜMRÜK BEYANNAMESİ</h2>
+    
+    <div class="fade-in" style="padding-bottom:40px;">
+        <div id="tcgb-print-area" class="tcgb-container">
+            <h2 style="text-align:center; color:#2f5d34; padding:15px 0 10px; margin:0;">T.C. GÜMRÜK BEYANNAMESİ</h2>
             
-            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0; border-top:1px solid var(--border); border-left:1px solid var(--border);">
-                <div style="border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:8px;">
-                    <div style="font-size:10px; font-weight:bold; color:var(--text-muted);">1 BEYAN</div>
-                    <input type="text" placeholder="..." style="width:100%; background:transparent; border:none; padding:4px 0; color:var(--text-primary); font-family:monospace; outline:none;">
+            <div class="tcgb-grid">
+                <div class="tcgb-box" style="grid-column:span 1;">
+                    <span class="tcgb-label">1 BEYAN</span>
+                    <input id="tcgb-1" class="tcgb-input" value="IM  4">
                 </div>
-                <div style="grid-column:span 3; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:8px;">
-                    <div style="font-size:10px; font-weight:bold; color:var(--text-muted);">2 Gönderici / İhracatçı</div>
-                    <textarea rows="2" style="width:100%; background:transparent; border:none; padding:4px 0; color:var(--text-primary); font-family:monospace; resize:none; outline:none;" placeholder="Firma ünvanı, adresi..."></textarea>
+                <div class="tcgb-box" style="grid-column:span 3;">
+                    <span class="tcgb-label">2 Gönderici / İhracatçı</span>
+                    <textarea id="tcgb-2" class="tcgb-input" rows="3"></textarea>
+                </div>
+                <div class="tcgb-box" style="grid-column:span 4;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <div style="flex:1; border-right:1px solid #2f5d34; padding-right:4px;"><span class="tcgb-label">3 Formlar</span><input class="tcgb-input"></div>
+                        <div style="flex:1; border-right:1px solid #2f5d34; padding:0 4px;"><span class="tcgb-label">4 Yükl. List.</span><input class="tcgb-input"></div>
+                        <div style="flex:1; padding-left:4px;"><span class="tcgb-label">5 Kalem Sayısı</span><input class="tcgb-input" value="1"></div>
+                    </div>
+                </div>
+
+                <div class="tcgb-box" style="grid-column:span 4;">
+                    <span class="tcgb-label">8 Alıcı</span>
+                    <textarea id="tcgb-8" class="tcgb-input" rows="3"></textarea>
+                </div>
+                <div class="tcgb-box" style="grid-column:span 4;">
+                    <span class="tcgb-label">14 Beyan Sahibi / Temsilcisi</span>
+                    <textarea id="tcgb-14" class="tcgb-input" rows="3"></textarea>
+                </div>
+
+                <div class="tcgb-box" style="grid-column:span 2;">
+                    <span class="tcgb-label">15 Sevk / İhracat Ülkesi</span>
+                    <input id="tcgb-15" class="tcgb-input">
+                </div>
+                <div class="tcgb-box" style="grid-column:span 2;">
+                    <span class="tcgb-label">17 Varış Ülkesi</span>
+                    <input id="tcgb-17" class="tcgb-input" value="TÜRKİYE">
+                </div>
+                <div class="tcgb-box" style="grid-column:span 2;">
+                    <span class="tcgb-label">20 Teslim Şekli</span>
+                    <input id="tcgb-20" class="tcgb-input">
+                </div>
+                <div class="tcgb-box" style="grid-column:span 2;">
+                    <span class="tcgb-label">22 Döviz ve Toplam Fatura Bedeli</span>
+                    <input id="tcgb-22" class="tcgb-input">
+                </div>
+
+                <div class="tcgb-box" style="grid-column:span 5;">
+                    <span class="tcgb-label">31 Kaplar ve Eşyanın Tanımı (Marka, Numaralar, Şasi)</span>
+                    <textarea id="tcgb-31" class="tcgb-input" rows="7"></textarea>
+                </div>
+                <div class="tcgb-box" style="grid-column:span 1;">
+                    <span class="tcgb-label">33 Eşya Kodu</span>
+                    <input id="tcgb-33" class="tcgb-input">
+                </div>
+                <div class="tcgb-box" style="grid-column:span 1;">
+                    <span class="tcgb-label">37 Rejim</span>
+                    <input id="tcgb-37" class="tcgb-input" value="4000">
+                </div>
+                <div class="tcgb-box" style="grid-column:span 1;">
+                    <span class="tcgb-label">38 Net Ağırlık (kg)</span>
+                    <input id="tcgb-38" class="tcgb-input">
+                </div>
+
+                <div class="tcgb-box" style="grid-column:span 8;">
+                    <span class="tcgb-label">44 Ek Bilgi / Sunulan Belgeler / İzinler</span>
+                    <textarea id="tcgb-44" class="tcgb-input" rows="2"></textarea>
+                </div>
+
+                <div class="tcgb-box" style="grid-column:span 8;">
+                    <span class="tcgb-label">47 Vergilerin Hesaplanması</span>
+                    <table class="tcgb-table">
+                        <tr><th>TÜR</th><th>VERGİ MATRAHI</th><th>ORAN</th><th>TUTAR</th></tr>
+                        <tr>
+                            <td><input class="tcgb-input" value="GV"></td>
+                            <td><input class="tcgb-input"></td>
+                            <td><input class="tcgb-input"></td>
+                            <td><input class="tcgb-input"></td>
+                        </tr>
+                        <tr>
+                            <td><input class="tcgb-input" value="ÖTV"></td>
+                            <td><input class="tcgb-input"></td>
+                            <td><input class="tcgb-input"></td>
+                            <td><input class="tcgb-input"></td>
+                        </tr>
+                        <tr>
+                            <td><input class="tcgb-input" value="KDV"></td>
+                            <td><input class="tcgb-input"></td>
+                            <td><input class="tcgb-input"></td>
+                            <td><input class="tcgb-input"></td>
+                        </tr>
+                    </table>
                 </div>
                 
-                <div style="grid-column:span 4; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:8px;">
-                    <div style="font-size:10px; font-weight:bold; color:var(--text-muted);">8 Alıcı</div>
-                    <textarea rows="2" style="width:100%; background:transparent; border:none; padding:4px 0; color:var(--text-primary); font-family:monospace; resize:none; outline:none;" placeholder="Alıcı bilgileri..."></textarea>
+                <div class="tcgb-box" style="grid-column:span 4; height:70px;">
+                    <span class="tcgb-label">54 Yer ve Tarih</span>
+                    <input id="tcgb-54-date" class="tcgb-input" type="date" style="margin-top:10px;">
                 </div>
-
-                <div style="grid-column:span 4; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:8px;">
-                    <div style="font-size:10px; font-weight:bold; color:var(--text-muted);">14 Beyan sahibi/Temsilcisi</div>
-                    <textarea rows="2" style="width:100%; background:transparent; border:none; padding:4px 0; color:var(--text-primary); font-family:monospace; resize:none; outline:none;" placeholder="Temsilci bilgileri..."></textarea>
+                <div class="tcgb-box" style="grid-column:span 4; height:70px;">
+                    <span class="tcgb-label">Beyan Sahibi / Temsilcinin İmzası ve Adı</span>
+                    <input id="tcgb-54-name" class="tcgb-input" style="margin-top:10px;" value="GÜMRÜK MÜŞAVİRLİĞİ">
                 </div>
-            </div>
-
-            <div style="text-align:center; padding:40px 20px; color:var(--text-muted);">
-                <i data-lucide="construction" style="width:48px; height:48px; margin-bottom:12px; opacity:0.5;"></i>
-                <h3>Format İskeleti Hazır</h3>
-                <p style="margin-top:8px; font-size:13px; line-height: 1.6;">Gönderdiğin PDF'teki 54 kutucuklu TCGB formatı için temel altyapı oluşturuldu. "Detaylara inelim" dediğinde; 15, 33 (Eşya Kodu), 37 (Rejim), 47 (Vergilerin Hesaplanması) gibi tüm kritik kutuları buraya milim milim işleyeceğiz.</p>
             </div>
         </div>
     </div>
@@ -1245,6 +1282,40 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         setTimeout(() => window.calculateTaxes(), 100);
     };
 
+    // BEYANNAME OTOMATİK VERİ DOLDURMA FONKSİYONU
+    window.openBeyanname = function(idx, ctx) {
+        let d = null;
+        if(ctx === 'decl') d = window.declarationsData[idx];
+        if(ctx === 'firm') d = window.firmData[window.currentFirm][idx];
+        if(!d) return;
+
+        window.renderView('beyanname');
+
+        setTimeout(() => {
+            // Eşleştirme ve Doldurma
+            if(document.getElementById('tcgb-8')) document.getElementById('tcgb-8').value = d.firma || '';
+            if(document.getElementById('tcgb-14')) document.getElementById('tcgb-14').value = d.firma || ''; // Temsilci/Firma
+            if(document.getElementById('tcgb-20')) document.getElementById('tcgb-20').value = d.teslim || 'CIF';
+            if(document.getElementById('tcgb-22')) document.getElementById('tcgb-22').value = `EUR - ${d.fatura ? window.formatNumber(d.fatura) : ''}`;
+            
+            let kutu31Text = "";
+            if(d.marka) kutu31Text += `MARKA: ${d.marka}\n`;
+            if(d.model) kutu31Text += `MODEL: ${d.model}\n`;
+            if(d.yil) kutu31Text += `YIL: ${d.yil}\n`;
+            if(d.renk) kutu31Text += `RENK: ${d.renk}\n`;
+            if(d.sasi) kutu31Text += `ŞASİ NO: ${d.sasi}\n`;
+            
+            if(document.getElementById('tcgb-31')) document.getElementById('tcgb-31').value = kutu31Text.trim();
+            
+            if(d.tarih) {
+                let parts = d.tarih.split('.');
+                if(parts.length === 3 && document.getElementById('tcgb-54-date')) {
+                    document.getElementById('tcgb-54-date').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            }
+        }, 150);
+    };
+
     window.fetchTCMBKur = async function(auto = false) {
         let st = document.getElementById('kur-status');
         if(st){ st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB Çekiliyor...'; st.className = 'kur-badge kur-manual'; }
@@ -1401,6 +1472,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                 <td style="text-align:center;">
                     <div style="display:flex;gap:3px;justify-content:center;">
                         ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+                        <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
                         <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'decl')"><i data-lucide="edit-3"></i></button>
                         <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})"><i data-lucide="trash-2"></i></button>
                     </div>
@@ -1428,6 +1500,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
             <td style="text-align:center;">
                 <div style="display:flex;gap:3px;justify-content:center;">
                     ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+                    <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
                     <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')"><i data-lucide="edit-3"></i></button>
                     <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2"></i></button>
                 </div>
