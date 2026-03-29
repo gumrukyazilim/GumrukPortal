@@ -506,113 +506,49 @@
 
 <div id="decl-modal" class="modal-backdrop hidden"> 
     <div class="modal-box"> 
-        <div class="modal-header">
-            <h2 id="decl-modal-title">Araç Detayları</h2>
-            <button onclick="window.closeDeclModal()" class="icon-btn"><i data-lucide="x"></i></button>
-        </div> 
+        <div class="modal-header"><h2>Araç Detayları</h2><button onclick="document.getElementById('decl-modal').classList.add('hidden')" class="icon-btn"><i data-lucide="x"></i></button></div> 
         <div class="modal-body"> 
             <input type="hidden" id="decl-edit-idx" value="-1"> 
-            
             <div class="modal-section">
-                <div class="modal-section-title">Beyanname Ön Bilgileri (Arama Motorlu)</div>
+                <div class="modal-section-title">Beyanname Ön Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group" style="grid-column: span 2; margin-bottom:0; position:relative;">
-                        <label>Gönderici / İhracatçı Firma (Kutu 2)</label>
-                        <input type="text" id="da-gonderici" placeholder="Firma adı veya ID yazın..." oninput="window.filterGonderici(this.value)" onfocus="window.filterGonderici(this.value)" onblur="setTimeout(()=>document.getElementById('da-gonderici-list').classList.remove('show'),200)" autocomplete="off">
+                    <div class="input-group" style="grid-column:span 2;position:relative;">
+                        <label style="display:flex;justify-content:space-between">Gönderici Firma <button type="button" class="btn-sm" style="padding:2px 6px;height:auto;color:var(--primary)" onclick="window.addGondericiPrompt()">+ Yeni Ekle</button></label>
+                        <input type="text" id="da-gonderici" placeholder="Seçmek için yazın..." oninput="window.filterList('gonderici',this.value)" onfocus="window.filterList('gonderici',this.value)" autocomplete="off">
                         <div id="da-gonderici-list" class="autocomplete-list"></div>
                     </div>
-                    <div class="input-group" style="margin-bottom:0; position:relative;">
-                        <label>GTİP / Eşya Kodu (Kutu 33)</label>
-                        <input type="text" id="da-gtip" placeholder="8703... veya elektrikli..." oninput="window.filterGTIP(this.value)" onfocus="window.filterGTIP(this.value)" onblur="setTimeout(()=>document.getElementById('da-gtip-list').classList.remove('show'),200)" autocomplete="off">
+                    <div class="input-group" style="position:relative;">
+                        <label style="display:flex;justify-content:space-between">GTİP Kodu <button type="button" class="btn-sm" style="padding:2px 6px;height:auto;color:var(--primary)" onclick="window.addGTIPPrompt()">+ Yeni Ekle</button></label>
+                        <input type="text" id="da-gtip" placeholder="Tarife arayın..." oninput="window.filterList('gtip',this.value)" onfocus="window.filterList('gtip',this.value)" autocomplete="off">
                         <div id="da-gtip-list" class="autocomplete-list"></div>
                     </div>
-                    <div style="display:flex; gap:14px;">
-                        <div class="input-group" style="margin-bottom:0; flex:1;"><label>Brüt Ağırlık (kg)</label><input type="text" id="da-brut" placeholder="Örn: 2450"></div>
-                        <div class="input-group" style="margin-bottom:0; flex:1;"><label>Net Ağırlık (kg)</label><input type="text" id="da-net" placeholder="Örn: 2385"></div>
+                    <div style="display:flex;gap:10px;">
+                        <div class="input-group" style="flex:1"><label>Brüt(kg)</label><input type="text" id="da-brut"></div>
+                        <div class="input-group" style="flex:1"><label>Net(kg)</label><input type="text" id="da-net"></div>
                     </div>
                 </div>
             </div>
-
             <div class="modal-section">
                 <div class="modal-section-title">Araç Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group">
-                        <label>Firma *</label>
-                        <div class="firm-search-wrap">
-                            <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#9ca3af;pointer-events:none;z-index:2;"></i>
-                            <input type="text" class="firm-search-input" id="da-firma-search" placeholder="Firma ara..." oninput="window.filterFirmDropdown(this.value)" onfocus="document.getElementById('da-firma-list').classList.add('show')" onblur="setTimeout(()=>document.getElementById('da-firma-list').classList.remove('show'),200)">
-                            <div class="firm-dropdown-list" id="da-firma-list"></div>
-                            <input type="hidden" id="da-firma" value="">
-                        </div>
-                    </div>
-                    <div class="input-group"><label>Şasi No</label><input type="text" id="da-sase"></div>
+                    <div class="input-group"><label>Firma</label><input type="text" id="da-firma"></div>
+                    <div class="input-group"><label>Şasi</label><input type="text" id="da-sase"></div>
                     <div class="input-group"><label>Marka</label><input type="text" id="da-marka"></div>
-                    <div class="input-group"><label>Model</label><input type="text" id="da-model"></div>
-                    <div class="input-group"><label>Yıl</label><input type="text" id="da-yil"></div>
-                    <div class="input-group"><label>Renk</label><input type="text" id="da-renk"></div>
-                    
-                    <div class="input-group" style="grid-column: span 2;">
-                        <label>Evrak (Drive/Bulut Linki)</label>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <div style="position:relative; flex:1;">
-                                <i data-lucide="link" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--primary);pointer-events:none;z-index:2;"></i>
-                                <input type="text" id="da-evrakLink" placeholder="https://drive.google.com/..." style="padding-left:32px; border-color:var(--border-active);">
-                            </div>
-                            <button class="btn-sm" style="height:40px; border-color:var(--primary); color:var(--primary);" onclick="let l=document.getElementById('da-evrakLink').value; if(l){window.open(l, '_blank');}else{alert('Lütfen önce bir link yapıştırın!');}">
-                                <i data-lucide="external-link" style="width:14px;height:14px;"></i> Git
-                            </button>
+                    <div class="input-group"><label>Fatura(€)</label><input type="text" id="da-fatura"></div>
+                    <div class="input-group" style="grid-column:span 2;"><label>Evrak Linki</label>
+                        <div style="display:flex;gap:5px;">
+                            <input type="text" id="da-evrakLink" style="flex:1">
+                            <button type="button" class="btn-sm" style="border-color:var(--primary);color:var(--primary)" onclick="let l=document.getElementById('da-evrakLink').value; if(l){window.open(l,'_blank');}else{alert('Önce link yapıştırın!');}">Git</button>
                         </div>
                     </div>
-                </div>
-            </div> 
-            
-            <div class="modal-section">
-                <div class="modal-section-title">Gümrük Bilgileri</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group">
-                        <label>Teslim Şekli</label>
-                        <div class="teslim-toggle" id="da-teslim-toggle">
-                            <div class="teslim-opt active" onclick="window.setTeslim('CIF',this)">CIF</div>
-                            <div class="teslim-opt" onclick="window.setTeslim('EXW',this)">EXW</div>
-                        </div>
-                        <input type="hidden" id="da-teslim" value="CIF">
-                    </div>
-                    <div class="input-group"><label>Geliş Tarihi *</label><input type="date" id="da-tarih" onchange="window.declAutoCalc()"></div>
-                    <div class="input-group"><label>Ek Süre</label><input type="date" id="da-ekSure" onchange="window.declAutoCalc()"></div>
-                    <div class="input-group"><label>Antrepo</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div>
-                    <div class="input-group"><label>Beyanname T.</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div>
-                    <div class="input-group"><label>Beyanname No</label><input type="text" id="da-beyanname"></div>
-                    <div class="input-group"><label>Evrak Durumu</label><select id="da-evrak" onchange="window.declAutoCalc()"><option value="Kapalı">Kapalı</option><option value="Açık">İşlemde (Açık)</option></select></div>
-                </div>
-            </div> 
-            <div class="modal-section">
-                <div class="modal-section-title">Kıymet & Finans</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group"><label>Kıymet Veriliş T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc()"></div>
-                    <div class="input-group"><label>Kıymet Geliş T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc()"></div>
-                    <div class="input-group"><label>Fatura (€)</label><input type="text" id="da-fatura" oninput="window.formatCurrencyInput(this)"></div>
-                    <div class="input-group"><label>Kıymet (€)</label><input type="text" id="da-kiymet" oninput="window.formatCurrencyInput(this)"></div>
-                </div>
-            </div> 
-            <div id="decl-preview-box">
-                <div class="modal-section-title" style="margin-bottom:14px;">Sistem Metrikleri</div>
-                <div class="metrics-grid">
-                    <div class="metric-item"><div class="metric-label">İlk Süre</div><div class="metric-value" id="da-prev-ilkSure">-</div></div>
-                    <div class="metric-item"><div class="metric-label">Kalan Gün</div><div class="metric-value" id="da-prev-klnGun">-</div></div>
-                    <div class="metric-item"><div class="metric-label">Ardiye</div><div class="metric-value text-danger" id="da-prev-ardiye">-</div></div>
-                    <div class="metric-item"><div class="metric-label">Son Gün</div><div class="metric-value" id="da-prev-sonGun">-</div></div>
-                    <div class="metric-item"><div class="metric-label">Kıymette</div><div class="metric-value" id="da-prev-kiymGecen">-</div></div>
+                    <div class="input-group"><label>Kayıt Tarihi</label><input type="date" id="da-tarih"></div>
+                    <div class="input-group"><label>Evrak Durumu</label><select id="da-evrak"><option value="Açık" selected>İşlemde (Açık)</option><option value="Kapalı">Kapalı</option></select></div>
                 </div>
             </div> 
         </div> 
-        <div class="modal-footer">
-            <button onclick="window.closeDeclModal()" class="btn-sm">İptal</button>
-            <button onclick="window.saveDeclEntry()" class="btn-primary"><i data-lucide="save"></i> Kaydet</button>
-        </div> 
+        <div class="modal-footer"><button onclick="window.saveDeclEntry()" class="btn-primary">Kaydet</button></div> 
     </div> 
-</div>
-
-<div id="kiymet-modal" class="modal-backdrop hidden"> 
+</div> class="modal-backdrop hidden"> 
     <div class="modal-box" style="max-width:520px;">
         <div class="modal-header"><h2>Kıymet Kaydı</h2><button onclick="window.closeKiymetModal()" class="icon-btn"><i data-lucide="x"></i></button></div>
         <div class="modal-body">
@@ -1497,60 +1433,33 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         }, 150);
     };
 
-    window.fetchTCMBKur = async function(auto = false) {
+    window.fetchTCMBKur = async function(auto=false) {
         let st = document.getElementById('kur-status');
-        if(st){ st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB Çekiliyor...'; st.className = 'kur-badge kur-manual'; }
-        
+        if(st) { st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> Bekleyin...'; st.className = 'kur-badge kur-manual'; }
         try {
-            const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://www.tcmb.gov.tr/kurlar/today.xml");
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('TCMB API hatası');
-            
-            const data = await response.json();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-            
-            const currencies = xmlDoc.getElementsByTagName("Currency");
-            let usdRate = null;
-            let eurRate = null;
-            
-            for (let i = 0; i < currencies.length; i++) {
-                let code = currencies[i].getAttribute("CurrencyCode");
-                let sellingNode = currencies[i].getElementsByTagName("ForexSelling")[0];
-                if (sellingNode && sellingNode.textContent) {
-                    let rate = parseFloat(sellingNode.textContent.replace(',', '.'));
-                    if (code === "USD") usdRate = rate;
-                    if (code === "EUR") eurRate = rate;
+            const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://www.tcmb.gov.tr/kurlar/today.xml"));
+            const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
+            const cur = xml.getElementsByTagName("Currency");
+            let uRate=null, eRate=null;
+            for(let i=0; i<cur.length; i++) {
+                let code = cur[i].getAttribute("CurrencyCode");
+                let sell = cur[i].getElementsByTagName("ForexSelling")[0];
+                if(sell && sell.textContent) {
+                    let rate = parseFloat(sell.textContent.trim().replace(',','.'));
+                    if(code==="USD") uRate = rate;
+                    if(code==="EUR") eRate = rate;
                 }
             }
-            
-            if (!usdRate || !eurRate) throw new Error('Kurlar bulunamadı');
-            
-            if (document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = usdRate.toFixed(4).replace('.', ',');
-            if (document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = eurRate.toFixed(4).replace('.', ',');
-            
-            if(st){ st.innerHTML = '✓ TCMB Döviz Satış'; st.className = 'kur-badge kur-live'; }
-            
-            localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({ usd: usdRate, eur: eurRate, date: new Date().toLocaleDateString('tr-TR') }));
-            
-            window.calculateTaxes();
-            if(!auto) hideSyncToast("TCMB Kuru Çekildi!", true);
-            
-        } catch (error) {
-            console.warn("TCMB Kur Çekme Hatası:", error);
-            try {
-                let lastKur = JSON.parse(localStorage.getItem('gumruk_tcmb_last_kur'));
-                if (lastKur && lastKur.usd && lastKur.eur) {
-                    if (document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = lastKur.usd.toFixed(4).replace('.', ',');
-                    if (document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = lastKur.eur.toFixed(4).replace('.', ',');
-                    if(st){ st.innerHTML = '⚠ Son TCMB Kuru (' + lastKur.date + ')'; st.className = 'kur-badge kur-manual'; }
-                } else {
-                    if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
-                }
-            } catch(e) {
-                if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
-            }
-            if(!auto) hideSyncToast("TCMB Bağlantı Hatası!", false);
+            if(uRate && eRate) {
+                if(document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = uRate.toFixed(4).replace('.',',');
+                if(document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = eRate.toFixed(4).replace('.',',');
+                if(st) { st.innerHTML = '✓ TCMB 15:30 Kuru'; st.className = 'kur-badge kur-live'; }
+                if(!auto) alert("TCMB Resmi Gösterge Kuru başarıyla çekildi!");
+                window.calculateTaxes();
+            } else { throw new Error("Kurlar xml'de yok"); }
+        } catch(e) {
+            if(st) { st.innerHTML = '⚠ Bağlantı Hatası (Manuel)'; st.className = 'kur-badge kur-manual'; }
+            if(!auto) alert("TCMB sunucusuna bağlanılamadı. Kuru el ile girebilirsiniz.");
         }
         if(window.lucide) lucide.createIcons();
     };
