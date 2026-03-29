@@ -881,7 +881,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(window._firebaseLoad){
             let data=await window._firebaseLoad();
             if(data){
-                // Firebase Array Bug Önlemi: Gelen veriyi her halükarda filtreleyip Array'e zorluyoruz
                 let dRaw = data.decl || [];
                 window.declarationsData = (Array.isArray(dRaw) ? dRaw : Object.values(dRaw)).filter(x=>x);
                 
@@ -905,7 +904,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                         d.beynmCif=window.fixExcelDate(d.beynmCif);
                     }
                 });
-                
                 window.kiymetData.forEach(k=>{if(k)k.tarih=window.fixExcelDate(k.tarih);});
                 
                 saveToLocal();
@@ -942,7 +940,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                     window.kiymetData = d.kiymet || [];
                     if(d.firm) window.firmData = d.firm;
                     
-                    saveToLocal(); // Önce tarayıcıya kazıyalım
+                    saveToLocal();
                     alert("Dosya okundu! Şimdi Firebase bulutuna yazılıyor... Lütfen 'Tamam'a bastıktan sonra uyarı gelene kadar BEKLEYİN.");
                     
                     if(window._firebaseSave) {
@@ -1088,7 +1086,6 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     };
     window.handleGlobalSearch=function(v){window.liveSearch(v);};
 
-    // TCMB KUR ÇEKME 
     window.fetchTCMBKur = async function(auto = false) {
         let st = document.getElementById('kur-status');
         if(st){ st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB Çekiliyor...'; st.className = 'kur-badge kur-manual'; }
@@ -1264,11 +1261,11 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(tip)state['calc-tip']=tip.value;
         let mtvOtoDeger = document.getElementById('mtv-oto-deger');
         if(mtvOtoDeger) state['mtv-oto-deger'] = mtvOtoDeger.checked;
-        localStorage.setItem('gumruk_calc_state_v12',JSON.stringify(state)); 
+        localStorage.setItem('gumruk_calc_state_v13',JSON.stringify(state)); 
     };
 
     window.loadCalcState=function(){
-        let saved=localStorage.getItem('gumruk_calc_state_v12');
+        let saved=localStorage.getItem('gumruk_calc_state_v13');
         if(!saved) return false;
         try{
             let state=JSON.parse(saved);
