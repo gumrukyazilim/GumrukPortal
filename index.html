@@ -734,12 +734,13 @@
     <div class="modal-box"> 
         <div class="modal-header">
             <h2 id="decl-modal-title">Araç Detayları</h2>
-            <button onclick="document.getElementById('decl-modal').classList.add('hidden')" class="icon-btn"><i data-lucide="x"></i></button>
+            <button onclick="window.closeDeclModal()" class="icon-btn"><i data-lucide="x"></i></button>
         </div> 
         <div class="modal-body"> 
             <input type="hidden" id="decl-edit-idx" value="-1"> 
+            
             <div class="modal-section">
-                <div class="modal-section-title">Beyanname Ön Bilgileri (Arama Motorlu)</div>
+                <div class="modal-section-title">Beyanname Ön Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div class="input-group" style="grid-column: span 2; margin-bottom:0; position:relative;">
                         <label style="display:flex; justify-content:space-between; align-items:center;">
@@ -767,31 +768,17 @@
             <div class="modal-section">
                 <div class="modal-section-title">Araç Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group">
-                        <label>Firma *</label>
-                        <div class="firm-search-wrap">
-                            <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#9ca3af;pointer-events:none;z-index:2;"></i>
-                            <input type="text" class="firm-search-input" id="da-firma-search" placeholder="Firma ara..." oninput="window.filterFirmDropdown(this.value)" onfocus="document.getElementById('da-firma-list').classList.add('show')" onblur="setTimeout(()=>document.getElementById('da-firma-list').classList.remove('show'),200)">
-                            <div class="firm-dropdown-list" id="da-firma-list"></div>
-                            <input type="hidden" id="da-firma" value="">
-                        </div>
-                    </div>
+                    <div class="input-group"><label>Firma *</label><input type="text" id="da-firma"></div>
                     <div class="input-group"><label>Şasi No</label><input type="text" id="da-sase"></div>
                     <div class="input-group"><label>Marka</label><input type="text" id="da-marka"></div>
                     <div class="input-group"><label>Model</label><input type="text" id="da-model"></div>
                     <div class="input-group"><label>Yıl</label><input type="text" id="da-yil"></div>
                     <div class="input-group"><label>Renk</label><input type="text" id="da-renk"></div>
-                    
                     <div class="input-group" style="grid-column: span 2;">
                         <label>Evrak (Drive/Bulut Linki)</label>
                         <div style="display:flex; gap:8px; align-items:center;">
-                            <div style="position:relative; flex:1;">
-                                <i data-lucide="link" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--primary);pointer-events:none;z-index:2;"></i>
-                                <input type="text" id="da-evrakLink" placeholder="https://drive.google.com/..." style="padding-left:32px; border-color:var(--border-active);">
-                            </div>
-                            <button class="btn-sm" style="height:40px; border-color:var(--primary); color:var(--primary);" onclick="let l=document.getElementById('da-evrakLink').value; if(l){window.open(l, '_blank');}else{alert('Lütfen önce bir link yapıştırın!');}">
-                                <i data-lucide="external-link" style="width:14px;height:14px;"></i> Git
-                            </button>
+                            <input type="text" id="da-evrakLink" placeholder="https://drive.google.com/..." style="flex:1">
+                            <button type="button" class="btn-sm" style="height:40px; border-color:var(--primary); color:var(--primary);" onclick="let l=document.getElementById('da-evrakLink').value; if(l){window.open(l, '_blank');}else{alert('Lütfen önce bir link yapıştırın!');}"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Git</button>
                         </div>
                     </div>
                 </div>
@@ -816,6 +803,7 @@
                     <div class="input-group"><label>Evrak Durumu</label><select id="da-evrak" onchange="window.declAutoCalc()"><option value="Açık">İşlemde (Açık)</option><option value="Kapalı">Kapalı</option></select></div>
                 </div>
             </div> 
+            
             <div class="modal-section">
                 <div class="modal-section-title">Kıymet & Finans</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
@@ -825,6 +813,7 @@
                     <div class="input-group"><label>Kıymet (€)</label><input type="text" id="da-kiymet" oninput="window.formatCurrencyInput(this)"></div>
                 </div>
             </div> 
+
             <div id="decl-preview-box">
                 <div class="modal-section-title" style="margin-bottom:14px;">Sistem Metrikleri</div>
                 <div class="metrics-grid">
@@ -837,7 +826,7 @@
             </div> 
         </div> 
         <div class="modal-footer">
-            <button onclick="document.getElementById('decl-modal').classList.add('hidden')" class="btn-sm">İptal</button>
+            <button onclick="window.closeDeclModal()" class="btn-sm">İptal</button>
             <button onclick="window.saveDeclEntry()" class="btn-primary"><i data-lucide="save"></i> Kaydet</button>
         </div> 
     </div> 
@@ -2103,23 +2092,94 @@ window._firebaseReady = true; if(typeof window._onFirebaseReady === 'function') 
             <td style="text-align:center;">
                 <div style="display:flex;gap:3px;justify-content:center;">
                     <button class="btn-sm admin-only" style="color:#10b981" onclick="window.openBeyanname(${i}, 'firm')">Beyanname</button>
-                    <button class="btn-sm admin-only" onclick="window.openDeclVehicleModal(${i}, 'firm')">Düzenle</button>
-                </div>
-            </td>
-        </tr>`).join('');
+                    <button class="btn-sm admin-only" onclick="window.closeDeclModal = function() { document.getElementById('decl-modal').classList.add('hidden'); };
+
+    window.calculateVehicleMetrics=function(data){
+        let today=new Date();today.setHours(0,0,0,0);
+        let E=window.parseTRDate(data.tarih),G=window.parseTRDate(data.ekSure),H=window.parseTRDate(data.antTarih);
+        let I=window.parseTRDate(data.beynmCif),J=window.parseTRDate(data.kiymVv),K=window.parseTRDate(data.kiymGt);
+        let result={ilkSureSonu:"",klnSonTarih:"",klnGun:"",kiymGecen:"",sonGun:"",ardiye:0,gecenGun:""};
+        if(!E)return result;
+        
+        let F=window.addDays(E,20);result.ilkSureSonu=window.formatTRDate(F);
+        let L_date=null;
+        if(I){L_date=window.addDays(I,29);} else if(H){result.klnSonTarih="Süresiz";} else if(G){L_date=window.addDays(G>F?G:F,29);} else{L_date=F;}
+        if(L_date)result.klnSonTarih=window.formatTRDate(L_date);
+        
+        let kiymGecen=0;
+        if(J){if(K){kiymGecen=window.diffDaysSigned(K,J);result.kiymGecen=kiymGecen;}else{result.kiymGecen="Kıymette";}} else if(H&&!I){result.kiymGecen="Süresiz";}
+        
+        let sonGunDate=null;
+        if(!J&&!K){result.sonGun=result.klnSonTarih||"";sonGunDate=L_date;} else if(J&&!K){result.sonGun="Kıymette";sonGunDate=null;} else if(J&&K&&L_date){sonGunDate=window.addDays(L_date,kiymGecen);result.sonGun=window.formatTRDate(sonGunDate);} else if(!L_date){result.sonGun="Süresiz";sonGunDate=null;}
+        
+        if(result.klnSonTarih==="Süresiz"&&!J&&!K){result.klnGun="Süresiz";} else if(J&&!K){if(L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else result.klnGun="Süresiz";} else if(sonGunDate){let d=window.diffDaysSigned(sonGunDate,today);result.klnGun=d<0?0:d;} else if(I){let p30=window.addDays(I,30);result.klnGun=p30>today?window.diffDaysSigned(p30,today):0;} else if(!H&&L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;} else{result.klnGun="Süresiz";}
+        
+        let gun=window.diffDaysSigned(today,E)+1;result.gecenGun=gun;
+        if(gun>0){if(gun<=20)result.ardiye=gun*145;else if(gun<=50)result.ardiye=2900+(gun-20)*725;else if(gun<=80)result.ardiye=24650+(gun-50)*1160;else result.ardiye=59450+(gun-80)*1450;}
+        return result;
     };
 
-    window.renderKiymetTable = function(){
-        let tb=document.getElementById('kiymet-tbody'); if(!tb) return;
-        if(!window.kiymetData.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Kıymet kaydı yok.</td></tr>';return;}
-        tb.innerHTML=window.kiymetData.map((k,i)=>`<tr>
-            <td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td>
-            <td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td>
-            <td>${k.tarih||'-'}</td><td>${k.fatura?k.fatura+' €':'-'}</td>
-            <td style="color:var(--success);font-weight:600;">${k.kiymet?k.kiymet+' €':'-'}</td>
-            <td><span class="badge badge-warning">${k.durum||'-'}</span></td>
-            <td style="text-align:center;"><button class="btn-sm" onclick="window.editKiymet(${i})">Düzenle</button></td>
-        </tr>`).join('');
+    window.declAutoCalc=function(){
+        let val=id=>document.getElementById(id)?.value;
+        let isoToTR=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
+        let data={tarih:isoToTR(val('da-tarih')),ekSure:isoToTR(val('da-ekSure')),antTarih:isoToTR(val('da-antTarih')),beynmCif:isoToTR(val('da-beynmCif')),kiymVv:isoToTR(val('da-kiymVv')),kiymGt:isoToTR(val('da-kiymGt')),evrak:val('da-evrak')};
+        if(!data.tarih)return;let m=window.calculateVehicleMetrics(data);
+        let set=(id,v)=>{if(document.getElementById(id))document.getElementById(id).innerHTML=v;};
+        
+        set('da-prev-ilkSure',m.ilkSureSonu||'-');
+        let kh='-';if(m.klnGun!==''&&m.klnGun!=='Süresiz'){let v=parseInt(m.klnGun);if(v<=5)kh=`<span class="text-danger font-bold">${v} Gün</span>`;else if(v<=20)kh=`<span class="text-warning">${v} Gün</span>`;else kh=`<span class="text-success">${v} Gün</span>`;}else if(m.klnGun==='Süresiz')kh='<span class="text-muted">Süresiz</span>';
+        set('da-prev-klnGun',kh);
+        set('da-prev-ardiye',window.formatNumber(m.ardiye)+' ₺');
+        set('da-prev-sonGun',m.sonGun||'-');
+        set('da-prev-kiymGecen',m.kiymGecen!==''?m.kiymGecen:'-');
+    };
+
+    window.openDeclVehicleModal = function(idx, ctx='decl') {
+        document.getElementById('decl-modal').classList.remove('hidden'); document.getElementById('decl-edit-idx').value=idx;
+        let textFields = ['firma','sase','marka','model','yil','renk','fatura','evrakLink','gonderici','gtip','brut','net','beyanname','kiymet'];
+        let dateFields = ['tarih','ekSure','antTarih','beynmCif','kiymVv','kiymGt'];
+        
+        if(idx === -1) {
+            textFields.forEach(id=> { if(document.getElementById('da-'+id)) document.getElementById('da-'+id).value=''; });
+            dateFields.forEach(id=> { if(document.getElementById('da-'+id)) document.getElementById('da-'+id).value=''; });
+            document.getElementById('da-tarih').value = new Date().toISOString().split('T')[0];
+            document.getElementById('da-evrak').value = 'Açık';
+            document.getElementById('da-teslim').value = 'CIF';
+            document.querySelectorAll('.teslim-opt').forEach(el=>el.classList.remove('active'));
+            document.querySelector('.teslim-opt').classList.add('active');
+        } else {
+            let d = window.declarationsData[idx];
+            textFields.forEach(id=> { if(document.getElementById('da-'+id)) document.getElementById('da-'+id).value=d[id]||''; });
+            document.getElementById('da-evrak').value = d.evrak || 'Kapalı';
+            document.getElementById('da-teslim').value = d.teslim || 'CIF';
+            document.querySelectorAll('.teslim-opt').forEach(el=>el.classList.toggle('active', el.innerText===d.teslim));
+            
+            dateFields.forEach(id=>{
+                if(d[id]) {
+                    let p = d[id].split('.');
+                    if(p.length===3) document.getElementById('da-'+id).value = p[2]+'-'+p[1]+'-'+p[0];
+                } else {
+                    if(document.getElementById('da-'+id)) document.getElementById('da-'+id).value = '';
+                }
+            });
+        }
+        window.declAutoCalc();
+    };
+
+    window.saveDeclEntry = function() {
+        let v=id=>document.getElementById(id).value; 
+        let fD = dt => dt ? dt.split('-').reverse().join('.') : '';
+        let r = {
+            firma:v('da-firma'), sasi:v('da-sase'), marka:v('da-marka'), model:v('da-model'), yil:v('da-yil'), renk:v('da-renk'), 
+            tarih:fD(v('da-tarih')), ekSure:fD(v('da-ekSure')), antTarih:fD(v('da-antTarih')), beynmCif:fD(v('da-beynmCif')),
+            kiymVv:fD(v('da-kiymVv')), kiymGt:fD(v('da-kiymGt')),
+            evrak:v('da-evrak'), fatura:v('da-fatura'), evrakLink:v('da-evrakLink'), gonderici:v('da-gonderici'), 
+            gtip:v('da-gtip'), brut:v('da-brut'), net:v('da-net'), beyanname:v('da-beyanname'), kiymet:v('da-kiymet'),
+            teslim:v('da-teslim')
+        };
+        let i = parseInt(v('decl-edit-idx'));
+        if(i===-1) window.declarationsData.unshift(r); else window.declarationsData[i] = r;
+        window.saveData('decl'); document.getElementById('decl-modal').classList.add('hidden'); window.renderDeclarationsTable();
     };
 
     window.openKiymetModal=function(){document.getElementById('kiymet-modal').classList.remove('hidden');document.getElementById('km-edit-index').value='-1';};
