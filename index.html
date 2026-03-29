@@ -439,9 +439,8 @@
 </template>
 
 <template id="tpl-kiymetListesi"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Arşiv</div><h1 class="page-title">Kıymet Listesi</h1></div></div> 
-    <div class="toolbar fade-in"><div class="toolbar-left"><button id="kiymet-delete-btn" class="btn-sm btn-danger hidden" onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2"></i> Sil (<span id="kiymet-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-sm" onclick="window.openExcelModal('kiymet')"><i data-lucide="file-spreadsheet"></i> Excel</button><button class="btn-primary" onclick="window.openKiymetModal()"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)"></th><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('kiymet')">G.TARİHİ ↕</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div> 
+    <div class="page-hdr fade-in"><div><h1 class="page-title">Kıymet Listesi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.openKiymetModal()">+ Yeni Kayıt</button></div></div> 
+    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th>G.TARİHİ</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-calculator">
@@ -1981,11 +1980,161 @@ window._firebaseReady = true; if(typeof window._onFirebaseReady === 'function') 
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff', html],{type:'application/msword'})); a.download = 'Kurumsal_Maliyet_Raporu.doc'; a.click();
     };
 
+    window.renderFirmsList = function(){
+        let g=document.getElementById('firms-dynamic-grid'); if(!g) return;
+        let f=Object.keys(window.firmData);
+        if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok. Yeni firma ekleyin.</div>';return;}
+        g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name" style="font-size:16px;font-weight:bold;color:var(--primary);">${fn}</div><div class="firm-card-count" style="margin-top:8px;color:var(--text-secondary);">${window.firmData[fn].length} Araç Kayıtlı</div></div>`;}).join('');
+    };
+
+    window.renderFirmDetails = function(fn){
+        window.currentFirm = fn.replace(/&quot;/g,'"'); 
+        window.renderView('firmDetails');
+        if(document.getElementById('current-firm-title')) document.getElementById('current-firm-title').innerText=window.currentFirm;
+        window.renderFirmVehicles();
+    };
+
+    window.renderFirmVehicles = function(){
+        let tb=document.getElementById('firm-vehicles-tbody'); if(!tb||!window.currentFirm) return;
+        let arr=window.firmData[window.currentFirm]||[];
+        if(!arr.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait araç yok.</td></tr>';return;}
+        tb.innerHTML=arr.map((d,i)=>`<tr>
+            <td><span class="font-bold" style="color:var(--text-primary);">${d.marka||'-'} ${d.model||'-'}</span></td>
+            <td>${d.yil||'-'}</td><td>${d.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${d.sasi||'-'}</td>
+            <td>${d.tarih||'-'}</td><td>${d.beyanname||'-'}</td><td>${d.fatura?d.fatura+' €':'-'}</td>
+            <td style="text-align:center;">
+                <div style="display:flex;gap:3px;justify-content:center;">
+                    <button class="btn-sm admin-only" style="color:#10b981" onclick="window.openBeyanname(${i}, 'firm')">Beyanname</button>
+                    <button class="btn-sm admin-only" onclick="window.openDeclVehicleModal(${i}, 'firm')">Düzenle</button>
+                </div>
+            </td>
+        </tr>`).join('');
+    };
+
+    window.renderKiymetTable = function(){
+        let tb=document.getElementById('kiymet-tbody'); if(!tb) return;
+        if(!window.kiymetData.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Kıymet kaydı yok.</td></tr>';return;}
+        tb.innerHTML=window.kiymetData.map((k,i)=>`<tr>
+            <td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td>
+            <td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td>
+            <td>${k.tarih||'-'}</td><td>${k.fatura?k.fatura+' €':'-'}</td>
+            <td style="color:var(--success);font-weight:600;">${k.kiymet?k.kiymet+' €':'-'}</td>
+            <td><span class="badge badge-warning">${k.durum||'-'}</span></td>
+            <td style="text-align:center;"><button class="btn-sm" onclick="window.editKiymet(${i})">Düzenle</button></td>
+        </tr>`).join('');
+    };
+
+    window.openKiymetModal=function(){document.getElementById('kiymet-modal').classList.remove('hidden');document.getElementById('km-edit-index').value='-1';};
+    window.closeKiymetModal=function(){document.getElementById('kiymet-modal').classList.add('hidden');};
+    window.editKiymet=function(i){let k=window.kiymetData[i];['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id=>{if(document.getElementById('km-'+id))document.getElementById('km-'+id).value=k[id]||'';});document.getElementById('km-edit-index').value=i;document.getElementById('kiymet-modal').classList.remove('hidden');};
+    window.saveNewKiymet=function(){let i=parseInt(document.getElementById('km-edit-index').value);let r={marka:document.getElementById('km-marka').value.toUpperCase(),model:document.getElementById('km-model').value.toUpperCase(),yil:document.getElementById('km-yil').value,renk:document.getElementById('km-renk').value.toUpperCase(),sasi:document.getElementById('km-sasi').value.toUpperCase(),tarih:document.getElementById('km-tarih').value,fatura:document.getElementById('km-fatura').value,kiymet:document.getElementById('km-kiymet').value,durum:document.getElementById('km-durum').value};if(i===-1)window.kiymetData.unshift(r);else window.kiymetData[i]=r;window.saveData('kiymet');window.closeKiymetModal();window.renderKiymetTable();};
+
+    window.renderFirmsList = function(){
+        let g=document.getElementById('firms-dynamic-grid'); if(!g) return;
+        let f=Object.keys(window.firmData);
+        if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok. Yeni firma ekleyin.</div>';return;}
+        g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name" style="font-size:16px;font-weight:bold;color:var(--primary);">${fn}</div><div class="firm-card-count" style="margin-top:8px;color:var(--text-secondary);">${window.firmData[fn].length} Araç Kayıtlı</div></div>`;}).join('');
+    };
+
+    window.renderFirmDetails = function(fn){
+        window.currentFirm = fn.replace(/&quot;/g,'"'); 
+        window.renderView('firmDetails');
+        if(document.getElementById('current-firm-title')) document.getElementById('current-firm-title').innerText=window.currentFirm;
+        window.renderFirmVehicles();
+    };
+
+    window.renderFirmVehicles = function(){
+        let tb=document.getElementById('firm-vehicles-tbody'); if(!tb||!window.currentFirm) return;
+        let arr=window.firmData[window.currentFirm]||[];
+        if(!arr.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait araç yok.</td></tr>';return;}
+        tb.innerHTML=arr.map((d,i)=>`<tr>
+            <td><span class="font-bold" style="color:var(--text-primary);">${d.marka||'-'} ${d.model||'-'}</span></td>
+            <td>${d.yil||'-'}</td><td>${d.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${d.sasi||'-'}</td>
+            <td>${d.tarih||'-'}</td><td>${d.beyanname||'-'}</td><td>${d.fatura?d.fatura+' €':'-'}</td>
+            <td style="text-align:center;">
+                <div style="display:flex;gap:3px;justify-content:center;">
+                    <button class="btn-sm admin-only" style="color:#10b981" onclick="window.openBeyanname(${i}, 'firm')">Beyanname</button>
+                    <button class="btn-sm admin-only" onclick="window.openDeclVehicleModal(${i}, 'firm')">Düzenle</button>
+                </div>
+            </td>
+        </tr>`).join('');
+    };
+
+    window.renderKiymetTable = function(){
+        let tb=document.getElementById('kiymet-tbody'); if(!tb) return;
+        if(!window.kiymetData.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Kıymet kaydı yok.</td></tr>';return;}
+        tb.innerHTML=window.kiymetData.map((k,i)=>`<tr>
+            <td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td>
+            <td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td>
+            <td>${k.tarih||'-'}</td><td>${k.fatura?k.fatura+' €':'-'}</td>
+            <td style="color:var(--success);font-weight:600;">${k.kiymet?k.kiymet+' €':'-'}</td>
+            <td><span class="badge badge-warning">${k.durum||'-'}</span></td>
+            <td style="text-align:center;"><button class="btn-sm" onclick="window.editKiymet(${i})">Düzenle</button></td>
+        </tr>`).join('');
+    };
+
+    window.openKiymetModal=function(){document.getElementById('kiymet-modal').classList.remove('hidden');document.getElementById('km-edit-index').value='-1';};
+    window.closeKiymetModal=function(){document.getElementById('kiymet-modal').classList.add('hidden');};
+    window.editKiymet=function(i){let k=window.kiymetData[i];['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id=>{if(document.getElementById('km-'+id))document.getElementById('km-'+id).value=k[id]||'';});document.getElementById('km-edit-index').value=i;document.getElementById('kiymet-modal').classList.remove('hidden');};
+    window.saveNewKiymet=function(){let i=parseInt(document.getElementById('km-edit-index').value);let r={marka:document.getElementById('km-marka').value.toUpperCase(),model:document.getElementById('km-model').value.toUpperCase(),yil:document.getElementById('km-yil').value,renk:document.getElementById('km-renk').value.toUpperCase(),sasi:document.getElementById('km-sasi').value.toUpperCase(),tarih:document.getElementById('km-tarih').value,fatura:document.getElementById('km-fatura').value,kiymet:document.getElementById('km-kiymet').value,durum:document.getElementById('km-durum').value};if(i===-1)window.kiymetData.unshift(r);else window.kiymetData[i]=r;window.saveData('kiymet');window.closeKiymetModal();window.renderKiymetTable();};
+
+    window.renderFirmsList = function(){
+        let g=document.getElementById('firms-dynamic-grid'); if(!g) return;
+        let f=Object.keys(window.firmData);
+        if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok. Yeni firma ekleyin.</div>';return;}
+        g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name" style="font-size:16px;font-weight:bold;color:var(--primary);">${fn}</div><div class="firm-card-count" style="margin-top:8px;color:var(--text-secondary);">${window.firmData[fn].length} Araç Kayıtlı</div></div>`;}).join('');
+    };
+
+    window.renderFirmDetails = function(fn){
+        window.currentFirm = fn.replace(/&quot;/g,'"'); 
+        window.renderView('firmDetails');
+        if(document.getElementById('current-firm-title')) document.getElementById('current-firm-title').innerText=window.currentFirm;
+        window.renderFirmVehicles();
+    };
+
+    window.renderFirmVehicles = function(){
+        let tb=document.getElementById('firm-vehicles-tbody'); if(!tb||!window.currentFirm) return;
+        let arr=window.firmData[window.currentFirm]||[];
+        if(!arr.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait araç yok.</td></tr>';return;}
+        tb.innerHTML=arr.map((d,i)=>`<tr>
+            <td><span class="font-bold" style="color:var(--text-primary);">${d.marka||'-'} ${d.model||'-'}</span></td>
+            <td>${d.yil||'-'}</td><td>${d.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${d.sasi||'-'}</td>
+            <td>${d.tarih||'-'}</td><td>${d.beyanname||'-'}</td><td>${d.fatura?d.fatura+' €':'-'}</td>
+            <td style="text-align:center;">
+                <div style="display:flex;gap:3px;justify-content:center;">
+                    <button class="btn-sm admin-only" style="color:#10b981" onclick="window.openBeyanname(${i}, 'firm')">Beyanname</button>
+                    <button class="btn-sm admin-only" onclick="window.openDeclVehicleModal(${i}, 'firm')">Düzenle</button>
+                </div>
+            </td>
+        </tr>`).join('');
+    };
+
+    window.renderKiymetTable = function(){
+        let tb=document.getElementById('kiymet-tbody'); if(!tb) return;
+        if(!window.kiymetData.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Kıymet kaydı yok.</td></tr>';return;}
+        tb.innerHTML=window.kiymetData.map((k,i)=>`<tr>
+            <td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td>
+            <td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td>
+            <td>${k.tarih||'-'}</td><td>${k.fatura?k.fatura+' €':'-'}</td>
+            <td style="color:var(--success);font-weight:600;">${k.kiymet?k.kiymet+' €':'-'}</td>
+            <td><span class="badge badge-warning">${k.durum||'-'}</span></td>
+            <td style="text-align:center;"><button class="btn-sm" onclick="window.editKiymet(${i})">Düzenle</button></td>
+        </tr>`).join('');
+    };
+
+    window.openKiymetModal=function(){document.getElementById('kiymet-modal').classList.remove('hidden');document.getElementById('km-edit-index').value='-1';};
+    window.closeKiymetModal=function(){document.getElementById('kiymet-modal').classList.add('hidden');};
+    window.editKiymet=function(i){let k=window.kiymetData[i];['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id=>{if(document.getElementById('km-'+id))document.getElementById('km-'+id).value=k[id]||'';});document.getElementById('km-edit-index').value=i;document.getElementById('kiymet-modal').classList.remove('hidden');};
+    window.saveNewKiymet=function(){let i=parseInt(document.getElementById('km-edit-index').value);let r={marka:document.getElementById('km-marka').value.toUpperCase(),model:document.getElementById('km-model').value.toUpperCase(),yil:document.getElementById('km-yil').value,renk:document.getElementById('km-renk').value.toUpperCase(),sasi:document.getElementById('km-sasi').value.toUpperCase(),tarih:document.getElementById('km-tarih').value,fatura:document.getElementById('km-fatura').value,kiymet:document.getElementById('km-kiymet').value,durum:document.getElementById('km-durum').value};if(i===-1)window.kiymetData.unshift(r);else window.kiymetData[i]=r;window.saveData('kiymet');window.closeKiymetModal();window.renderKiymetTable();};
+
     window.renderView=function(vn) {
         document.getElementById('view-container').innerHTML = document.getElementById('tpl-'+vn).innerHTML;
         document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===vn));
         if(vn==='declarations') window.renderDeclarationsTable();
         if(vn==='calculator') window.calculateTaxes();
+        if(vn==='firms') window.renderFirmsList();
+        if(vn==='firmDetails') window.renderFirmVehicles();
+        if(vn==='kiymetListesi') window.renderKiymetTable();
         window.applyRoleUI(); if(window.lucide) lucide.createIcons();
     };
 
