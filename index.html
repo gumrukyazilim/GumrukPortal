@@ -880,7 +880,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.addDays=function(d,n){if(!d)return null;let r=new Date(d);r.setDate(r.getDate()+Number(n));return r;};
     window.diffDaysSigned=function(a,b){if(!a||!b)return 0;return Math.round((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())-Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/(864e5));};
     window.formatNumber=function(v){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;return n.toLocaleString('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0});};
-    window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip++','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
+    window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
     // CLOUD SYNC
     function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));}catch(e){}}
