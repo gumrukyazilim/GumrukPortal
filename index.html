@@ -15,21 +15,9 @@
         :root {
             --bg-main:#000;--bg-surface:#0a0d12;--bg-surface-hover:#18181b;--bg-elevated:#111620;--bg-hover:#161d2a;--border:rgba(255,255,255,0.06);--border-active:rgba(59,130,246,0.4);--primary:#3b82f6;--primary-hover:#2563eb;--accent:#60a5fa;--text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#475569;--danger:#ef4444;--success:#10b981;--warning:#f59e0b;--kiymet-color:#a855f7;--font-family:'Inter',-apple-system,sans-serif;--r-xl:20px;--r-lg:14px;--r-md:10px;--r-sm:7px;--sidebar-w:268px;--header-h:68px
         }
-
         [data-theme="light"] {
-            --bg-main: #f1f5f9;
-            --bg-surface: #ffffff;
-            --bg-surface-hover: #f8fafc;
-            --bg-elevated: #ffffff;
-            --bg-hover: #e2e8f0;
-            --input-bg: #ffffff;
-            --border: rgba(0,0,0,0.15);
-            --border-active: rgba(59,130,246,0.6);
-            --text-primary: #0f172a;
-            --text-secondary: #334155;
-            --text-muted: #64748b;
+            --bg-main: #f1f5f9; --bg-surface: #ffffff; --bg-surface-hover: #f8fafc; --bg-elevated: #ffffff; --bg-hover: #e2e8f0; --input-bg: #ffffff; --border: rgba(0,0,0,0.15); --border-active: rgba(59,130,246,0.6); --text-primary: #0f172a; --text-secondary: #334155; --text-muted: #64748b;
         }
-
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:var(--font-family); background:var(--bg-main); color:var(--text-primary); min-height:100vh; overflow-x:hidden; font-size:14px; -webkit-font-smoothing:antialiased; transition: background 0.3s, color 0.3s; }
         button, input, select, textarea { font-family:inherit; outline:none; border:none; }
@@ -74,25 +62,24 @@
         .footer-btn i { width:15px; height:15px; flex-shrink:0; }
         .footer-btn:hover { background:var(--bg-hover); border-color:var(--border); color:var(--text-primary); }
         .footer-btn.primary-subtle { color:var(--primary); border-color:rgba(59,130,246,0.2); background:rgba(59,130,246,0.05); }
-        .footer-btn.primary-subtle:hover { background:rgba(59,130,246,0.1); }
         
         .main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
         .top-header { height:var(--header-h); display:flex; align-items:center; justify-content:space-between; padding:0 28px; background:var(--bg-surface); border-bottom:1px solid var(--border); gap:16px; flex-shrink:0; z-index:10; }
         .header-left { display:flex; align-items:center; gap:14px; flex:1; }
-        .menu-toggle { width:38px; height:38px; border-radius:var(--r-md); background:transparent; border:1px solid transparent; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.18s; }
-        .menu-toggle:hover { background:var(--bg-elevated); border-color:var(--border); color:var(--text-primary); }
+        .menu-toggle { width:38px; height:38px; border-radius:var(--r-md); background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); transition:0.18s; border:1px solid transparent; }
+        .menu-toggle:hover { background:var(--bg-elevated); color:var(--text-primary); border-color:var(--border); }
         
         .search-wrap { position:relative; display:flex; align-items:center; background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:6px 16px; width:100%; max-width:550px; height:48px; transition:0.3s; box-shadow:0 4px 20px rgba(0,0,0,0.05); }
         .search-wrap:focus-within { border-color:var(--primary); box-shadow:0 0 0 4px rgba(59,130,246,0.1); }
         .search-wrap > i { color:var(--primary); width:20px; height:20px; flex-shrink:0; }
         .search-wrap input { background:transparent; color:var(--text-primary); padding:0 12px; flex:1; font-size:14.5px; border:none; outline:none; }
-        #live-search-dropdown { display:none; position:absolute; top:calc(100% + 8px); left:-14px; right:-14px; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:var(--r-lg); max-height:420px; overflow-y:auto; z-index:999999; box-shadow:0 24px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(59,130,246,0.1); }
+        #live-search-dropdown { display:none; position:absolute; top:calc(100% + 8px); left:-14px; right:-14px; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:var(--r-lg); max-height:420px; overflow-y:auto; z-index:999999; box-shadow:0 24px 60px rgba(0,0,0,0.8); }
         #live-search-dropdown.show { display:block; }
-        .ls-item { padding:12px 16px; cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; transition:0.12s; }
+        .ls-item { padding:12px 16px; cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
         .ls-item:hover { background:var(--bg-hover); }
         .ls-item-title { font-weight:600; color:var(--text-primary); font-size:13px; }
         .ls-item-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
-        .ls-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:5px; white-space:nowrap; }
+        .ls-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:5px; }
         
         .header-right { display:flex; align-items:center; gap:10px; }
         .hdr-icon-btn { width:38px; height:38px; border-radius:var(--r-md); border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.18s; }
@@ -110,8 +97,7 @@
         
         .page-hdr { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; }
         .page-eyebrow { font-size:11px; font-weight:600; color:var(--primary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; }
-        .page-title { font-size:26px; font-weight:700; letter-spacing:-0.5px; color:var(--text-primary); }
-        .page-sub { font-size:13px; color:var(--text-secondary); margin-top:4px; }
+        .page-title { font-size:26px; font-weight:700; letter-spacing:-0.5px; }
         .page-actions { display:flex; align-items:center; gap:10px; }
         
         .card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); }
@@ -127,225 +113,92 @@
         .stat-icon-box.green { background:rgba(16,185,129,0.12); color:var(--success); }
         .stat-icon-box.yellow { background:rgba(245,158,11,0.12); color:var(--warning); }
         .stat-icon-box.purple { background:rgba(168,85,247,0.12); color:var(--kiymet-color); }
-        
         .stat-trend { font-size:11px; font-weight:600; padding:3px 8px; border-radius:6px; }
-        .stat-trend.up { background:rgba(16,185,129,0.1); color:var(--success); }
-        .stat-trend.warn { background:rgba(245,158,11,0.1); color:var(--warning); }
-        .stat-value { font-size:34px; font-weight:700; letter-spacing:-1px; color:var(--text-primary); line-height:1; margin-bottom:4px; }
+        .stat-value { font-size:34px; font-weight:700; letter-spacing:-1px; line-height:1; margin-bottom:4px; }
         .stat-label { font-size:13px; color:var(--text-secondary); font-weight:500; }
-        .stat-bar { height:3px; border-radius:2px; margin-top:16px; background:var(--input-bg); overflow:hidden; }
-        .stat-bar-fill { height:100%; border-radius:2px; transition:width 0.6s ease; }
-        .stat-bar-fill.green { background:linear-gradient(90deg, var(--success), #34d399); }
-        .stat-bar-fill.yellow { background:linear-gradient(90deg, var(--warning), #fcd34d); }
-        .stat-bar-fill.purple { background:linear-gradient(90deg, var(--kiymet-color), #c084fc); }
         
         .table-wrap { overflow:auto; max-height:calc(100vh - var(--header-h) - 200px); }
-        .table-wrap::-webkit-scrollbar { width:10px; height:10px; }
-        .table-wrap::-webkit-scrollbar-track { background:rgba(0,0,0,0.2); border-radius:4px; }
-        .table-wrap::-webkit-scrollbar-thumb { background:rgba(63,63,70,0.8); border-radius:4px; border:2px solid transparent; background-clip:padding-box; }
-        .table-wrap::-webkit-scrollbar-thumb:hover { background-color:rgba(113,113,122,1); }
-        
         .data-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12.5px; }
-        .data-table th { padding:11px 14px; text-align:left; font-weight:600; color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px; border-bottom:1px solid var(--border); background:var(--bg-surface); position:sticky; top:0; z-index:10; white-space:nowrap; }
-        .data-table td { padding:12px 14px; border-bottom:1px solid var(--border); color:var(--text-primary); vertical-align:middle; transition:0.2s; white-space:nowrap; }
-        .data-table tbody tr { transition:background 0.12s; }
+        .data-table th { padding:11px 14px; text-align:left; font-weight:600; color:var(--text-muted); font-size:10.5px; text-transform:uppercase; border-bottom:1px solid var(--border); background:var(--bg-surface); position:sticky; top:0; z-index:10; white-space:nowrap; }
+        .data-table td { padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:middle; white-space:nowrap; }
         .data-table tbody tr:hover td { background:var(--bg-hover); }
-        .row-kiymette td { background:rgba(168,85,247,0.06)!important; border-bottom-color:rgba(168,85,247,0.12)!important; }
-        .row-kiymette:hover td { background:rgba(168,85,247,0.1)!important; }
-        .row-beklemede td { background:rgba(245,158,11,0.03)!important; }
-        .row-beklemede:hover td { background:rgba(245,158,11,0.06)!important; }
-        .row-kapali td { opacity:0.6; }
-        .row-kapali:hover td { opacity:0.8; }
         
-        .badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:5px; font-size:11px; font-weight:600; letter-spacing:0.2px; }
+        .badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:5px; font-size:11px; font-weight:600; }
         .badge-warning { background:rgba(245,158,11,0.1); color:#fbbf24; border:1px solid rgba(245,158,11,0.2); }
-        .badge-success { background:rgba(16,185,129,0.1); color:#34d399; border:1px solid rgba(16,185,129,0.2); }
-        .badge-danger { background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.2); }
         .badge-dark { background:var(--input-bg); color:var(--text-secondary); border:1px solid var(--border); }
-        .badge-kiymette { background:rgba(168,85,247,0.15); color:#d8b4fe; border:1px solid rgba(168,85,247,0.3); box-shadow:0 0 10px rgba(168,85,247,0.2); animation:pulse-purple 2s infinite; }
-        @keyframes pulse-purple { 0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,0.4)} 50%{box-shadow:0 0 0 5px rgba(168,85,247,0)} }
         
-        .urgent-pulse { animation:pulse-alarm 1.5s infinite; border-radius:5px; display:inline-block; padding:2px 8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.35); color:#f87171; font-weight:700; font-size:12px; }
-        @keyframes pulse-alarm { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 70%{box-shadow:0 0 0 5px rgba(239,68,68,0)} }
-        
-        .btn-primary { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; background:var(--primary); color:#fff; border-radius:var(--r-md); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.18s; box-shadow:0 2px 8px rgba(59,130,246,0.25); }
-        .btn-primary:hover { background:var(--primary-hover); box-shadow:0 4px 14px rgba(59,130,246,0.35); transform:translateY(-1px); }
-        .btn-sm { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; background:var(--bg-elevated); color:var(--text-primary); border-radius:var(--r-md); font-size:12.5px; font-weight:500; cursor:pointer; transition:0.18s; border:1px solid var(--border); }
+        .btn-primary { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; background:var(--primary); color:#fff; border-radius:var(--r-md); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:0.2s; }
+        .btn-primary:hover { background:var(--primary-hover); transform:translateY(-1px); box-shadow:0 4px 14px rgba(59,130,246,0.35); }
+        .btn-sm { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; background:var(--bg-elevated); color:var(--text-primary); border-radius:var(--r-md); font-size:12.5px; font-weight:500; cursor:pointer; border:1px solid var(--border); transition:0.2s; }
         .btn-sm:hover { background:var(--bg-hover); border-color:var(--border-active); }
-        .btn-danger { background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.25)!important; }
-        
-        .icon-btn { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:var(--r-sm); transition:0.15s; cursor:pointer; border:1px solid transparent; color:var(--text-secondary); background:transparent; }
-        .icon-btn:hover { background:var(--bg-hover); border-color:var(--border); color:var(--primary); }
-        .text-danger-btn { color:#f87171; }
-        .text-danger-btn:hover { background:rgba(239,68,68,0.08); border-color:rgba(239,68,68,0.2); }
+        .icon-btn { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:var(--r-sm); cursor:pointer; border:1px solid transparent; background:transparent; color:var(--text-secondary); transition:0.15s; }
+        .icon-btn:hover { background:var(--bg-hover); color:var(--primary); }
+        .text-danger-btn:hover { color:#f87171; background:rgba(239,68,68,0.08); }
         
         .toolbar { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); margin-bottom:18px; }
         .toolbar-left, .toolbar-right { display:flex; align-items:center; gap:10px; }
         
         .input-group { margin-bottom:18px; position:relative; }
-        .input-group label { display:block; margin-bottom:6px; font-size:11.5px; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.4px; }
-        input[type="text"], input[type="password"], input[type="date"], select, textarea { width:100%; padding:10px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-size:13px; transition:0.18s; font-family:var(--font-family); outline:none; }
-        input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
-        
-        select { background-color:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); }
-        select option { background-color:var(--bg-surface); color:var(--text-primary); }
-        
-        input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(0.5); cursor:pointer; }
-        [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(0.5); }
-        
-        .custom-cb { appearance:none; -webkit-appearance:none; width:15px; height:15px; background:var(--input-bg); border:1px solid var(--border); border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:0.15s; margin:0; vertical-align:middle; }
-        .custom-cb::before { content:""; width:7px; height:7px; background:#fff; transform:scale(0); transition:0.15s; border-radius:1px; clip-path:polygon(14% 44%,0 65%,50% 100%,100% 16%,80% 0%,43% 62%); }
-        .custom-cb:checked { background:var(--primary); border-color:var(--primary); }
-        .custom-cb:checked::before { transform:scale(1); }
-        
-        .inline-date { cursor:pointer; position:relative; min-width:90px; padding:5px 7px!important; border-radius:var(--r-sm); transition:0.15s; border:1px solid transparent; }
-        .inline-date:hover { background:var(--input-bg); border-color:var(--border); }
-        .inline-date:hover::after { content:'✎'; position:absolute; right:6px; top:8px; font-size:10px; color:var(--text-muted); }
+        .input-group label { display:block; margin-bottom:6px; font-size:11.5px; color:var(--text-secondary); font-weight:600; text-transform:uppercase; }
+        input[type="text"], input[type="password"], input[type="date"], select, textarea { width:100%; padding:10px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-size:13px; font-family:inherit; transition:0.18s; outline:none; }
+        input:focus, select:focus, textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+        select option { background:var(--bg-surface); color:var(--text-primary); }
         
         .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(6px); z-index:9000; display:flex; align-items:center; justify-content:center; }
-        .modal-box { background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-xl); padding:0; width:95%; max-width:700px; max-height:92vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 40px 80px rgba(0,0,0,0.7); }
-        .modal-header { display:flex; justify-content:space-between; align-items:center; padding:24px 28px; border-bottom:1px solid var(--border); flex-shrink:0; }
-        .modal-header h2 { font-size:18px; font-weight:700; letter-spacing:-0.3px; color:var(--text-primary); }
+        .modal-box { background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-xl); padding:0; width:95%; max-width:700px; max-height:92vh; overflow:hidden; display:flex; flex-direction:column; }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; padding:24px 28px; border-bottom:1px solid var(--border); }
         .modal-body { padding:28px; overflow-y:auto; flex:1; }
-        .modal-footer { padding:20px 28px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; flex-shrink:0; background:var(--bg-surface); }
-        
+        .modal-footer { padding:20px 28px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; background:var(--bg-surface); }
         .modal-section { background:var(--input-bg); border:1px solid var(--border); border-radius:var(--r-md); padding:20px; margin-bottom:20px; }
-        .modal-section-title { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:16px; border-bottom: 1px solid var(--border); padding-bottom: 6px;}
-        
-        #decl-preview-box { background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.15); border-radius:var(--r-md); padding:18px; margin-bottom:20px; }
-        .metrics-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
-        .metric-item { text-align:center; }
-        .metric-label { font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px; }
-        .metric-value { font-size:15px; font-weight:700; color:var(--text-primary); }
-        
-        .firms-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
-        .firm-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:22px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
-        .firm-card:hover { border-color:var(--primary); transform:translateY(-2px); box-shadow:0 10px 24px rgba(0,0,0,0.1); }
-        .firm-card-icon { width:42px; height:42px; border-radius:10px; background:rgba(59,130,246,0.1); color:var(--primary); display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
-        .firm-card-icon i { width:20px; height:20px; }
-        .firm-card-name { font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:4px; }
-        .firm-card-count { font-size:12px; color:var(--text-secondary); }
-        .firm-delete-btn { position:absolute; top:14px; right:14px; width:28px; height:28px; border-radius:var(--r-sm); background:transparent; color:var(--text-muted); display:flex; justify-content:center; align-items:center; cursor:pointer; transition:0.18s; opacity:0; border:1px solid transparent; }
-        .firm-card:hover .firm-delete-btn { opacity:1; }
-        .firm-delete-btn:hover { background:rgba(239,68,68,0.1); color:var(--danger); border-color:rgba(239,68,68,0.2); }
+        .modal-section-title { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom:16px; }
         
         .calc-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:32px; }
         .result-panel { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:28px; position:sticky; top:0; }
-        .result-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; }
-        .result-row+.result-row { border-top:1px solid var(--border); }
-        .result-label { font-size:12.5px; color:var(--text-secondary); }
-        .result-value { font-size:13px; font-weight:600; color:var(--text-primary); }
-        
+        .calc-result-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .calc-result-table td { padding:10px 14px; border-bottom:1px solid var(--border); }
         .result-total { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,var(--primary) 0%,#7c3aed 100%); padding:20px; border-radius:var(--r-md); margin-top:16px; }
-        .result-total-label { font-size:15px; font-weight:600; color:#fff !important; }
-        .result-total-value { font-size:22px; font-weight:800; color:#fff !important; letter-spacing:-0.5px; }
-        .result-total-sub { font-size:11px; color:rgba(255,255,255,0.8) !important; margin-top:2px; text-align:right; }
         
-        .segmented-control { display:flex; background:var(--input-bg); padding:3px; border-radius:var(--r-sm); border:1px solid var(--border); position:relative; }
-        .segmented-control input { display:none; }
-        .segmented-control label { flex:1; text-align:center; padding:7px 0; font-size:12.5px; font-weight:500; color:var(--text-secondary); cursor:pointer; z-index:2; border-radius:5px; margin:0; transition:color 0.2s; }
-        .segmented-control .slider { position:absolute; top:3px; bottom:3px; left:3px; width:calc(50% - 3px); background:var(--bg-hover); border-radius:5px; transition:0.3s cubic-bezier(0.4,0,0.2,1); border:1px solid var(--border); z-index:1; }
-        .segmented-control input:nth-child(3):checked~.slider { left:50%; }
-        .segmented-control input:checked+label { color:var(--text-primary); font-weight:600; }
-        .segmented-3 label { flex:1; }
-        .segmented-3 .slider { width:calc(33.33% - 2px); }
-        .segmented-3 input:nth-of-type(1):checked~.slider { left:3px; }
-        .segmented-3 input:nth-of-type(2):checked~.slider { left:33.33%; }
-        .segmented-3 input:nth-of-type(3):checked~.slider { left:calc(66.66% - 3px); }
+        .kur-panel { display:flex; gap:12px; align-items:flex-end; padding:16px; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.15); border-radius:var(--r-md); margin-bottom:20px; }
+        .kur-badge { padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
+        .kur-live { background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.2); }
+        .kur-manual { background:rgba(245,158,11,0.1); color:var(--warning); border:1px solid rgba(245,158,11,0.2); }
         
-        #sync-toast { position:fixed; bottom:24px; right:24px; background:var(--bg-elevated); border:1px solid var(--border); padding:12px 18px; border-radius:var(--r-lg); box-shadow:0 16px 40px rgba(0,0,0,0.3); display:flex; align-items:center; gap:12px; transform:translateY(100px); opacity:0; transition:0.4s cubic-bezier(0.175,0.885,0.32,1.275); z-index:99999; }
-        #sync-toast.show { transform:translateY(0); opacity:1; }
-        .spinner { width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite; flex-shrink:0; }
+        .teslim-toggle { display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; }
+        .teslim-opt { flex:1; padding:10px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; border-right:1px solid var(--border); transition:0.2s; }
+        .teslim-opt:last-child { border-right:none; }
+        .teslim-opt.active { background:var(--primary); color:#fff; }
         
-        .text-primary-c { color:var(--primary); }
-        .text-success { color:var(--success); }
-        .text-warning { color:var(--warning); }
-        .text-danger { color:var(--danger); }
-        .text-muted { color:var(--text-muted); }
-        .text-secondary { color:var(--text-secondary); }
-        .font-medium { font-weight:500; }
-        .font-bold { font-weight:600; }
-        .font-extrabold { font-weight:700; }
-        .sortable-th { cursor:pointer; }
-        .sortable-th:hover { color:var(--text-primary); }
-        
-        .firm-search-wrap { position:relative; }
-        .firm-search-input { width:100%; padding:10px 12px 10px 36px; border-radius:var(--r-md); background:var(--input-bg)!important; color:var(--text-primary)!important; border:1px solid var(--border)!important; font-size:13px; }
-        .firm-search-input::placeholder { color:var(--text-muted); }
-        .firm-search-input:focus { border-color:var(--primary)!important; box-shadow:0 0 0 3px rgba(59,130,246,0.15); outline:none; }
-        
-        .firm-dropdown-list { position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0 0 var(--r-md) var(--r-md); max-height:180px; overflow-y:auto; z-index:100; display:none; box-shadow:0 8px 20px rgba(0,0,0,0.15); }
-        .firm-dropdown-list.show { display:block; }
-        .firm-dropdown-item { padding:10px 14px; cursor:pointer; color:var(--text-primary); font-size:13px; font-weight:500; border-bottom:1px solid var(--border); transition:0.1s; }
-        .firm-dropdown-item:hover { background:var(--bg-hover); color:var(--primary); }
-        
-        /* YENİ OTO-TAMAMLAMA ARAMA LİSTESİ */
         .autocomplete-list { position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border-active); border-radius:0 0 var(--r-md) var(--r-md); max-height:220px; overflow-y:auto; z-index:9999; display:none; box-shadow:0 12px 28px rgba(0,0,0,0.4); }
         .autocomplete-list.show { display:block; }
-        .autocomplete-item { padding:10px 14px; cursor:pointer; color:var(--text-primary); font-size:12.5px; border-bottom:1px solid var(--border); transition:0.1s; display:flex; flex-direction:column; gap:4px; }
+        .autocomplete-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); display:flex; flex-direction:column; transition:0.1s; }
         .autocomplete-item:hover { background:var(--bg-hover); border-left:3px solid var(--primary); padding-left:11px; }
-        .ac-title { font-weight:700; color:var(--primary); }
-        .ac-sub { font-size:11px; color:var(--text-muted); }
         
         /* TCGB ÖZEL CSS (YAZDIRMA DESTEKLİ) */
-        .tcgb-container { background:#fff; color:#000; width:100%; max-width:1000px; margin:0 auto; font-family:Arial, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden; }
+        .tcgb-container { background:#fff; color:#000; width:100%; max-width:1000px; margin:0 auto; font-family:Arial, sans-serif; border-radius: 4px; overflow: hidden; padding: 20px;}
         .tcgb-grid { display: grid; grid-template-columns: repeat(8, 1fr); border-top: 1px solid #2f5d34; border-left: 1px solid #2f5d34; }
         .tcgb-box { border-right: 1px solid #2f5d34; border-bottom: 1px solid #2f5d34; padding: 6px; position: relative; }
         .tcgb-label { font-size: 10px; font-weight: bold; color: #2f5d34; margin-bottom: 4px; display: block; text-transform: uppercase; }
-        .tcgb-input { width: 100%; border: none !important; background: transparent !important; font-family: monospace; font-size: 13px; color: #000; font-weight: 600; padding:0; box-shadow:none !important; }
+        .tcgb-input { width: 100%; border: none !important; background: transparent !important; font-family: monospace; font-size: 13px; color: #000; font-weight: 600; padding:0; box-shadow:none !important; outline:none; }
         .tcgb-table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 4px; }
         .tcgb-table th { border-bottom: 1px solid #ccc; font-size: 10px; color: #555; padding-bottom: 2px; }
         
         @media print {
             body * { visibility: hidden; }
             #tcgb-print-area, #tcgb-print-area * { visibility: visible; }
-            #tcgb-print-area { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; }
+            #tcgb-print-area { position: absolute; left: 0; top: 0; width: 100%; padding:0; }
             .sidebar, .top-header, .page-hdr, .page-actions { display: none !important; }
             body { background: #fff; }
         }
         
-        .kur-panel { display:flex; gap:12px; align-items:flex-end; padding:16px; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.15); border-radius:var(--r-md); margin-bottom:20px; }
-        .kur-badge { padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
-        .kur-live { background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.2); }
-        .kur-manual { background:rgba(245,158,11,0.1); color:var(--warning); border:1px solid rgba(245,158,11,0.2); }
-        .kur-fetch-btn { padding:8px 16px; background:var(--primary); color:#fff; border-radius:var(--r-md); font-size:12px; font-weight:600; cursor:pointer; transition:0.2s; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; border:none; }
-        .kur-fetch-btn:hover { background:var(--primary-hover); }
-        
-        .teslim-toggle { display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; }
-        .teslim-opt { flex:1; padding:10px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; transition:0.2s; color:var(--text-secondary); border-right:1px solid var(--border); }
-        .teslim-opt:last-child { border-right:none; }
-        .teslim-opt.active { background:var(--primary); color:#fff; }
-        
-        .calc-result-table { width:100%; border-collapse:collapse; font-size:13px; }
-        .calc-result-table td { padding:10px 14px; border-bottom:1px solid var(--border); }
-        .calc-result-table .label-col { color:var(--text-secondary); font-weight:500; }
-        .calc-result-table .value-col { text-align:right; font-weight:600; color:var(--text-primary); }
-        .calc-result-table .section-header td { font-size:10.5px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.6px; padding-top:18px; border-bottom:1px solid rgba(59,130,246,0.15); }
-        .calc-result-table .total-row td { font-weight:700; color:var(--text-primary); font-size:14px; border-top:2px solid var(--border); padding-top:14px; }
-        .calc-result-table .grand-total td { background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.02)); font-size:16px; font-weight:800; padding:16px 14px; border-radius:var(--r-md); color:var(--text-primary); }
-        
-        .calc-section { border-radius:var(--r-lg); padding:24px; margin-bottom:20px; border:1px solid; }
-        .calc-section.blue { background:rgba(59,130,246,0.04); border-color:rgba(59,130,246,0.15); }
-        .calc-section.blue .calc-sec-title { color:var(--primary); }
-        .calc-section.red { background:rgba(239,68,68,0.04); border-color:rgba(239,68,68,0.12); }
-        .calc-section.red .calc-sec-title { color:var(--danger); }
-        .calc-section.green { background:rgba(16,185,129,0.04); border-color:rgba(16,185,129,0.12); }
-        .calc-section.green .calc-sec-title { color:var(--success); }
-        .calc-section.orange { background:rgba(249,115,22,0.03); border-color:rgba(249,115,22,0.15); }
-        .calc-section.orange .calc-sec-title { color:var(--warning); }
-        
-        .calc-sec-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; margin-bottom:18px; text-transform:uppercase; letter-spacing:0.5px; }
-        .calc-sec-title i { width:18px; height:18px; }
-        
-        .export-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.25); border-radius:var(--r-md); font-size:12px; font-weight:600; cursor:pointer; transition:0.2s; }
-        .export-btn:hover { background:rgba(16,185,129,0.2); }
-        .export-btn.word { background:rgba(59,130,246,0.1); color:var(--primary); border-color:rgba(59,130,246,0.25); }
-        .export-btn.word:hover { background:rgba(59,130,246,0.2); }
+        #sync-toast { position:fixed; bottom:24px; right:24px; background:var(--bg-elevated); border:1px solid var(--border); padding:12px 18px; border-radius:var(--r-lg); display:flex; align-items:center; gap:12px; transform:translateY(100px); opacity:0; transition:0.4s; z-index:99999; }
+        #sync-toast.show { transform:translateY(0); opacity:1; }
+        .spinner { width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite; }
+        @keyframes spin { 100% { transform:rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="sync-toast"><div id="sync-icon" class="spinner"></div><span id="sync-text" style="font-size:13px;font-weight:500;">Firebase ile eşzamanlanıyor...</span></div>
+<div id="sync-toast"><div id="sync-icon" class="spinner"></div><span id="sync-text" style="font-size:13px;">Firebase eşitleniyor...</span></div>
 
 <div id="login-screen">
     <div class="login-card">
@@ -361,229 +214,205 @@
 
 <div id="app-screen" class="app-wrap">
     <aside class="sidebar">
-        <div class="sidebar-brand"><div class="brand-icon"><i data-lucide="layers"></i></div><div class="brand-text"><div class="brand-name">GümrükPortal</div><div class="brand-status"><span class="status-dot"></span><span>Firebase Canlı</span></div></div></div>
+        <div class="sidebar-brand"><div class="brand-icon"><i data-lucide="layers"></i></div><div class="brand-text"><div class="brand-name">GümrükPortal</div></div></div>
         <nav class="sidebar-nav">
-            <div class="sidebar-section-label">Genel Bakış</div>
             <button class="nav-btn active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Sistem Özeti</span></button>
             <div class="sidebar-section-label" style="margin-top:8px;">Yönetim</div>
             <button class="nav-btn" data-view="declarations"><i data-lucide="car"></i><span>Gelen Araçlar</span></button>
             <button class="nav-btn admin-only" data-view="firms"><i data-lucide="building-2"></i><span>Firma Arşivi</span></button>
             <button class="nav-btn admin-only" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
             <button class="nav-btn admin-only" data-view="beyanname"><i data-lucide="file-text"></i><span>Beyanname Formu</span></button>
-            <div class="sidebar-section-label admin-only" style="margin-top:8px;">Araçlar & Bilgi</div>
+            <div class="sidebar-section-label admin-only" style="margin-top:8px;">Araçlar</div>
             <button class="nav-btn admin-only" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
         </nav>
         <div class="sidebar-footer admin-only">
-            <button class="footer-btn primary-subtle" onclick="window.forceCloudSync()"><i data-lucide="refresh-cw"></i> Firebase Eşitle</button>
+            <button class="footer-btn primary-subtle" onclick="window.forceCloudSync()"><i data-lucide="refresh-cw"></i> Bulut Eşitle</button>
         </div>
     </aside>
     <main class="main-content">
         <header class="top-header">
             <div class="header-left">
                 <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')"><i data-lucide="menu"></i></button>
-                <div class="search-wrap" style="width:440px;">
-                    <i data-lucide="search" style="width:16px;height:16px;color:var(--text-muted);flex-shrink:0;"></i>
-                    <input type="text" id="global-search-input" oninput="window.liveSearch(this.value)" placeholder="Şasi, marka, model arayın..." style="font-size:13px;">
-                    <div id="live-search-dropdown"></div>
-                </div>
             </div>
             <div class="header-right">
-                <button class="hdr-icon-btn" onclick="window.toggleTheme()" title="Gece/Gündüz Modu"><i data-lucide="moon"></i></button>
-                <div class="divider-v"></div>
-                <div class="user-pill" onclick="if(confirm('Sistemden çıkış yapmak istiyor musunuz?')){localStorage.removeItem('gumruk_auth');localStorage.removeItem('gumruk_role');localStorage.removeItem('gumruk_user_name');location.reload();}">
-                    <img src="https://ui-avatars.com/api/?name=Bayram&background=1e3a5f&color=60a5fa&rounded=true" class="user-avatar" id="header-avatar">
-                    <div class="user-info"><div class="user-name">Bayram</div><div class="user-role">Yönetici</div></div>
+                <button class="hdr-icon-btn" onclick="window.toggleTheme()"><i data-lucide="moon"></i></button>
+                <div class="user-pill" onclick="if(confirm('Çıkış yapılsın mı?')){localStorage.removeItem('gumruk_auth');location.reload();}">
+                    <img src="https://ui-avatars.com/api/?name=User&background=1e3a5f&color=60a5fa" class="user-avatar" id="header-avatar">
+                    <div class="user-info"><div class="user-name">Kullanıcı</div><div class="user-role">Rol</div></div>
                 </div>
             </div>
         </header>
         <div id="view-container" class="view-area"></div>
     </main>
 </div>
-
 <template id="tpl-dashboard">
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Genel Bakış</div><h1 class="page-title">Sistem Özeti</h1></div></div>
+    <div class="page-hdr fade-in"><div><h1 class="page-title">Sistem Özeti</h1></div></div>
     <div class="stats-grid fade-in">
-        <div class="stat-card" onclick="window.goToFilter('kiymet')"><div class="stat-card-top"><div class="stat-icon-box purple"><i data-lucide="clock"></i></div><span class="stat-trend warn">Aktif</span></div><div class="stat-value" id="dash-kiymet">0</div><div class="stat-label">Kıymette Bekleyen</div></div>
-        <div class="stat-card" onclick="window.goToFilter('acik')"><div class="stat-card-top"><div class="stat-icon-box yellow"><i data-lucide="alert-triangle"></i></div><span class="stat-trend warn">İşlemde</span></div><div class="stat-value" id="dash-ambar">0</div><div class="stat-label">Açık İşlem</div></div>
-        <div class="stat-card" onclick="window.goToFilter('all')"><div class="stat-card-top"><div class="stat-icon-box green"><i data-lucide="check-circle-2"></i></div><span class="stat-trend up">Toplam</span></div><div class="stat-value" id="dash-total">0</div><div class="stat-label">Toplam Araç</div></div>
+        <div class="stat-card" onclick="window.goToFilter('kiymet')"><div class="stat-value" id="dash-kiymet">0</div><div class="stat-label">Kıymette Bekleyen</div></div>
+        <div class="stat-card" onclick="window.goToFilter('acik')"><div class="stat-value" id="dash-ambar">0</div><div class="stat-label">Açık İşlem</div></div>
+        <div class="stat-card" onclick="window.goToFilter('all')"><div class="stat-value" id="dash-total">0</div><div class="stat-label">Toplam Araç</div></div>
     </div>
 </template>
 
-<template id="tpl-firms"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firmalar</div><h1 class="page-title">Firma Arşivi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button></div></div> 
-    <div id="firms-dynamic-grid" class="firms-grid fade-in"></div> 
-</template>
-
-<template id="tpl-firmDetails"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firma Detayı</div><h1 class="page-title" id="current-firm-title">Firma</h1></div><div class="page-actions"><button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button></div></div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th>G.TARİHİ</th><th>BEYANNAME</th><th>FATURA</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div> 
-</template>
-
-<template id="tpl-declarations"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Gümrük Kayıtları</div><h1 class="page-title">Gelen Araçlar</h1></div></div> 
+<template id="tpl-declarations">
+    <div class="page-hdr fade-in"><div><h1 class="page-title">Gelen Araçlar</h1></div></div>
     <div class="toolbar fade-in">
-        <div class="toolbar-left"><select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="width:220px;padding:8px 12px;"><option value="all">Tüm Araçlar</option><option value="acik">Açık İşlemler</option><option value="kiymet">Kıymette Bekleyenler</option></select></div>
+        <div class="toolbar-left"><select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="width:200px;"><option value="all">Tüm Araçlar</option><option value="acik">Açık İşlemler</option></select></div>
         <div class="toolbar-right"><button class="btn-primary admin-only" onclick="window.openDeclVehicleModal(-1,'decl')"><i data-lucide="plus"></i> Yeni Kayıt</button></div>
-    </div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr>
-        <th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th>G.TARİHİ</th><th>İLK SÜRE</th><th>KALAN</th><th>DURUM</th><th>FATURA</th><th style="text-align:center;" class="admin-only">VERGİ</th><th style="text-align:center;">İŞLEM</th>
-    </tr></thead><tbody id="declarations-tbody"></tbody></table></div></div> 
+    </div>
+    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table">
+        <thead><tr><th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th>G.TARİHİ</th><th>İLK SÜRE</th><th>KALAN</th><th>DURUM</th><th>FATURA</th><th style="text-align:center;">İŞLEM</th></tr></thead>
+        <tbody id="declarations-tbody"></tbody>
+    </table></div></div>
 </template>
 
-<template id="tpl-kiymetListesi"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Arşiv</div><h1 class="page-title">Kıymet Listesi</h1></div></div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th>G.TARİHİ</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div> 
+<template id="tpl-firms">
+    <div class="page-hdr fade-in"><div><h1 class="page-title">Firma Arşivi</h1></div><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni</button></div>
+    <div id="firms-dynamic-grid" class="firms-grid fade-in"></div>
 </template>
+
+<template id="tpl-firmDetails">
+    <div class="page-hdr fade-in"><div><h1 class="page-title" id="current-firm-title">Firma</h1></div><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Araç Ekle</button></div>
+    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table">
+        <thead><tr><th>MARKA/MODEL</th><th>ŞASİ NO</th><th>G.TARİHİ</th><th>FATURA</th><th style="text-align:center;">İŞLEM</th></tr></thead>
+        <tbody id="firm-vehicles-tbody"></tbody>
+    </table></div></div>
+</template>
+
+<template id="tpl-kiymetListesi"><div class="page-hdr fade-in"><div><h1 class="page-title">Kıymet Listesi</h1></div></div></template>
 
 <template id="tpl-calculator">
     <div class="page-hdr fade-in">
-        <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Gelişmiş Vergi & Maliyet Hesaplama</h1></div>
-        <div class="page-actions"><button class="export-btn word" onclick="window.exportToWord()"><i data-lucide="file-text" style="width:14px;height:14px;"></i> Kurumsal Rapor (Word)</button></div>
+        <div><h1 class="page-title">Gelişmiş Vergi Hesaplama</h1></div>
+        <div class="page-actions"><button class="btn-sm" style="color:var(--primary)" onclick="window.exportToWord()"><i data-lucide="file-text"></i> Kurumsal Word Raporu</button></div>
     </div>
     <div class="kur-panel fade-in">
-        <div class="input-group" style="margin:0;flex:1;"><label>Para Birimi</label><select id="calc-currency" onchange="window.calculateTaxes()" style="background:var(--input-bg);"><option value="EUR" selected>EUR (€)</option><option value="USD">USD ($)</option></select></div>
-        <div class="input-group" style="margin:0;flex:1;"><label>EUR/TL (Satış)</label><input id="calc-kur-eur" type="text" value="51,1069" oninput="window.calculateTaxes()" style="font-weight:700;"></div>
-        <div class="input-group" style="margin:0;flex:1;"><label>USD/TL (Satış)</label><input id="calc-kur-usd" type="text" value="44,3684" oninput="window.calculateTaxes()" style="font-weight:700;"></div>
-        <div style="display:flex;flex-direction:column;gap:4px;"><button class="kur-fetch-btn" onclick="window.fetchTCMBKur()"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> TCMB Kur Çek</button><span id="kur-status" class="kur-badge kur-live" style="font-size:10px;">Günlük Kur</span></div>
+        <div class="input-group" style="flex:1;"><label>Kur (EUR)</label><input id="calc-kur-eur" value="51,1069" oninput="window.calculateTaxes()"></div>
+        <div class="input-group" style="flex:1;"><label>Kur (USD)</label><input id="calc-kur-usd" value="44,3684" oninput="window.calculateTaxes()"></div>
+        <div><button class="btn-sm" onclick="window.fetchTCMBKur()"><i data-lucide="refresh-cw"></i> TCMB Günlük Kur Çek</button></div>
     </div>
     <div class="calc-grid fade-in">
         <div>
             <div class="calc-section blue">
-                <div class="calc-sec-title"><i data-lucide="car"></i> Araç & Fatura Bilgileri</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
-                    <div class="input-group" style="margin:0;"><label>Yakıt Tipi</label><select id="calc-yakit" onchange="window.handleYakitChange()" style="background:var(--input-bg);"><option value="BENZİNLİ">Benzinli</option><option value="DİZEL">Dizel</option><option value="ELEKTRİK">Elektrikli</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>Motor Hacmi</label><select id="calc-motor" onchange="window.updateGTIP()" style="background:var(--input-bg);"><option value="1600-2000" selected>1600–2000</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>Teslim Şekli</label>
+                <div class="calc-sec-title">Araç Bilgileri</div>
+                <div style="display:flex;gap:10px;">
+                    <div class="input-group" style="flex:1"><label>Yakıt</label><select id="calc-yakit" onchange="window.handleYakitChange()"><option value="BENZİNLİ">Benzinli</option><option value="ELEKTRİK">Elektrik</option></select></div>
+                    <div class="input-group" style="flex:1"><label>Motor</label><select id="calc-motor" onchange="window.updateGTIP()"><option value="1600-2000">1600-2000</option></select></div>
+                    <div class="input-group" style="flex:1"><label>Teslim Şekli</label>
                         <div class="teslim-toggle"><div class="teslim-opt active" onclick="window.setCalcTeslim('CIF',this)">CIF</div><div class="teslim-opt" onclick="window.setCalcTeslim('EXW',this)">EXW</div></div><input type="hidden" id="calc-teslim" value="CIF">
                     </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
-                    <div class="input-group" style="margin:0;"><label>Fatura Tutarı</label><input id="calc-fatura" type="text" value="100.500" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Navlun</label><input id="calc-navlun" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Sigorta</label><input id="calc-sigorta" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
+                <div style="display:flex;gap:10px;">
+                    <div class="input-group" style="flex:1"><label>Fatura</label><input id="calc-fatura" value="100.500" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
+                    <div class="input-group" style="flex:1"><label>Navlun</label><input id="calc-navlun" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
+                    <div class="input-group" style="flex:1"><label>Sigorta</label><input id="calc-sigorta" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
                 </div>
+            </div>
+            <div class="calc-section red">
+                <div style="display:flex;gap:10px;">
+                    <div class="input-group" style="flex:1"><label>ÖTV %</label><input id="calc-otv-oran" value="220" oninput="window.calculateTaxes()"></div>
+                    <div class="input-group" style="flex:1"><label>KDV %</label><input id="calc-kdv-oran" value="20" oninput="window.calculateTaxes()"></div>
+                    <div class="input-group" style="flex:1"><label>G.V %</label><input id="calc-gv-oran" value="10" oninput="window.calculateTaxes()"></div>
+                </div>
+                <input type="hidden" id="calc-ilave-gv-oran" value="25"><input type="hidden" id="calc-kkdf-oran" value="0"><input type="hidden" id="calc-atr-oran" value="0">
+                <input type="hidden" id="calc-yurtici" value="25000"><input type="hidden" id="calc-yurtdisi" value="100"><input type="hidden" id="calc-damga" value="1605">
+                <input type="hidden" id="calc-currency" value="EUR"><input type="hidden" id="calc-gumruk" value="2000"><input type="hidden" id="calc-nakliye" value="2500">
+                <input type="hidden" id="calc-almanya" value="0"><input type="hidden" id="calc-ardiye-tl" value="0"><input type="hidden" id="calc-tse-muh-tl" value="13000">
+                <input type="hidden" id="calc-tse-harci-manual" value="5412"><input type="hidden" id="mtv-deger" value="800000">
+            </div>
+        </div>
+        <div class="result-panel">
+            <h3 style="margin-bottom:15px">Vergi Özeti <span id="res-gtip-mini" style="font-size:12px;color:var(--primary)"></span></h3>
+            <table class="calc-result-table">
+                <tr><td>CIF Kıymet</td><td id="res-cif" style="text-align:right">0 ₺</td></tr>
+                <tr><td>G.V Tutarı</td><td id="res-gv-tutar" style="text-align:right">0 ₺</td></tr>
+                <tr><td>ÖTV Tutarı</td><td id="res-otv-tutar" style="text-align:right;color:var(--danger)">0 ₺</td></tr>
+                <tr><td>KDV Tutarı</td><td id="res-kdv-tutar" style="text-align:right">0 ₺</td></tr>
+                <tr style="font-weight:bold;border-top:2px solid #333"><td>VERGİ TOPLAMI</td><td id="res-toplam-vergi" style="text-align:right;color:var(--danger)">0 ₺</td></tr>
+            </table>
+            <div class="result-total" style="margin-top:20px;padding:15px;background:var(--primary);color:#fff;border-radius:8px;">
+                <span style="font-weight:bold">FİNAL MALİYET</span>
+                <span id="res-genel-maliyet" style="font-weight:bold;font-size:20px">0 ₺</span>
             </div>
             
-            <div class="calc-section red">
-                <div class="calc-sec-title"><i data-lucide="percent"></i> Vergi Oranları</div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-                    <div class="input-group" style="margin:0;"><label>ÖTV %</label><input id="calc-otv-oran" type="text" value="220" oninput="window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>KDV %</label><input id="calc-kdv-oran" type="text" value="20" oninput="window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Gümrük V. %</label><input id="calc-gv-oran" type="text" value="10" oninput="window.calculateTaxes()"></div>
-                </div>
-            </div>
-            <input type="hidden" id="calc-yurtdisi" value="100"><input type="hidden" id="calc-yurtici" value="25000"><input type="hidden" id="calc-damga" value="1605">
-            <input type="hidden" id="calc-ilave-gv-oran" value="25"><input type="hidden" id="calc-atr-oran" value="0"><input type="hidden" id="calc-kkdf-oran" value="0">
-            <input type="hidden" id="calc-gumruk" value="2000"><input type="hidden" id="calc-nakliye" value="2500"><input type="hidden" id="calc-almanya" value="0">
-            <input type="hidden" id="calc-ardiye-tl" value="0"><input type="hidden" id="calc-tse-muh-tl" value="13000"><input type="hidden" id="calc-tse-harci-manual" value="5412">
-            <input type="hidden" id="mtv-deger" value="800000">
-        </div>
-        
-        <div>
-            <div class="result-panel">
-                <div style="font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-                    Vergi & Maliyet Özeti <span id="res-gtip-mini" style="font-size:11px;font-weight:600;color:var(--primary);font-family:monospace;">8703.23.19.12.00</span>
-                </div>
-                <table class="calc-result-table">
-                    <tr><td class="label-col">CIF Kıymet (TL)</td><td class="value-col" id="res-cif">0 ₺</td></tr>
-                    <tr><td class="label-col">G.V Tutarı</td><td class="value-col" id="res-gv-tutar">0 ₺</td></tr>
-                    <tr><td class="label-col">Hesaplanan ÖTV</td><td class="value-col" id="res-otv-tutar" style="color:var(--danger);">0 ₺</td></tr>
-                    <tr><td class="label-col">KDV Tutarı</td><td class="value-col" id="res-kdv-tutar">0 ₺</td></tr>
-                    <tr class="total-row"><td>VERGİ TOPLAMI</td><td class="value-col" id="res-toplam-vergi" style="color:var(--danger);">0 ₺</td></tr>
-                </table>
-                <div class="result-total">
-                    <span class="result-total-label">FİNAL MALİYET</span>
-                    <strong id="res-genel-maliyet" class="result-total-value" style="color:#fff !important;">0 ₺</strong>
-                </div>
+            <div style="display:none">
+                <span id="res-gv-matrah"></span><span id="res-ilave-gv"></span><span id="res-atr-tutar"></span><span id="res-ara-toplam"></span>
+                <span id="res-trt"></span><span id="res-otv-matrahi"></span><span id="res-kdv-matrahi"></span><span id="res-kkdf-tutar"></span>
+                <span id="res-arac-vergi-eur"></span><span id="res-diger-tl"></span><span id="res-mmo"></span><span id="res-isik"></span><span id="res-cekici"></span><span id="res-genel-eur"></span><span id="res-mtv-sonuc">0 ₺</span>
             </div>
         </div>
     </div>
 </template>
 
 <template id="tpl-beyanname">
-    <div class="page-hdr fade-in">
-        <div><div class="page-eyebrow">Resmi Evraklar</div><h1 class="page-title">Gümrük Beyannamesi (TCGB)</h1></div>
-        <div class="page-actions"><button class="btn-primary" onclick="window.print()"><i data-lucide="printer"></i> Formu Yazdır</button></div>
-    </div>
-    <div class="fade-in" style="padding-bottom:40px;">
-        <div id="tcgb-print-area" class="tcgb-container">
-            <h2 style="text-align:center; color:#2f5d34; padding:15px 0 10px; margin:0;">T.C. GÜMRÜK BEYANNAMESİ</h2>
-            <div class="tcgb-grid">
-                <div class="tcgb-box" style="grid-column:span 1;"><span class="tcgb-label">1 BEYAN</span><input id="tcgb-1" class="tcgb-input" value="IM  4"></div>
-                <div class="tcgb-box" style="grid-column:span 3;"><span class="tcgb-label">2 Gönderici / İhracatçı</span><textarea id="tcgb-2" class="tcgb-input" rows="3"></textarea></div>
-                <div class="tcgb-box" style="grid-column:span 4;"><span class="tcgb-label">8 Alıcı</span><textarea id="tcgb-8" class="tcgb-input" rows="3"></textarea></div>
-                <div class="tcgb-box" style="grid-column:span 4;"><span class="tcgb-label">31 Kaplar ve Eşyanın Tanımı (Marka, Numaralar, Şasi)</span><textarea id="tcgb-31" class="tcgb-input" rows="7"></textarea></div>
-                <div class="tcgb-box" style="grid-column:span 1;"><span class="tcgb-label">33 Eşya Kodu</span><input id="tcgb-33" class="tcgb-input" style="margin-bottom:8px;"></div>
-                <div class="tcgb-box" style="grid-column:span 1;"><span class="tcgb-label">35 Brüt Ağırlık (kg)</span><input id="tcgb-35" class="tcgb-input" style="margin-bottom:8px;"></div>
-                <div class="tcgb-box" style="grid-column:span 1;"><span class="tcgb-label">37 Rejim</span><input id="tcgb-37" class="tcgb-input" value="4000" style="margin-bottom:8px;"></div>
-                <div class="tcgb-box" style="grid-column:span 1;"><span class="tcgb-label">38 Net Ağırlık (kg)</span><input id="tcgb-38" class="tcgb-input" style="margin-bottom:8px;"></div>
-                <div class="tcgb-box" style="grid-column:span 8;"><span class="tcgb-label">47 Vergilerin Hesaplanması</span>
-                    <table class="tcgb-table">
-                        <tr><th>TÜR</th><th>VERGİ MATRAHI</th><th>ORAN</th><th>TUTAR</th></tr>
-                        <tr><td><input class="tcgb-input" value="GV"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td></tr>
-                        <tr><td><input class="tcgb-input" value="ÖTV"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td></tr>
-                        <tr><td><input class="tcgb-input" value="KDV"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td></tr>
-                    </table>
-                </div>
-                <div class="tcgb-box" style="grid-column:span 8; height:70px;"><span class="tcgb-label">54 Beyan Sahibi İmzası ve Adı</span><input id="tcgb-54-name" class="tcgb-input" style="margin-top:10px;" value="GÜMRÜK MÜŞAVİRLİĞİ"></div>
+    <div class="page-hdr fade-in"><div><h1 class="page-title">Gümrük Beyannamesi (TCGB)</h1></div><button class="btn-primary" onclick="window.print()"><i data-lucide="printer"></i> Yazdır</button></div>
+    <div id="tcgb-print-area" class="tcgb-container fade-in">
+        <h2 style="text-align:center;color:#2f5d34;padding-bottom:10px;">T.C. GÜMRÜK BEYANNAMESİ</h2>
+        <div class="tcgb-grid">
+            <div class="tcgb-box" style="grid-column:span 1;"><span class="tcgb-label">1 BEYAN</span><input id="tcgb-1" class="tcgb-input" value="IM  4"></div>
+            <div class="tcgb-box" style="grid-column:span 3;"><span class="tcgb-label">2 Gönderici / İhracatçı</span><textarea id="tcgb-2" class="tcgb-input" rows="2"></textarea></div>
+            <div class="tcgb-box" style="grid-column:span 4;"><span class="tcgb-label">8 Alıcı</span><textarea id="tcgb-8" class="tcgb-input" rows="2"></textarea></div>
+            
+            <div class="tcgb-box" style="grid-column:span 4;"><span class="tcgb-label">31 Kaplar ve Eşyanın Tanımı</span><textarea id="tcgb-31" class="tcgb-input" rows="5"></textarea></div>
+            <div class="tcgb-box" style="grid-column:span 2;"><span class="tcgb-label">33 Eşya Kodu</span><input id="tcgb-33" class="tcgb-input"><br><span class="tcgb-label" style="margin-top:5px">35 Brüt Ağırlık</span><input id="tcgb-35" class="tcgb-input"></div>
+            <div class="tcgb-box" style="grid-column:span 2;"><span class="tcgb-label">37 Rejim</span><input id="tcgb-37" class="tcgb-input" value="4000"><br><span class="tcgb-label" style="margin-top:5px">38 Net Ağırlık</span><input id="tcgb-38" class="tcgb-input"></div>
+            
+            <div class="tcgb-box" style="grid-column:span 8;"><span class="tcgb-label">44 Ek Bilgiler</span><textarea id="tcgb-44" class="tcgb-input" rows="2"></textarea></div>
+            <div class="tcgb-box" style="grid-column:span 8;"><span class="tcgb-label">47 Vergilerin Hesaplanması</span>
+                <table class="tcgb-table"><tr><th>TÜR</th><th>MATRAH</th><th>ORAN</th><th>TUTAR</th></tr>
+                <tr><td><input class="tcgb-input" value="GV"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td></tr>
+                <tr><td><input class="tcgb-input" value="ÖTV"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td><td><input class="tcgb-input"></td></tr>
+                </table>
             </div>
+            <div class="tcgb-box" style="grid-column:span 8; height:50px;"><span class="tcgb-label">54 Yer ve Tarih - İmza</span><input id="tcgb-54-name" class="tcgb-input" value="GÜMRÜK MÜŞAVİRLİĞİ"></div>
         </div>
     </div>
 </template>
 
 <div id="decl-modal" class="modal-backdrop hidden"> 
     <div class="modal-box"> 
-        <div class="modal-header"><h2 id="decl-modal-title">Araç Detayları</h2><button onclick="document.getElementById('decl-modal').classList.add('hidden')" class="icon-btn"><i data-lucide="x"></i></button></div> 
+        <div class="modal-header"><h2>Araç Detayları</h2><button onclick="document.getElementById('decl-modal').classList.add('hidden')" class="icon-btn"><i data-lucide="x"></i></button></div> 
         <div class="modal-body"> 
             <input type="hidden" id="decl-edit-idx" value="-1"> 
             <div class="modal-section">
-                <div class="modal-section-title">Beyanname Ön Bilgileri (Arama Motorlu)</div>
+                <div class="modal-section-title">Beyanname Ön Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group" style="grid-column: span 2; margin-bottom:0; position:relative;">
-                        <label style="display:flex; justify-content:space-between; align-items:center;">Gönderici Firma <button type="button" class="btn-sm" style="padding:2px 8px; font-size:11px; height:auto; color:var(--primary); border-color:var(--border);" onclick="window.addGondericiPrompt()">+ Yeni Ekle</button></label>
-                        <input type="text" id="da-gonderici" placeholder="Firma adı yazın..." oninput="window.filterList('gonderici', this.value)" onfocus="window.filterList('gonderici', this.value)" autocomplete="off">
+                    <div class="input-group" style="grid-column:span 2;position:relative;">
+                        <label style="display:flex;justify-content:space-between">Gönderici Firma <button class="btn-sm" style="padding:2px 6px;height:auto" onclick="window.addGondericiPrompt()">+ Yeni Ekle</button></label>
+                        <input type="text" id="da-gonderici" oninput="window.filterList('gonderici',this.value)" onfocus="window.filterList('gonderici',this.value)" autocomplete="off">
                         <div id="da-gonderici-list" class="autocomplete-list"></div>
                     </div>
-                    <div class="input-group" style="margin-bottom:0; position:relative;">
-                        <label style="display:flex; justify-content:space-between; align-items:center;">GTİP <button type="button" class="btn-sm" style="padding:2px 8px; font-size:11px; height:auto; color:var(--primary); border-color:var(--border);" onclick="window.addGTIPPrompt()">+ Yeni Ekle</button></label>
-                        <input type="text" id="da-gtip" placeholder="8703..." oninput="window.filterList('gtip', this.value)" onfocus="window.filterList('gtip', this.value)" autocomplete="off">
+                    <div class="input-group" style="position:relative;">
+                        <label style="display:flex;justify-content:space-between">GTİP <button class="btn-sm" style="padding:2px 6px;height:auto" onclick="window.addGTIPPrompt()">+ Yeni Ekle</button></label>
+                        <input type="text" id="da-gtip" oninput="window.filterList('gtip',this.value)" onfocus="window.filterList('gtip',this.value)" autocomplete="off">
                         <div id="da-gtip-list" class="autocomplete-list"></div>
                     </div>
-                    <div style="display:flex; gap:14px;">
-                        <div class="input-group" style="margin-bottom:0; flex:1;"><label>Brüt(kg)</label><input type="text" id="da-brut"></div>
-                        <div class="input-group" style="margin-bottom:0; flex:1;"><label>Net(kg)</label><input type="text" id="da-net"></div>
+                    <div style="display:flex;gap:10px;">
+                        <div class="input-group" style="flex:1"><label>Brüt(kg)</label><input type="text" id="da-brut"></div>
+                        <div class="input-group" style="flex:1"><label>Net(kg)</label><input type="text" id="da-net"></div>
                     </div>
                 </div>
             </div>
             <div class="modal-section">
                 <div class="modal-section-title">Araç Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group"><label>Firma *</label><input type="text" id="da-firma"></div>
-                    <div class="input-group"><label>Şasi No</label><input type="text" id="da-sase"></div>
+                    <div class="input-group"><label>Firma</label><input type="text" id="da-firma"></div>
+                    <div class="input-group"><label>Şasi</label><input type="text" id="da-sase"></div>
                     <div class="input-group"><label>Marka</label><input type="text" id="da-marka"></div>
-                    <div class="input-group"><label>Model</label><input type="text" id="da-model"></div>
-                    <div class="input-group" style="grid-column: span 2;">
-                        <label>Evrak (Drive/Bulut Linki)</label>
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="da-evrakLink" placeholder="https://drive.google.com/..." style="flex:1">
-                            <button type="button" class="btn-sm" style="color:var(--primary);" onclick="let l=document.getElementById('da-evrakLink').value; if(l){window.open(l, '_blank');}else{alert('Link yok!');}">Git</button>
+                    <div class="input-group"><label>Fatura(€)</label><input type="text" id="da-fatura"></div>
+                    <div class="input-group" style="grid-column:span 2;"><label>Evrak Linki</label>
+                        <div style="display:flex;gap:5px;">
+                            <input type="text" id="da-evrakLink" style="flex:1"><button class="btn-sm" onclick="window.open(document.getElementById('da-evrakLink').value,'_blank')">Git</button>
                         </div>
                     </div>
-                </div>
-            </div> 
-            <div class="modal-section">
-                <div class="modal-section-title">Gümrük & Finans</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div class="input-group"><label>Geliş Tarihi *</label><input type="date" id="da-tarih"></div>
+                    <div class="input-group"><label>Kayıt Tarihi</label><input type="date" id="da-tarih"></div>
                     <div class="input-group"><label>Evrak Durumu</label><select id="da-evrak"><option value="Açık">İşlemde (Açık)</option><option value="Kapalı">Kapalı</option></select></div>
-                    <div class="input-group"><label>Fatura (€)</label><input type="text" id="da-fatura" oninput="window.formatCurrencyInput(this)"></div>
                 </div>
             </div> 
         </div> 
-        <div class="modal-footer"><button onclick="document.getElementById('decl-modal').classList.add('hidden')" class="btn-sm">İptal</button><button onclick="window.saveDeclEntry()" class="btn-primary">Kaydet</button></div> 
+        <div class="modal-footer"><button onclick="window.saveDeclEntry()" class="btn-primary">Kaydet</button></div> 
     </div> 
-</div>
-<script type="module">
+</div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 const firebaseConfig = {apiKey: "AIzaSyDxlTVb_JsefQHCE8pFiOiDjMaEVZJNiI0", authDomain: "gumruk-portal.firebaseapp.com", databaseURL: "https://gumruk-portal-default-rtdb.europe-west1.firebasedatabase.app", projectId: "gumruk-portal", appId: "1:782266851006:web:30aa74f32f2ed36da4c8ef"};
@@ -683,13 +512,17 @@ window._firebaseReady = true; if(typeof window._onFirebaseReady === 'function') 
         } else {
             let d = window.declarationsData[idx];
             ['firma','sase','marka','model','yil','renk','fatura','evrakLink','gonderici','gtip','brut','net'].forEach(id=>document.getElementById('da-'+id).value=d[id]||'');
-            if(d.tarih) document.getElementById('da-tarih').value = d.tarih.split('.').reverse().join('-');
+            if(d.tarih) {
+                let parts = d.tarih.split('.');
+                if(parts.length===3) document.getElementById('da-tarih').value = parts[2]+'-'+parts[1]+'-'+parts[0];
+            }
             document.getElementById('da-evrak').value = d.evrak || 'Kapalı';
         }
     };
 
     window.saveDeclEntry = function() {
-        let v=id=>document.getElementById(id).value; let dt=v('da-tarih'); let fD = dt?dt.split('-').reverse().join('.'):'';
+        let v=id=>document.getElementById(id).value; 
+        let dt=v('da-tarih'); let fD = dt?dt.split('-').reverse().join('.'):'';
         let r={firma:v('da-firma'), sasi:v('da-sase'), marka:v('da-marka'), model:v('da-model'), yil:v('da-yil'), renk:v('da-renk'), tarih:fD, evrak:v('da-evrak'), fatura:v('da-fatura'), evrakLink:v('da-evrakLink'), gonderici:v('da-gonderici'), gtip:v('da-gtip'), brut:v('da-brut'), net:v('da-net')};
         let i = parseInt(v('decl-edit-idx'));
         if(i===-1) window.declarationsData.unshift(r); else window.declarationsData[i] = r;
@@ -703,7 +536,6 @@ window._firebaseReady = true; if(typeof window._onFirebaseReady === 'function') 
         tb.innerHTML = list.map((d,i)=> `<tr>
             <td><b>${d.firma||'-'}</b><br><small>${d.marka||''} ${d.model||''}</small></td><td>${d.sasi||'-'}</td><td>${d.tarih||'-'}</td>
             <td>-</td><td>-</td><td><span class="badge badge-${d.evrak==='Açık'?'warning':'dark'}">${d.evrak||'Kapalı'}</span></td><td>${d.fatura?d.fatura+' €':'-'}</td>
-            <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;" onclick="window.openVehicleCalc(${i})"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
             <td style="text-align:center;">
                 <div style="display:flex;gap:3px;justify-content:center;">
                     ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent)"><i data-lucide="paperclip"></i></a>`:''}
@@ -735,7 +567,7 @@ window._firebaseReady = true; if(typeof window._onFirebaseReady === 'function') 
         el.classList.add('active'); document.getElementById('calc-teslim').value = val; window.calculateTaxes();
     };
 
-    // TCMB GÜNLÜK KUR (15:30) HATASIZ ÇEKME FONKSİYONU
+    // TCMB GÜNLÜK KUR (15:30) ÇEKME FONKSİYONU
     window.fetchTCMBKur = async function(auto=false) {
         let st = document.getElementById('kur-status');
         if(st) { st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> Çekiliyor...'; st.className = 'kur-badge kur-manual'; }
@@ -841,7 +673,7 @@ window._firebaseReady = true; if(typeof window._onFirebaseReady === 'function') 
                 </table>
                 <h3>3. Yekün</h3>
                 <table>
-                    <tr class="final-row"><th>FİNAL MALİYET (ANAHTAR TESLİM)</th><td>${getV('res-genel-maliyet')}</td></tr>
+                    <tr class="final-row"><th>FİNAL MALİYET (ANAHTAR TESLİM)</th><td>${document.getElementById('res-genel-maliyet').innerText}</td></tr>
                 </table>
                 <div class="footer">
                     GümrükPortal Sistemi tarafından oluşturulmuştur.<br>
