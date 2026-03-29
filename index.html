@@ -386,7 +386,8 @@
                 </div>
             </div>
             <div class="header-right">
-                <button class="hdr-icon-btn" onclick="window.exportBackup()" title="Yedek İndir"><i data-lucide="download"></i></button>
+    <button class="hdr-icon-btn" onclick="window.toggleTheme()" title="Gece/Gündüz Modu"><i data-lucide="moon"></i></button>
+    <button class="hdr-icon-btn" onclick="window.exportBackup()" title="Yedek İndir"><i data-lucide="download"></i></button>
                 <div class="divider-v"></div>
                 <div class="user-pill" onclick="if(confirm('Çıkış?')){localStorage.removeItem('gumruk_auth');location.reload();}">
                     <img src="https://ui-avatars.com/api/?name=Bayram&background=1e3a5f&color=60a5fa&rounded=true" class="user-avatar">
@@ -1240,6 +1241,17 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(ctx==='firm')document.getElementById('decl-preview-box').classList.add('hidden');else{document.getElementById('decl-preview-box').classList.remove('hidden');window.declAutoCalc();}
     };
     window.closeDeclModal=function(){document.getElementById('decl-modal').classList.add('hidden');};
+    window.openVehicleCalc = function(idx) {
+        let d = window.declarationsData[idx];
+        if(!d) return;
+        window.renderView('calculator'); // Hesaplama sayfasına geç
+        let fatInput = document.getElementById('calc-fatura');
+        if(fatInput && d.fatura) {
+            fatInput.value = d.fatura; // Aracın faturasını otomatik yaz
+            window.formatCurrencyInput(fatInput);
+        }
+        setTimeout(() => window.calculateTaxes(), 100); // Vergileri otomatik hesapla
+    };
     window.saveDeclEntry=function(){
         let i=parseInt(document.getElementById('decl-edit-idx').value);let val=id=>document.getElementById(id)?.value.trim()||'';
         let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
