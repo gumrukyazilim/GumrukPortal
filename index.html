@@ -2159,6 +2159,32 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         window.fetchTCMBKur(true);
         if(window._firebaseReady)loadAllData();
     });
+    if(window._firebaseReady)loadAllData();
+    });
+
+    // --- FİRMA SEÇME VE FİLTRELEME MOTORU ---
+    window.filterFirmDropdown = function(val) {
+        let listEl = document.getElementById('da-firma-list');
+        if(!listEl) return;
+        let q = val.toLocaleLowerCase('tr').trim();
+        let matches = Object.keys(window.firmData);
+        if(q) {
+            matches = matches.filter(f => f.toLocaleLowerCase('tr').includes(q));
+        }
+        if(matches.length > 0) {
+            listEl.innerHTML = matches.map(f => `<div class="firm-dropdown-item" onmousedown="window.selectFirm('${f.replace(/'/g, "\\'")}')">${f}</div>`).join('');
+            listEl.classList.add('show');
+        } else {
+            listEl.classList.remove('show');
+        }
+    };
+
+    window.selectFirm = function(name) {
+        document.getElementById('da-firma-search').value = name;
+        document.getElementById('da-firma').value = name;
+        document.getElementById('da-firma-list').classList.remove('show');
+    };
+    
 </script>
 </body>
 </html>
