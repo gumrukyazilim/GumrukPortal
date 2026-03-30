@@ -513,7 +513,10 @@
                 <div class="modal-section-title">Beyanname Ön Bilgileri (Arama Motorlu)</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div class="input-group" style="grid-column: span 2; margin-bottom:0; position:relative;">
-                        <label>Gönderici / İhracatçı Firma (Kutu 2)</label>
+                        <label style="display:flex; justify-content:space-between; align-items:center;">
+    Gönderici / İhracatçı Firma (Kutu 2)
+    <button type="button" class="btn-sm" style="padding:2px 8px; font-size:11px; height:auto; background:var(--bg-elevated); color:var(--primary); border-color:var(--border);" onclick="window.addGondericiPrompt()"><i data-lucide="plus" style="width:12px;height:12px;"></i> Yeni Ekle</button>
+</label>
                         <input type="text" id="da-gonderici" placeholder="Firma adı veya ID yazın..." oninput="window.filterGonderici(this.value)" onfocus="window.filterGonderici(this.value)" onblur="setTimeout(()=>document.getElementById('da-gonderici-list').classList.remove('show'),200)" autocomplete="off">
                         <div id="da-gonderici-list" class="autocomplete-list"></div>
                     </div>
@@ -2181,6 +2184,28 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         document.getElementById('da-firma-search').value = name;
         document.getElementById('da-firma').value = name;
         document.getElementById('da-firma-list').classList.remove('show');
+    };
+ // --- YENİ GÖNDERİCİ EKLEME BUTONU MOTORU ---
+    window.addGondericiPrompt = function() {
+        let ad = prompt("Yeni Gönderici / İhracatçı Firma Adını Girin:");
+        if (!ad || ad.trim() === "") return; // Boş bırakılırsa iptal et
+        
+        let id = prompt("Firma ID'sini Girin (Örn: 21DE00066...):");
+        if (id === null) id = ""; // İptale basılırsa boş bırak
+        
+        let yeniGonderici = { 
+            id: id.trim().toUpperCase(), 
+            ad: ad.trim().toUpperCase() 
+        };
+        
+        // Listeye en üste ekle
+        window.GondericiList.unshift(yeniGonderici);
+        
+        // Kutunun içine otomatik yaz
+        let gorunecekMetin = yeniGonderici.id ? `${yeniGonderici.id} - ${yeniGonderici.ad}` : yeniGonderici.ad;
+        document.getElementById('da-gonderici').value = gorunecekMetin;
+        
+        alert("Başarılı! Yeni gönderici firma listeye eklendi ve kutuya yazıldı.");
     };
     
 </script>
