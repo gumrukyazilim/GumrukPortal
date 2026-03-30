@@ -2207,6 +2207,27 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         
         alert("Başarılı! Yeni gönderici firma listeye eklendi ve kutuya yazıldı.");
     };
+ // --- YENİ GTİP EKLEME BUTONU MOTORU ---
+    window.addGTIPPrompt = function() {
+        let kod = prompt("Yeni GTİP Kodunu Girin (Örn: 8703.23.19.12.00):");
+        if (!kod || kod.trim() === "") return; // Boş bırakılırsa iptal et
+        
+        let desc = prompt("Bu GTİP için açıklama girin (Örn: 1600-2000 cm³ binek otomobil):");
+        if (desc === null) desc = ""; // İptale basılırsa boş bırak
+        
+        let yeniGTIP = { 
+            kod: kod.trim(), 
+            desc: desc.trim() 
+        };
+        
+        // Listeye en üste ekle
+        window.GTIPList.unshift(yeniGTIP);
+        
+        // Kutunun içine otomatik yaz (Sadece GTİP kodunu yazar)
+        document.getElementById('da-gtip').value = yeniGTIP.kod;
+        
+        alert("Başarılı! Yeni GTİP kodu listeye eklendi ve kutuya yazıldı.");
+    };
     
 </script>
 </body>
