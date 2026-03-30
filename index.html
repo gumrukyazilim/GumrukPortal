@@ -529,7 +529,7 @@
                         <div id="da-gtip-list" class="autocomplete-list"></div>
                     </div>
                     <div style="display:flex; gap:14px;">
-                        <div class="input-group" style="margin-bottom:0; flex:1;"><label>Brüt Ağırlık (kg)</label><input type="text" id="da-brut" placeholder="Örn: 2450"></div>
+                        
                         <div class="input-group" style="margin-bottom:0; flex:1;"><label>Net Ağırlık (kg)</label><input type="text" id="da-net" placeholder="Örn: 2385"></div>
                     </div>
                 </div>
@@ -572,11 +572,10 @@
                 <div class="modal-section-title">Gümrük Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div class="input-group">
-                        <label>Teslim Şekli</label>
-                        <div class="teslim-toggle" id="da-teslim-toggle">
-                            <div class="teslim-opt active" onclick="window.setTeslim('CIF',this)">CIF</div>
-                            <div class="teslim-opt" onclick="window.setTeslim('EXW',this)">EXW</div>
-                        </div>
+                        <div id="da-teslim-toggle" style="display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; overflow:hidden; width:100%;">
+    <div id="modal-cif-btn" style="flex:1; padding:10px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; background:var(--primary); color:#fff;" onclick="window.setTeslimModal('CIF')">CIF</div>
+    <div id="modal-exw-btn" style="flex:1; padding:10px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; color:var(--text-secondary); border-left:1px solid var(--border);" onclick="window.setTeslimModal('EXW')">EXW</div>
+</div>
                         <input type="hidden" id="da-teslim" value="CIF">
                     </div>
                     <div class="input-group"><label>Geliş Tarihi *</label><input type="date" id="da-tarih" onchange="window.declAutoCalc()"></div>
@@ -739,36 +738,48 @@
 <template id="tpl-calculator">
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Gelişmiş Vergi & Maliyet Hesaplama</h1><p class="page-sub">TCMB kurları · GTİP otomatik · ÖTV akıllı öneri</p></div>
-        <div class="page-actions">
-            <button class="export-btn word" onclick="window.exportToWord()"><i data-lucide="file-text" style="width:14px;height:14px;"></i> Sunum / Word Çıktısı</button>
-            <button class="export-btn" onclick="window.exportCalcExcel()"><i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Excel Çıktı Al</button>
-        </div>
+        <div class="page-actions" style="display: flex; gap: 10px;">
+    <button class="btn-sm" style="border-color: var(--primary); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportToWord()">
+        <i data-lucide="file-text" style="width:16px;height:16px;"></i> Word Çıktısı
+    </button>
+    <button class="btn-sm" style="border-color: var(--success); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcExcel()">
+        <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Excel Çıktısı
+    </button>
+</div>
     </div>
-    <div class="kur-panel fade-in">
-        <div class="input-group" style="margin:0;flex:1;">
-            <label>Para Birimi</label>
-            <select id="calc-currency" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
-                <option value="EUR" selected>EUR (€)</option>
-                <option value="USD">USD ($)</option>
-            </select>
-        </div>
-        <div class="input-group" style="margin:0;flex:1;">
-            <label>EUR/TL (Satış)</label>
-            <input id="calc-kur-eur" type="text" value="51,1069" oninput="window.calculateTaxes()" style="font-weight:700;">
-        </div>
-        <div class="input-group" style="margin:0;flex:1;">
-            <label>USD/TL (Satış)</label>
-            <input id="calc-kur-usd" type="text" value="44,3684" oninput="window.calculateTaxes()" style="font-weight:700;">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;">
-            <button class="kur-fetch-btn" onclick="window.fetchTCMBKur()">
-                <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> TCMB Kur Çek
-            </button>
-            <span id="kur-status" class="kur-badge kur-live" style="font-size:10px;">2026 Kurları Aktif</span>
-        </div>
+    <div class="kur-panel fade-in" style="display: flex; gap: 12px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap;">
+    <div class="input-group" style="margin:0; width: 110px;">
+        <label style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Para Birimi</label>
+        <select id="calc-currency" onchange="window.calculateTaxes()" style="background:var(--input-bg); height: 36px; font-size: 12px;">
+            <option value="EUR" selected>EUR (€)</option>
+            <option value="USD">USD ($)</option>
+        </select>
     </div>
-    <div class="calc-grid fade-in">
-        <div>
+    <div class="input-group" style="margin:0; width: 125px;">
+        <label style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">EUR/TL (Satış)</label>
+        <input id="calc-kur-eur" type="text" value="51,1069" oninput="window.calculateTaxes()" style="font-weight:700; height: 36px; font-size: 13px;">
+    </div>
+    <div class="input-group" style="margin:0; width: 125px;">
+        <label style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">USD/TL (Satış)</label>
+        <input id="calc-kur-usd" type="text" value="44,3684" oninput="window.calculateTaxes()" style="font-weight:700; height: 36px; font-size: 13px;">
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+        <button class="kur-fetch-btn" onclick="window.fetchTCMBKur()" 
+            style="height: 36px; padding: 0 16px; background: var(--primary); color: #fff; border: none; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);"
+            onmouseover="this.style.background='var(--primary-hover)'; this.style.transform='translateY(-1px)';" 
+            onmouseout="this.style.background='var(--primary)'; this.style.transform='translateY(0)';"
+        >
+            <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> KUR ÇEK
+        </button>
+    </div>
+
+    <span id="kur-status" 
+        style="font-size: 11px; color: var(--success); font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; white-space: nowrap;"
+    >
+        <span style="width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; box-shadow: 0 0 8px var(--success);"></span>
+        2026 Kurları Aktif
+    </span>
+</div>
             <div class="calc-section blue">
                 <div class="calc-sec-title"><i data-lucide="car"></i> Araç & Fatura Bilgileri</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -795,13 +806,13 @@
                         </select>
                     </div>
                     <div class="input-group" style="margin:0;">
-                        <label>Teslim Şekli</label>
-                        <div class="teslim-toggle">
-                            <div class="teslim-opt active" onclick="window.setCalcTeslim('CIF',this)">CIF</div>
-                            <div class="teslim-opt" onclick="window.setCalcTeslim('EXW',this)">EXW</div>
-                        </div>
-                        <input type="hidden" id="calc-teslim" value="CIF">
-                    </div>
+    <label>TESLİM ŞEKLİ</label>
+    <div style="display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; overflow:hidden; width:100%;">
+        <div id="calc-cif-btn" style="flex:1; padding:10px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; background:var(--primary); color:#fff;" onclick="window.setTeslimCalc('CIF')">CIF</div>
+        <div id="calc-exw-btn" style="flex:1; padding:10px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; color:var(--text-secondary); border-left:1px solid var(--border);" onclick="window.setTeslimCalc('EXW')">EXW</div>
+    </div>
+    <input type="hidden" id="calc-teslim" value="CIF">
+</div>
                 </div>
                 <div class="gtip-display" id="gtip-display">GTİP: 8703.2319.1200</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
@@ -2229,6 +2240,52 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         document.getElementById('da-gtip').value = yeniGTIP.kod;
         
         alert("Başarılı! Yeni GTİP kodu listeye eklendi ve kutuya yazıldı.");
+    };
+// --- YENİ KAYIT EKRANI CIF/EXW MOTORU ---
+    window.setTeslimModal = function(tip) {
+        let btnCif = document.getElementById('modal-cif-btn');
+        let btnExw = document.getElementById('modal-exw-btn');
+        let gizliInput = document.getElementById('da-teslim');
+
+        if(tip === 'CIF') {
+            btnCif.style.background = 'var(--primary)';
+            btnCif.style.color = '#fff';
+            btnExw.style.background = 'transparent';
+            btnExw.style.color = 'var(--text-secondary)';
+        } else {
+            btnExw.style.background = 'var(--primary)';
+            btnExw.style.color = '#fff';
+            btnCif.style.background = 'transparent';
+            btnCif.style.color = 'var(--text-secondary)';
+        }
+        
+        // Veritabanına gidecek olan gizli kutuya değeri yaz
+        if(gizliInput) gizliInput.value = tip;
+    };
+// --- HESAPLAMA EKRANI CIF/EXW MOTORU ---
+    window.setTeslimCalc = function(tip) {
+        let btnCif = document.getElementById('calc-cif-btn');
+        let btnExw = document.getElementById('calc-exw-btn');
+        let gizliInput = document.getElementById('calc-teslim');
+
+        if(tip === 'CIF') {
+            btnCif.style.background = 'var(--primary)';
+            btnCif.style.color = '#fff';
+            btnExw.style.background = 'transparent';
+            btnExw.style.color = 'var(--text-secondary)';
+        } else {
+            btnExw.style.background = 'var(--primary)';
+            btnExw.style.color = '#fff';
+            btnCif.style.background = 'transparent';
+            btnCif.style.color = 'var(--text-secondary)';
+        }
+        
+        if(gizliInput) gizliInput.value = tip;
+        
+        // Teslim şekli değiştiği an vergileri otomatik yeniden hesaplat
+        if(typeof window.calculateTaxes === 'function') {
+            window.calculateTaxes();
+        }
     };
 
 </script>
