@@ -583,7 +583,7 @@
                     <div class="input-group"><label>Antrepo</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div>
                     <div class="input-group"><label>Beyanname T.</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div>
                     <div class="input-group"><label>Beyanname No</label><input type="text" id="da-beyanname"></div>
-                    <div class="input-group"><label>Evrak Durumu</label><select id="da-evrak" onchange="window.declAutoCalc()"><option value="Kapalı">Kapalı</option><option value="Açık">İşlemde (Açık)</option></select></div>
+                    <div class="input-group"><label>Evrak Durumu</label><select id="da-evrak" onchange="window.declAutoCalc()"><option value="Açık" selected>İşlemde (Açık)</option><option value="Kapalı">Kapalı</option></select>
                 </div>
             </div> 
             <div class="modal-section">
@@ -1727,7 +1727,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(idx===-1||!d){
             // YENİ EKLENEN ALANLAR SIFIRLANIYOR
             ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','fatura','kiymet','evrakLink','gonderici','gtip','brut','net'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
-            document.getElementById('da-tarih').value=new Date().toISOString().split('T')[0];document.getElementById('da-evrak').value='Kapalı';
+            document.getElementById('da-tarih').value=new Date().toISOString().split('T')[0];document.getElementById('da-evrak').value='Açık';
             let defFirm=ctx==='firm'?window.currentFirm:(Object.keys(window.firmData)[0]||'');document.getElementById('da-firma').value=defFirm;document.getElementById('da-firma-search').value=defFirm;
         }
         else{
