@@ -521,7 +521,10 @@
                         <div id="da-gonderici-list" class="autocomplete-list"></div>
                     </div>
                     <div class="input-group" style="margin-bottom:0; position:relative;">
-                        <label>GTİP / Eşya Kodu (Kutu 33)</label>
+                        <label style="display:flex; justify-content:space-between; align-items:center;">
+    GTİP / Eşya Kodu (Kutu 33)
+    <button type="button" class="btn-sm" style="padding:2px 8px; font-size:11px; height:auto; background:var(--bg-elevated); color:var(--primary); border-color:var(--border);" onclick="window.addGTIPPrompt()"><i data-lucide="plus" style="width:12px;height:12px;"></i> Yeni Ekle</button>
+</label>
                         <input type="text" id="da-gtip" placeholder="8703... veya elektrikli..." oninput="window.filterGTIP(this.value)" onfocus="window.filterGTIP(this.value)" onblur="setTimeout(()=>document.getElementById('da-gtip-list').classList.remove('show'),200)" autocomplete="off">
                         <div id="da-gtip-list" class="autocomplete-list"></div>
                     </div>
