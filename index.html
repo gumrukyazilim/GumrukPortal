@@ -557,6 +557,52 @@
         </div>
     </div>
 </template>
+<template id="tpl-sureDilekcesi">
+    <style>
+        /* Yazıcı ayarları: Sayfayı A4 ve Dikey yapar */
+        @media print {
+            @page { size: A4 portrait; margin: 20mm; }
+            #dilekce-print-area { width: 100% !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+            .no-print { display: none !important; }
+        }
+        /* Ekran görünümü */
+        .dilekce-sayfa {
+            background: #fff; color: #000; width: 210mm; min-height: 297mm;
+            margin: 20px auto; padding: 25mm; font-family: 'Times New Roman', serif;
+            line-height: 1.6; font-size: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+
+    <div class="page-hdr no-print">
+        <div><h1 class="page-title">Süre Uzatımı Dilekçesi</h1></div>
+        <div class="page-actions">
+            <button class="btn-primary" onclick="window.print()"><i data-lucide="printer"></i> Yazdır</button>
+            <button class="btn-sm" onclick="window.renderView('declarations')">Listeye Dön</button>
+        </div>
+    </div>
+    
+    <div id="dilekce-print-area" class="dilekce-sayfa fade-in">
+        <div style="text-align: center; font-weight: bold; margin-bottom: 60px; font-size: 18px; text-transform: uppercase;">
+            YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
+        </div>
+        
+        <p style="text-indent: 50px; text-align: justify; margin-bottom: 25px;">
+            Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
+        </p>
+        
+        <p style="margin-bottom: 50px;">Gereğini emir ve müsaadelerinize arz ederiz.</p>
+        
+        <div id="dilekce-arac-listesi" style="margin-bottom: 40px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+            </div>
+        
+        <div style="float: right; text-align: center; min-width: 250px; margin-top: 20px;">
+            <p style="margin-bottom: 10px;">Saygılarımızla</p>
+            <p style="font-weight: bold; margin-bottom: 25px; font-size: 17px;" id="dilekce-firma-adi"></p>
+            <p style="font-weight: bold; border-bottom: 1px solid #ccc; display: inline-block; min-width: 150px;" contenteditable="true" id="dilekce-imza-isim"></p>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
+</template>
 
 <div id="decl-modal" class="modal-backdrop hidden"> 
     <div class="modal-box"> 
@@ -1789,11 +1835,24 @@ let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</
                 <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
                 <td style="text-align:center;">
                     <div style="display:flex;gap:3px;justify-content:center;">
-                        ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
-                        <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
-                        <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'decl')"><i data-lucide="edit-3"></i></button>
-                        <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})"><i data-lucide="trash-2"></i></button>
-                    </div>
+    <button class="icon-btn" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i})" title="Süre Uzatma Dilekçesi">
+        <i data-lucide="file-clock"></i>
+    </button>
+
+    ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+    
+    <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret">
+        <i data-lucide="file-signature"></i>
+    </button>
+    
+    <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'decl')">
+        <i data-lucide="edit-3"></i>
+    </button>
+    
+    <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})">
+        <i data-lucide="trash-2"></i>
+    </button>
+</div>
                 </td>
             </tr>`;
         }).join('');
@@ -2479,6 +2538,51 @@ window.setTeslimCalc = function(tip) {
     if(typeof window.calculateTaxes === 'function') {
         window.calculateTaxes();
     }
+};
+window.prepareSureDilekcesi = function(idx) {
+    // 1. Veriyi çek
+    let item = window.declarationsData[idx];
+    if(!item) {
+        alert("Araç verisi bulunamadı!");
+        return;
+    }
+
+    // 2. Dilekçe görünümüne geç
+    window.renderView('sureDilekcesi');
+
+    // 3. Bilgileri içine yaz (Hafif bir gecikme ile ekranın yüklenmesini bekle)
+    setTimeout(() => {
+        const listContainer = document.getElementById('dilekce-arac-listesi');
+        const firmaContainer = document.getElementById('dilekce-firma-adi');
+        const imzaContainer = document.getElementById('dilekce-imza-isim');
+
+        if(listContainer) {
+            // DİKKAT: cite yazıları ve Araç markası buradan tamamen silindi!
+            listContainer.innerHTML = `
+                <div style="margin-top: 20px; font-size: 16px;">
+                    <p><b>Özet Beyan Numarası:</b> ${item.beyanname || '................'} / 1 ARAÇ</p>
+                    <p><b>Şase No :</b> ${item.sasi || '................'}</p>
+                </div>
+            `;
+        }
+
+        if(firmaContainer) {
+            firmaContainer.innerText = item.firma;
+        }
+
+        // DİKKAT: ŞAMNU GT ise otomatik isim yazma kuralı senin koduna eklendi!
+        if(imzaContainer) {
+            let firmaAdi = item.firma || "";
+            if(firmaAdi.toUpperCase().includes("ŞAMNU")) {
+                imzaContainer.innerText = "FEVZİ ALPER TAVMAN";
+            } else {
+                imzaContainer.innerText = "........................";
+            }
+        }
+        
+        // Lucide ikonlarını tekrar yenile
+        if(window.lucide) lucide.createIcons();
+    }, 100);
 };
 
 </script>
