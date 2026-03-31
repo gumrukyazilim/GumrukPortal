@@ -689,12 +689,43 @@
 <template id="tpl-dashboard">
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Genel Bakış</div><h1 class="page-title">Sistem Özeti</h1></div></div>
     <div class="stats-grid fade-in">
-        <div class="stat-card" onclick="window.goToFilter('kiymet')"><div class="stat-card-top"><div class="stat-icon-box purple"><i data-lucide="clock"></i></div><span class="stat-trend warn">Aktif</span></div><div class="stat-value" id="dash-kiymet">0</div><div class="stat-label">Kıymette Bekleyen</div><div class="stat-bar"><div class="stat-bar-fill purple" style="width:0%"></div></div></div>
-        <div class="stat-card" onclick="window.goToFilter('acik')"><div class="stat-card-top"><div class="stat-icon-box yellow"><i data-lucide="alert-triangle"></i></div><span class="stat-trend warn">İşlemde</span></div><div class="stat-value" id="dash-ambar">0</div><div class="stat-label">Açık İşlem</div><div class="stat-bar"><div class="stat-bar-fill yellow" style="width:0%"></div></div></div>
-        <div class="stat-card" onclick="window.goToFilter('all')"><div class="stat-card-top"><div class="stat-icon-box green"><i data-lucide="check-circle-2"></i></div><span class="stat-trend up">Toplam</span></div><div class="stat-value" id="dash-total">0</div><div class="stat-label">Toplam Araç</div><div class="stat-bar"><div class="stat-bar-fill green" style="width:100%"></div></div></div>
+        <div class="stat-card" onclick="window.goToFilter('kiymet')">
+            <div class="stat-card-top" style="align-items: center;">
+                <div style="font-size: 14px; font-weight: 800; color: var(--kiymet-color); letter-spacing: 0.5px;">KIYMETTE BEKLEYEN</div>
+                <span class="stat-trend warn">Aktif</span>
+            </div>
+            <div class="stat-value" id="dash-kiymet" style="font-size: 46px; margin-top: 8px; margin-bottom: 16px;">0</div>
+            <div class="stat-bar"><div class="stat-bar-fill purple" style="width:0%"></div></div>
+        </div>
+        
+        <div class="stat-card" onclick="window.goToFilter('acik')">
+            <div class="stat-card-top" style="align-items: center;">
+                <div style="font-size: 14px; font-weight: 800; color: var(--warning); letter-spacing: 0.5px;">İŞLEMDE BEKLEYEN</div>
+                <span class="stat-trend warn">İşlemde</span>
+            </div>
+            <div class="stat-value" id="dash-ambar" style="font-size: 46px; margin-top: 8px; margin-bottom: 16px;">0</div>
+            <div class="stat-bar"><div class="stat-bar-fill yellow" style="width:0%"></div></div>
+        </div>
+        
+        <div class="stat-card" onclick="window.goToFilter('all')">
+            <div class="stat-card-top" style="align-items: center;">
+                <div style="font-size: 14px; font-weight: 800; color: var(--success); letter-spacing: 0.5px;">TOPLAM ARAÇ</div>
+                <span class="stat-trend up">Toplam</span>
+            </div>
+            <div class="stat-value" id="dash-total" style="font-size: 46px; margin-top: 8px; margin-bottom: 16px;">0</div>
+            <div class="stat-bar"><div class="stat-bar-fill green" style="width:100%"></div></div>
+        </div>
+
+        <div class="stat-card" onclick="window.goToFilter('sure_alinmayan')">
+            <div class="stat-card-top" style="align-items: center;">
+                <div style="font-size: 14px; font-weight: 800; color: var(--danger); letter-spacing: 0.5px;">SÜRESİ ALINMAYAN</div>
+                <span class="stat-trend warn" style="background:rgba(239,68,68,0.1); color:var(--danger);">Kritik</span>
+            </div>
+            <div class="stat-value" id="dash-sure-alinmayan" style="font-size: 46px; margin-top: 8px; margin-bottom: 16px;">0</div>
+            <div class="stat-bar"><div class="stat-bar-fill red" style="background:var(--danger); width:0%"></div></div>
+        </div>
     </div>
 </template>
-
 <template id="tpl-firms"> 
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firmalar</div><h1 class="page-title">Firma Arşivi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button></div></div> 
     <div id="firms-dynamic-grid" class="firms-grid fade-in"></div> 
@@ -710,7 +741,10 @@
     <div class="toolbar fade-in">
         <div class="toolbar-left">
             <select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="width:220px;padding:8px 12px;">
-                <option value="all">Tüm Araçlar</option><option value="acik">Açık İşlemler</option><option value="kiymet">Kıymette Bekleyenler</option>
+                <option value="all">Tüm Araçlar</option>
+                <option value="acik">Açık İşlemler</option>
+                <option value="kiymet">Kıymette Bekleyenler</option>
+                <option value="sure_alinmayan">Süresi Alınmayanlar</option>
             </select>
             <button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden admin-only" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button>
         </div>
@@ -1660,17 +1694,29 @@ window.fetchTCMBKur = async function(auto = false) {
     };
 
     window.updateDashboardStats=function(){
-        if(!window.declarationsData)return;
-        let role = localStorage.getItem('gumruk_role') || 'admin';
-        let data = role === 'admin' ? window.declarationsData : window.declarationsData.filter(d => d.firma === role);
-        
-        let t=data.length;
-        let ki=data.filter(d=>d.kiymVv&&!d.kiymGt).length;
-        let ac=data.filter(d=>{let e=(d.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';}).length;
-        if(document.getElementById('dash-total'))document.getElementById('dash-total').innerText=t;
-        if(document.getElementById('dash-kiymet'))document.getElementById('dash-kiymet').innerText=ki;
-        if(document.getElementById('dash-ambar'))document.getElementById('dash-ambar').innerText=ac;
-    };
+    if(!window.declarationsData)return;
+    let role = localStorage.getItem('gumruk_role') || 'admin';
+    let data = role === 'admin' ? window.declarationsData : window.declarationsData.filter(d => d.firma === role);
+    
+    let t=data.length;
+    let ki=data.filter(d=>d.kiymVv&&!d.kiymGt).length;
+    let ac=data.filter(d=>{let e=(d.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';}).length;
+    
+    let sureAlinmayan = data.filter(d => {
+        let e=(d.evrak||'').toLocaleLowerCase('tr');
+        return (e==='açık'||e==='acik') && !d.ekSure && !d.antTarih;
+    }).length;
+
+    if(document.getElementById('dash-total'))document.getElementById('dash-total').innerText=t;
+    if(document.getElementById('dash-kiymet'))document.getElementById('dash-kiymet').innerText=ki;
+    if(document.getElementById('dash-ambar'))document.getElementById('dash-ambar').innerText=ac;
+    
+    if(document.getElementById('dash-sure-alinmayan')) {
+        document.getElementById('dash-sure-alinmayan').innerText=sureAlinmayan;
+        let bar = document.querySelector('#dash-sure-alinmayan + .stat-bar .stat-bar-fill');
+        if(bar) bar.style.width = t > 0 ? (sureAlinmayan/t*100) + '%' : '0%';
+    }
+};
 
     window.renderDeclarationsTable=function(){
         let tbody=document.getElementById('declarations-tbody');if(!tbody)return;
@@ -1683,6 +1729,8 @@ window.fetchTCMBKur = async function(auto = false) {
         
         if(fv==='acik')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';});
         else if(fv==='kiymet')list=list.filter(x=>x.data.kiymVv&&!x.data.kiymGt);
+        else if(fv==='sure_alinmayan')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return (e==='açık'||e==='acik') && !x.data.ekSure && !x.data.antTarih;});
+        
         if(!list.length){tbody.innerHTML=`<tr><td colspan="18" style="text-align:center;padding:48px;color:var(--text-muted);">Kayıt bulunamadı.</td></tr>`;return;}
         
         tbody.innerHTML=list.map(item=>{
