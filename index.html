@@ -2557,48 +2557,85 @@ window.setTeslimCalc = function(tip) {
     }
 };
 window.prepareSureDilekcesi = function(idx) {
-    // 1. Veriyi çek
-    let item = window.declarationsData[idx];
-    if(!item) {
-        alert("Araç verisi bulunamadı!");
+    // 1. Kutucuğu işaretlenmiş (seçili) araçları bul
+    let checkedBoxes = document.querySelectorAll('.decl-cb:checked');
+    let selectedItems = [];
+    
+    // Eğer birden fazla kutucuk işaretliyse ve tıkladığımız satır da onlardan biriyse toplu işlem yap
+    let isCurrentClickedChecked = Array.from(checkedBoxes).some(cb => parseInt(cb.value) === idx);
+    
+    if (checkedBoxes.length > 1 && isCurrentClickedChecked) {
+        checkedBoxes.forEach(cb => {
+            selectedItems.push(window.declarationsData[parseInt(cb.value)]);
+        });
+    } else {
+        // Kutucuk işaretli değilse sadece tıklanan tek aracı al
+        selectedItems.push(window.declarationsData[idx]);
+    }
+
+    if (selectedItems.length === 0) return;
+
+    // 2. Güvenlik: Farklı firmalar aynı dilekçeye yazılamaz
+    let firmaAdi = selectedItems[0].firma;
+    let farkliFirmaVar = selectedItems.some(x => x.firma !== firmaAdi);
+    if (farkliFirmaVar) {
+        alert("HATA: Farklı firmalara ait araçları tek dilekçede birleştiremezsiniz!");
         return;
     }
 
-    // 2. Dilekçe görünümüne geç
+    // 3. Dilekçe ekranına geç
     window.renderView('sureDilekcesi');
 
-    // 3. Bilgileri içine yaz (Hafif bir gecikme ile ekranın yüklenmesini bekle)
-    setTimeout(() => {
-        const listContainer = document.getElementById('dilekce-arac-listesi');
-        const firmaContainer = document.getElementById('dilekce-firma-adi');
-        const imzaContainer = document.getElementById('dilekce-imza-isim');
+    setTimeout(function() {
+        var listDiv = document.getElementById('dilekce-arac-listesi');
+        var firmaDiv = document.getElementById('dilekce-firma-adi');
+        var imzaDiv = document.getElementById('dilekce-imza-isim');
 
-        if(listContainer) {
-            listContainer.innerHTML = `
-                <div style="margin-top: 20px; font-size: 16px;">
-                    <p style="margin-bottom: 8px;"><b>Özet Beyan Numarası:</b> ${item.ozetBeyan || '................'} / 1 ARAÇ</p>
-                    <p style="font-size: 19px; font-weight: bold;">Şase No : ${item.sasi || '................'}</p>
-                </div>
-            `;
-        }
+        if (listDiv) {
+            let html = '<div style="margin-top: 20px;">';
+            
+            // Bütün seçili araçların Özet Beyanları aynı mı diye kontrol et
+            let ilkOzetBeyan = selectedItems[0].ozetBeyan || '................';
+            let hepsiAyniOzetBeyan = selectedItems.every(x => (x.ozetBeyan || '................') === ilkOzetBeyan);
 
-        if(firmaContainer) {
-            firmaContainer.innerText = item.firma;
-        }
-
-        // DİKKAT: ŞAMNU GT ise otomatik isim yazma kuralı senin koduna eklendi!
-        if(imzaContainer) {
-            let firmaAdi = item.firma || "";
-            if(firmaAdi.toUpperCase().includes("ŞAMNU")) {
-                imzaContainer.innerText = "FEVZİ ALPER TAVMAN";
+            if (hepsiAyniOzetBeyan) {
+                // DURUM 1: Hepsi AYNI Özet Beyan
+                // Tepeye 1 kere Özet Beyan yaz (Yanına kaç araç olduğunu belirt)
+                html += `<p style="font-size: 19px; font-weight: bold; margin-bottom: 12px;">Özet Beyan Numarası: ${ilkOzetBeyan} / ${selectedItems.length} ARAÇ</p>`;
+                
+                // Altına sadece şase numaralarını diz
+                selectedItems.forEach((item) => {
+                    html += `<p style="font-size: 19px; font-weight: bold; margin-bottom: 5px;">Şase No : ${item.sasi || '................'}</p>`;
+                });
             } else {
-                imzaContainer.innerText = "........................";
+                // DURUM 2: FARKLI Özet Beyanlar var
+                // Her araç için ayrı ayrı Özet Beyan ve Şase yaz, aralarına çizgi koy
+                selectedItems.forEach((item, index) => {
+                    html += `
+                        <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                            <p style="font-size: 19px; font-weight: bold; margin-bottom: 5px;">Özet Beyan Numarası: ${item.ozetBeyan || '................'} / 1 ARAÇ</p>
+                            <p style="font-size: 19px; font-weight: bold;">Şase No : ${item.sasi || '................'}</p>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += '</div>';
+            listDiv.innerHTML = html;
+        }
+
+        if (firmaDiv) {
+            firmaDiv.innerText = firmaAdi;
+            if (imzaDiv) {
+                if (firmaAdi.toUpperCase().indexOf("ŞAMNU") !== -1) {
+                    imzaDiv.innerText = "FEVZİ ALPER TAVMAN";
+                } else {
+                    imzaDiv.innerText = "........................";
+                }
             }
         }
-        
-        // Lucide ikonlarını tekrar yenile
-        if(window.lucide) lucide.createIcons();
-    }, 100);
+        if (window.lucide) lucide.createIcons();
+    }, 300);
 };
 
 </script>
