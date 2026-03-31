@@ -1421,33 +1421,26 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(!E)return result;
         
         let F=window.addDays(E,20);result.ilkSureSonu=window.formatTRDate(F);
-        
         let L_date=null;
-        if(I){L_date=window.addDays(I,29);}
-        else if(H){result.klnSonTarih="Süresiz";}
-        else if(G){L_date=window.addDays(G>F?G:F,29);}
-        else{L_date=F;}
-        
+        if(I){L_date=window.addDays(I,29);}else if(H){result.klnSonTarih="Süresiz";}else if(G){L_date=window.addDays(G>F?G:F,29);}else{L_date=F;}
         if(L_date)result.klnSonTarih=window.formatTRDate(L_date);
         
         let kiymGecen=0;
-        if(J){if(K){kiymGecen=window.diffDaysSigned(K,J);result.kiymGecen=kiymGecen;}else{result.kiymGecen="Kıymette";}}
-        else if(H&&!I){result.kiymGecen="Süresiz";}
+        if(J){if(K){kiymGecen=window.diffDaysSigned(K,J);result.kiymGecen=kiymGecen;}else{result.kiymGecen="Kıymette";}}else if(H&&!I){result.kiymGecen="Süresiz";}
         
         let sonGunDate=null;
-        if(!J&&!K){result.sonGun=result.klnSonTarih||"";sonGunDate=L_date;}
-        else if(J&&!K){result.sonGun="Kıymette";sonGunDate=null;}
-        else if(J&&K&&L_date){sonGunDate=window.addDays(L_date,kiymGecen);result.sonGun=window.formatTRDate(sonGunDate);}
-        else if(!L_date){result.sonGun="Süresiz";sonGunDate=null;}
+        if(!J&&!K){result.sonGun=result.klnSonTarih||"";sonGunDate=L_date;}else if(J&&!K){result.sonGun="Kıymette";sonGunDate=null;}else if(J&&K&&L_date){sonGunDate=window.addDays(L_date,kiymGecen);result.sonGun=window.formatTRDate(sonGunDate);}else if(!L_date){result.sonGun="Süresiz";sonGunDate=null;}
         
-        if(result.klnSonTarih==="Süresiz"&&!J&&!K){result.klnGun="Süresiz";}
-        else if(J&&!K){if(L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else result.klnGun="Süresiz";}
-        else if(sonGunDate){let d=window.diffDaysSigned(sonGunDate,today);result.klnGun=d<0?0:d;}
-        else if(I){let p30=window.addDays(I,30);result.klnGun=p30>today?window.diffDaysSigned(p30,today):0;}
-        else if(!H&&L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}
-        else{result.klnGun="Süresiz";}
+        if(result.klnSonTarih==="Süresiz"&&!J&&!K){result.klnGun="Süresiz";}else if(J&&!K){if(L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else result.klnGun="Süresiz";}else if(sonGunDate){let d=window.diffDaysSigned(sonGunDate,today);result.klnGun=d<0?0:d;}else if(I){let p30=window.addDays(I,30);result.klnGun=p30>today?window.diffDaysSigned(p30,today):0;}else if(!H&&L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else{result.klnGun="Süresiz";}
         
-        let gun=window.diffDaysSigned(today,E)+1;result.gecenGun=gun;
+        let evrakDurumu = (data.evrak || '').toLocaleLowerCase('tr');
+        let isKapali = evrakDurumu === 'kapalı' || evrakDurumu === 'kapali';
+        let ardiyeBitis = (isKapali && I) ? I : today; 
+        
+        let gun = window.diffDaysSigned(ardiyeBitis, E) + 1;
+        if(gun < 0) gun = 0;
+        
+        result.gecenGun=gun;
         if(gun>0){if(gun<=20)result.ardiye=gun*145;else if(gun<=50)result.ardiye=2900+(gun-20)*725;else if(gun<=80)result.ardiye=24650+(gun-50)*1160;else result.ardiye=59450+(gun-80)*1450;}
         return result;
     };
