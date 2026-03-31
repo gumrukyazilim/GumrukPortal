@@ -2286,30 +2286,61 @@ window.fetchTCMBKur = async function(auto = false) {
         if(gizliInput) gizliInput.value = tip;
     };
 // --- HESAPLAMA EKRANI CIF/EXW MOTORU ---
-    window.setTeslimCalc = function(tip) {
-        let btnCif = document.getElementById('calc-cif-btn');
-        let btnExw = document.getElementById('calc-exw-btn');
-        let gizliInput = document.getElementById('calc-teslim');
+window.setTeslimCalc = function(tip) {
+    let btnCif = document.getElementById('calc-cif-btn');
+    let btnExw = document.getElementById('calc-exw-btn');
+    let gizliInput = document.getElementById('calc-teslim');
 
-        if(tip === 'CIF') {
-            btnCif.style.background = 'var(--primary)';
-            btnCif.style.color = '#fff';
-            btnExw.style.background = 'transparent';
-            btnExw.style.color = 'var(--text-secondary)';
-        } else {
-            btnExw.style.background = 'var(--primary)';
-            btnExw.style.color = '#fff';
-            btnCif.style.background = 'transparent';
-            btnCif.style.color = 'var(--text-secondary)';
+    // Navlun ve Sigorta kutularını yakalıyoruz
+    let inNavlun = document.getElementById('calc-navlun');
+    let inSigorta = document.getElementById('calc-sigorta');
+
+    if(tip === 'CIF') {
+        btnCif.style.background = 'var(--primary)';
+        btnCif.style.color = '#fff';
+        btnExw.style.background = 'transparent';
+        btnExw.style.color = 'var(--text-secondary)';
+
+        // CIF: Navlun ve Sigortayı Kapat (Değerleri 0 yap, soluklaştır ve kilitle)
+        if(inNavlun) { 
+            inNavlun.value = "0"; 
+            inNavlun.disabled = true; 
+            inNavlun.style.opacity = "0.4"; 
+            inNavlun.style.cursor = "not-allowed"; 
         }
-        
-        if(gizliInput) gizliInput.value = tip;
-        
-        // Teslim şekli değiştiği an vergileri otomatik yeniden hesaplat
-        if(typeof window.calculateTaxes === 'function') {
-            window.calculateTaxes();
+        if(inSigorta) { 
+            inSigorta.value = "0"; 
+            inSigorta.disabled = true; 
+            inSigorta.style.opacity = "0.4"; 
+            inSigorta.style.cursor = "not-allowed"; 
         }
-    };
+
+    } else {
+        btnExw.style.background = 'var(--primary)';
+        btnExw.style.color = '#fff';
+        btnCif.style.background = 'transparent';
+        btnCif.style.color = 'var(--text-secondary)';
+
+        // EXW: Navlun ve Sigortayı Aç (Kilidi kaldır, normal görünüme döndür)
+        if(inNavlun) { 
+            inNavlun.disabled = false; 
+            inNavlun.style.opacity = "1"; 
+            inNavlun.style.cursor = "text"; 
+        }
+        if(inSigorta) { 
+            inSigorta.disabled = false; 
+            inSigorta.style.opacity = "1"; 
+            inSigorta.style.cursor = "text"; 
+        }
+    }
+    
+    if(gizliInput) gizliInput.value = tip;
+    
+    // Teslim şekli değiştiği an vergileri otomatik yeniden hesaplat
+    if(typeof window.calculateTaxes === 'function') {
+        window.calculateTaxes();
+    }
+};
 
 </script>
 </body>
