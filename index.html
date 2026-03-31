@@ -1510,64 +1510,100 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         }, 150);
     };
 
-    window.fetchTCMBKur = async function(auto = false) {
-        let st = document.getElementById('kur-status');
-        if(st){ st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB Çekiliyor...'; st.className = 'kur-badge kur-manual'; }
+window.fetchTCMBKur = async function(auto = false) {
+    let st = document.getElementById('kur-status');
+    if(st){
+        st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB Çekiliyor...';
+        st.className = 'kur-badge kur-manual';
+        if(window.lucide) lucide.createIcons();
+    }
+
+    // Kullanacağımız proxy listesi (Biri hata verirse diğeri denenecek)
+    const proxies = [
+        "https://api.allorigins.win/get?url=", // Alternatif 1
+        "https://corsproxy.io/?",               // Alternatif 2
+        "https://thingproxy.freeboard.io/fetch/" // Alternatif 3
+    ];
+
+    const targetUrl = "https://www.tcmb.gov.tr/kurlar/today.xml";
+    let success = false;
+
+    for (let proxy of proxies) {
+        if (success) break; // Eğer bir önceki denemede başarılı olduysak döngüden çık
         
         try {
-            const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://www.tcmb.gov.tr/kurlar/today.xml");
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('TCMB API hatası');
+            console.log(`Denenecek Proxy: ${proxy}`);
+            let finalUrl = proxy.includes('allorigins') ? proxy + encodeURIComponent(targetUrl) : proxy + targetUrl;
             
-            const data = await response.json();
+            const response = await fetch(finalUrl);
+            if (!response.ok) throw new Error('Proxy cevap vermedi');
+
+            let xmlText;
+            if (proxy.includes('allorigins')) {
+                const json = await response.json();
+                xmlText = json.contents;
+            } else {
+                xmlText = await response.text();
+            }
+
             const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
             
+            // XML Boş mu kontrol et
+            if (xmlDoc.getElementsByTagName("parsererror").length > 0) throw new Error('XML okunamadı');
+
             const currencies = xmlDoc.getElementsByTagName("Currency");
             let usdRate = null;
             let eurRate = null;
-            
+
             for (let i = 0; i < currencies.length; i++) {
                 let code = currencies[i].getAttribute("CurrencyCode");
                 let sellingNode = currencies[i].getElementsByTagName("ForexSelling")[0];
+
                 if (sellingNode && sellingNode.textContent) {
-                    let rate = parseFloat(sellingNode.textContent.replace(',', '.'));
+                    let rate = parseFloat(sellingNode.textContent.trim().replace(',', '.'));
                     if (code === "USD") usdRate = rate;
                     if (code === "EUR") eurRate = rate;
                 }
             }
-            
-            if (!usdRate || !eurRate) throw new Error('Kurlar bulunamadı');
-            
-            if (document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = usdRate.toFixed(4).replace('.', ',');
-            if (document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = eurRate.toFixed(4).replace('.', ',');
-            
-            if(st){ st.innerHTML = '✓ TCMB Döviz Satış'; st.className = 'kur-badge kur-live'; }
-            
-            localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({ usd: usdRate, eur: eurRate, date: new Date().toLocaleDateString('tr-TR') }));
-            
-            window.calculateTaxes();
-            if(!auto) hideSyncToast("TCMB Kuru Çekildi!", true);
-            
-        } catch (error) {
-            console.warn("TCMB Kur Çekme Hatası:", error);
-            try {
-                let lastKur = JSON.parse(localStorage.getItem('gumruk_tcmb_last_kur'));
-                if (lastKur && lastKur.usd && lastKur.eur) {
-                    if (document.getElementById('calc-kur-usd')) document.getElementById('calc-kur-usd').value = lastKur.usd.toFixed(4).replace('.', ',');
-                    if (document.getElementById('calc-kur-eur')) document.getElementById('calc-kur-eur').value = lastKur.eur.toFixed(4).replace('.', ',');
-                    if(st){ st.innerHTML = '⚠ Son TCMB Kuru (' + lastKur.date + ')'; st.className = 'kur-badge kur-manual'; }
-                } else {
-                    if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
-                }
-            } catch(e) {
-                if(st){ st.innerHTML = '⚠ Manuel Kur'; st.className = 'kur-badge kur-manual'; }
-            }
-            if(!auto) hideSyncToast("TCMB Bağlantı Hatası!", false);
-        }
-        if(window.lucide) lucide.createIcons();
-    };
 
+            if (usdRate && eurRate) {
+                document.getElementById('calc-kur-usd').value = usdRate.toFixed(4).replace('.', ',');
+                document.getElementById('calc-kur-eur').value = eurRate.toFixed(4).replace('.', ',');
+                
+                if(st){
+                    st.innerHTML = '✓ TCMB Güncel Kurlar Aktif';
+                    st.className = 'kur-badge kur-live';
+                }
+
+                localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({
+                    usd: usdRate, eur: eurRate, date: new Date().toLocaleDateString('tr-TR')
+                }));
+
+                if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
+                success = true; // Başarı bayrağını kaldır
+                if(!auto) hideSyncToast("Kurlar başarıyla çekildi!", true);
+            }
+        } catch (e) {
+            console.warn(`Proxy hatası (${proxy}):`, e.message);
+            continue; // Diğer proxy'yi dene
+        }
+    }
+
+    if (!success) {
+        // TÜM DENEMELER BAŞARISIZ OLURSA:
+        let lastKur = JSON.parse(localStorage.getItem('gumruk_tcmb_last_kur'));
+        if (lastKur) {
+            document.getElementById('calc-kur-usd').value = lastKur.usd.toFixed(4).replace('.', ',');
+            document.getElementById('calc-kur-eur').value = lastKur.eur.toFixed(4).replace('.', ',');
+            if(st) st.innerHTML = '⚠ Bağlantı Hatası: Son Başarılı Kur (' + lastKur.date + ')';
+        } else {
+            if(st) st.innerHTML = '⚠ Hata: Kurları Manuel Girin';
+        }
+        if(!auto) hideSyncToast("Merkez Bankası sunucularına ulaşılamıyor!", false);
+    }
+    if(window.lucide) lucide.createIcons();
+};
     window.exportCalcExcel=function(){
         let rows=[['KALEM','DEĞER']];
         document.querySelectorAll('.calc-result-table tr').forEach(tr=>{
