@@ -559,17 +559,42 @@
 </template>
 <template id="tpl-sureDilekcesi">
     <style>
-        /* Yazıcı ayarları: Sayfayı A4 ve Dikey yapar */
-        @media print {
-            @page { size: A4 portrait; margin: 20mm; }
-            #dilekce-print-area { width: 100% !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
-            .no-print { display: none !important; }
-        }
-        /* Ekran görünümü */
+        /* Dilekçe Özel Ekran Ayarları */
         .dilekce-sayfa {
             background: #fff; color: #000; width: 210mm; min-height: 297mm;
-            margin: 20px auto; padding: 25mm; font-family: 'Times New Roman', serif;
+            margin: 20px auto; 
+            padding: 50mm 20mm 20mm 20mm; 
+            font-family: 'Times New Roman', serif;
             line-height: 1.6; font-size: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        /* İmza aralıklarını tamamen birbirine yapıştıran YENİ kod */
+        .imza-satir {
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.1 !important; /* İşte aradaki o gizli boşluğu yok eden kod */
+        }
+        
+        /* Yazıcıdan BOŞ SAYFA Çıkma Sorununu Çözen Kesin CSS */
+        @media print {
+            @page { size: A4 portrait; margin: 0; }
+            body, html, .app-wrap, .main-content, .view-area {
+                height: auto !important; 
+                overflow: visible !important; 
+                background: #fff !important;
+            }
+            body * { visibility: hidden; }
+            #dilekce-print-area, #dilekce-print-area * { visibility: visible; }
+            #dilekce-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
+            .no-print { display: none !important; }
         }
     </style>
 
@@ -582,7 +607,7 @@
     </div>
     
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in">
-        <div style="text-align: center; font-weight: bold; margin-bottom: 60px; font-size: 18px; text-transform: uppercase;">
+        <div style="text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; text-transform: uppercase;">
             YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
         </div>
         
@@ -592,13 +617,13 @@
         
         <p style="margin-bottom: 50px;">Gereğini emir ve müsaadelerinize arz ederiz.</p>
         
-        <div id="dilekce-arac-listesi" style="margin-bottom: 40px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+        <div id="dilekce-arac-listesi" style="margin-bottom: 50px; padding-top: 20px;">
             </div>
         
-        <div style="float: right; text-align: center; min-width: 250px; margin-top: 20px;">
-            <p style="margin-bottom: 10px;">Saygılarımızla</p>
-            <p style="font-weight: bold; margin-bottom: 25px; font-size: 17px;" id="dilekce-firma-adi"></p>
-            <p style="font-weight: bold; border-bottom: 1px solid #ccc; display: inline-block; min-width: 150px;" contenteditable="true" id="dilekce-imza-isim"></p>
+        <div style="float: right; text-align: center; min-width: 250px;">
+            <p class="imza-satir" style="margin-bottom: 12px !important;">Saygılarımızla</p>
+            <p class="imza-satir" style="font-weight: bold; font-size: 17px;" id="dilekce-firma-adi"></p>
+            <p class="imza-satir" style="font-weight: bold; display: inline-block; min-width: 150px; margin-top: 3px !important;" contenteditable="true" id="dilekce-imza-isim"></p>
         </div>
         <div style="clear: both;"></div>
     </div>
@@ -2557,11 +2582,10 @@ window.prepareSureDilekcesi = function(idx) {
         const imzaContainer = document.getElementById('dilekce-imza-isim');
 
         if(listContainer) {
-            // DİKKAT: cite yazıları ve Araç markası buradan tamamen silindi!
             listContainer.innerHTML = `
                 <div style="margin-top: 20px; font-size: 16px;">
-                    <p><b>Özet Beyan Numarası:</b> ${item.beyanname || '................'} / 1 ARAÇ</p>
-                    <p><b>Şase No :</b> ${item.sasi || '................'}</p>
+                    <p style="margin-bottom: 8px;"><b>Özet Beyan Numarası:</b> ${item.beyanname || '................'} / 1 ARAÇ</p>
+                    <p style="font-size: 19px; font-weight: bold;">Şase No : ${item.sasi || '................'}</p>
                 </div>
             `;
         }
