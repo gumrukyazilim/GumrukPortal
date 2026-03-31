@@ -44,6 +44,30 @@
             --sidebar-w: 268px;
             --header-h: 68px;
         }
+/* Beyanname Tarih Alanı Güzelleştirme */
+#tcgb-54-date {
+    border: none !important;
+    background: transparent !important;
+    font-family: monospace !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #000 !important;
+    width: 140px;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* O siyah kutu efektini veren tarayıcı gölgesini kaldırır */
+#tcgb-54-date:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Takvim simgesini çok hafifletir */
+#tcgb-54-date::-webkit-calendar-picker-indicator {
+    opacity: 0.3;
+    cursor: pointer;
+}
 
         [data-theme="light"] {
             /* Açık Mod (Aydınlık Tonlar) */
@@ -520,9 +544,11 @@
                 </div>
                 
                 <div class="tcgb-box" style="grid-column:span 4; height:70px;">
-                    <span class="tcgb-label">54 Yer ve Tarih</span>
-                    <input id="tcgb-54-date" class="tcgb-input" type="date" style="margin-top:10px;">
-                </div>
+    <span class="tcgb-label">54 Yer ve Tarih</span>
+    <div style="margin-top:10px;">
+        <input id="tcgb-54-date" type="date">
+    </div>
+</div>
                 <div class="tcgb-box" style="grid-column:span 4; height:70px;">
                     <span class="tcgb-label">Beyan Sahibi / Temsilcinin İmzası ve Adı</span>
                     <input id="tcgb-54-name" class="tcgb-input" style="margin-top:10px;" value="GÜMRÜK MÜŞAVİRLİĞİ">
@@ -1739,7 +1765,9 @@ window.fetchTCMBKur = async function(auto = false) {
             let sh=m.sonGun||'-';
             if(m.sonGun==='Kıymette')sh='<span class="badge badge-kiymette">Kıymette</span>';
             else if(m.sonGun&&m.sonGun!=='Süresiz')sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
-            let evBadge=isAcik?'<span class="badge badge-warning">Açık</span>':'<span class="badge badge-dark">Kapalı</span>';
+            // Tablo içinde badge oluşturulan yer
+let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
+let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
             
             return `<tr class="${rc}">
                 <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
@@ -1847,13 +1875,28 @@ window.fetchTCMBKur = async function(auto = false) {
     
     // Formdan tüm verileri çekiyoruz
     let r={
-        firma:val('da-firma'),marka:val('da-marka').toUpperCase(),model:val('da-model').toUpperCase(),
-        yil:val('da-yil'),renk:val('da-renk').toUpperCase(),sasi:val('da-sase').toUpperCase(),
-        tarih:fD(val('da-tarih')),ekSure:fD(val('da-ekSure')),antTarih:fD(val('da-antTarih')),
-        beynmCif:fD(val('da-beynmCif')),kiymVv:fD(val('da-kiymVv')),kiymGt:fD(val('da-kiymGt')),
-        evrak:val('da-evrak'),beyanname:val('da-beyanname'),fatura:val('da-fatura'),kiymet:val('da-kiymet'),
+        firma:val('da-firma'),
+        marka:val('da-marka').toUpperCase(),
+        model:val('da-model').toUpperCase(),
+        yil:val('da-yil'),
+        renk:val('da-renk').toUpperCase(),
+        sasi:val('da-sase').toUpperCase(),
+        tarih:fD(val('da-tarih')),
+        ekSure:fD(val('da-ekSure')),
+        antTarih:fD(val('da-antTarih')),
+        beynmCif:fD(val('da-beynmCif')),
+        kiymVv:fD(val('da-kiymVv')),
+        kiymGt:fD(val('da-kiymGt')),
+        evrak:val('da-evrak'), // Burası sadece "Açık" veya "Kapalı" kalsın
+        teslim:val('da-teslim'), // Teslim şeklini buradan okuyacağız
+        beyanname:val('da-beyanname'),
+        fatura:val('da-fatura'),
+        kiymet:val('da-kiymet'),
         evrakLink:val('da-evrakLink'),
-        gonderici:val('da-gonderici'), gtip:val('da-gtip'), brut:val('da-brut'), net:val('da-net')
+        gonderici:val('da-gonderici'), 
+        gtip:val('da-gtip'), 
+        brut:val('da-brut'), 
+        net:val('da-net')
     };
     if(!r.firma||!r.tarih){alert('Zorunlu alanları doldurun!');return;}
     
