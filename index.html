@@ -1974,15 +1974,11 @@ let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</
                 <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
                 <td style="text-align:center;">
                     <div style="display:flex;gap:3px;justify-content:center;">
-
     <button class="icon-btn" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i})" title="Süre Uzatma Dilekçesi">
         <i data-lucide="file-clock"></i>
     </button>
 
     ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
-<button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'decl')" title="WhatsApp ile Müşteriye Bildir">
-        <i data-lucide="message-circle"></i>
-    </button>
     
     <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret">
         <i data-lucide="file-signature"></i>
@@ -2004,48 +2000,30 @@ let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</
 
     window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div></div>`;}).join('');if(window.lucide)lucide.createIcons();};
     window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
-    window.renderFirmVehicles = function() {
-    let tb = document.getElementById('firm-vehicles-tbody');
-    if (!tb || !window.currentFirm) return;
-
-    let arr = window.firmData[window.currentFirm] || [];
-    
-    if (!arr.length) {
-        tb.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:48px;color:var(--text-muted);">Araç yok.</td></tr>';
-        return;
-    }
-
-    tb.innerHTML = arr.map((d, i) => `
-    <tr>
-        <td style="text-align:center;"><input type="checkbox" class="custom-cb firm-cb" value="${i}" onclick="window.toggleFirmCb()"></td>
-        <td><span class="font-bold" style="color:var(--text-primary);">${d.marka || '-'} ${d.model || '-'}</span></td>
-        <td>${d.yil || '-'}</td>
-        <td>${d.renk || '-'}</td>
-        <td class="font-bold" style="font-family:monospace;">${d.sasi || '-'}</td>
-        <td>${d.tarih || '-'}</td>
-        <td>${d.beyanname || '-'}</td>
-        <td>${d.fatura ? window.formatNumber(d.fatura) + ' €' : '-'}</td>
-        <td style="color:var(--success);font-weight:600;">${d.kiymet ? window.formatNumber(d.kiymet) + ' €' : '-'}</td>
-        <td style="text-align:right; padding-right:15px;">
-            <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center;">
-                ${d.evrakLink ? 
-                    `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak"><i data-lucide="paperclip"></i></a>` : 
-                    `<span style="color:var(--text-muted);opacity:0.4;"><i data-lucide="minus"></i></span>`
-                }
-                <button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'firm')" title="WhatsApp"><i data-lucide="message-circle"></i></button>
-                <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname"><i data-lucide="file-signature"></i></button>
-                <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')" title="Düzenle"><i data-lucide="edit-3"></i></button>
-                <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteFirmVehicle(${i})" title="Sil"><i data-lucide="trash-2"></i></button>
-            </div>
-        </td>
-    </tr>`).join('');
-
-    // Arayüzü tazele
-    if(document.getElementById('firm-selectAll')) document.getElementById('firm-selectAll').checked = false;
-    if(typeof window.toggleFirmCb === 'function') window.toggleFirmCb();
-    if(typeof window.applyRoleUI === 'function') window.applyRoleUI();
-    if (window.lucide) lucide.createIcons();
-};
+    window.renderFirmVehicles=function(){
+        let tb=document.getElementById('firm-vehicles-tbody');if(!tb||!window.currentFirm)return;
+        let arr=window.firmData[window.currentFirm]||[];if(!arr.length){tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:48px;color:var(--text-muted);">Araç yok.</td></tr>';return;}
+        tb.innerHTML=arr.map((d,i)=>`<tr>
+            <td style="text-align:center;"><input type="checkbox" class="custom-cb firm-cb" value="${i}" onclick="window.toggleFirmCb()"></td>
+            <td><span class="font-bold" style="color:var(--text-primary);">${d.marka||'-'} ${d.model||'-'}</span></td>
+            <td>${d.yil||'-'}</td>
+            <td>${d.renk||'-'}</td>
+            <td class="font-bold" style="font-family:monospace;">${d.sasi||'-'}</td>
+            <td>${d.tarih||'-'}</td>
+            <td>${d.beyanname||'-'}</td>
+            <td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
+            <td style="color:var(--success);font-weight:600;">${d.kiymet?window.formatNumber(d.kiymet)+' €':'-'}</td>
+            <td style="text-align:center;">
+                <div style="display:flex;gap:3px;justify-content:center;">
+                    ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+                    <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
+                    <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')"><i data-lucide="edit-3"></i></button>
+                    <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2"></i></button>
+                </div>
+            </td>
+        </tr>`).join('');
+        document.getElementById('firm-select-all').checked=false;window.toggleFirmCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();
+    };
     window.renderKiymetTable=function(){let tb=document.getElementById('kiymet-tbody');if(!tb)return;tb.innerHTML=window.kiymetData.map((k,i)=>{let dc=k.durum&&k.durum.toUpperCase().includes('MAHKEME')?'badge-danger':(k.durum&&k.durum.toUpperCase().includes('YOK')?'badge-dark':'badge-warning');return`<tr><td style="text-align:center;"><input type="checkbox" class="custom-cb kiymet-cb" value="${i}" onclick="window.toggleKiymetCb()"></td><td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td><td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura?window.formatNumber(k.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${k.kiymet?window.formatNumber(k.kiymet)+' €':'-'}</td><td>${k.durum?`<span class="badge ${dc}">${k.durum}</span>`:'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.editKiymet(${i})"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteKiymet(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;}).join('');document.getElementById('kiymet-selectAll').checked=false;window.toggleKiymetCb();if(window.lucide)lucide.createIcons();};
 
     window.toggleDeclCb=function(){let c=document.querySelectorAll('.decl-cb:checked'),b=document.getElementById('decl-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('decl-sel-count').innerText=c.length;}else b.classList.add('hidden');}};
