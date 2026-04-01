@@ -634,66 +634,68 @@
         flex-direction: column;
     }
 }
-/* --- TELEFON (MOBİL) UYUMLULUK AYARLARI (TAM PAKET) --- */
+/* --- SÜPER MOBİL PAKET (KESİN ÇÖZÜM) --- */
 @media (max-width: 768px) {
-    /* 1. Sayfanın tamamının sağa sola kaçmasını engelle */
-    body, html {
+    /* 1. Sayfayı ekrana kilitle, sağa sola kaçışı yasakla */
+    html, body {
         overflow-x: hidden !important;
-        position: relative;
-        width: 100%;
-    }
-
-    /* 2. Ana taşıyıcıyı dikey yap */
-    .app-container { 
-        flex-direction: column !important; 
-    }
-    
-    /* 3. Yan menü (Sidebar) ayarları */
-    .sidebar { 
-        width: 100% !important; 
-        height: auto !important; 
-        min-height: auto !important;
         position: relative !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
-    .sidebar.collapsed { display: none !important; }
 
-    /* 4. YENİ KAYIT BUTONUNU KÜÇÜLT */
+    /* 2. Ana ekranı dikey yap ve genişliği sınırla */
+    .app-container { 
+        flex-direction: column !important;
+        width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
+    /* 3. Yan menü kapalıyken asla yer kaplamasın */
+    .sidebar.collapsed { 
+        display: none !important; 
+    }
+
+    /* 4. YENİ KAYIT BUTONUNU KÜÇÜLT VE SAĞA YASLA */
     .new-record-btn {
-        padding: 8px 12px !important;
-        font-size: 13px !important;
+        padding: 6px 12px !important;
+        font-size: 12px !important;
         width: auto !important;
-        min-width: 100px !important;
+        float: right !important; /* Butonu sağa alalım ki ekranı kaplamasın */
+        margin-bottom: 10px !important;
     }
 
-    /* 5. TABLOYU SABİTLE VE KAYDIRILABİLİR YAP */
+    /* 5. TABLOYU ÖZEL BİR KUTUYA HAPSET */
+    /* Bu kısım çok önemli: Sadece tablo kendi içinde kayacak */
     .table-container {
         display: block !important;
         width: 100% !important;
-        overflow-x: auto !important; /* Sadece tablo sağa sola kaysın */
+        max-width: 100vw !important;
+        overflow-x: auto !important; /* Parmağınla sadece burayı kaydırabilirsin */
         -webkit-overflow-scrolling: touch;
-        border: 1px solid #333;
-        margin-top: 10px;
+        border: 1px solid #444;
+        background: #1a1d21;
     }
 
-    /* Tablo içeriği birbirine girmesin diye genişlik ver */
+    /* Tablo verileri birbirine girmesin, geniş kalsın */
     table {
-        min-width: 900px !important; 
+        min-width: 1000px !important; 
+        table-layout: auto !important;
     }
 
-    /* 6. Kayıt Ekranı (Modal) telefona tam otursun */
-    .modal-content {
-        width: 98% !important;
-        margin: 5px auto !important;
-        padding: 10px !important;
-    }
-
-    .form-row { flex-direction: column !important; }
-    
-    /* 7. Dilekçe Önizleme */
-    #dilekce-onizleme {
+    /* 6. Arama çubuğu ve başlıklar ekrana sığsın */
+    .header-content, .search-bar {
         width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 7. Kayıt Ekranı (Modal) */
+    .modal-content {
+        width: 96% !important;
+        margin: 2% auto !important;
         padding: 10px !important;
-        font-size: 14px !important;
     }
 }
 /* --- MOBİL AYARLARIN SONU --- */    </style>
