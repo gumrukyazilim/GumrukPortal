@@ -1929,29 +1929,55 @@ let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</
     window.saveNewKiymet=function(){let i=parseInt(document.getElementById('km-edit-index').value);let r={marka:document.getElementById('km-marka').value.toUpperCase(),model:document.getElementById('km-model').value.toUpperCase(),yil:document.getElementById('km-yil').value,renk:document.getElementById('km-renk').value.toUpperCase(),sasi:document.getElementById('km-sasi').value.toUpperCase(),tarih:document.getElementById('km-tarih').value,fatura:document.getElementById('km-fatura').value,kiymet:document.getElementById('km-kiymet').value,durum:document.getElementById('km-durum').value};if(i===-1)window.kiymetData.unshift(r);else window.kiymetData[i]=r;saveData('kiymet');window.closeKiymetModal();window.renderKiymetTable();};
 
     window.openDeclVehicleModal=function(idx=-1,ctx='decl'){
-    window.currentModalContext=ctx;document.getElementById('decl-modal').classList.remove('hidden');document.getElementById('decl-edit-idx').value=idx;
-    let firmList=document.getElementById('da-firma-list');
-    if(firmList)firmList.innerHTML=Object.keys(window.firmData).map(f=>`<div class="firm-dropdown-item" onmousedown="window.selectFirm('${f.replace(/'/g,"\\'")}')">${f}</div>`).join('');
-    let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
-    if(idx===-1||!d){
-        ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
-        document.getElementById('da-tarih').value=new Date().toISOString().split('T')[0];document.getElementById('da-evrak').value='Açık';
-        let defFirm=ctx==='firm'?window.currentFirm:(Object.keys(window.firmData)[0]||'');document.getElementById('da-firma').value=defFirm;document.getElementById('da-firma-search').value=defFirm;
+    try {
+        window.currentModalContext=ctx;
+        document.getElementById('decl-modal').classList.remove('hidden');
+        document.getElementById('decl-edit-idx').value=idx;
+        let firmList=document.getElementById('da-firma-list');
+        if(firmList)firmList.innerHTML=Object.keys(window.firmData).map(f=>`<div class="firm-dropdown-item" onmousedown="window.selectFirm('${f.replace(/'/g,"\\'")}')">${f}</div>`).join('');
+        let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
+        
+        if(idx===-1||!d){
+            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
+            if(document.getElementById('da-tarih')) document.getElementById('da-tarih').value=new Date().toISOString().split('T')[0];
+            if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value='Açık';
+            let defFirm=ctx==='firm'?window.currentFirm:(Object.keys(window.firmData)[0]||'');
+            if(document.getElementById('da-firma')) document.getElementById('da-firma').value=defFirm;
+            if(document.getElementById('da-firma-search')) document.getElementById('da-firma-search').value=defFirm;
+            
+            // YENİ KAYITTA OTOMATİK CIF IŞIĞINI YAK
+            if(window.setTeslimModal) window.setTeslimModal('CIF');
+        }
+        else{
+            if(document.getElementById('da-firma')) document.getElementById('da-firma').value=d.firma||'';
+            if(document.getElementById('da-firma-search')) document.getElementById('da-firma-search').value=d.firma||'';
+            ['marka','model','yil','renk','gonderici','gtip','brut','net','teslim','beyanname','ozetBeyan','fatura','kiymet'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
+            if(document.getElementById('da-sase')) document.getElementById('da-sase').value=d.sasi||'';
+            if(document.getElementById('da-evrakLink')) document.getElementById('da-evrakLink').value=d.evrakLink||'';
+            ['ekSure','antTarih','beynmCif','kiymVv','kiymGt'].forEach(id=>{if(document.getElementById('da-'+id)){let iso='';if(d[id]){let p=d[id].split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-'+id).value=iso;}});
+            if(document.getElementById('da-tarih')){let iso='';if(d.tarih){let p=d.tarih.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-tarih').value=iso;}
+            let isA=(d.evrak||'').toLocaleLowerCase('tr')==='açık';
+            if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value=isA?'Açık':'Kapalı';
+            
+            // ESKİ KAYITSA HAFIZADAKİ IŞIĞI YAK (EXW ise EXW, CIF ise CIF)
+            let kayitliTeslim = d.teslim || 'CIF';
+            if(window.setTeslimModal) window.setTeslimModal(kayitliTeslim);
+        }
+        
+        if(ctx==='firm') {
+            if(document.getElementById('decl-preview-box')) document.getElementById('decl-preview-box').classList.add('hidden');
+        } else {
+            if(document.getElementById('decl-preview-box')) document.getElementById('decl-preview-box').classList.remove('hidden');
+            if(window.declAutoCalc) window.declAutoCalc();
+        }
+    } catch (err) {
+        console.error("Modal açılırken hata:", err);
     }
-    else{
-        document.getElementById('da-firma').value=d.firma||'';document.getElementById('da-firma-search').value=d.firma||'';
-        ['marka','model','yil','renk','gonderici','gtip','brut','net'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
-        if(document.getElementById('da-sase'))document.getElementById('da-sase').value=d.sasi||'';
-        if(document.getElementById('da-evrakLink'))document.getElementById('da-evrakLink').value=d.evrakLink||'';
-        ['ekSure','antTarih','beynmCif','kiymVv','kiymGt'].forEach(id=>{if(document.getElementById('da-'+id)){let iso='';if(d[id]){let p=d[id].split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-'+id).value=iso;}});
-        if(document.getElementById('da-tarih')){let iso='';if(d.tarih){let p=d.tarih.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-tarih').value=iso;}
-        ['beyanname','ozetBeyan','fatura','kiymet'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
-        let isA=(d.evrak||'').toLocaleLowerCase('tr')==='açık';if(document.getElementById('da-evrak'))document.getElementById('da-evrak').value=isA?'Açık':'Kapalı';
-    }
-    if(ctx==='firm')document.getElementById('decl-preview-box').classList.add('hidden');else{document.getElementById('decl-preview-box').classList.remove('hidden');window.declAutoCalc();}
 };
 
-window.closeDeclModal=function(){document.getElementById('decl-modal').classList.add('hidden');};
+window.closeDeclModal=function(){
+    if(document.getElementById('decl-modal')) document.getElementById('decl-modal').classList.add('hidden');
+};
 
 window.saveDeclEntry=function(){
     let i=parseInt(document.getElementById('decl-edit-idx').value);let val=id=>document.getElementById(id)?.value.trim()||'';
@@ -2024,9 +2050,10 @@ window.saveDeclEntry=function(){
         });
     }
 
-    saveData('decl');saveData('firm');saveData('kiymet');
-    if(window.currentModalContext==='decl') window.renderDeclarationsTable(); else window.renderFirmVehicles();
-    window.closeDeclModal();window.updateDashboardStats();
+    if(typeof saveData === 'function') { saveData('decl');saveData('firm');saveData('kiymet'); }
+    if(window.currentModalContext==='decl') { if(window.renderDeclarationsTable) window.renderDeclarationsTable(); } else { if(window.renderFirmVehicles) window.renderFirmVehicles(); }
+    window.closeDeclModal();
+    if(window.updateDashboardStats) window.updateDashboardStats();
 };
 
     window.openExcelModal=function(ctx){document.getElementById('excel-target-context').value=ctx;document.getElementById('excel-modal').classList.remove('hidden');};
@@ -2479,27 +2506,32 @@ window.saveDeclEntry=function(){
         
         alert("Başarılı! Yeni GTİP kodu listeye eklendi ve kutuya yazıldı.");
     };
-// --- YENİ KAYIT EKRANI CIF/EXW MOTORU ---
-    window.setTeslimModal = function(tip) {
+// --- YENİ KAYIT EKRANI CIF/EXW MOTORU (GÜNCELLENDİ) ---
+window.setTeslimModal = function(tip) {
+    try {
         let btnCif = document.getElementById('modal-cif-btn');
         let btnExw = document.getElementById('modal-exw-btn');
         let gizliInput = document.getElementById('da-teslim');
 
-        if(tip === 'CIF') {
-            btnCif.style.background = 'var(--primary)';
-            btnCif.style.color = '#fff';
-            btnExw.style.background = 'transparent';
-            btnExw.style.color = 'var(--text-secondary)';
-        } else {
-            btnExw.style.background = 'var(--primary)';
-            btnExw.style.color = '#fff';
-            btnCif.style.background = 'transparent';
-            btnCif.style.color = 'var(--text-secondary)';
-        }
-        
-        // Veritabanına gidecek olan gizli kutuya değeri yaz
         if(gizliInput) gizliInput.value = tip;
-    };
+
+        if(btnCif && btnExw) {
+            if(tip === 'CIF') {
+                btnCif.style.background = 'var(--primary)';
+                btnCif.style.color = '#fff';
+                btnExw.style.background = 'transparent';
+                btnExw.style.color = 'var(--text-secondary)';
+            } else {
+                btnExw.style.background = 'var(--primary)';
+                btnExw.style.color = '#fff';
+                btnCif.style.background = 'transparent';
+                btnCif.style.color = 'var(--text-secondary)';
+            }
+        }
+    } catch(e) { 
+        console.log("Renk motoru hatası engellendi", e); 
+    }
+};
 // --- HESAPLAMA EKRANI CIF/EXW MOTORU ---
 window.setTeslimCalc = function(tip) {
     let btnCif = document.getElementById('calc-cif-btn');
