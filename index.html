@@ -2092,8 +2092,37 @@ window.closeDeclModal=function(){
     if(document.getElementById('decl-modal')) document.getElementById('decl-modal').classList.add('hidden');
 };
 
-window.saveDeclEntry=function(){
-    let i=parseInt(document.getElementById('decl-edit-idx').value);let val=id=>document.getElementById(id)?.value.trim()||'';
+// --- 1. DRIVE KÖPRÜSÜ (MARKA İÇİ ŞASİ VERSİYONU) ---
+window.triggerDriveBridge = function(firma, marka, sasi) {
+    return new Promise((resolve) => {
+        const bridgeURL = "https://script.google.com/macros/s/AKfycby3c9654wf7DbXiqgI4m7Fk4wNeITLtTY50_Rx-XjKy2hHNn8DEVnfQTVTfctSQziqoGQ/exec"; 
+        const finalURL = `${bridgeURL}?firma=${encodeURIComponent(firma)}&marka=${encodeURIComponent(marka)}&sasi=${encodeURIComponent(sasi)}`;
+        
+        if(typeof showSyncToast === 'function') showSyncToast("Drive klasörü ayarlanıyor...");
+        
+        let script = document.createElement('script');
+        window.driveCallback = function(data) {
+            if(data && data.url) {
+                document.getElementById('da-evrakLink').value = data.url;
+                if(typeof hideSyncToast === 'function') hideSyncToast("Klasör Drive'a bağlandı!", true);
+                resolve(data.url);
+            } else {
+                resolve("");
+            }
+            delete window.driveCallback;
+            script.remove();
+        };
+        
+        script.src = finalURL + "&callback=driveCallback";
+        document.body.appendChild(script);
+        setTimeout(() => { if(window.driveCallback) { resolve(""); } }, 8000); // 8 saniye bekleme süresi
+    });
+};
+
+// --- 2. AKILLI KAYIT MOTORU (ASYNC KELİMESİ EKLENDİ) ---
+window.saveDeclEntry = async function(){ 
+    let i=parseInt(document.getElementById('decl-edit-idx').value);
+    let val=id=>document.getElementById(id)?.value.trim()||'';
     let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
     
     let r={
@@ -2121,8 +2150,16 @@ window.saveDeclEntry=function(){
         brut:val('da-brut'), 
         net:val('da-net')
     };
-    if(!r.firma||!r.tarih){alert('Zorunlu alanları doldurun!');return;}
+
+    if(!r.firma || !r.tarih){alert('Zorunlu alanları doldurun!'); return;}
     
+    // EĞER LİNK YOKSA VE YENİ KAYITSA BEKLE VE LİNKİ AL
+    if(!r.evrakLink && i === -1) { 
+        let driveUrl = await window.triggerDriveBridge(r.firma, r.marka, r.sasi);
+        if(driveUrl) { r.evrakLink = driveUrl; }
+    }
+    
+    // KAYIT İŞLEMLERİ
     if(window.currentModalContext==='decl'){
         let os=i===-1?null:window.declarationsData[i].sasi;
         if(i===-1){
@@ -2151,20 +2188,13 @@ window.saveDeclEntry=function(){
 
     let kiymetIndex = window.kiymetData.findIndex(k => k.sasi === r.sasi);
     if(kiymetIndex !== -1) {
-        let mevcutDurum = window.kiymetData[kiymetIndex].durum;
-        window.kiymetData[kiymetIndex] = {
-            ...window.kiymetData[kiymetIndex], 
-            marka: r.marka, model: r.model, yil: r.yil, renk: r.renk, sasi: r.sasi, tarih: r.tarih, fatura: r.fatura, kiymet: r.kiymet,
-            durum: (mevcutDurum && mevcutDurum.trim() !== '') ? mevcutDurum : r.evrak
-        };
+        window.kiymetData[kiymetIndex] = { ...window.kiymetData[kiymetIndex], marka: r.marka, model: r.model, sasi: r.sasi, tarih: r.tarih };
     } else {
-        window.kiymetData.unshift({
-            marka: r.marka, model: r.model, yil: r.yil, renk: r.renk, sasi: r.sasi, tarih: r.tarih, fatura: r.fatura, kiymet: r.kiymet, durum: r.evrak
-        });
+        window.kiymetData.unshift({ marka: r.marka, model: r.model, sasi: r.sasi, tarih: r.tarih, fatura: r.fatura, durum: r.evrak });
     }
 
-    if(typeof saveData === 'function') { saveData('decl');saveData('firm');saveData('kiymet'); }
-    if(window.currentModalContext==='decl') { if(window.renderDeclarationsTable) window.renderDeclarationsTable(); } else { if(window.renderFirmVehicles) window.renderFirmVehicles(); }
+    if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); saveData('kiymet'); }
+    if(window.currentModalContext==='decl') { window.renderDeclarationsTable(); } else { window.renderFirmVehicles(); }
     window.closeDeclModal();
     if(window.updateDashboardStats) window.updateDashboardStats();
 };
