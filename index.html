@@ -634,69 +634,71 @@
         flex-direction: column;
     }
 }
-/* --- SÜPER MOBİL PAKET (KESİN ÇÖZÜM) --- */
+/* --- MOBİL İÇİN KESİN ÇÖZÜM (TAŞMALARI ENGELLEYEN ZIRH) --- */
 @media (max-width: 768px) {
-    /* 1. Sayfayı ekrana kilitle, sağa sola kaçışı yasakla */
+    /* 1. SİHİRLİ DOKUNUŞ: Her şeyin genişliğini "iç boşluklar dahil" hesapla ki dışarı taşmasın */
+    * {
+        box-sizing: border-box !important;
+        max-width: 100vw !important;
+    }
+
+    /* 2. Ana ekranı sağdan soldan mühürle */
     html, body {
         overflow-x: hidden !important;
-        position: relative !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        position: relative !important;
     }
 
-    /* 2. Ana ekranı dikey yap ve genişliği sınırla */
-    .app-container { 
-        flex-direction: column !important;
-        width: 100vw !important;
+    /* 3. Tüm ana taşıyıcıları hizaya sok */
+    .app-container, .main-content, .content {
+        width: 100% !important;
         overflow-x: hidden !important;
+        padding: 10px !important;
+        margin: 0 !important;
     }
 
-    /* 3. Yan menü kapalıyken asla yer kaplamasın */
-    .sidebar.collapsed { 
-        display: none !important; 
+    /* 4. "Yeni Kayıt" Butonu ve Üst Menüyü hizala */
+    .card-header, .header-actions {
+        display: flex !important;
+        flex-wrap: wrap !important; /* Ekrana sığmazsa alt alta geçsin, sağa itmesin */
+        gap: 10px !important;
+        justify-content: space-between !important;
     }
 
-    /* 4. YENİ KAYIT BUTONUNU KÜÇÜLT VE SAĞA YASLA */
     .new-record-btn {
-        padding: 6px 12px !important;
-        font-size: 12px !important;
         width: auto !important;
-        float: right !important; /* Butonu sağa alalım ki ekranı kaplamasın */
-        margin-bottom: 10px !important;
+        padding: 8px 15px !important;
+        font-size: 13px !important;
+        flex-grow: 1 !important; /* Boşluğu dengeli doldursun */
+        text-align: center !important;
     }
 
-    /* 5. TABLOYU ÖZEL BİR KUTUYA HAPSET */
-    /* Bu kısım çok önemli: Sadece tablo kendi içinde kayacak */
-    .table-container {
+    /* 5. TABLOYU ÖZEL HÜCREYE AL (Sadece bu kısım kayacak) */
+    .table-container, .table-responsive {
         display: block !important;
         width: 100% !important;
-        max-width: 100vw !important;
-        overflow-x: auto !important; /* Parmağınla sadece burayı kaydırabilirsin */
-        -webkit-overflow-scrolling: touch;
-        border: 1px solid #444;
-        background: #1a1d21;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 1px solid #333 !important;
     }
 
-    /* Tablo verileri birbirine girmesin, geniş kalsın */
+    /* Tablonun kendisi geniş kalsın ki yazılar üst üste binmesin */
     table {
-        min-width: 1000px !important; 
-        table-layout: auto !important;
-    }
-
-    /* 6. Arama çubuğu ve başlıklar ekrana sığsın */
-    .header-content, .search-bar {
+        min-width: 850px !important; 
         width: 100% !important;
+        max-width: none !important; /* Kısıtlamayı kaldır ki rahatça kayabilsin */
+    }
+    
+    /* 6. Arama çubuğu gibi inputlar ekranı patlatmasın */
+    input, select, textarea {
         max-width: 100% !important;
-        box-sizing: border-box !important;
     }
-
-    /* 7. Kayıt Ekranı (Modal) */
-    .modal-content {
-        width: 96% !important;
-        margin: 2% auto !important;
-        padding: 10px !important;
-    }
+    
+    .sidebar.collapsed { display: none !important; }
 }
 /* --- MOBİL AYARLARIN SONU --- */    </style>
 
