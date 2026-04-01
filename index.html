@@ -1714,13 +1714,22 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(dd&&sw&&!sw.contains(e.target)){dd.classList.remove('show');}
     });
 
-    window.searchGoTo=function(type,idx,firmName){
-        let dd=document.getElementById('live-search-dropdown');if(dd){dd.classList.remove('show');dd.innerHTML='';}
-        let inp=document.getElementById('global-search-input');if(inp)inp.value='';
-        if(type==='decl'){window.renderView('declarations');setTimeout(()=>window.openDeclVehicleModal(idx,'decl'),150);}
-        else if(type==='kiymet'){window.renderView('kiymetListesi');}
-        else if(type==='firm'){window.currentFirm=firmName;window.renderView('firmDetails');setTimeout(()=>window.openDeclVehicleModal(idx,'firm'),150);}
-    };
+    // --- ARAMA SONUCUNA TIKLAYINCA DİREKT ARACI AÇAN MOTOR ---
+window.searchGoTo=function(type,idx,firmName){
+    let dd=document.getElementById('live-search-dropdown');if(dd){dd.classList.remove('show');dd.innerHTML='';}
+    let inp=document.getElementById('global-search-input');if(inp)inp.value='';
+    
+    if(type==='decl'){
+        window.openDeclVehicleModal(idx,'decl');
+    }
+    else if(type==='firm'){
+        window.currentFirm=firmName;
+        window.openDeclVehicleModal(idx,'firm');
+    }
+    else if(type==='kiymet'){
+        window.editKiymet(idx);
+    }
+};
     window.handleGlobalSearch=function(v){window.liveSearch(v);};
 
     window.openVehicleCalc = function(idx) {
