@@ -1949,13 +1949,19 @@ window.fetchTCMBKur = async function(auto = false) {
             let sh=m.sonGun||'-';
             if(m.sonGun==='Kıymette')sh='<span class="badge badge-kiymette">Kıymette</span>';
             else if(m.sonGun&&m.sonGun!=='Süresiz')sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
-            // Tablo içinde badge oluşturulan yer
-let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
-let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
+            
+            let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
+            let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
+            
+            // --- YENİ EKLENEN 2025 MODEL UYARISI ---
+            let modelUyari = '';
+            if (String(d.yil).trim() === '2025' && isAcik && (!d.beyanname || d.beyanname.trim() === '')) {
+                modelUyari = `<br><span style="display:inline-block; margin-top:4px; padding:3px 6px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:4px; color:var(--danger); font-size:10.5px; font-weight:700; animation:pulse-alarm 1.5s infinite;" title="2025/9 Sonrası üretimler için son tescil 30.04.2026'dır">⚠️ 30.04.2026 SINIRI</span>`;
+            }
             
             return `<tr class="${rc}">
                 <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
-                <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''}</span></td>
+                <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}</td>
                 <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
                 <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'tarih')"` : ''}>${d.tarih||'-'}</td>
                 <td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td>
@@ -1973,28 +1979,13 @@ let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</
                 <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
                 <td style="text-align:center;">
                     <div style="display:flex;gap:3px;justify-content:center;">
-
-    <button class="icon-btn" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i})" title="Süre Uzatma Dilekçesi">
-        <i data-lucide="file-clock"></i>
-    </button>
-
-    ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
-<button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'decl')" title="WhatsApp ile Müşteriye Bildir">
-        <i data-lucide="message-circle"></i>
-    </button>
-    
-    <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret">
-        <i data-lucide="file-signature"></i>
-    </button>
-    
-    <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'decl')">
-        <i data-lucide="edit-3"></i>
-    </button>
-    
-    <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})">
-        <i data-lucide="trash-2"></i>
-    </button>
-</div>
+                        <button class="icon-btn" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i})" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
+                        ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+                        <button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'decl')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
+                        <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
+                        <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'decl')"><i data-lucide="edit-3"></i></button>
+                        <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})"><i data-lucide="trash-2"></i></button>
+                    </div>
                 </td>
             </tr>`;
         }).join('');
@@ -2003,48 +1994,71 @@ let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</
 
     window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div></div>`;}).join('');if(window.lucide)lucide.createIcons();};
     window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
-    window.renderFirmVehicles = function() {
-    let tb = document.getElementById('firm-vehicles-tbody');
-    if (!tb || !window.currentFirm) return;
+    window.renderFirmVehicles=function(){
+        let tbody=document.getElementById('firm-vehicles-tbody');if(!tbody)return;
+        let cF=window.currentFirm;if(!cF)return;
+        let fv=document.getElementById('firm-status-filter')?.value||'all';
+        let list=(window.firmData[cF]||[]).map((d,i)=>({data:d,origIdx:i}));
+        if(fv==='acik')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';});
+        else if(fv==='kiymet')list=list.filter(x=>x.data.kiymVv&&!x.data.kiymGt);
+        else if(fv==='sure_alinmayan')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return (e==='açık'||e==='acik') && !x.data.ekSure && !x.data.antTarih;});
+        
+        if(!list.length){tbody.innerHTML=`<tr><td colspan="17" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait kayıt bulunamadı.</td></tr>`;return;}
+        
+        tbody.innerHTML=list.map(item=>{
+            let d=item.data,i=item.origIdx,m=window.calculateVehicleMetrics(d);
+            let isKiymette=d.kiymVv&&!d.kiymGt;
+            let isAcik=(d.evrak||'').toLocaleLowerCase('tr')==='açık'||(d.evrak||'').toLocaleLowerCase('tr')==='acik';
+            let isKapali=!isAcik&&(m.klnGun===0||m.klnGun==='0');
+            let rc=isKiymette?'row-kiymette':isAcik&&!isKiymette?'row-beklemede':isKapali?'row-kapali':'';
+            let kh='-';
+            if(m.klnGun===0||m.klnGun==='0')kh='<span style="color:#52525b;">0</span>';
+            else if(m.klnGun!==''&&m.klnGun!=='Süresiz'){let v=parseInt(m.klnGun);if(isNaN(v)||v<=0)kh='<span style="color:#52525b;">0</span>';else if(v<=5)kh=`<span class="urgent-pulse">${v}</span>`;else if(v<=20)kh=`<span class="text-warning">${v}</span>`;else kh=`<span class="text-success">${v}</span>`;}
+            else if(m.klnGun==='Süresiz')kh='<span class="text-muted">Süresiz</span>';
+            let sh=m.sonGun||'-';
+            if(m.sonGun==='Kıymette')sh='<span class="badge badge-kiymette">Kıymette</span>';
+            else if(m.sonGun&&m.sonGun!=='Süresiz')sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
+            
+            let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
+            let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
 
-    let arr = window.firmData[window.currentFirm] || [];
-    
-    if (!arr.length) {
-        tb.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:48px;color:var(--text-muted);">Araç yok.</td></tr>';
-        return;
-    }
+            // --- YENİ EKLENEN 2025 MODEL UYARISI ---
+            let modelUyari = '';
+            if (String(d.yil).trim() === '2025' && isAcik && (!d.beyanname || d.beyanname.trim() === '')) {
+                modelUyari = `<br><span style="display:inline-block; margin-top:4px; padding:3px 6px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:4px; color:var(--danger); font-size:10.5px; font-weight:700; animation:pulse-alarm 1.5s infinite;" title="2025/9 Sonrası üretimler için son tescil 30.04.2026'dır">⚠️ 30.04.2026 SINIRI</span>`;
+            }
 
-    tb.innerHTML = arr.map((d, i) => `
-    <tr>
-        <td style="text-align:center;"><input type="checkbox" class="custom-cb firm-cb" value="${i}" onclick="window.toggleFirmCb()"></td>
-        <td><span class="font-bold" style="color:var(--text-primary);">${d.marka || '-'} ${d.model || '-'}</span></td>
-        <td>${d.yil || '-'}</td>
-        <td>${d.renk || '-'}</td>
-        <td class="font-bold" style="font-family:monospace;">${d.sasi || '-'}</td>
-        <td>${d.tarih || '-'}</td>
-        <td>${d.beyanname || '-'}</td>
-        <td>${d.fatura ? window.formatNumber(d.fatura) + ' €' : '-'}</td>
-        <td style="color:var(--success);font-weight:600;">${d.kiymet ? window.formatNumber(d.kiymet) + ' €' : '-'}</td>
-        <td style="text-align:right; padding-right:15px;">
-            <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center;">
-                ${d.evrakLink ? 
-                    `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak"><i data-lucide="paperclip"></i></a>` : 
-                    `<span style="color:var(--text-muted);opacity:0.4;"><i data-lucide="minus"></i></span>`
-                }
-                <button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'firm')" title="WhatsApp"><i data-lucide="message-circle"></i></button>
-                <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname"><i data-lucide="file-signature"></i></button>
-                <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')" title="Düzenle"><i data-lucide="edit-3"></i></button>
-                <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteFirmVehicle(${i})" title="Sil"><i data-lucide="trash-2"></i></button>
-            </div>
-        </td>
-    </tr>`).join('');
-
-    // Arayüzü tazele
-    if(document.getElementById('firm-selectAll')) document.getElementById('firm-selectAll').checked = false;
-    if(typeof window.toggleFirmCb === 'function') window.toggleFirmCb();
-    if(typeof window.applyRoleUI === 'function') window.applyRoleUI();
-    if (window.lucide) lucide.createIcons();
-};
+            return `<tr class="${rc}">
+                <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb firm-cb" value="${i}" onclick="window.toggleFirmCb()"></td>
+                <td><span class="font-bold" style="color:var(--text-primary);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}</td>
+                <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
+                <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'tarih','firm')"` : ''}>${d.tarih||'-'}</td>
+                <td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td>
+                <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'ekSure','firm')"` : ''}>${d.ekSure||'-'}</td>
+                <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'antTarih','firm')"` : ''}>${d.antTarih||'-'}</td>
+                <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'beynmCif','firm')"` : ''}>${d.beynmCif||'-'}</td>
+                <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'kiymVv','firm')"` : ''}>${d.kiymVv||'-'}</td>
+                <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'kiymGt','firm')"` : ''}>${d.kiymGt||'-'}</td>
+                <td>${m.klnSonTarih||'-'}</td>
+                <td class="font-bold">${kh}</td>
+                <td>${sh}</td>
+                <td>${evBadge}</td>
+                <td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
+                <td style="color:var(--danger);font-weight:600;">${window.formatNumber(m.ardiye)} ₺</td>
+                <td style="text-align:center;">
+                    <div style="display:flex;gap:3px;justify-content:center;">
+                        <button class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'firm')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
+                        ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+                        <button class="icon-btn admin-only" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'firm')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
+                        <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
+                        <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')"><i data-lucide="edit-3"></i></button>
+                        <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+        document.getElementById('firm-selectAll').checked=false;window.toggleFirmCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();
+    };
 
     window.renderKiymetTable=function(){let tb=document.getElementById('kiymet-tbody');if(!tb)return;tb.innerHTML=window.kiymetData.map((k,i)=>{let dc=k.durum&&k.durum.toUpperCase().includes('MAHKEME')?'badge-danger':(k.durum&&k.durum.toUpperCase().includes('YOK')?'badge-dark':'badge-warning');return`<tr><td style="text-align:center;"><input type="checkbox" class="custom-cb kiymet-cb" value="${i}" onclick="window.toggleKiymetCb()"></td><td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td><td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura?window.formatNumber(k.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${k.kiymet?window.formatNumber(k.kiymet)+' €':'-'}</td><td>${k.durum?`<span class="badge ${dc}">${k.durum}</span>`:'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.editKiymet(${i})"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteKiymet(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;}).join('');document.getElementById('kiymet-selectAll').checked=false;window.toggleKiymetCb();if(window.lucide)lucide.createIcons();};
 
