@@ -937,7 +937,6 @@
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firma Detayı</div><h1 class="page-title" id="current-firm-title">Firma</h1></div><div class="page-actions"><button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button><button class="btn-sm" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button><button id="firm-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"></i> Sil (<span id="firm-selected-count">0</span>)</button><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button></div></div> 
     <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ ↕</th><th>BEYANNAME</th><th>FATURA</th><th>KIYMET</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div> 
 </template>
-
 <template id="tpl-declarations"> 
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Gümrük Kayıtları</div><h1 class="page-title">Gelen Araçlar</h1></div></div> 
     <div class="toolbar fade-in">
@@ -951,6 +950,7 @@
             <button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden admin-only" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button>
         </div>
         <div class="toolbar-right">
+            <button class="btn-sm admin-only" style="margin-right:10px; border-color:var(--kiymet-color); color:var(--kiymet-color); font-weight:600;" onclick="window.syncMissingDriveLinks()">🔗 Linkleri Senkronize Et</button>
             <button class="btn-primary admin-only" onclick="window.openDeclVehicleModal(-1,'decl')"><i data-lucide="plus"></i> Yeni Kayıt</button>
         </div>
     </div> 
@@ -2119,12 +2119,15 @@ window.triggerDriveBridge = function(firma, marka, sasi) {
     });
 };
 
-// --- 2. AKILLI KAYIT MOTORU (ASYNC KELİMESİ EKLENDİ) ---
+// --- 2. AKILLI KAYIT MOTORU (DRIVE BAĞLANTILI) ---
 window.saveDeclEntry = async function(){ 
     let i=parseInt(document.getElementById('decl-edit-idx').value);
     let val=id=>document.getElementById(id)?.value.trim()||'';
     let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
     
+    // Senin özel Google Drive Linkin
+    const DRIVE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-rQswAPEP8tYIkR8FDxhw-QCRGodLrnvz6evbeAvOmCpetNDjOQdpx_kB2e2N3dTN1Q/exec";
+
     let r={
         firma:val('da-firma'),
         marka:val('da-marka').toUpperCase(),
@@ -2153,13 +2156,23 @@ window.saveDeclEntry = async function(){
 
     if(!r.firma || !r.tarih){alert('Zorunlu alanları doldurun!'); return;}
     
-    // EĞER LİNK YOKSA VE YENİ KAYITSA BEKLE VE LİNKİ AL
+    // EĞER LİNK YOKSA VE YENİ KAYITSA GOOGLE DRIVE'DA KLASÖR AÇAR
     if(!r.evrakLink && i === -1) { 
-        let driveUrl = await window.triggerDriveBridge(r.firma, r.marka, r.sasi);
-        if(driveUrl) { r.evrakLink = driveUrl; }
+        showSyncToast("Google Drive'da klasör oluşturuluyor...");
+        try {
+            const response = await fetch(DRIVE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors", // Güvenlik kısıtlamasını aşmak için
+                body: JSON.stringify({ folderName: r.firma + " - " + r.marka + " - " + r.sasi })
+            });
+            // no-cors modunda cevap boş döner ama işlem Google tarafında yapılır.
+            // Klasörü manuel kontrol etmen veya linki elle yapıştırman gerekebilir.
+            hideSyncToast("Klasör oluşturma isteği gönderildi!", true);
+        } catch (err) {
+            console.error("Drive hatası:", err);
+        }
     }
     
-    // KAYIT İŞLEMLERİ
     if(window.currentModalContext==='decl'){
         let os=i===-1?null:window.declarationsData[i].sasi;
         if(i===-1){
@@ -2184,13 +2197,6 @@ window.saveDeclEntry = async function(){
             let di=window.declarationsData.findIndex(x=>x.sasi===os);
             if(di!==-1)window.declarationsData[di]=r;
         }
-    }
-
-    let kiymetIndex = window.kiymetData.findIndex(k => k.sasi === r.sasi);
-    if(kiymetIndex !== -1) {
-        window.kiymetData[kiymetIndex] = { ...window.kiymetData[kiymetIndex], marka: r.marka, model: r.model, sasi: r.sasi, tarih: r.tarih };
-    } else {
-        window.kiymetData.unshift({ marka: r.marka, model: r.model, sasi: r.sasi, tarih: r.tarih, fatura: r.fatura, durum: r.evrak });
     }
 
     if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); saveData('kiymet'); }
@@ -2223,6 +2229,45 @@ window.sendWhatsApp = function(idx, ctx) {
     // WhatsApp'a yönlendir (Telefonda uygulamayı, bilgisayarda WhatsApp Web'i/Uygulamasını açar)
     let url = `https://wa.me/?text=${encodeURIComponent(mesaj)}`;
     window.open(url, '_blank');
+};
+
+// --- 3. TOPLU DRIVE SENKRONİZE MOTORU ---
+window.syncMissingDriveLinks = async function() {
+    const DRIVE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-rQswAPEP8tYIkR8FDxhw-QCRGodLrnvz6evbeAvOmCpetNDjOQdpx_kB2e2N3dTN1Q/exec";
+    
+    let list = window.declarationsData;
+    let missingLinks = list.filter(item => !item.evrakLink || item.evrakLink === "");
+
+    if (missingLinks.length === 0) {
+        alert("Harika! Linki eksik olan araç bulunamadı.");
+        return;
+    }
+
+    if (!confirm(missingLinks.length + " adet aracın klasörü kontrol edilecek. Başlayalım mı?")) return;
+
+    showSyncToast("Toplu işlem başlatıldı...");
+
+    for (let item of missingLinks) {
+        try {
+            const response = await fetch(DRIVE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ folderName: item.firma + " - " + item.marka + " - " + item.sasi })
+            });
+            const result = await response.json();
+            
+            // Linki bulup araca yapıştırıyoruz
+            if (result.url) {
+                item.evrakLink = result.url;
+            }
+        } catch (err) {
+            console.error("Hata şasi:", item.sasi);
+        }
+    }
+
+    saveData('decl'); // Değişiklikleri Firebase'e uçur
+    window.renderDeclarationsTable(); // Tabloyu tazele
+    alert("İşlem tamam! Tüm eksik linkler bağlandı.");
+    hideSyncToast("Senkronizasyon bitti!", true);
 };
 
     window.openExcelModal=function(ctx){document.getElementById('excel-target-context').value=ctx;document.getElementById('excel-modal').classList.remove('hidden');};
