@@ -925,6 +925,15 @@
             <div class="stat-value" id="dash-sure-alinmayan" style="font-size: 46px; margin-top: 8px; margin-bottom: 16px;">0</div>
             <div class="stat-bar"><div class="stat-bar-fill red" style="background:var(--danger); width:0%"></div></div>
         </div>
+        
+        <div class="stat-card" onclick="window.goToFilter('risk_2025')">
+            <div class="stat-card-top" style="align-items: center;">
+                <div style="font-size: 14px; font-weight: 800; color: #ef4444; letter-spacing: 0.5px;">2025 RİSKLİ ARAÇLAR</div>
+                <span class="stat-trend warn" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#ef4444; animation:pulse-alarm 1.5s infinite;">30.04 Sınırı</span>
+            </div>
+            <div class="stat-value" id="dash-risk-2025" style="font-size: 46px; margin-top: 8px; margin-bottom: 16px; color:#ef4444;">0</div>
+            <div class="stat-bar"><div class="stat-bar-fill red" style="background:#ef4444; width:0%"></div></div>
+        </div>
     </div>
 </template>
 <template id="tpl-firms"> 
@@ -1910,6 +1919,12 @@ window.fetchTCMBKur = async function(auto = false) {
         return (e==='açık'||e==='acik') && !d.ekSure && !d.antTarih;
     }).length;
 
+    // YENİ: 2025 RİSKLİ ARAÇLARIN HESAPLANMASI
+    let risk2025 = data.filter(d => {
+        let isAcik = (d.evrak||'').toLocaleLowerCase('tr') === 'açık' || (d.evrak||'').toLocaleLowerCase('tr') === 'acik';
+        return isAcik && String(d.yil).trim() === '2025' && (!d.beyanname || d.beyanname.trim() === '');
+    }).length;
+
     if(document.getElementById('dash-total'))document.getElementById('dash-total').innerText=t;
     if(document.getElementById('dash-kiymet'))document.getElementById('dash-kiymet').innerText=ki;
     if(document.getElementById('dash-ambar'))document.getElementById('dash-ambar').innerText=ac;
@@ -1918,6 +1933,12 @@ window.fetchTCMBKur = async function(auto = false) {
         document.getElementById('dash-sure-alinmayan').innerText=sureAlinmayan;
         let bar = document.querySelector('#dash-sure-alinmayan + .stat-bar .stat-bar-fill');
         if(bar) bar.style.width = t > 0 ? (sureAlinmayan/t*100) + '%' : '0%';
+    }
+
+    if(document.getElementById('dash-risk-2025')) {
+        document.getElementById('dash-risk-2025').innerText=risk2025;
+        let bar = document.querySelector('#dash-risk-2025 + .stat-bar .stat-bar-fill');
+        if(bar) bar.style.width = t > 0 ? (risk2025/t*100) + '%' : '0%';
     }
 };
 
