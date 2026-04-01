@@ -2659,8 +2659,13 @@ window.prepareSureDilekcesi = function(idx) {
         if (firmaDiv) {
             firmaDiv.innerText = firmaAdi;
             if (imzaDiv) {
-                if (firmaAdi.toUpperCase().indexOf("ŞAMNU") !== -1) {
+                let fUst = firmaAdi.toUpperCase();
+                if (fUst.indexOf("ŞAMNU") !== -1) {
                     imzaDiv.innerText = "FEVZİ ALPER TAVMAN";
+                } else if (fUst.indexOf("FF OTOMOTİV") !== -1) {
+                    imzaDiv.innerText = "FATİH İSMAİL ÇELEBİ";
+                } else if (fUst.indexOf("KARABAYIR") !== -1) {
+                    imzaDiv.innerText = "İSİM SOYİSİM BURAYA"; // İstersen buraya Karabayır'ın yetkilisini yazabilirsin
                 } else {
                     imzaDiv.innerText = "........................";
                 }
