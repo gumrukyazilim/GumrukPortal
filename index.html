@@ -634,66 +634,69 @@
         flex-direction: column;
     }
 }
-/* --- TELEFON (MOBİL) UYUMLULUK AYARLARI --- */
+/* --- TELEFON (MOBİL) UYUMLULUK AYARLARI (TAM PAKET) --- */
 @media (max-width: 768px) {
-    /* Ana ekranı telefon için dikey yap */
+    /* 1. Sayfanın tamamının sağa sola kaçmasını engelle */
+    body, html {
+        overflow-x: hidden !important;
+        position: relative;
+        width: 100%;
+    }
+
+    /* 2. Ana taşıyıcıyı dikey yap */
     .app-container { 
         flex-direction: column !important; 
     }
     
-    /* Yan menü telefonun en üstünde dursun */
+    /* 3. Yan menü (Sidebar) ayarları */
     .sidebar { 
         width: 100% !important; 
         height: auto !important; 
         min-height: auto !important;
         position: relative !important;
     }
-    
-    /* Menü kapalıyken telefonda yer kaplamasın */
-    .sidebar.collapsed { 
-        display: none !important; 
+    .sidebar.collapsed { display: none !important; }
+
+    /* 4. YENİ KAYIT BUTONUNU KÜÇÜLT */
+    .new-record-btn {
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+        width: auto !important;
+        min-width: 100px !important;
     }
 
-    /* Tablolar ekrandan taşmasın, parmakla sağa sola kaysın */
+    /* 5. TABLOYU SABİTLE VE KAYDIRILABİLİR YAP */
     .table-container {
-        overflow-x: auto !important;
+        display: block !important;
+        width: 100% !important;
+        overflow-x: auto !important; /* Sadece tablo sağa sola kaysın */
         -webkit-overflow-scrolling: touch;
-        margin-bottom: 20px;
+        border: 1px solid #333;
+        margin-top: 10px;
     }
 
-    /* Kayıt/Düzenleme ekranı telefonun ekranına tam otursun */
+    /* Tablo içeriği birbirine girmesin diye genişlik ver */
+    table {
+        min-width: 900px !important; 
+    }
+
+    /* 6. Kayıt Ekranı (Modal) telefona tam otursun */
     .modal-content {
-        width: 95% !important;
-        max-width: none !important;
+        width: 98% !important;
         margin: 5px auto !important;
         padding: 10px !important;
     }
 
-    /* Form kutuları alt alta dizilsin */
-    .form-row {
-        flex-direction: column !important;
-    }
+    .form-row { flex-direction: column !important; }
     
-    .input-group {
-        width: 100% !important;
-        margin-right: 0 !important;
-    }
-
-    /* Dilekçe önizlemesi telefonda çok büyük kalmasın */
+    /* 7. Dilekçe Önizleme */
     #dilekce-onizleme {
         width: 100% !important;
-        height: auto !important;
         padding: 10px !important;
-        font-size: 14px !important; /* Telefonda yazılar biraz küçülsün ki sığsın */
-    }
-    
-    /* Dilekçedeki şase ve özet beyan puntosunu telefona göre ayarla */
-    #dilekce-arac-listesi p {
-        font-size: 16px !important; 
+        font-size: 14px !important;
     }
 }
-/* --- MOBİL AYARLARIN SONU --- */
-    </style>
+/* --- MOBİL AYARLARIN SONU --- */    </style>
 
     <div class="page-hdr no-print">
         <div><h1 class="page-title">Süre Uzatımı Dilekçesi</h1></div>
