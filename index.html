@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr" data-theme="dark">
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GümrükPortal Cloud — Enterprise</title>
@@ -596,6 +597,102 @@
             }
             .no-print { display: none !important; }
         }
+@media (max-width: 768px) {
+    /* Ana taşıyıcıyı dikey yap */
+    .app-container { flex-direction: column; }
+    
+    /* Yan menü (sidebar) telefonun en üstüne gelsin veya gizlensin */
+    .sidebar { 
+        width: 100% !important; 
+        height: auto; 
+        position: relative;
+    }
+    
+    .sidebar.collapsed { display: none; } /* Kapalıyken hiç yer kaplamasın */
+
+    /* Tabloyu kaydırılabilir yap (Ekrandan taşmasın) */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Kartları (İstatistikleri) 2'şerli dizebilirsin */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    /* Modal (Kayıt ekranı) telefonun tamamını kaplasın */
+    .modal-content {
+        width: 95% !important;
+        margin: 10px auto;
+        padding: 15px;
+    }
+
+    /* Input gruplarını yan yana değil alt alta yap */
+    .form-row {
+        flex-direction: column;
+    }
+}
+/* --- TELEFON (MOBİL) UYUMLULUK AYARLARI --- */
+@media (max-width: 768px) {
+    /* Ana ekranı telefon için dikey yap */
+    .app-container { 
+        flex-direction: column !important; 
+    }
+    
+    /* Yan menü telefonun en üstünde dursun */
+    .sidebar { 
+        width: 100% !important; 
+        height: auto !important; 
+        min-height: auto !important;
+        position: relative !important;
+    }
+    
+    /* Menü kapalıyken telefonda yer kaplamasın */
+    .sidebar.collapsed { 
+        display: none !important; 
+    }
+
+    /* Tablolar ekrandan taşmasın, parmakla sağa sola kaysın */
+    .table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 20px;
+    }
+
+    /* Kayıt/Düzenleme ekranı telefonun ekranına tam otursun */
+    .modal-content {
+        width: 95% !important;
+        max-width: none !important;
+        margin: 5px auto !important;
+        padding: 10px !important;
+    }
+
+    /* Form kutuları alt alta dizilsin */
+    .form-row {
+        flex-direction: column !important;
+    }
+    
+    .input-group {
+        width: 100% !important;
+        margin-right: 0 !important;
+    }
+
+    /* Dilekçe önizlemesi telefonda çok büyük kalmasın */
+    #dilekce-onizleme {
+        width: 100% !important;
+        height: auto !important;
+        padding: 10px !important;
+        font-size: 14px !important; /* Telefonda yazılar biraz küçülsün ki sığsın */
+    }
+    
+    /* Dilekçedeki şase ve özet beyan puntosunu telefona göre ayarla */
+    #dilekce-arac-listesi p {
+        font-size: 16px !important; 
+    }
+}
+/* --- MOBİL AYARLARIN SONU --- */
     </style>
 
     <div class="page-hdr no-print">
