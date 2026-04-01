@@ -926,15 +926,14 @@
             <div class="stat-bar"><div class="stat-bar-fill red" style="background:var(--danger); width:0%"></div></div>
         </div>
         
-        <div class="stat-card" onclick="window.goToFilter('risk_2025')">
+        <div class="stat-card" onclick="window.goToFilter('risk_dinamik')">
             <div class="stat-card-top" style="align-items: center;">
-                <div style="font-size: 14px; font-weight: 800; color: #ef4444; letter-spacing: 0.5px;">2025 RİSKLİ ARAÇLAR</div>
+                <div style="font-size: 14px; font-weight: 800; color: #ef4444; letter-spacing: 0.5px;">TESCİL RİSKLİ ARAÇLAR</div>
                 <span class="stat-trend warn" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#ef4444; animation:pulse-alarm 1.5s infinite;">30.04 Sınırı</span>
             </div>
-            <div class="stat-value" id="dash-risk-2025" style="font-size: 46px; margin-top: 8px; margin-bottom: 16px; color:#ef4444;">0</div>
+            <div class="stat-value" id="dash-risk-dinamik" style="font-size: 46px; margin-top: 8px; margin-bottom: 16px; color:#ef4444;">0</div>
             <div class="stat-bar"><div class="stat-bar-fill red" style="background:#ef4444; width:0%"></div></div>
         </div>
-    </div>
 </template>
 <template id="tpl-firms"> 
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firmalar</div><h1 class="page-title">Firma Arşivi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button></div></div> 
@@ -1919,10 +1918,19 @@ window.fetchTCMBKur = async function(auto = false) {
         return (e==='açık'||e==='acik') && !d.ekSure && !d.antTarih;
     }).length;
 
-    // YENİ: 2025 RİSKLİ ARAÇLARIN HESAPLANMASI
-    let risk2025 = data.filter(d => {
+   // YENİ: DİNAMİK RİSKLİ ARAÇLARIN HESAPLANMASI (Son 60 Gün Kala)
+    let riskDinamik = data.filter(d => {
         let isAcik = (d.evrak||'').toLocaleLowerCase('tr') === 'açık' || (d.evrak||'').toLocaleLowerCase('tr') === 'acik';
-        return isAcik && String(d.yil).trim() === '2025' && (!d.beyanname || d.beyanname.trim() === '');
+        if (!isAcik || (d.beyanname && d.beyanname.trim() !== '')) return false;
+        
+        let pYil = parseInt(String(d.yil).trim());
+        if (isNaN(pYil) || pYil < 2020) return false;
+        
+        let deadline = new Date(pYil + 1, 3, 30); // 30 Nisan
+        let now = new Date();
+        let gunFarki = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+        
+        return gunFarki <= 60; // Sadece son 60 gün kala karta yansıt
     }).length;
 
     if(document.getElementById('dash-total'))document.getElementById('dash-total').innerText=t;
@@ -1935,10 +1943,10 @@ window.fetchTCMBKur = async function(auto = false) {
         if(bar) bar.style.width = t > 0 ? (sureAlinmayan/t*100) + '%' : '0%';
     }
 
-    if(document.getElementById('dash-risk-2025')) {
-        document.getElementById('dash-risk-2025').innerText=risk2025;
-        let bar = document.querySelector('#dash-risk-2025 + .stat-bar .stat-bar-fill');
-        if(bar) bar.style.width = t > 0 ? (risk2025/t*100) + '%' : '0%';
+    if(document.getElementById('dash-risk-dinamik')) {
+        document.getElementById('dash-risk-dinamik').innerText=riskDinamik;
+        let bar = document.querySelector('#dash-risk-dinamik + .stat-bar .stat-bar-fill');
+        if(bar) bar.style.width = t > 0 ? (riskDinamik/t*100) + '%' : '0%';
     }
 };
 
@@ -1974,10 +1982,20 @@ window.fetchTCMBKur = async function(auto = false) {
             let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
             let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
             
-            // --- YENİ EKLENEN 2025 MODEL UYARISI ---
+            // --- YENİ EKLENEN DİNAMİK TESCİL UYARISI (SON 60 GÜN) ---
             let modelUyari = '';
-            if (String(d.yil).trim() === '2025' && isAcik && (!d.beyanname || d.beyanname.trim() === '')) {
-                modelUyari = `<br><span style="display:inline-block; margin-top:4px; padding:3px 6px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:4px; color:var(--danger); font-size:10.5px; font-weight:700; animation:pulse-alarm 1.5s infinite;" title="2025/9 Sonrası üretimler için son tescil 30.04.2026'dır">⚠️ 30.04.2026 SINIRI</span>`;
+            if (d.yil && isAcik && (!d.beyanname || d.beyanname.trim() === '')) {
+                let pYil = parseInt(String(d.yil).trim());
+                if (!isNaN(pYil) && pYil >= 2020) { 
+                    let sinirYil = pYil + 1;
+                    let deadline = new Date(sinirYil, 3, 30); // 30 Nisan (JS'de aylar 0'dan başlar, 3 = Nisan)
+                    let now = new Date();
+                    let gunFarki = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+                    
+                    if (gunFarki <= 60) { // Sadece 60 gün (yaklaşık 2 ay) kala veya geçmişse göster
+                        modelUyari = `<br><span style="display:inline-block; margin-top:4px; padding:3px 6px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:4px; color:var(--danger); font-size:10.5px; font-weight:700; animation:pulse-alarm 1.5s infinite;" title="${pYil}/9 Sonrası üretimler için son tescil 30.04.${sinirYil}'dir">⚠️ 30.04.${sinirYil} SINIRI</span>`;
+                    }
+                }
             }
             
             return `<tr class="${rc}">
@@ -2043,10 +2061,20 @@ window.fetchTCMBKur = async function(auto = false) {
             let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
             let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
 
-            // --- YENİ EKLENEN 2025 MODEL UYARISI ---
+            // --- YENİ EKLENEN DİNAMİK TESCİL UYARISI (SON 60 GÜN) ---
             let modelUyari = '';
-            if (String(d.yil).trim() === '2025' && isAcik && (!d.beyanname || d.beyanname.trim() === '')) {
-                modelUyari = `<br><span style="display:inline-block; margin-top:4px; padding:3px 6px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:4px; color:var(--danger); font-size:10.5px; font-weight:700; animation:pulse-alarm 1.5s infinite;" title="2025/9 Sonrası üretimler için son tescil 30.04.2026'dır">⚠️ 30.04.2026 SINIRI</span>`;
+            if (d.yil && isAcik && (!d.beyanname || d.beyanname.trim() === '')) {
+                let pYil = parseInt(String(d.yil).trim());
+                if (!isNaN(pYil) && pYil >= 2020) { 
+                    let sinirYil = pYil + 1;
+                    let deadline = new Date(sinirYil, 3, 30); // 30 Nisan (JS'de aylar 0'dan başlar, 3 = Nisan)
+                    let now = new Date();
+                    let gunFarki = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+                    
+                    if (gunFarki <= 60) { // Sadece 60 gün (yaklaşık 2 ay) kala veya geçmişse göster
+                        modelUyari = `<br><span style="display:inline-block; margin-top:4px; padding:3px 6px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:4px; color:var(--danger); font-size:10.5px; font-weight:700; animation:pulse-alarm 1.5s infinite;" title="${pYil}/9 Sonrası üretimler için son tescil 30.04.${sinirYil}'dir">⚠️ 30.04.${sinirYil} SINIRI</span>`;
+                    }
+                }
             }
 
             return `<tr class="${rc}">
