@@ -958,6 +958,9 @@
             <button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden admin-only" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button>
         </div>
         <div class="toolbar-right">
+<button class="btn-primary admin-only" style="background-color: var(--success); margin-right: 10px;" onclick="window.baslatRobot()">
+    <i data-lucide="folder-sync"></i> Dosyaları Tara (Robot)
+</button>
             <button class="btn-primary admin-only" onclick="window.openDeclVehicleModal(-1,'decl')"><i data-lucide="plus"></i> Yeni Kayıt</button>
         </div>
     </div> 
@@ -1283,13 +1286,13 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 window._firebaseSave = async function(payload) {
-    try { await set(ref(db, 'portal_data'), payload); return true; }
+    try { await set(ref(db, 'portal_data_test'), payload); return true; }
     catch(e) { console.error("Firebase save error:", e); return false; }
 };
 
 window._firebaseLoad = async function() {
     try {
-        const snapshot = await get(ref(db, 'portal_data'));
+        const snapshot = await get(ref(db, 'portal_data_test'));
         if(snapshot.exists()) return snapshot.val();
         return null;
     } catch(e) { console.error("Firebase load error:", e); return null; }
@@ -1502,13 +1505,32 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));}catch(e){}}
     function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);}catch(e){}}
 
+    
+    window._dataLoaded = false; // SİSTEM KİLİDİ (BAŞLANGIÇTA KAPALI)
+
     let cloudSaveTimeout=null;
     function saveData(type){
+        // GÜVENLİK KİLİDİ 1: Veriler buluttan inmediyse ASLA kaydetme!
+        if (!window._dataLoaded) {
+            console.warn("KORUMA AKTİF: Veriler tam yüklenmeden üzerine yazma engellendi!");
+            return; 
+        }
+
         saveToLocal();
         showSyncToast("Firebase'e kaydediliyor...");
         clearTimeout(cloudSaveTimeout);
         cloudSaveTimeout=setTimeout(async()=>{
             if(window._firebaseSave){
+                
+                // GÜVENLİK KİLİDİ 2: Eğer liste boşsa ve bulutu silmek üzereyse uyar!
+                if(window.declarationsData.length === 0) {
+                    let onayla = confirm("DİKKAT KORUMA SİSTEMİ: Sistemdeki tüm araçlar silinmiş görünüyor! Bunu buluta kaydedip tüm arşivi boşaltmak istediğinize emin misiniz?");
+                    if(!onayla) {
+                        hideSyncToast("Kayıt güvenlik sebebiyle iptal edildi.", false);
+                        return;
+                    }
+                }
+
                 let ok=await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData});
                 if(ok)hideSyncToast("Firebase'e kaydedildi!",true);else hideSyncToast("Kayıt başarısız!",false);
             }else{hideSyncToast("Firebase henüz hazır değil",false);}
@@ -1537,24 +1559,24 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                 
                 window.declarationsData.forEach(d=>{
                     if(d){
-                        d.tarih=window.fixExcelDate(d.tarih);
-                        d.kiymVv=window.fixExcelDate(d.kiymVv);
-                        d.kiymGt=window.fixExcelDate(d.kiymGt);
-                        d.ekSure=window.fixExcelDate(d.ekSure);
-                        d.antTarih=window.fixExcelDate(d.antTarih);
-                        d.beynmCif=window.fixExcelDate(d.beynmCif);
+                        d.tarih=window.fixExcelDate(d.tarih); d.kiymVv=window.fixExcelDate(d.kiymVv);
+                        d.kiymGt=window.fixExcelDate(d.kiymGt); d.ekSure=window.fixExcelDate(d.ekSure);
+                        d.antTarih=window.fixExcelDate(d.antTarih); d.beynmCif=window.fixExcelDate(d.beynmCif);
                     }
                 });
                 window.kiymetData.forEach(k=>{if(k)k.tarih=window.fixExcelDate(k.tarih);});
                 
+                window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
                 saveToLocal();
                 hideSyncToast("Firebase'den çekildi!",true);
             }else{
                 hideSyncToast("Çevrimdışı mod.",false);
                 loadFromLocal();
+                window._dataLoaded = true; // Local'den de gelse kilidi aç
             }
         }else{
             loadFromLocal();
+            window._dataLoaded = true; // Local'den de gelse kilidi aç
             hideSyncToast("Firebase bekleniyor...",false);
         }
         
@@ -1635,10 +1657,31 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         if(L_date)result.klnSonTarih=window.formatTRDate(L_date);
         
         let kiymGecen=0;
-        if(J){if(K){kiymGecen=window.diffDaysSigned(K,J);result.kiymGecen=kiymGecen;}else{result.kiymGecen="Kıymette";}}else if(H&&!I){result.kiymGecen="Süresiz";}
+        let k_gun = 0;
+        if(J){
+            if(K){
+                kiymGecen=window.diffDaysSigned(K,J);
+                result.kiymGecen=kiymGecen;
+            }else{
+                k_gun = window.diffDaysSigned(new Date(), J);
+                if(k_gun < 0) k_gun = 0;
+                result.kiymGecen = k_gun + " Gün";
+            }
+        }else if(H&&!I){
+            result.kiymGecen="Süresiz";
+        }
         
         let sonGunDate=null;
-        if(!J&&!K){result.sonGun=result.klnSonTarih||"";sonGunDate=L_date;}else if(J&&!K){result.sonGun="Kıymette";sonGunDate=null;}else if(J&&K&&L_date){sonGunDate=window.addDays(L_date,kiymGecen);result.sonGun=window.formatTRDate(sonGunDate);}else if(!L_date){result.sonGun="Süresiz";sonGunDate=null;}
+        if(!J&&!K){
+            result.sonGun=result.klnSonTarih||"";sonGunDate=L_date;
+        }else if(J&&!K){
+            result.sonGun="Kıymette-" + k_gun; 
+            sonGunDate=null;
+        }else if(J&&K&&L_date){
+            sonGunDate=window.addDays(L_date,kiymGecen);result.sonGun=window.formatTRDate(sonGunDate);
+        }else if(!L_date){
+            result.sonGun="Süresiz";sonGunDate=null;
+        }
         
         if(result.klnSonTarih==="Süresiz"&&!J&&!K){result.klnGun="Süresiz";}else if(J&&!K){if(L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else result.klnGun="Süresiz";}else if(sonGunDate){let d=window.diffDaysSigned(sonGunDate,today);result.klnGun=d<0?0:d;}else if(I){let p30=window.addDays(I,30);result.klnGun=p30>today?window.diffDaysSigned(p30,today):0;}else if(!H&&L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else{result.klnGun="Süresiz";}
         
@@ -1976,8 +2019,8 @@ window.fetchTCMBKur = async function(auto = false) {
             else if(m.klnGun!==''&&m.klnGun!=='Süresiz'){let v=parseInt(m.klnGun);if(isNaN(v)||v<=0)kh='<span style="color:#52525b;">0</span>';else if(v<=5)kh=`<span class="urgent-pulse">${v}</span>`;else if(v<=20)kh=`<span class="text-warning">${v}</span>`;else kh=`<span class="text-success">${v}</span>`;}
             else if(m.klnGun==='Süresiz')kh='<span class="text-muted">Süresiz</span>';
             let sh=m.sonGun||'-';
-            if(m.sonGun==='Kıymette')sh='<span class="badge badge-kiymette">Kıymette</span>';
-            else if(m.sonGun&&m.sonGun!=='Süresiz')sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
+            if(m.sonGun && m.sonGun.toString().includes('Kıymette')) sh=`<span class="badge badge-kiymette">${m.sonGun}</span>`;
+else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
             
             let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
             let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
@@ -2055,8 +2098,8 @@ window.fetchTCMBKur = async function(auto = false) {
             else if(m.klnGun!==''&&m.klnGun!=='Süresiz'){let v=parseInt(m.klnGun);if(isNaN(v)||v<=0)kh='<span style="color:#52525b;">0</span>';else if(v<=5)kh=`<span class="urgent-pulse">${v}</span>`;else if(v<=20)kh=`<span class="text-warning">${v}</span>`;else kh=`<span class="text-success">${v}</span>`;}
             else if(m.klnGun==='Süresiz')kh='<span class="text-muted">Süresiz</span>';
             let sh=m.sonGun||'-';
-            if(m.sonGun==='Kıymette')sh='<span class="badge badge-kiymette">Kıymette</span>';
-            else if(m.sonGun&&m.sonGun!=='Süresiz')sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
+            if(m.sonGun && m.sonGun.toString().includes('Kıymette')) sh=`<span class="badge badge-kiymette">${m.sonGun}</span>`;
+else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
             
             let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
             let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
@@ -2180,7 +2223,7 @@ window.closeDeclModal=function(){
 // --- 1. DRIVE KÖPRÜSÜ (MARKA İÇİ ŞASİ VERSİYONU) ---
 window.triggerDriveBridge = function(firma, marka, sasi) {
     return new Promise((resolve) => {
-        const bridgeURL = "https://script.google.com/macros/s/AKfycby3c9654wf7DbXiqgI4m7Fk4wNeITLtTY50_Rx-XjKy2hHNn8DEVnfQTVTfctSQziqoGQ/exec"; 
+        const bridgeURL = "https://script.google.com/macros/s/AKfycbz1dizxpDvnYhYq8cGxJMJbWuAO9u7mLVJvhvcm9y4N5-IZrKFiQs82Cs19KD_0Ndy-lg/exec"; 
         const finalURL = `${bridgeURL}?firma=${encodeURIComponent(firma)}&marka=${encodeURIComponent(marka)}&sasi=${encodeURIComponent(sasi)}`;
         
         if(typeof showSyncToast === 'function') showSyncToast("Drive klasörü ayarlanıyor...");
@@ -2938,6 +2981,72 @@ window.prepareSureDilekcesi = function(idx) {
         }
         if (window.lucide) lucide.createIcons();
     }, 300);
+};
+window.baslatRobot = async function() {
+    if (!confirm("Robot her araçtan sonra yarım saniye mola vererek çalışacak. Bu işlem birkaç dakika sürebilir. Başlatılsın mı?")) return;
+    
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz1dizxpDvnYhYq8cGxJMJbWuAO9u7mLVJvhvcm9y4N5-IZrKFiQs82Cs19KD_0Ndy-lg/exec"; 
+
+    showSyncToast("Robot çalışıyor (Süpürge Modu)...");
+    let changes = 0;
+
+    for (let i = 0; i < window.declarationsData.length; i++) {
+        let d = window.declarationsData[i];
+
+        // --- YENİ: JSONP YÖNTEMİ (CORS HATASINI SİLER) ---
+        await new Promise((resolve) => {
+            const script = document.createElement('script');
+            // Her araç için benzersiz bir isim üretir
+            const callbackName = 'robotCallback_' + i + '_' + Date.now();
+            
+            window[callbackName] = function(res) {
+                console.log((i+1) + " için yanıt geldi:", res);
+                if (res && res.status === "var" && res.url) {
+                    if (d.evrakLink !== res.url) {
+                        d.evrakLink = res.url;
+                        changes++;
+                    }
+                } else {
+                    if (d.evrakLink) {
+                        d.evrakLink = "";
+                        changes++;
+                    }
+                }
+                // Temizlik
+                delete window[callbackName];
+                script.remove();
+                resolve();
+            };
+
+            // Linki JSONP formatında hazırlıyoruz
+            script.src = SCRIPT_URL + "?action=scan" +
+                         "&firma=" + encodeURIComponent(d.firma || "") + 
+                         "&marka=" + encodeURIComponent(d.marka || "") + 
+                         "&sasi=" + encodeURIComponent(d.sasi || "") + 
+                         "&callback=" + callbackName;
+                         
+            script.onerror = () => {
+                console.error((i+1) + ". araçta bağlantı hatası, atlanıyor...");
+                delete window[callbackName];
+                script.remove();
+                resolve();
+            };
+            
+            document.body.appendChild(script);
+        });
+
+        // Google'ı yormamak ve tarayıcıyı kitlememek için mola
+        await new Promise(r => setTimeout(r, 800)); 
+    }
+
+    if (changes > 0) {
+        saveData('decl'); 
+        window.renderDeclarationsTable(); 
+        alert(changes + " adet kayıt güncellendi (Ataçlar senkronize edildi).");
+    } else {
+        alert("Tarama bitti. Tüm araçlar Drive ile tam uyumlu!");
+    }
+    hideSyncToast("Tarama tamamlandı.", true);
 };
 
 </script>
