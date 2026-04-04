@@ -403,6 +403,30 @@
             .sidebar, .top-header, .page-hdr, .page-actions { display: none !important; }
             body { background: #fff; }
         }
+@media print {
+            body * { visibility: hidden; }
+            #tcgb-print-area, #tcgb-print-area * { visibility: visible; }
+            #tcgb-print-area { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; }
+            .sidebar, .top-header, .page-hdr, .page-actions { display: none !important; }
+            body { background: #fff; }
+        }
+
+        /* --- YENİ EKLENEN TARİH BAZLI RENKLENDİRME --- */
+        .status-critical {
+            border-left: 6px solid #ef4444 !important; /* Kıpkırmızı sol kenar */
+            background-color: rgba(239, 68, 68, 0.05) !important;
+        }
+
+        .status-warning-row {
+            border-left: 6px solid #f97316 !important; /* Turuncu sol kenar */
+            background-color: rgba(249, 115, 22, 0.05) !important;
+        }
+
+        .status-critical:hover { background-color: rgba(239, 68, 68, 0.15) !important; }
+        .status-warning-row:hover { background-color: rgba(249, 115, 22, 0.15) !important; }
+        /* -------------------------------------------- */
+
+    </style>
     </style>
 </head>
 <body>
@@ -2037,85 +2061,112 @@ window.fetchTCMBKur = async function(auto = false) {
 };
 
     window.renderDeclarationsTable=function(){
-        let tbody=document.getElementById('declarations-tbody');if(!tbody)return;
-        let role = localStorage.getItem('gumruk_role') || 'admin';
-        let isAdmin = role === 'admin';
-        let fv=document.getElementById('decl-status-filter')?.value||'all';
-        let list=window.declarationsData.map((d,i)=>({data:d,origIdx:i}));
+    let tbody=document.getElementById('declarations-tbody');if(!tbody)return;
+    let role = localStorage.getItem('gumruk_role') || 'admin';
+    let isAdmin = role === 'admin';
+    let fv=document.getElementById('decl-status-filter')?.value||'all';
+    let list=window.declarationsData.map((d,i)=>({data:d,origIdx:i}));
+    
+    if(!isAdmin) list = list.filter(x => x.data.firma === role);
+    
+    if(fv==='acik')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';});
+    else if(fv==='kiymet')list=list.filter(x=>x.data.kiymVv&&!x.data.kiymGt);
+    else if(fv==='sure_alinmayan')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return (e==='açık'||e==='acik') && !x.data.ekSure && !x.data.antTarih;});
+    
+    if(!list.length){tbody.innerHTML=`<tr><td colspan="18" style="text-align:center;padding:48px;color:var(--text-muted);">Kayıt bulunamadı.</td></tr>`;return;}
+    
+    tbody.innerHTML=list.map(item=>{
+        let d=item.data, i=item.origIdx, m=window.calculateVehicleMetrics(d);
+        let isKiymette=d.kiymVv&&!d.kiymGt;
+        let isAcik=(d.evrak||'').toLocaleLowerCase('tr')==='açık'||(d.evrak||'').toLocaleLowerCase('tr')==='acik';
+        let isKapali=!isAcik&&(m.klnGun===0||m.klnGun==='0');
+
+        // --- 1. MADDE: GELİŞ TARİHİNE GÖRE RENKLENDİRME ---
+        let gunFarki = 0;
+        let tarihSinirClass = "";
+        if (d.tarih && isAcik) {
+            let parca = d.tarih.split('.'); // GG.AA.YYYY formatı için
+            let tescilTarihi = new Date(parca[2], parca[1] - 1, parca[0]);
+            let bugun = new Date();
+            gunFarki = Math.floor((bugun - tescilTarihi) / (1000 * 60 * 60 * 24));
+
+            if (gunFarki >= 20) tarihSinirClass = "status-critical"; // Kırmızı Kenar
+            else if (gunFarki >= 15) tarihSinirClass = "status-warning-row"; // Turuncu Kenar
+        }
+
+        let rc=isKiymette?'row-kiymette':isAcik&&!isKiymette?'row-beklemede':isKapali?'row-kapali':'';
+        // Renk sınıflarını birleştiriyoruz
+        let finalRowClass = `${rc} ${tarihSinirClass} declaration-row`.trim();
+
+        let kh='-';
+        if(m.klnGun===0||m.klnGun==='0')kh='<span style="color:#52525b;">0</span>';
+        else if(m.klnGun!==''&&m.klnGun!=='Süresiz'){
+            let v=parseInt(m.klnGun);
+            if(isNaN(v)||v<=0)kh='<span style="color:#52525b;">0</span>';
+            else if(v<=5)kh=`<span class="urgent-pulse">${v}</span>`;
+            else if(v<=20)kh=`<span class="text-warning">${v}</span>`;
+            else kh=`<span class="text-success">${v}</span>`;
+        }
+        else if(m.klnGun==='Süresiz')kh='<span class="text-muted">Süresiz</span>';
         
-        if(!isAdmin) list = list.filter(x => x.data.firma === role);
+        let sh=m.sonGun||'-';
+        if(m.sonGun && m.sonGun.toString().includes('Kıymette')) sh=`<span class="badge badge-kiymette">${m.sonGun}</span>`;
+        else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
         
-        if(fv==='acik')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';});
-        else if(fv==='kiymet')list=list.filter(x=>x.data.kiymVv&&!x.data.kiymGt);
-        else if(fv==='sure_alinmayan')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return (e==='açık'||e==='acik') && !x.data.ekSure && !x.data.antTarih;});
+        let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
+        let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
         
-        if(!list.length){tbody.innerHTML=`<tr><td colspan="18" style="text-align:center;padding:48px;color:var(--text-muted);">Kayıt bulunamadı.</td></tr>`;return;}
-        
-        tbody.innerHTML=list.map(item=>{
-            let d=item.data,i=item.origIdx,m=window.calculateVehicleMetrics(d);
-            let isKiymette=d.kiymVv&&!d.kiymGt;
-            let isAcik=(d.evrak||'').toLocaleLowerCase('tr')==='açık'||(d.evrak||'').toLocaleLowerCase('tr')==='acik';
-            let isKapali=!isAcik&&(m.klnGun===0||m.klnGun==='0');
-            let rc=isKiymette?'row-kiymette':isAcik&&!isKiymette?'row-beklemede':isKapali?'row-kapali':'';
-            let kh='-';
-            if(m.klnGun===0||m.klnGun==='0')kh='<span style="color:#52525b;">0</span>';
-            else if(m.klnGun!==''&&m.klnGun!=='Süresiz'){let v=parseInt(m.klnGun);if(isNaN(v)||v<=0)kh='<span style="color:#52525b;">0</span>';else if(v<=5)kh=`<span class="urgent-pulse">${v}</span>`;else if(v<=20)kh=`<span class="text-warning">${v}</span>`;else kh=`<span class="text-success">${v}</span>`;}
-            else if(m.klnGun==='Süresiz')kh='<span class="text-muted">Süresiz</span>';
-            let sh=m.sonGun||'-';
-            if(m.sonGun && m.sonGun.toString().includes('Kıymette')) sh=`<span class="badge badge-kiymette">${m.sonGun}</span>`;
-else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="color:var(--success);font-weight:600;">${m.sonGun}</span>`;
-            
-            let teslimSekli = d.teslim ? ' / ' + d.teslim : '';
-            let evBadge = isAcik ? `<span class="badge badge-warning">Açık${teslimSekli}</span>` : '<span class="badge badge-dark">Kapalı</span>';
-            
-            // --- YENİ EKLENEN DİNAMİK TESCİL UYARISI (SON 60 GÜN) ---
-            let modelUyari = '';
-            if (d.yil && isAcik && (!d.beyanname || d.beyanname.trim() === '')) {
-                let pYil = parseInt(String(d.yil).trim());
-                if (!isNaN(pYil) && pYil >= 2020) { 
-                    let sinirYil = pYil + 1;
-                    let deadline = new Date(sinirYil, 3, 30); // 30 Nisan (JS'de aylar 0'dan başlar, 3 = Nisan)
-                    let now = new Date();
-                    let gunFarki = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
-                    
-                    if (gunFarki <= 60) { // Sadece 60 gün (yaklaşık 2 ay) kala veya geçmişse göster
-                        modelUyari = `<br><span style="display:inline-block; margin-top:4px; padding:3px 6px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:4px; color:var(--danger); font-size:10.5px; font-weight:700; animation:pulse-alarm 1.5s infinite;" title="${pYil}/9 Sonrası üretimler için son tescil 30.04.${sinirYil}'dir">⚠️ 30.04.${sinirYil} SINIRI</span>`;
-                    }
+        // --- MODEL YILI UYARISI ---
+        let modelUyari = '';
+        if (d.yil && isAcik && (!d.beyanname || d.beyanname.trim() === '')) {
+            let pYil = parseInt(String(d.yil).trim());
+            if (!isNaN(pYil) && pYil >= 2020) { 
+                let sinirYil = pYil + 1;
+                let deadline = new Date(sinirYil, 3, 30);
+                let now = new Date();
+                let gunFarkiTescil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+                if (gunFarkiTescil <= 60) {
+                    modelUyari = `<br><span class="model-deadline-alert">⚠️ 30.04.${sinirYil} SINIRI</span>`;
                 }
             }
-            
-            return `<tr class="${rc}">
-                <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
-                <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}</td>
-                <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
-                <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'tarih')"` : ''}>${d.tarih||'-'}</td>
-                <td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td>
-                <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'ekSure')"` : ''}>${d.ekSure||'-'}</td>
-                <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'antTarih')"` : ''}>${d.antTarih||'-'}</td>
-                <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'beynmCif')"` : ''}>${d.beynmCif||'-'}</td>
-                <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'kiymVv')"` : ''}>${d.kiymVv||'-'}</td>
-                <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'kiymGt')"` : ''}>${d.kiymGt||'-'}</td>
-                <td>${m.klnSonTarih||'-'}</td>
-                <td class="font-bold">${kh}</td>
-                <td>${sh}</td>
-                <td>${evBadge}</td>
-                <td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
-                <td style="color:var(--danger);font-weight:600;">${window.formatNumber(m.ardiye)} ₺</td>
-                <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
-                <td style="text-align:center;">
-                    <div style="display:flex;gap:3px;justify-content:center;">
-                        <button class="icon-btn" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i})" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
-                        ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
-                        <button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'decl')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
-                        <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
-                        <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'decl')"><i data-lucide="edit-3"></i></button>
-                        <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})"><i data-lucide="trash-2"></i></button>
-                    </div>
-                </td>
-            </tr>`;
-        }).join('');
-        document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();
-    };
+        }
+        
+        return `<tr class="${finalRowClass}" data-gun="${gunFarki}">
+            <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
+            <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}</td>
+            <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
+            <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'tarih')"` : ''}>${d.tarih||'-'}</td>
+            <td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td>
+            <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'ekSure')"` : ''}>${d.ekSure||'-'}</td>
+            <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'antTarih')"` : ''}>${d.antTarih||'-'}</td>
+            <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'beynmCif')"` : ''}>${d.beynmCif||'-'}</td>
+            <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'kiymVv')"` : ''}>${d.kiymVv||'-'}</td>
+            <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'kiymGt')"` : ''}>${d.kiymGt||'-'}</td>
+            <td>${m.klnSonTarih||'-'}</td>
+            <td class="font-bold">${kh}</td>
+            <td>${sh}</td>
+            <td>${evBadge}</td>
+            <td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
+            <td style="color:var(--danger);font-weight:600;">${window.formatNumber(m.ardiye)} ₺</td>
+            <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
+            <td style="text-align:center;">
+                <div style="display:flex;gap:3px;justify-content:center;">
+                    <button class="icon-btn" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i})" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
+                    
+                    <button class="icon-btn" style="color:#3b82f6;" onclick="window.openQuickUpload(${i})" title="Hızlı Evrak Yükle"><i data-lucide="upload-cloud"></i></button>
+                    
+                    ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+                    
+                    <button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'decl')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
+                    <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
+                    <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'decl')"><i data-lucide="edit-3"></i></button>
+                    <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})"><i data-lucide="trash-2"></i></button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+    document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();
+};
 
     window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div></div>`;}).join('');if(window.lucide)lucide.createIcons();};
     window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
@@ -3101,7 +3152,138 @@ window.baslatRobot = async function() {
     }
     hideSyncToast("Tarama tamamlandı.", true);
 };
+// --- HIZLI YÜKLEME SİSTEMİ (KESİN ÇÖZÜM) ---
+    window.openQuickUpload = function(idx) {
+        try {
+            // Hangi sayfadayız onu bul
+            let currentView = localStorage.getItem('gumruk_last_view');
+            let d = null;
+            
+            if (currentView === 'firmDetails') {
+                d = window.firmData[window.currentFirm][idx];
+            } else {
+                d = window.declarationsData[idx];
+            }
 
+            if (!d) {
+                alert("HATA: Araç bilgisi okunamadı! Sayfayı yenileyip tekrar deneyin.");
+                return;
+            }
+
+            // Aracı hafızaya al
+            window.currentUploadVehicle = d;
+
+            let modal = document.getElementById('quick-upload-modal');
+            if (modal) {
+                document.getElementById('upload-sasi-display').innerText = "Araç Şasisi: " + (d.sasi || 'Bilinmiyor');
+                modal.style.display = 'flex'; 
+                document.getElementById('upload-progress').style.display = 'none';
+                document.getElementById('start-upload-btn').disabled = false;
+                document.getElementById('start-upload-btn').innerText = "Yüklemeyi Başlat";
+            } else {
+                alert("HATA: Pencere tasarımı bulunamadı!");
+            }
+        } catch(e) {
+            alert("Açılış Hatası: " + e.message);
+        }
+    };
+
+    window.processQuickUpload = function() {
+        const fileInput = document.getElementById('upload-file-input');
+        const docType = document.getElementById('upload-doc-type').value;
+        const d = window.currentUploadVehicle; // Hafızadan aracı çek
+        
+        if (!fileInput || fileInput.files.length === 0) {
+            alert("Lütfen önce bir dosya seçin!");
+            return;
+        }
+
+        if (!d) {
+            alert("Sistem Hatası: Araç hafızadan silinmiş!");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        const btn = document.getElementById('start-upload-btn');
+        
+        document.getElementById('upload-progress').style.display = 'block';
+        btn.disabled = true;
+        btn.innerText = "Yükleniyor...";
+
+        reader.onload = function(e) {
+            const base64Data = e.target.result.split(',')[1];
+            const fileExt = file.name.split('.').pop();
+            const newFileName = `${docType}_${d.sasi || 'BILINMEYEN'}.${fileExt}`;
+
+            const scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec"; 
+
+            fetch(scriptURL, {
+                method: "POST",
+                mode: 'no-cors', 
+                body: JSON.stringify({
+                    action: "uploadFile",
+                    fileData: base64Data,
+                    fileName: newFileName,
+                    sasi: d.sasi,
+                    firma: d.firma,
+                    marka: d.marka,
+                    mimeType: file.type
+                })
+            })
+            .then(() => {
+                setTimeout(() => {
+                    alert("İşlem Başlatıldı! \nDosya Adı: " + newFileName + "\nDrive klasörüne yükleniyor...");
+                    document.getElementById('quick-upload-modal').style.display = 'none';
+                    fileInput.value = ""; 
+                }, 1500);
+            })
+            .catch(err => {
+                alert("Yükleme hatası: " + err);
+                btn.disabled = false;
+                btn.innerText = "Yüklemeyi Başlat";
+                document.getElementById('upload-progress').style.display = 'none';
+            });
+        };
+        reader.readAsDataURL(file);
+    };
 </script>
+
+<div id="quick-upload-modal" style="display:none; position:fixed; z-index:999999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center;">
+    <div style="background:#1e293b; padding:25px; width:420px; border-radius:12px; border:1px solid #3b82f6; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0; color:#fff; font-size:18px;">🚀 Hızlı Evrak Yükle</h3>
+            <button onclick="document.getElementById('quick-upload-modal').style.display='none'" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:24px;">&times;</button>
+        </div>
+        
+        <p id="upload-sasi-display" style="font-size:14px; color:#60a5fa; background:rgba(59,130,246,0.1); padding:10px; border-radius:8px; margin-bottom:20px; font-weight:bold; border:1px dashed #3b82f6; text-align:center;"></p>
+        
+        <div style="margin-bottom:15px;">
+            <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:bold; color:#cbd5e1;">EVRAK TÜRÜ</label>
+            <select id="upload-doc-type" style="width:100%; padding:10px; border-radius:6px; border:1px solid #334155; background:#0f172a; color:#fff; outline:none;">
+                <option value="FATURA">📄 FATURA</option>
+                <option value="ATR">📜 ATR BELGESİ</option>
+                <option value="COC">🚗 COC BELGESİ</option>
+                <option value="CMR">🚚 CMR</option>
+                <option value="OZET_BEYAN">📝 ÖZET BEYAN</option>
+                <option value="DIGER">📎 DİĞER EVRAK</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom:25px;">
+            <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:bold; color:#cbd5e1;">DOSYA SEÇİN</label>
+            <input type="file" id="upload-file-input" style="width:100%; font-size:13px; color:#fff; padding:10px; border:1px dashed #334155; border-radius:6px; background:#0f172a;">
+        </div>
+
+        <div style="display:flex; gap:12px; justify-content:flex-end;">
+            <button style="padding:10px 20px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer;" onclick="document.getElementById('quick-upload-modal').style.display='none'">Vazgeç</button>
+            <button id="start-upload-btn" style="padding:10px 25px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:bold;" onclick="window.processQuickUpload()">Yüklemeyi Başlat</button>
+        </div>
+        
+        <div id="upload-progress" style="display:none; margin-top:20px; text-align:center;">
+            <span style="font-size:12px; color:#60a5fa; font-weight:bold;">Dosya Drive'a uçuruluyor...</span>
+        </div>
+    </div>
+</div>
 </body>
 </html>
