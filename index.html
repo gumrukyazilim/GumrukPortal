@@ -85,7 +85,45 @@
             --text-secondary: #334155;
             --text-muted: #64748b;
         }
+/* --- AGRESİF SATIR VURGUSU (MAKSİMUM KONTRAST) --- */
 
+/* AÇIK MODDA: Satırı Lacivert yap, yazıları Bembeyaz parlat */
+[data-theme="light"] .declaration-row:hover {
+    background-color: #003366 !important; /* Çok koyu lacivert */
+    color: #ffffff !important; /* Bembeyaz yazı */
+    transform: scale(1.005); /* Çok hafif büyüterek öne çıkar */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4) !important; /* Altına gölge at, havada dursun */
+    z-index: 10;
+    position: relative;
+}
+
+/* KOYU MODDA: Satırı Bembeyaz yap, yazıları Simsiyah yap */
+[data-theme="dark"] .declaration-row:hover {
+    background-color: #ffffff !important; /* Kar beyazı */
+    color: #000000 !important; /* Simsiyah yazı */
+    transform: scale(1.005);
+    box-shadow: 0 5px 15px rgba(255,255,255,0.2) !important;
+    z-index: 10;
+    position: relative;
+}
+
+/* Satırın içindeki simgeleri ve özel alanları da renge zorla */
+.declaration-row:hover td, 
+.declaration-row:hover i, 
+.declaration-row:hover span,
+.declaration-row:hover div {
+    color: inherit !important;
+}
+
+/* Geçişi anlık yap, bekleme olmasın */
+.declaration-row {
+    transition: transform 0.1s ease !important;
+}
+
+/* Animasyonu hızlandır ki anında tepki versin */
+.declaration-row {
+    transition: none !important; 
+}
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:var(--font-family); background:var(--bg-main); color:var(--text-primary); min-height:100vh; overflow-x:hidden; font-size:14px; -webkit-font-smoothing:antialiased; transition: background 0.3s, color 0.3s; }
         button, input, select { font-family:inherit; outline:none; border:none; }
@@ -575,6 +613,11 @@
             padding: 0 !important;
             line-height: 1.1 !important; /* İşte aradaki o gizli boşluğu yok eden kod */
         }
+/* Araç listesi stili */
+.vehicle-item {
+    margin-bottom: 10px;
+    /* JS tarafında belirlenecek punto buraya gelecek */
+}
         
         /* Yazıcıdan BOŞ SAYFA Çıkma Sorununu Çözen Kesin CSS */
         @media print {
@@ -2931,32 +2974,42 @@ window.prepareSureDilekcesi = function(idx) {
         var firmaDiv = document.getElementById('dilekce-firma-adi');
         var imzaDiv = document.getElementById('dilekce-imza-isim');
 
-        if (listDiv) {
+       if (listDiv) {
             let html = '<div style="margin-top: 20px;">';
             
-            // Bütün seçili araçların Özet Beyanları aynı mı diye kontrol et
-            let ilkOzetBeyan = selectedItems[0].ozetBeyan || '................';
-            let hepsiAyniOzetBeyan = selectedItems.every(x => (x.ozetBeyan || '................') === ilkOzetBeyan);
+            // --- DİNAMİK PUNTO HESAPLAMA (SADECE ARAÇLAR İÇİN) ---
+            const aracSayisi = selectedItems.length;
+            let pnt = "16px"; // 1-3 araç arası (Standart)
+            let mb = "10px";  
+
+            if (aracSayisi > 3 && aracSayisi <= 6) {
+                pnt = "13px"; // Orta boy
+                mb = "6px";
+            } else if (aracSayisi > 6) {
+                pnt = "10px"; // Küçük boy (Çok araçlı)
+                mb = "4px";
+            }
+
+            // Özet Beyan Kontrolü
+            let ilkOzetBeyan = selectedItems[0].ozetBeyan || selectedItems[0].beyanname || '................';
+            let hepsiAyniOzetBeyan = selectedItems.every(x => (x.ozetBeyan || x.beyanname || '................') === ilkOzetBeyan);
 
             if (hepsiAyniOzetBeyan) {
                 // DURUM 1: Hepsi AYNI Özet Beyan
-                // Tepeye 1 kere Özet Beyan yaz (Yanına kaç araç olduğunu belirt)
-                html += `<p style="font-size: 19px; font-weight: bold; margin-bottom: 12px;">Özet Beyan Numarası: ${ilkOzetBeyan} / ${selectedItems.length} ARAÇ</p>`;
-                
-                // Altına sadece şase numaralarını diz
+                html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: ${mb}; color: #000;">Özet Beyan Numarası: ${ilkOzetBeyan} / ${selectedItems.length} ARAÇ</p>`;
                 selectedItems.forEach((item) => {
-                    html += `<p style="font-size: 19px; font-weight: bold; margin-bottom: 5px;">Şase No : ${item.sasi || '................'}</p>`;
+                    // BAK BURADAKİ DOLAR İŞARETİNİ SİLDİK
+                    html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px; color: #000;">Şase No : ${item.sasi || '...................'}</p>`;
                 });
             } else {
-                // DURUM 2: FARKLI Özet Beyanlar var
-                // Her araç için ayrı ayrı Özet Beyan ve Şase yaz, aralarına çizgi koy
-                selectedItems.forEach((item, index) => {
+                // DURUM 2: FARKLI Özet Beyanlar
+                selectedItems.forEach((item) => {
+                    let guncelOzet = item.ozetBeyan || item.beyanname || '...................';
                     html += `
-                        <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
-                            <p style="font-size: 19px; font-weight: bold; margin-bottom: 5px;">Özet Beyan Numarası: ${item.ozetBeyan || '................'} / 1 ARAÇ</p>
-                            <p style="font-size: 19px; font-weight: bold;">Şase No : ${item.sasi || '................'}</p>
-                        </div>
-                    `;
+                    <div style="margin-bottom: ${mb}; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                        <p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px; color: #000;">Özet Beyan Numarası: ${guncelOzet} / 1 ARAÇ</p>
+                        <p style="font-size: ${pnt} !important; font-weight: bold; color: #000;">Şase No : ${item.sasi || '...................'}</p>
+                    </div>`;
                 });
             }
             
@@ -2973,7 +3026,7 @@ window.prepareSureDilekcesi = function(idx) {
                 } else if (fUst.indexOf("FF OTOMOTİV") !== -1) {
                     imzaDiv.innerText = "FATİH İSMAİL ÇELEBİ";
                 } else if (fUst.indexOf("KARABAYIR") !== -1) {
-                    imzaDiv.innerText = "İSİM SOYİSİM BURAYA"; // İstersen buraya Karabayır'ın yetkilisini yazabilirsin
+                    imzaDiv.innerText = "BEHLÜL TÜREL";
                 } else {
                     imzaDiv.innerText = "........................";
                 }
