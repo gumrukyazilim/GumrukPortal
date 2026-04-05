@@ -625,19 +625,25 @@
 </template>
 <template id="tpl-sureDilekcesi">
     <style>
-        /* Dilekçe Özel Ekran Ayarları */
+        /* DİLEKÇE ÖZEL EKRAN AYARLARI */
         .dilekce-sayfa {
-            background: #fff; 
-            color: #000000 !important; /* Yazıları kapkara yapmaya zorlar */
+            background: #ffffff !important; 
             width: 210mm; 
-            min-height: 290mm; /* 297'den 290'a düşürdük, 2. sayfaya taşmaz */
-            margin: 0 auto; /* Dış boşluğu sildik */
+            min-height: 290mm; 
+            margin: 0 auto; 
             padding: 40mm 20mm 20mm 20mm; 
-            font-family: 'Times New Roman', serif;
-            line-height: 1.6; font-size: 16px; 
+            font-family: 'Times New Roman', Times, serif !important;
+            line-height: 1.6; 
+            font-size: 16px; 
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             box-sizing: border-box;
-            -webkit-font-smoothing: antialiased; /* Yazıları keskinleştirir */
+        }
+
+        /* 1. ÇÖZÜM: KARANLIK MOD SIZINTISINI ENGELLER (YAZILAR ZIMBA GİBİ SİMSİYAH OLUR) */
+        .dilekce-sayfa, .dilekce-sayfa p, .dilekce-sayfa div, .dilekce-sayfa span, .dilekce-sayfa b {
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         
         .imza-satir {
@@ -647,33 +653,50 @@
         }
 
         .editable-field {
-            border-bottom: 2px dashed #3b82f6;
-            color: #2563eb;
+            border-bottom: 2px dashed #3b82f6 !important;
+            color: #2563eb !important;
             font-weight: bold;
             padding: 0 4px;
             cursor: text;
             display: inline-block;
             min-width: 40px;
             text-align: center;
-            background: rgba(59,130,246,0.1);
+            background: rgba(59,130,246,0.1) !important;
         }
 
+        /* 2. ÇÖZÜM: YAZICI AYARLARI (LİNK VE TARİHİ SİLER) */
         @media print {
-            @page { size: A4 portrait; margin: 0; }
-            body, html { height: 100% !important; background: #fff !important; }
+            /* MARGİN 0MM OLUNCA TARAYICI LİNK VE TARİH YAZAMAZ! */
+            @page { 
+                size: A4 portrait; 
+                margin: 0mm !important; 
+            }
+            body, html { 
+                height: auto !important; 
+                background: #ffffff !important; 
+                margin: 0 !important;
+                padding: 0 !important;
+            }
             body * { visibility: hidden; }
-            #dilekce-print-area, #dilekce-print-area * { visibility: visible; }
+            #dilekce-print-area, #dilekce-print-area * { 
+                visibility: visible; 
+                color: #000000 !important; /* Yazıcıda da %100 Siyah */
+            }
             #dilekce-print-area {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100%;
                 margin: 0 !important;
+                padding: 40mm 20mm 20mm 20mm !important; /* Yazıların kenara yapışmasını engeller */
                 box-shadow: none !important;
-                page-break-after: avoid; /* 2. Boş sayfa atmasını yasaklar */
             }
             .no-print { display: none !important; }
-            .editable-field { border-bottom: none !important; color: #000 !important; background: transparent !important; }
+            .editable-field { 
+                border-bottom: none !important; 
+                color: #000000 !important; 
+                background: transparent !important; 
+            }
         }
     </style>
 
