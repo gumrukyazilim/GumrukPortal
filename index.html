@@ -424,6 +424,62 @@
 .icon-btn i, .icon-btn svg {
     pointer-events: none !important;
 }
+/* ========== MOBİL VE TABLET UYUMLULUK AYARLARI ========== */
+@media screen and (max-width: 768px) {
+    /* 1. Sayfa Kenar Boşluklarını Azalt */
+    .view-area { padding: 15px 10px !important; }
+    
+    /* 2. Kartları ve İstatistikleri Tek Sütun Yap */
+    .stats-grid { grid-template-columns: 1fr !important; }
+    .stat-card { padding: 15px !important; }
+
+    /* 3. Pencereleri (Modalları) Mobilde Büyüt */
+    .modal-box { 
+        width: 98% !important; 
+        max-height: 98vh !important; 
+        margin: 5px !important;
+    }
+    .modal-body { padding: 15px !important; }
+    
+    /* Pencerelerin içindeki 2-3 sütunlu yapıları tek sütun yap */
+    .modal-section div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* 4. Tabloların birbirine girmesini engelle */
+    .table-wrap {
+        overflow-x: auto !important; /* Sağa kaydırma açılır */
+        -webkit-overflow-scrolling: touch;
+    }
+    .data-table th, .data-table td {
+        padding: 8px 6px !important;
+        font-size: 11px !important; /* Yazıları biraz küçült ki sığsın */
+    }
+
+    /* 5. Butonları büyüt (Basması kolay olsun) */
+    .icon-btn {
+        width: 36px !important;
+        height: 36px !important;
+    }
+    .btn-primary, .btn-sm {
+        padding: 12px 16px !important;
+        font-size: 14px !important;
+    }
+
+    /* 6. Beyanname Yazdırma Alanını Mobilde Gizleme, Sığdır */
+    .tcgb-container {
+        transform: scale(0.95);
+        transform-origin: top left;
+        width: 1000px !important; /* Tasarımı bozma, kullanıcı kaydırsın */
+    }
+    
+    /* 7. Sidebar (Menü) Mobilde kapalı gelsin ve tam ekranı örtmesin */
+    .sidebar {
+        position: fixed;
+        height: 100%;
+        z-index: 1000;
+    }
+}
     
  </style>
 </head>
