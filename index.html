@@ -566,16 +566,25 @@
     </aside>
     <main class="main-content">
         <header class="top-header">
-    <button class="menu-toggle" onclick="window.toggleSidebar()">
-        <i data-lucide="menu"></i>
-    </button>
-    <div class="search-wrap" style="width:440px;">
-    <i data-lucide="search" style="width:16px;height:16px;color:var(--text-muted);flex-shrink:0;"></i>
-    <input type="text" id="global-search-input" oninput="window.liveSearch(this.value)" onkeyup="if(event.key==='Enter'){window.handleGlobalSearch(this.value);}" onfocus="if(this.value.length>=2)document.getElementById('live-search-dropdown').classList.add('show')" onblur="setTimeout(()=>{let d=document.getElementById('live-search-dropdown');if(d)d.classList.remove('show');},250)" placeholder="Şasi, marka, model, beyanname no arayın..." style="font-size:13px;">
-    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" style="background:var(--primary);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:8px;transition:0.2s;" onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary)'"><i data-lucide="search" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"></i>Ara</button>
-    <div id="live-search-dropdown"></div>
-</div>
-</header>
+            <div class="header-left">
+                <button class="menu-toggle" onclick="window.toggleSidebar()"><i data-lucide="menu"></i></button>
+                <div class="search-wrap" style="width:440px;">
+                    <i data-lucide="search" style="width:16px;height:16px;color:var(--text-muted);flex-shrink:0;"></i>
+                    <input type="text" id="global-search-input" oninput="window.liveSearch(this.value)" onkeyup="if(event.key==='Enter'){window.handleGlobalSearch(this.value);}" onfocus="if(this.value.length>=2)document.getElementById('live-search-dropdown').classList.add('show')" onblur="setTimeout(()=>{let d=document.getElementById('live-search-dropdown');if(d)d.classList.remove('show');},250)" placeholder="Şasi, marka, model, beyanname no arayın..." style="font-size:13px;">
+                    <button onclick="window.handleGlobalSearch(document.getElementById('global-search-input').value)" style="background:var(--primary);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:8px;transition:0.2s;" onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary)'"><i data-lucide="search" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"></i>Ara</button>
+                    <div id="live-search-dropdown"></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="hdr-icon-btn" onclick="window.toggleTheme()" title="Gece/Gündüz Modu"><i data-lucide="moon"></i></button>
+                <button class="hdr-icon-btn admin-only" onclick="window.exportBackup()" title="Yedek İndir"><i data-lucide="download"></i></button>
+                <div class="divider-v"></div>
+                <div class="user-pill" onclick="if(confirm('Sistemden çıkış yapmak istiyor musunuz?')){localStorage.removeItem('gumruk_auth');localStorage.removeItem('gumruk_role');localStorage.removeItem('gumruk_user_name');location.reload();}">
+                    <img src="https://ui-avatars.com/api/?name=Bayram&background=1e3a5f&color=60a5fa&rounded=true" class="user-avatar" id="header-avatar">
+                    <div class="user-info"><div class="user-name">Bayram</div><div class="user-role">Yönetici</div></div>
+                </div>
+            </div>
+        </header>
         <div id="view-container" class="view-area"></div>
     </main>
 </div>
