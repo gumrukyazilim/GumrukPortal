@@ -2157,9 +2157,7 @@ window.fetchTCMBKur = async function(auto = false) {
                 <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
     <button type="button" class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'firm')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
     
-    <button type="button" class="icon-btn quick-upload-trigger" 
-        style="color:#3b82f6; display: inline-flex; align-items: center; justify-content: center;" 
-        data-idx="${i}" title="Hızlı Evrak Yükle">
+    <button type="button" class="icon-btn btn-bulut" data-idx="${i}" title="Hızlı Evrak Yükle" style="color:#3b82f6;">
     <i data-lucide="upload-cloud"></i>
 </button>
     
@@ -2246,9 +2244,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
                     <div style="display:flex;gap:3px;justify-content:center;">
     <button class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'firm')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
     
-    <button type="button" class="icon-btn quick-upload-trigger" 
-        style="color:#3b82f6; display: inline-flex; align-items: center; justify-content: center;" 
-        data-idx="${i}" title="Hızlı Evrak Yükle">
+    <button type="button" class="icon-btn btn-bulut" data-idx="${i}" title="Hızlı Evrak Yükle" style="color:#3b82f6;">
     <i data-lucide="upload-cloud"></i>
 </button>
     
@@ -3174,112 +3170,52 @@ window.baslatRobot = async function() {
     }
     hideSyncToast("Tarama tamamlandı.", true);
 };
-// --- KALEM İKONUNDAN BAĞIMSIZ PORTAL SİSTEMİ ---
-    window.runQuickUploadPortal = function(idx) {
-        try {
-            const currentView = localStorage.getItem('gumruk_last_view');
-            let d = (currentView === 'firmDetails') ? window.firmData[window.currentFirm][idx] : window.declarationsData[idx];
+// --- [2. KISIM - TEK VE GERÇEK MOTOR] ---
+window.runQuickUploadPortal = function(idx) {
+    try {
+        const currentView = localStorage.getItem('gumruk_last_view');
+        // Hangi sayfada olursan ol doğru aracı bulur
+        let d = (currentView === 'firmDetails') ? window.firmData[window.currentFirm][idx] : window.declarationsData[idx];
 
-            if (!d) return;
-            window.currentUploadVehicle = d;
+        if (!d) { alert("Araç bilgisi bulunamadı!"); return; }
+        window.currentUploadVehicle = d;
 
-            const modal = document.getElementById('quick-upload-modal');
-            if (modal) {
-                document.getElementById('upload-sasi-display').innerText = "Araç Şasisi: " + (d.sasi || 'Bilinmiyor');
-                // EN KRİTİK SATIR: Pencereyi zorla görünür yapar
-                modal.style.setProperty('display', 'flex', 'important'); 
-                document.getElementById('upload-progress').style.display = 'none';
-            }
-        } catch(e) { console.error("Portal Hatası:", e); }
-    };
+        const modal = document.getElementById('quick-upload-modal');
+        if (modal) {
+            document.getElementById('upload-sasi-display').innerText = "Araç Şasisi: " + (d.sasi || 'Bilinmiyor');
+            modal.style.setProperty('display', 'flex', 'important'); 
+            document.getElementById('upload-progress').style.display = 'none';
+        }
+    } catch(e) { console.error("Portal Hatası:", e); }
+};
 
-    // Butonların birbirini ezmesini engelleyen güvenli dinleyici
+// Sadece Mavi Bulut butonuna tıklandığında çalışır, diğer butonları (Beyanname vb.) ASLA bozmaz
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-bulut');
+    if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = btn.getAttribute('data-idx');
+        window.runQuickUploadPortal(idx);
+    }
+});
+// --- AKILLI DİNLEYİCİ (DİĞER BUTONLARI BOZMAZ) ---
     document.addEventListener('click', function(e) {
-        // Eğer tıklanan şey bir Link (Ataç) ise karışıma, bırak klasörü açsın
-        if (e.target.closest('a')) return;
-
-        // Sadece 'quick-upload-trigger' (Mavi Bulut) ise bizim pencereyi aç
+        // Tıklanan şey 'quick-upload-trigger' (Mavi Bulut) mu?
         const quickBtn = e.target.closest('.quick-upload-trigger');
+        
         if (quickBtn) {
+            // Sadece Mavi Bulut için özel işlem yap
             e.preventDefault();
             e.stopPropagation();
             const idx = quickBtn.getAttribute('data-idx');
             if (typeof window.runQuickUploadPortal === 'function') {
                 window.runQuickUploadPortal(idx);
             }
-        }
+        } 
+        // EĞER Mavi Bulut değilse, hiçbir şeye dokunma! 
+        // Böylece Beyanname, WhatsApp ve diğer onclick'ler tıkır tıkır çalışır.
     });
-
-   window.processQuickUpload = function() {
-        const fileInput = document.getElementById('upload-file-input');
-        const docType = document.getElementById('upload-doc-type').value;
-        const d = window.currentUploadVehicle; 
-        
-        if (!fileInput || fileInput.files.length === 0) {
-            alert("Lütfen önce bir dosya seçin!");
-            return;
-        }
-
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        const btn = document.getElementById('start-upload-btn');
-        
-        document.getElementById('upload-progress').style.display = 'block';
-        btn.disabled = true;
-        btn.innerText = "Yükleniyor...";
-
-        reader.onload = function(e) {
-            const base64Data = e.target.result.split(',')[1];
-            const fileExt = file.name.split('.').pop();
-            const newFileName = `${docType}_${d.sasi || 'BILINMEYEN'}.${fileExt}`;
-            const scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec"; 
-
-            fetch(scriptURL, {
-                method: "POST",
-                mode: 'no-cors', 
-                body: JSON.stringify({
-                    action: "uploadFile",
-                    fileData: base64Data,
-                    fileName: newFileName,
-                    sasi: d.sasi,
-                    firma: d.firma,
-                    marka: d.marka,
-                    mimeType: file.type
-                })
-            })
-            .then(() => {
-                setTimeout(() => {
-                    alert("İşlem Başlatıldı! \nDosya: " + newFileName);
-                    document.getElementById('quick-upload-modal').style.display = 'none';
-                    fileInput.value = ""; 
-                    btn.disabled = false;
-                    btn.innerText = "Yüklemeyi Başlat";
-                    document.getElementById('upload-progress').style.display = 'none';
-                }, 1500);
-            })
-            .catch(err => {
-                alert("Yükleme hatası: " + err);
-                btn.disabled = false;
-                btn.innerText = "Yüklemeyi Başlat";
-            });
-        };
-        reader.readAsDataURL(file);
-    };
-// GARANTİLİ HIZLI YÜKLEME TIKLAMA MOTORU (Hem bulut hem kalem yanındaki ikon için)
-document.addEventListener('click', function(e) {
-    const triggerBtn = e.target.closest('.quick-upload-trigger');
-    if (!triggerBtn) return;
-
-    const idxStr = triggerBtn.getAttribute('data-idx');
-    if (idxStr === null) return;
-
-    const idx = parseInt(idxStr);
-
-    // Hangi tabloda olduğumuzu anlamaya çalış
-    const isFirmTable = triggerBtn.closest('#firm-vehicles-tbody') !== null;
-    
-    window.openQuickUploadPortal(idx, isFirmTable ? 'firm' : 'decl');
-});
 </script>
 
 <div id="quick-upload-modal" style="display:none; position:fixed; z-index:999999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center;">
