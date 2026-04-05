@@ -491,6 +491,62 @@
     </main>
 </div>
 
+<template id="tpl-dashboard">
+    <div class="page-hdr fade-in">
+        <div><div class="page-eyebrow">Genel Bakış</div><h1 class="page-title">Sistem Özeti</h1></div>
+        <div class="page-actions"><button class="btn-primary admin-only" onclick="window.renderView('calculator')"><i data-lucide="calculator"></i> Maliyet Hesapla</button></div>
+    </div>
+    
+    <div class="stats-grid fade-in">
+        <div class="stat-card" onclick="window.goToFilter('all')">
+            <div class="stat-card-top">
+                <div class="stat-icon-box blue"><i data-lucide="car"></i></div>
+                <div class="stat-trend up"><i data-lucide="trending-up" style="width:12px;height:12px;vertical-align:middle;margin-right:2px;"></i>Aktif</div>
+            </div>
+            <div class="stat-value" id="dash-total">0</div>
+            <div class="stat-label">Toplam Araç Sayısı</div>
+            <div class="stat-bar"><div class="stat-bar-fill blue" style="width:100%;"></div></div>
+        </div>
+        
+        <div class="stat-card" onclick="window.goToFilter('kiymet')">
+            <div class="stat-card-top">
+                <div class="stat-icon-box purple"><i data-lucide="file-search"></i></div>
+            </div>
+            <div class="stat-value" id="dash-kiymet">0</div>
+            <div class="stat-label">Kıymette Bekleyen</div>
+            <div class="stat-bar"><div class="stat-bar-fill purple" style="width:35%;"></div></div>
+        </div>
+        
+        <div class="stat-card" onclick="window.goToFilter('acik')">
+            <div class="stat-card-top">
+                <div class="stat-icon-box yellow"><i data-lucide="box"></i></div>
+            </div>
+            <div class="stat-value" id="dash-ambar">0</div>
+            <div class="stat-label">Açık İşlemler</div>
+            <div class="stat-bar"><div class="stat-bar-fill yellow" style="width:60%;"></div></div>
+        </div>
+
+        <div class="stat-card" onclick="window.goToFilter('sure_alinmayan')">
+            <div class="stat-card-top">
+                <div class="stat-icon-box" style="background:rgba(239,68,68,0.12); color:var(--danger);"><i data-lucide="alert-triangle"></i></div>
+            </div>
+            <div class="stat-value" id="dash-sure-alinmayan" style="color:var(--danger);">0</div>
+            <div class="stat-label">Süresi Alınmayanlar</div>
+            <div class="stat-bar"><div class="stat-bar-fill" style="background:linear-gradient(90deg, var(--danger), #f87171); width:0%;"></div></div>
+        </div>
+
+        <div class="stat-card" onclick="window.goToFilter('acik')">
+            <div class="stat-card-top">
+                <div class="stat-icon-box" style="background:rgba(249,115,22,0.12); color:#f97316;"><i data-lucide="clock"></i></div>
+                <div class="stat-trend" style="background:rgba(239,68,68,0.1); color:var(--danger); animation: pulse-alarm 1.5s infinite;">Riskli</div>
+            </div>
+            <div class="stat-value" id="dash-risk-dinamik" style="color:#f97316;">0</div>
+            <div class="stat-label">Yaklaşan Tescil (Son 60 Gün)</div>
+            <div class="stat-bar"><div class="stat-bar-fill" style="background:linear-gradient(90deg, #f97316, #fb923c); width:0%;"></div></div>
+        </div>
+
+    </div>
+</template>
 <template id="tpl-beyanname">
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Resmi Evraklar</div><h1 class="page-title">Gümrük Beyannamesi (TCGB)</h1></div>
@@ -604,11 +660,11 @@
                 </div>
                 
                 <div class="tcgb-box" style="grid-column:span 4; height:70px;">
-    <span class="tcgb-label">54 Yer ve Tarih</span>
-    <div style="margin-top:10px;">
-        <input id="tcgb-54-date" type="date">
-    </div>
-</div>
+                    <span class="tcgb-label">54 Yer ve Tarih</span>
+                    <div style="margin-top:10px;">
+                        <input id="tcgb-54-date" type="date">
+                    </div>
+                </div>
                 <div class="tcgb-box" style="grid-column:span 4; height:70px;">
                     <span class="tcgb-label">Beyan Sahibi / Temsilcinin İmzası ve Adı</span>
                     <input id="tcgb-54-name" class="tcgb-input" style="margin-top:10px;" value="GÜMRÜK MÜŞAVİRLİĞİ">
