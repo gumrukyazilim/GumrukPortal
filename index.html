@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="tr" data-theme="dark">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta charset="UTF-8">
     <title>GümrükPortal Cloud — Enterprise</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         let savedTheme = localStorage.getItem('gumruk_theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -659,19 +660,20 @@
         }
     </style>
 
-    <div class="page-hdr no-print">
-        <div>
-            <div class="page-eyebrow">Dinamik Belge Üretici</div>
-            <h1 class="page-title">Resmi Evrak & Tutanak</h1>
-        </div>
-        <div class="page-actions">
-            <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:36px; outline:none;">
-                <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
-                <option value="GMC">📝 Yurt Dışı Araştırma Tutanağı</option>
-            </select>
-            <button class="btn-primary" onclick="window.print()"><i data-lucide="printer"></i> Yazdır</button>
-            <button class="btn-sm" onclick="window.renderView('declarations')">Listeye Dön</button>
-        </div>
+    <div class="page-actions">
+    <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:36px; outline:none;">
+        <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
+        <option value="GMC">📝 Yurt Dışı Araştırma Tutanağı</option>
+    </select>
+    
+    <button class="btn-primary" onclick="window.safePrint()"><i data-lucide="printer"></i> Yazdır</button>
+    
+    <button class="btn-sm" style="background:#ef4444; color:#fff; border:none; display:flex; align-items:center; gap:5px;" onclick="window.downloadPDF()">
+        <i data-lucide="file-down"></i> PDF
+    </button>
+    
+    <button class="btn-sm" onclick="window.renderView('declarations')">Geri</button>
+</div>
     </div>
     
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in">
@@ -3123,6 +3125,38 @@ window.doModalUpload = function() {
         });
     };
     reader.readAsDataURL(file);
+};
+// --- MOBİL YAZDIRMA VE PDF MOTORU ---
+window.safePrint = function() {
+    // Mobilde yazdır ekranının kilitlenmesini engeller
+    setTimeout(() => {
+        window.print();
+    }, 200);
+};
+
+window.downloadPDF = function() {
+    const element = document.getElementById('dilekce-print-area');
+    const tip = document.getElementById('dilekce-tipi').value;
+    let sasi = "belge";
+    
+    // Şasi numarasını dosya adına eklemek için bul
+    if (window.currentDilekceItems && window.currentDilekceItems.length > 0 && window.currentDilekceItems[0].sasi) {
+        sasi = window.currentDilekceItems[0].sasi;
+    }
+    
+    const opt = {
+        margin:       10,
+        filename:     tip + '_' + sasi + '.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    if(typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        if(typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
+    });
 };
 </script>
 </body>
