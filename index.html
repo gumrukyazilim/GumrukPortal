@@ -3288,10 +3288,17 @@ window.doModalUpload = function() {
     const firma = document.getElementById('da-firma').value;
     const marka = document.getElementById('da-marka').value;
     const status = document.getElementById('da-modal-upload-status');
+    const uploadBtn = event.currentTarget; // Tıklanan butonu yakala
 
     if (!fileInput.files.length) { alert("Lütfen önce bir dosya seçin!"); return; }
 
+    // --- YÜKLEME BAŞLADI İŞARETİ ---
+    const originalBtnHTML = uploadBtn.innerHTML;
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = `<i class="spinner" style="width:14px; height:14px; border-width:2px; margin-right:8px;"></i> Yükleniyor...`;
     status.style.display = 'block';
+    status.innerHTML = `<span style="color:var(--warning)">⚡ Dosya Yükleniyor...</span>`;
+
     const file = fileInput.files[0];
     const reader = new FileReader();
 
@@ -3309,14 +3316,23 @@ window.doModalUpload = function() {
                 sasi: sasi, firma: firma, marka: marka
             })
         }).then(() => {
-            status.innerText = "✅ Yükleme Tamamlandı";
+            // --- BAŞARILI BİTİŞ ---
+            status.innerHTML = "✅ Yükleme Tamamlandı!";
+            uploadBtn.innerHTML = `<i data-lucide="check"></i> Tamamlandı`;
+            uploadBtn.style.background = "var(--success)";
+            
             setTimeout(() => { 
                 status.style.display = 'none'; 
-                status.innerText="⚡ Dosya Drive'a gönderiliyor, lütfen bekleyin..."; 
-                fileInput.value = ""; // Seçili dosyayı temizle
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = originalBtnHTML;
+                uploadBtn.style.background = "";
+                fileInput.value = ""; 
+                if(window.lucide) lucide.createIcons();
             }, 3000);
         }).catch(err => {
             alert("Hata oluştu: " + err);
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalBtnHTML;
             status.style.display = 'none';
         });
     };
