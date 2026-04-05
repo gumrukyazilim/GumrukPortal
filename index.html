@@ -2155,7 +2155,13 @@ window.fetchTCMBKur = async function(auto = false) {
                     
                     <button class="icon-btn quick-upload-trigger" style="color:#3b82f6;" data-idx="${i}" title="Hızlı Evrak Yükle"><i data-lucide="upload-cloud"></i></button>
                     
-                    ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+                    <!-- Bulut İkonu - Hem link varsa git, hem yoksa hızlı yükleme açsın -->
+<button class="icon-btn quick-upload-trigger" 
+        style="color:${d.evrakLink ? 'var(--accent)' : '#64748b'};" 
+        data-idx="${i}" 
+        title="${d.evrakLink ? 'Evrak Klasörüne Git' : 'Hızlı Evrak Yükle'}">
+    <i data-lucide="${d.evrakLink ? 'paperclip' : 'upload-cloud'}"></i>
+</button>
                     
                     <button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'decl')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
                     <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
@@ -2237,7 +2243,13 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
                         
                         <button class="icon-btn quick-upload-trigger" style="color:#3b82f6;" data-idx="${i}" title="Hızlı Evrak Yükle"><i data-lucide="upload-cloud"></i></button>
                         
-                        ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+                        <!-- Bulut İkonu - Hem link varsa git, hem yoksa hızlı yükleme açsın -->
+<button class="icon-btn quick-upload-trigger" 
+        style="color:${d.evrakLink ? 'var(--accent)' : '#64748b'};" 
+        data-idx="${i}" 
+        title="${d.evrakLink ? 'Evrak Klasörüne Git' : 'Hızlı Evrak Yükle'}">
+    <i data-lucide="${d.evrakLink ? 'paperclip' : 'upload-cloud'}"></i>
+</button>
                         <button class="icon-btn admin-only" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'firm')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
                         <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
                         <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')"><i data-lucide="edit-3"></i></button>
@@ -3156,31 +3168,37 @@ window.baslatRobot = async function() {
     hideSyncToast("Tarama tamamlandı.", true);
 };
 // --- GARANTİLİ HIZLI YÜKLEME MOTORU ---
-    window.openQuickUploadPortal = function(idx) {
-        try {
-            const currentView = localStorage.getItem('gumruk_last_view');
-            const d = (currentView === 'firmDetails') ? window.firmData[window.currentFirm][idx] : window.declarationsData[idx];
-
-            if (!d) return;
-            window.currentUploadVehicle = d;
-
-            const modal = document.getElementById('quick-upload-modal');
-            if (modal) {
-                document.getElementById('upload-sasi-display').innerText = "Araç Şasisi: " + (d.sasi || 'Bilinmiyor');
-                modal.style.display = 'flex'; // Pencereyi görünür yap
-                document.getElementById('upload-progress').style.display = 'none';
-            }
-        } catch(e) { console.error("Portal Hatası:", e); }
-    };
-
-    // GitHub CSP Engeline Takılmayan Dinleyici
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.quick-upload-trigger');
-        if (btn) {
-            const idx = btn.getAttribute('data-idx');
-            window.openQuickUploadPortal(idx);
+   window.openQuickUploadPortal = function(idx, context = 'decl') {
+    try {
+        let d = null;
+        if (context === 'firm') {
+            d = window.firmData[window.currentFirm][idx];
+        } else {
+            d = window.declarationsData[idx];
         }
-    });
+
+        if (!d) {
+            alert("Araç bulunamadı!");
+            return;
+        }
+
+        window.currentUploadVehicle = d;
+        window.currentUploadContext = context;   // yeni ekledik
+        window.currentUploadIndex = idx;
+
+        const modal = document.getElementById('quick-upload-modal');
+        if (modal) {
+            document.getElementById('upload-sasi-display').innerText = 
+                `Araç: ${d.marka || ''} ${d.model || ''} - Şasi: ${d.sasi || 'Bilinmiyor'}`;
+            
+            modal.style.display = 'flex';
+            document.getElementById('upload-progress').style.display = 'none';
+        }
+    } catch(e) {
+        console.error("Quick upload açılırken hata:", e);
+        alert("Bir hata oluştu. Tekrar deneyin.");
+    }
+};
 
    window.processQuickUpload = function() {
         const fileInput = document.getElementById('upload-file-input');
@@ -3237,17 +3255,21 @@ window.baslatRobot = async function() {
         };
         reader.readAsDataURL(file);
     };
-// GitHub Güvenlik Duvarını (CSP) Aşan Dinleyici
-    document.addEventListener('click', function(e) {
-        // Tıklanan yerin bir 'quick-upload-btn' olup olmadığını kontrol et
-        const btn = e.target.closest('.quick-upload-btn');
-        if (btn) {
-            const idx = btn.getAttribute('data-idx');
-            if (typeof window.openQuickUpload === 'function') {
-                window.openQuickUpload(idx);
-            }
-        }
-    });
+// GARANTİLİ HIZLI YÜKLEME TIKLAMA MOTORU (Hem bulut hem kalem yanındaki ikon için)
+document.addEventListener('click', function(e) {
+    const triggerBtn = e.target.closest('.quick-upload-trigger');
+    if (!triggerBtn) return;
+
+    const idxStr = triggerBtn.getAttribute('data-idx');
+    if (idxStr === null) return;
+
+    const idx = parseInt(idxStr);
+
+    // Hangi tabloda olduğumuzu anlamaya çalış
+    const isFirmTable = triggerBtn.closest('#firm-vehicles-tbody') !== null;
+    
+    window.openQuickUploadPortal(idx, isFirmTable ? 'firm' : 'decl');
+});
 </script>
 
 <div id="quick-upload-modal" style="display:none; position:fixed; z-index:999999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center;">
