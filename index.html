@@ -469,9 +469,9 @@
 @media (max-width: 768px) {
     :root { --sidebar-w: 280px; }
     
-    /* Menü mobilde ekran dışına saklanır, basınca kayarak gelir */
-    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; z-index: 9999; box-shadow: 10px 0 30px rgba(0,0,0,0.4); transition: transform 0.3s ease; }
-    .sidebar.collapsed { transform: translateX(-100%); }
+    /* Menü mobilde YUKARIDAN aşağı kayarak gelir (Modern App Tarzı) */
+    .sidebar { position: fixed; left: 0; top: 0; width: 100%; height: auto; max-height: 85vh; overflow-y: auto; z-index: 9999; box-shadow: 0 15px 40px rgba(0,0,0,0.5); border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.collapsed { transform: translateY(-120%); }
     
     .main-content { margin-left: 0 !important; }
     .view-area { padding: 16px 12px !important; }
@@ -3543,6 +3543,19 @@ window.toggleSidebar = function() {
         sidebar.classList.toggle('collapsed');
     }
 };
+</script>
+<script>
+// Mobilde menüden bir seçenek tıklandığında menüyü otomatik yukarı topla
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.sidebar-nav .nav-btn, .sidebar-footer .footer-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar');
+                if(sidebar) sidebar.classList.add('collapsed');
+            }
+        });
+    });
+});
 </script>
 </body>
 </html>
