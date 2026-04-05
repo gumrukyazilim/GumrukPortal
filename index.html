@@ -625,16 +625,27 @@
 </template>
 <template id="tpl-sureDilekcesi">
     <style>
+        /* Dilekçe Özel Ekran Ayarları */
         .dilekce-sayfa {
-            background: #fff; color: #000; width: 210mm; min-height: 297mm;
-            margin: 20px auto; 
+            background: #fff; 
+            color: #000000 !important; /* Yazıları kapkara yapmaya zorlar */
+            width: 210mm; 
+            min-height: 290mm; /* 297'den 290'a düşürdük, 2. sayfaya taşmaz */
+            margin: 0 auto; /* Dış boşluğu sildik */
             padding: 40mm 20mm 20mm 20mm; 
             font-family: 'Times New Roman', serif;
-            line-height: 1.6; font-size: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            line-height: 1.6; font-size: 16px; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased; /* Yazıları keskinleştirir */
         }
-        .imza-satir { margin: 0 !important; padding: 0 !important; line-height: 1.1 !important; }
         
-        /* Düzenlenebilir alanların ekran görüntüsü */
+        .imza-satir {
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.1 !important;
+        }
+
         .editable-field {
             border-bottom: 2px dashed #3b82f6;
             color: #2563eb;
@@ -649,13 +660,19 @@
 
         @media print {
             @page { size: A4 portrait; margin: 0; }
-            body, html, .app-wrap, .main-content, .view-area { height: auto !important; overflow: visible !important; background: #fff !important; }
+            body, html { height: 100% !important; background: #fff !important; }
             body * { visibility: hidden; }
             #dilekce-print-area, #dilekce-print-area * { visibility: visible; }
-            #dilekce-print-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; box-shadow: none !important; }
+            #dilekce-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0 !important;
+                box-shadow: none !important;
+                page-break-after: avoid; /* 2. Boş sayfa atmasını yasaklar */
+            }
             .no-print { display: none !important; }
-            
-            /* Düzenlenebilir alanların kağıt üzerindeki görüntüsü (Gizli ve siyah) */
             .editable-field { border-bottom: none !important; color: #000 !important; background: transparent !important; }
         }
     </style>
@@ -3133,26 +3150,24 @@ window.safePrint = function() {
         window.print();
     }, 200);
 };
-
 window.downloadPDF = function() {
     const element = document.getElementById('dilekce-print-area');
     const tip = document.getElementById('dilekce-tipi').value;
     let sasi = "belge";
     
-    // Şasi numarasını dosya adına eklemek için bul
     if (window.currentDilekceItems && window.currentDilekceItems.length > 0 && window.currentDilekceItems[0].sasi) {
         sasi = window.currentDilekceItems[0].sasi;
     }
     
     const opt = {
-        margin:       10,
+        margin:       0, // Sıfırladık ki 2. boş sayfaya taşma yapmasın
         filename:     tip + '_' + sasi + '.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        image:        { type: 'jpeg', quality: 1 }, // Kaliteyi fulledik
+        html2canvas:  { scale: 4, useCORS: true, letterRendering: true }, // Scale 4 yaptık (Yazılar jilet gibi net çıkacak)
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    if(typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
+    if(typeof showSyncToast === 'function') showSyncToast("PDF Yüksek Kalitede Hazırlanıyor...");
     
     html2pdf().set(opt).from(element).save().then(() => {
         if(typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
