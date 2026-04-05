@@ -3167,38 +3167,33 @@ window.baslatRobot = async function() {
     }
     hideSyncToast("Tarama tamamlandı.", true);
 };
-// --- GARANTİLİ HIZLI YÜKLEME MOTORU ---
-   window.openQuickUploadPortal = function(idx, context = 'decl') {
-    try {
-        let d = null;
-        if (context === 'firm') {
-            d = window.firmData[window.currentFirm][idx];
-        } else {
-            d = window.declarationsData[idx];
-        }
+// --- KALEM İKONUNDAN BAĞIMSIZ PORTAL SİSTEMİ ---
+    window.runQuickUploadPortal = function(idx) {
+        try {
+            const currentView = localStorage.getItem('gumruk_last_view');
+            let d = (currentView === 'firmDetails') ? window.firmData[window.currentFirm][idx] : window.declarationsData[idx];
 
-        if (!d) {
-            alert("Araç bulunamadı!");
-            return;
-        }
+            if (!d) return;
+            window.currentUploadVehicle = d;
 
-        window.currentUploadVehicle = d;
-        window.currentUploadContext = context;   // yeni ekledik
-        window.currentUploadIndex = idx;
+            const modal = document.getElementById('quick-upload-modal');
+            if (modal) {
+                document.getElementById('upload-sasi-display').innerText = "Araç Şasisi: " + (d.sasi || 'Bilinmiyor');
+                // EN KRİTİK SATIR: Pencereyi zorla görünür yapar
+                modal.style.setProperty('display', 'flex', 'important'); 
+                document.getElementById('upload-progress').style.display = 'none';
+            }
+        } catch(e) { console.error("Portal Hatası:", e); }
+    };
 
-        const modal = document.getElementById('quick-upload-modal');
-        if (modal) {
-            document.getElementById('upload-sasi-display').innerText = 
-                `Araç: ${d.marka || ''} ${d.model || ''} - Şasi: ${d.sasi || 'Bilinmiyor'}`;
-            
-            modal.style.display = 'flex';
-            document.getElementById('upload-progress').style.display = 'none';
+    // GitHub ve CSP engelini aşan güvenli dinleyici
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.quick-upload-trigger');
+        if (btn) {
+            const idx = btn.getAttribute('data-idx');
+            window.runQuickUploadPortal(idx);
         }
-    } catch(e) {
-        console.error("Quick upload açılırken hata:", e);
-        alert("Bir hata oluştu. Tekrar deneyin.");
-    }
-};
+    });
 
    window.processQuickUpload = function() {
         const fileInput = document.getElementById('upload-file-input');
