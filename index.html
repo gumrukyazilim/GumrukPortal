@@ -624,182 +624,58 @@
 </template>
 <template id="tpl-sureDilekcesi">
     <style>
-        /* Dilekçe Özel Ekran Ayarları */
         .dilekce-sayfa {
             background: #fff; color: #000; width: 210mm; min-height: 297mm;
             margin: 20px auto; 
-            padding: 50mm 20mm 20mm 20mm; 
+            padding: 40mm 20mm 20mm 20mm; 
             font-family: 'Times New Roman', serif;
             line-height: 1.6; font-size: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            position: relative;
         }
+        .imza-satir { margin: 0 !important; padding: 0 !important; line-height: 1.1 !important; }
         
-        /* İmza aralıklarını tamamen birbirine yapıştıran YENİ kod */
-        .imza-satir {
-            margin: 0 !important;
-            padding: 0 !important;
-            line-height: 1.1 !important; /* İşte aradaki o gizli boşluğu yok eden kod */
+        /* Düzenlenebilir alanların ekran görüntüsü */
+        .editable-field {
+            border-bottom: 2px dashed #3b82f6;
+            color: #2563eb;
+            font-weight: bold;
+            padding: 0 4px;
+            cursor: text;
+            display: inline-block;
+            min-width: 40px;
+            text-align: center;
+            background: rgba(59,130,246,0.1);
         }
-/* Araç listesi stili */
-.vehicle-item {
-    margin-bottom: 10px;
-    /* JS tarafında belirlenecek punto buraya gelecek */
-}
-        
-        /* Yazıcıdan BOŞ SAYFA Çıkma Sorununu Çözen Kesin CSS */
+
         @media print {
             @page { size: A4 portrait; margin: 0; }
-            body, html, .app-wrap, .main-content, .view-area {
-                height: auto !important; 
-                overflow: visible !important; 
-                background: #fff !important;
-            }
+            body, html, .app-wrap, .main-content, .view-area { height: auto !important; overflow: visible !important; background: #fff !important; }
             body * { visibility: hidden; }
             #dilekce-print-area, #dilekce-print-area * { visibility: visible; }
-            #dilekce-print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0 !important;
-                box-shadow: none !important;
-            }
+            #dilekce-print-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; box-shadow: none !important; }
             .no-print { display: none !important; }
+            
+            /* Düzenlenebilir alanların kağıt üzerindeki görüntüsü (Gizli ve siyah) */
+            .editable-field { border-bottom: none !important; color: #000 !important; background: transparent !important; }
         }
-@media (max-width: 768px) {
-    /* Ana taşıyıcıyı dikey yap */
-    .app-container { flex-direction: column; }
-    
-    /* Yan menü (sidebar) telefonun en üstüne gelsin veya gizlensin */
-    .sidebar { 
-        width: 100% !important; 
-        height: auto; 
-        position: relative;
-    }
-    
-    .sidebar.collapsed { display: none; } /* Kapalıyken hiç yer kaplamasın */
-
-    /* Tabloyu kaydırılabilir yap (Ekrandan taşmasın) */
-    .table-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    /* Kartları (İstatistikleri) 2'şerli dizebilirsin */
-    .stats-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-
-    /* Modal (Kayıt ekranı) telefonun tamamını kaplasın */
-    .modal-content {
-        width: 95% !important;
-        margin: 10px auto;
-        padding: 15px;
-    }
-
-    /* Input gruplarını yan yana değil alt alta yap */
-    .form-row {
-        flex-direction: column;
-    }
-}
-/* --- MOBİL İÇİN KESİN ÇÖZÜM (TAŞMALARI ENGELLEYEN ZIRH) --- */
-@media (max-width: 768px) {
-    /* 1. SİHİRLİ DOKUNUŞ: Her şeyin genişliğini "iç boşluklar dahil" hesapla ki dışarı taşmasın */
-    * {
-        box-sizing: border-box !important;
-        max-width: 100vw !important;
-    }
-
-    /* 2. Ana ekranı sağdan soldan mühürle */
-    html, body {
-        overflow-x: hidden !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        position: relative !important;
-    }
-
-    /* 3. Tüm ana taşıyıcıları hizaya sok */
-    .app-container, .main-content, .content {
-        width: 100% !important;
-        overflow-x: hidden !important;
-        padding: 10px !important;
-        margin: 0 !important;
-    }
-
-    /* 4. "Yeni Kayıt" Butonu ve Üst Menüyü hizala */
-    .card-header, .header-actions {
-        display: flex !important;
-        flex-wrap: wrap !important; /* Ekrana sığmazsa alt alta geçsin, sağa itmesin */
-        gap: 10px !important;
-        justify-content: space-between !important;
-    }
-
-    .new-record-btn {
-        width: auto !important;
-        padding: 8px 15px !important;
-        font-size: 13px !important;
-        flex-grow: 1 !important; /* Boşluğu dengeli doldursun */
-        text-align: center !important;
-    }
-
-    /* 5. TABLOYU ÖZEL HÜCREYE AL (Sadece bu kısım kayacak) */
-    .table-container, .table-responsive {
-        display: block !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: 1px solid #333 !important;
-    }
-
-    /* Tablonun kendisi geniş kalsın ki yazılar üst üste binmesin */
-    table {
-        min-width: 850px !important; 
-        width: 100% !important;
-        max-width: none !important; /* Kısıtlamayı kaldır ki rahatça kayabilsin */
-    }
-    
-    /* 6. Arama çubuğu gibi inputlar ekranı patlatmasın */
-    input, select, textarea {
-        max-width: 100% !important;
-    }
-    
-    .sidebar.collapsed { display: none !important; }
-}
-/* --- MOBİL AYARLARIN SONU --- */    </style>
+    </style>
 
     <div class="page-hdr no-print">
-        <div><h1 class="page-title">Süre Uzatımı Dilekçesi</h1></div>
+        <div>
+            <div class="page-eyebrow">Dinamik Belge Üretici</div>
+            <h1 class="page-title">Resmi Evrak & Tutanak</h1>
+        </div>
         <div class="page-actions">
+            <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:36px; outline:none;">
+                <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
+                <option value="GMC">📝 Yurt Dışı Araştırma Tutanağı</option>
+            </select>
             <button class="btn-primary" onclick="window.print()"><i data-lucide="printer"></i> Yazdır</button>
             <button class="btn-sm" onclick="window.renderView('declarations')">Listeye Dön</button>
         </div>
     </div>
     
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in">
-        <div style="text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; text-transform: uppercase;">
-            YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
         </div>
-        
-        <p style="text-indent: 50px; text-align: justify; margin-bottom: 25px;">
-            Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
-        </p>
-        
-        <p style="margin-bottom: 50px;">Gereğini emir ve müsaadelerinize arz ederiz.</p>
-        
-        <div id="dilekce-arac-listesi" style="margin-bottom: 50px; padding-top: 20px;">
-            </div>
-        
-        <div style="float: right; text-align: center; min-width: 250px;">
-            <p class="imza-satir" style="margin-bottom: 12px !important;">Saygılarımızla</p>
-            <p class="imza-satir" style="font-weight: bold; font-size: 17px;" id="dilekce-firma-adi"></p>
-            <p class="imza-satir" style="font-weight: bold; display: inline-block; min-width: 150px; margin-top: 3px !important;" contenteditable="true" id="dilekce-imza-isim"></p>
-        </div>
-        <div style="clear: both;"></div>
-    </div>
 </template>
 
 <div id="decl-modal" class="modal-backdrop hidden"> 
@@ -3015,101 +2891,130 @@ window.setTeslimCalc = function(tip) {
         window.calculateTaxes();
     }
 };
-window.prepareSureDilekcesi = function(idx) {
-    // 1. Kutucuğu işaretlenmiş (seçili) araçları bul
-    let checkedBoxes = document.querySelectorAll('.decl-cb:checked');
+window.prepareSureDilekcesi = function(idx, ctx) {
+    let checkedBoxes = document.querySelectorAll(ctx === 'firm' ? '.firm-cb:checked' : '.decl-cb:checked');
     let selectedItems = [];
-    
-    // Eğer birden fazla kutucuk işaretliyse ve tıkladığımız satır da onlardan biriyse toplu işlem yap
     let isCurrentClickedChecked = Array.from(checkedBoxes).some(cb => parseInt(cb.value) === idx);
     
     if (checkedBoxes.length > 1 && isCurrentClickedChecked) {
         checkedBoxes.forEach(cb => {
-            selectedItems.push(window.declarationsData[parseInt(cb.value)]);
+            let d = ctx === 'firm' ? window.firmData[window.currentFirm][parseInt(cb.value)] : window.declarationsData[parseInt(cb.value)];
+            if(d) selectedItems.push(d);
         });
     } else {
-        // Kutucuk işaretli değilse sadece tıklanan tek aracı al
-        selectedItems.push(window.declarationsData[idx]);
+        let d = ctx === 'firm' ? window.firmData[window.currentFirm][idx] : window.declarationsData[idx];
+        if(d) selectedItems.push(d);
     }
 
     if (selectedItems.length === 0) return;
 
-    // 2. Güvenlik: Farklı firmalar aynı dilekçeye yazılamaz
     let firmaAdi = selectedItems[0].firma;
-    let farkliFirmaVar = selectedItems.some(x => x.firma !== firmaAdi);
-    if (farkliFirmaVar) {
-        alert("HATA: Farklı firmalara ait araçları tek dilekçede birleştiremezsiniz!");
+    if (selectedItems.some(x => x.firma !== firmaAdi)) {
+        alert("HATA: Farklı firmalara ait araçları tek evrakta birleştiremezsiniz!");
         return;
     }
 
-    // 3. Dilekçe ekranına geç
+    // Seçilen araçları geçici hafızaya al
+    window.currentDilekceItems = selectedItems;
     window.renderView('sureDilekcesi');
 
     setTimeout(function() {
-        var listDiv = document.getElementById('dilekce-arac-listesi');
-        var firmaDiv = document.getElementById('dilekce-firma-adi');
-        var imzaDiv = document.getElementById('dilekce-imza-isim');
+        window.renderDilekceContent(); // Belgeyi Ekrana Çiz
+    }, 150);
+};
 
-       if (listDiv) {
-            let html = '<div style="margin-top: 20px;">';
-            
-            // --- DİNAMİK PUNTO HESAPLAMA (SADECE ARAÇLAR İÇİN) ---
-            const aracSayisi = selectedItems.length;
-            let pnt = "16px"; // 1-3 araç arası (Standart)
-            let mb = "10px";  
+// YENİ MOTOR: SEÇİLEN EVRAĞA GÖRE İÇERİK ÜRETİR
+window.renderDilekceContent = function() {
+    let tip = document.getElementById('dilekce-tipi').value;
+    let container = document.getElementById('dilekce-print-area');
+    let items = window.currentDilekceItems;
+    if (!items || items.length === 0) return;
 
-            if (aracSayisi > 3 && aracSayisi <= 6) {
-                pnt = "13px"; // Orta boy
-                mb = "6px";
-            } else if (aracSayisi > 6) {
-                pnt = "10px"; // Küçük boy (Çok araçlı)
-                mb = "4px";
-            }
+    let html = "";
+    let ilkArac = items[0];
+    let firmaAdi = ilkArac.firma || "........................";
+    
+    // İmza Yetkilisi Kararı
+    let imzaYetkilisi = "........................";
+    let fUst = firmaAdi.toUpperCase();
+    if (fUst.indexOf("ŞAMNU") !== -1) imzaYetkilisi = "FEVZİ ALPER TAVMAN";
+    else if (fUst.indexOf("FF OTOMOTİV") !== -1) imzaYetkilisi = "FATİH İSMAİL ÇELEBİ";
+    else if (fUst.indexOf("KARABAYIR") !== -1) imzaYetkilisi = "BEHLÜL TÜREL";
 
-            // Özet Beyan Kontrolü
-            let ilkOzetBeyan = selectedItems[0].ozetBeyan || selectedItems[0].beyanname || '................';
-            let hepsiAyniOzetBeyan = selectedItems.every(x => (x.ozetBeyan || x.beyanname || '................') === ilkOzetBeyan);
+    if (tip === "SURE") {
+        html += `
+            <div style="text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; text-transform: uppercase;">
+                YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
+            </div>
+            <p style="text-indent: 50px; text-align: justify; margin-bottom: 25px;">
+                Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
+            </p>
+            <p style="margin-bottom: 50px;">Gereğini emir ve müsaadelerinize arz ederiz.</p>
+            <div style="margin-bottom: 50px; padding-top: 20px;">
+        `;
 
-            if (hepsiAyniOzetBeyan) {
-                // DURUM 1: Hepsi AYNI Özet Beyan
-                html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: ${mb}; color: #000;">Özet Beyan Numarası: ${ilkOzetBeyan} / ${selectedItems.length} ARAÇ</p>`;
-                selectedItems.forEach((item) => {
-                    // BAK BURADAKİ DOLAR İŞARETİNİ SİLDİK
-                    html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px; color: #000;">Şase No : ${item.sasi || '...................'}</p>`;
-                });
-            } else {
-                // DURUM 2: FARKLI Özet Beyanlar
-                selectedItems.forEach((item) => {
-                    let guncelOzet = item.ozetBeyan || item.beyanname || '...................';
-                    html += `
-                    <div style="margin-bottom: ${mb}; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
-                        <p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px; color: #000;">Özet Beyan Numarası: ${guncelOzet} / 1 ARAÇ</p>
-                        <p style="font-size: ${pnt} !important; font-weight: bold; color: #000;">Şase No : ${item.sasi || '...................'}</p>
-                    </div>`;
-                });
-            }
-            
-            html += '</div>';
-            listDiv.innerHTML = html;
+        const aracSayisi = items.length;
+        let pnt = "16px"; let mb = "10px";  
+        if (aracSayisi > 3 && aracSayisi <= 6) { pnt = "13px"; mb = "6px"; } 
+        else if (aracSayisi > 6) { pnt = "10px"; mb = "4px"; }
+
+        let ilkOzetBeyan = items[0].ozetBeyan || items[0].beyanname || '................';
+        let hepsiAyniOzetBeyan = items.every(x => (x.ozetBeyan || x.beyanname || '................') === ilkOzetBeyan);
+
+        if (hepsiAyniOzetBeyan) {
+            html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: ${mb}; color: #000;">Özet Beyan Numarası: ${ilkOzetBeyan} / ${items.length} ARAÇ</p>`;
+            items.forEach((item) => {
+                html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px; color: #000;">Şase No : ${item.sasi || '...................'}</p>`;
+            });
+        } else {
+            items.forEach((item) => {
+                let guncelOzet = item.ozetBeyan || item.beyanname || '...................';
+                html += `
+                <div style="margin-bottom: ${mb}; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                    <p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px; color: #000;">Özet Beyan Numarası: ${guncelOzet} / 1 ARAÇ</p>
+                    <p style="font-size: ${pnt} !important; font-weight: bold; color: #000;">Şase No : ${item.sasi || '...................'}</p>
+                </div>`;
+            });
         }
+        
+        html += `
+            </div>
+            <div style="float: right; text-align: center; min-width: 250px;">
+                <p class="imza-satir" style="margin-bottom: 12px !important;">Saygılarımızla</p>
+                <p class="imza-satir" style="font-weight: bold; font-size: 17px;">${firmaAdi}</p>
+                <p class="imza-satir" style="font-weight: bold; display: inline-block; min-width: 150px; margin-top: 3px !important;" contenteditable="true">${imzaYetkilisi}</p>
+            </div>
+            <div style="clear: both;"></div>
+        `;
+    } 
+    else if (tip === "GMC") {
+        // --- GMC TUTANAĞI BÖLÜMÜ ---
+        let sasiList = items.map(x => x.sasi || '...................').join(', ');
+        
+        html += `
+            <div style="text-align: center; font-weight: bold; margin-bottom: 30px; font-size: 18px; text-decoration: underline;">
+                TUTANAK
+            </div>
+            <p style="text-indent: 50px; text-align: justify; margin-bottom: 20px; line-height: 1.8;">
+                Gümrük Müdürlüğümüzce <b>${firmaAdi}</b> firması adına tescilli 
+                <b>${ilkArac.tarih || "................"}</b> tarihli 
+                <b>${ilkArac.ozetBeyan || ilkArac.beyanname || "......................"}</b> sayılı serbest dolaşıma giriş beyannamesi muhteviyatı 
+                <b>${ilkArac.yil || "...."}</b> Model <b>${ilkArac.marka || "........"}</b> Marka <b>${ilkArac.model || "................"}</b> ticari tanımlı 
+                <b>${sasiList}</b> şase numaralı <b>${ilkArac.gtip || "8704.21.31.00.00"}</b> GTİP'inde beyan edilen Bakırköy Tasfiye İşletme Müdürlüğü Geçici depolama alanında bulunan aracın oluşturulan heyetle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin 
+                <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">3999</span> mm ve azami dahili taban uzunluğunun 
+                <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">2015</span> mm olduğu tespit edilmiş olup benzer araç ithalatlarına ilişkin 30.12.2021 tarihli 65887593 sayılı ile kayıtlı görüş neticesinde aracın GTİP'ini tespit edilmesini temin etmek üzere 28.07.2021 tarihli 65870084 sayılı yazımız ile TMMOB ne yönlendirildiği ve alınan rapor sonucu da dikkate alınarak GTİP yönünde beyanın doğru olduğu, heyette görevli Muayene Memurlarınca da aracın serbest dolaşıma giriş beyannamesinde belirtilen GTİP yönünde beyanın doğru olduğu, ancak söz yurt dışı araştırmasının ayrıca söz konusu belgelerin yurt dışı doğruluğunun ve aracın yurt dışında herhangi bir tadilat veya tescil işlemi görüp görmediği hususunun yurt dışı makamlarından araştırılması hususunu olurlarınıza arz ederiz.
+            </p>
+            
+            <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-weight: bold;">
+                <div style="flex: 1;">Muayene Memuru</div>
+                <div style="flex: 1;">Muayene Memuru</div>
+                <div style="flex: 1;">Muayene Memuru</div>
+            </div>
+        `;
+    }
 
-        if (firmaDiv) {
-            firmaDiv.innerText = firmaAdi;
-            if (imzaDiv) {
-                let fUst = firmaAdi.toUpperCase();
-                if (fUst.indexOf("ŞAMNU") !== -1) {
-                    imzaDiv.innerText = "FEVZİ ALPER TAVMAN";
-                } else if (fUst.indexOf("FF OTOMOTİV") !== -1) {
-                    imzaDiv.innerText = "FATİH İSMAİL ÇELEBİ";
-                } else if (fUst.indexOf("KARABAYIR") !== -1) {
-                    imzaDiv.innerText = "BEHLÜL TÜREL";
-                } else {
-                    imzaDiv.innerText = "........................";
-                }
-            }
-        }
-        if (window.lucide) lucide.createIcons();
-    }, 300);
+    container.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
 };
 window.baslatRobot = async function() {
     if (!confirm("Robot her araçtan sonra yarım saniye mola vererek çalışacak. Bu işlem birkaç dakika sürebilir. Başlatılsın mı?")) return;
