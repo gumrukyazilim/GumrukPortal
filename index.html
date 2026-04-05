@@ -2152,7 +2152,7 @@ window.fetchTCMBKur = async function(auto = false) {
             }
         }
         
-        return `<tr class="${finalRowClass}" data-gun="${gunFarki}">
+        return `<tr class="${finalRowClass}" data-gun="${gunFarki}" onclick="if(!event.target.closest('button, input, a, .inline-date')) window.openDeclVehicleModal(${i}, 'decl')" style="cursor: pointer;" title="Detayları görmek için tıklayın">
             <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
             <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}</td>
             <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
@@ -2233,7 +2233,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
                 }
             }
 
-            return `<tr class="${rc}">
+            return `<tr class="${rc}" onclick="if(!event.target.closest('button, input, a, .inline-date')) window.openDeclVehicleModal(${i}, 'firm')" style="cursor: pointer;" title="Detayları görmek için tıklayın">
                 <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb firm-cb" value="${i}" onclick="window.toggleFirmCb()"></td>
                 <td><span class="font-bold" style="color:var(--text-primary);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}</td>
                 <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
@@ -2271,7 +2271,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         document.getElementById('firm-selectAll').checked=false;window.toggleFirmCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();
     };
 
-    window.renderKiymetTable=function(){let tb=document.getElementById('kiymet-tbody');if(!tb)return;tb.innerHTML=window.kiymetData.map((k,i)=>{let dc=k.durum&&k.durum.toUpperCase().includes('MAHKEME')?'badge-danger':(k.durum&&k.durum.toUpperCase().includes('YOK')?'badge-dark':'badge-warning');return`<tr><td style="text-align:center;"><input type="checkbox" class="custom-cb kiymet-cb" value="${i}" onclick="window.toggleKiymetCb()"></td><td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td><td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura?window.formatNumber(k.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${k.kiymet?window.formatNumber(k.kiymet)+' €':'-'}</td><td>${k.durum?`<span class="badge ${dc}">${k.durum}</span>`:'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.editKiymet(${i})"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteKiymet(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;}).join('');document.getElementById('kiymet-selectAll').checked=false;window.toggleKiymetCb();if(window.lucide)lucide.createIcons();};
+    window.renderKiymetTable=function(){let tb=document.getElementById('kiymet-tbody');if(!tb)return;tb.innerHTML=window.kiymetData.map((k,i)=>{let dc=k.durum&&k.durum.toUpperCase().includes('MAHKEME')?'badge-danger':(k.durum&&k.durum.toUpperCase().includes('YOK')?'badge-dark':'badge-warning');return`<tr onclick="if(!event.target.closest('button, input, a')) window.editKiymet(${i})" style="cursor: pointer;" title="Detayları görmek için tıklayın"><td style="text-align:center;"><input type="checkbox" class="custom-cb kiymet-cb" value="${i}" onclick="window.toggleKiymetCb()"></td><td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td><td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura?window.formatNumber(k.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${k.kiymet?window.formatNumber(k.kiymet)+' €':'-'}</td><td>${k.durum?`<span class="badge ${dc}">${k.durum}</span>`:'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.editKiymet(${i})"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteKiymet(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;}).join('');document.getElementById('kiymet-selectAll').checked=false;window.toggleKiymetCb();if(window.lucide)lucide.createIcons();};
 
     window.toggleDeclCb=function(){let c=document.querySelectorAll('.decl-cb:checked'),b=document.getElementById('decl-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('decl-sel-count').innerText=c.length;}else b.classList.add('hidden');}};
     window.toggleAllDeclarations=function(v){document.querySelectorAll('.decl-cb').forEach(c=>c.checked=v);window.toggleDeclCb();};
