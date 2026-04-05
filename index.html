@@ -636,63 +636,46 @@
             font-family: 'Times New Roman', Times, serif !important;
             line-height: 1.6 !important; 
             font-size: 16px !important;
-            font-weight: 700 !important; /* SENİN TESPİTİN: 600 yerine 700, Canvas'ta zımba gibi çıkar */
+            font-weight: 700 !important; 
             text-rendering: optimizeLegibility;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
             box-sizing: border-box;
             text-align: justify;
-            page-break-inside: avoid;
         }
 
         .dilekce-sayfa * { color: #000000 !important; font-weight: 700 !important; }
         .imza-satir { margin: 0 !important; padding: 0 !important; line-height: 1.1 !important; }
 
-        /* KELİME BOŞLUĞUNU DÜZELTEN DÜZENLENEBİLİR ALAN */
         .editable-field {
             border-bottom: 2px dashed #3b82f6 !important;
             color: #2563eb !important;
-            font-weight: 700 !important;
             padding: 0 4px;
             margin: 0 2px;
             cursor: text;
             display: inline-block;
-            min-width: auto !important; 
-            width: auto !important;
             background: rgba(59,130,246,0.05) !important;
             outline: none;
         }
 
-        /* PDF ÇIKTISI İÇİN GİZLİ MOD (Alanları Temizler) */
+        /* PDF ÇIKTISI İÇİN GİZLİ MOD (Senin yazdığın temizleme) */
+        .pdf-export-mode .dilekce-sayfa {
+            padding: 25mm 18mm !important; /* Sağa kaymayı engeller */
+            width: 210mm !important;
+            margin: 0 auto !important;
+        }
+
+        .pdf-export-mode span[contenteditable],
         .pdf-export-mode .editable-field,
         .pdf-export-mode .editable-field * {
-            border-bottom: none !important;
+            border: none !important;
             color: #000000 !important;
             background: transparent !important;
             padding: 0 !important;
             margin: 0 !important;
-            display: inline !important; 
-            min-width: auto !important;
+            display: inline !important;
             font-weight: 700 !important;
-        }
-
-        /* YAZICI İÇİN İZOLASYON */
-        @media print {
-            @page { margin: 0; size: A4 portrait; }
-            body, html { margin: 0; padding: 0; background: #fff !important; }
-            * { visibility: hidden; }
-            #dilekce-print-area, #dilekce-print-area * { visibility: visible; }
-            #dilekce-print-area {
-                position: absolute;
-                left: 0; top: 0;
-                width: 210mm !important;
-                height: 297mm !important; /* 2. Sayfayı Kesin Engeller */
-                margin: 0 !important;
-                padding: 30mm 20mm !important;
-                box-shadow: none !important;
-                overflow: hidden !important;
-            }
         }
     </style>
 
@@ -713,15 +696,6 @@
     </div>
     
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in"></div>
-</template>
-<template id="tpl-firms"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firmalar</div><h1 class="page-title">Firma Arşivi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button></div></div> 
-    <div id="firms-dynamic-grid" class="firms-grid fade-in"></div> 
-</template>
-
-<template id="tpl-firmDetails"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firma Detayı</div><h1 class="page-title" id="current-firm-title">Firma</h1></div><div class="page-actions"><button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button><button class="btn-sm" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button><button id="firm-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"></i> Sil (<span id="firm-selected-count">0</span>)</button><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button></div></div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ ↕</th><th>BEYANNAME</th><th>FATURA</th><th>KIYMET</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-declarations"> 
@@ -2748,31 +2722,72 @@ window.prepareSureDilekcesi = function(idx, ctx) {
     setTimeout(function() { window.renderDilekceContent(); }, 100);
 };
 
-window.printDilekce = function() {    
-    const printArea = document.getElementById('dilekce-print-area');    
-    if (!printArea) { alert("Dilekçe alanı bulunamadı!"); return; }    
+// ========== YENİ FONKSİYON: SENİN YAZDIĞIN KÖKTEN TEMİZLİK ==========
+window.cleanEditableFieldsForPDF = function() {
+    const container = document.getElementById('dilekce-print-area');
+    if (!container) return;
     
-    // Print öncesi sihirli temizlik (Mavi kutuları tamamen düz metne çevirir)
-    window.cleanEditableFieldsForPDF();
-
-    const appWrap = document.querySelector('.app-wrap');
-    const originalParent = printArea.parentNode;
+    const fields = container.querySelectorAll('.editable-field');
+    fields.forEach(field => {
+        const text = field.textContent.trim();
+        const plainTextNode = document.createTextNode(text);
+        field.parentNode.replaceChild(plainTextNode, field);
+    });
     
-    if(appWrap) appWrap.style.display = 'none';
-    document.body.appendChild(printArea);
-
-    setTimeout(() => {
-        window.print();    
-        setTimeout(() => {        
-            if(appWrap) appWrap.style.display = '';
-            originalParent.appendChild(printArea);
-            
-            // Yazdırma bitince ekranı eski haline (mavi kutulara) döndür
-            window.renderDilekceContent();
-        }, 500);
-    }, 250);
+    container.querySelectorAll('span[contenteditable]').forEach(span => {
+        const text = span.textContent.trim();
+        const plain = document.createTextNode(text);
+        span.parentNode.replaceChild(plain, span);
+    });
 };
 
+// ========== IPHONE UYUMLU, URL ENGELLEYİCİ YAZDIRMA MOTORU ==========
+window.printDilekce = function() {
+    const element = document.getElementById('dilekce-print-area');
+    if (!element) return;
+
+    // Yazdırmadan önce senin fonksiyonla mavi kutuları öldürüyoruz
+    window.cleanEditableFieldsForPDF();
+
+    // SİHİRLİ DOKUNUŞ: iPhone'da URL çıkmasın diye gizli bir Iframe açıyoruz
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.write(`
+        <html>
+        <head>
+            <style>
+                @page { margin: 0; size: A4 portrait; }
+                body { margin: 0; padding: 0; background: #fff; color: #000; font-family: 'Times New Roman', Times, serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                #dilekce-print-area { width: 210mm; padding: 25mm 18mm; box-sizing: border-box; font-size: 16px; line-height: 1.6; font-weight: 700; text-align: justify; }
+                .imza-satir { margin: 0; padding: 0; line-height: 1.1; }
+            </style>
+        </head>
+        <body>
+            <div id="dilekce-print-area">${element.innerHTML}</div>
+        </body>
+        </html>
+    `);
+    doc.close();
+
+    iframe.contentWindow.focus();
+    setTimeout(() => {
+        iframe.contentWindow.print();
+        
+        // İşlem bitince Iframe'i çöpe at ve ekranı eski haline (mavi kutulara) geri getir
+        setTimeout(() => { 
+            document.body.removeChild(iframe); 
+            window.renderDilekceContent(); 
+        }, 1000);
+    }, 300);
+};
+
+// ========== SENİN İYİLEŞTİRDİĞİN PDF MOTORU ==========
 window.downloadPDF = function() {
     if (typeof html2pdf === 'undefined') {
         alert("PDF kütüphanesi yüklenemedi.");
@@ -2780,44 +2795,44 @@ window.downloadPDF = function() {
     }
     const element = document.getElementById('dilekce-print-area');
     if (!element) return;
-    
+
     const tipEl = document.getElementById('dilekce-tipi');
     const tip = tipEl ? tipEl.value : 'BELGE';
     let sasi = window.currentDilekceItems && window.currentDilekceItems[0]
                 ? (window.currentDilekceItems[0].sasi || "EVRAK")
                 : "EVRAK";
 
-    // === ÖNEMLİ: PDF öncesi temizlik ===
+    // === PDF ÖNCESİ TEMİZLİK ===
     element.classList.add('pdf-export-mode');
-    window.cleanEditableFieldsForPDF(); // ← Bu satır tüm mavi+çizgi+boşluk sorununu çözer
+    window.cleanEditableFieldsForPDF(); 
     
     if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
-    
+
     const opt = {
-        margin: [10, 12, 10, 12],           // biraz daralttık (boş sayfa sorununu çözer)
+        margin: [8, 10, 8, 10], // Sağa kaymayı düzelten daraltılmış margin
         filename: `${tip}_${sasi}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-            scale: 3,                       // iPhone ve Chrome için en dengeli değer
+            scale: 2.8, 
             useCORS: true,
             letterRendering: true,
             allowTaint: true,
             dpi: 300,
             logging: false,
-            scrollY: 0
+            scrollY: 0,
+            width: 794, // A4 piksel genişliği (Sağa kaymayı KESİN önler)
+            windowWidth: 794 
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         compress: true
     };
-    
+
     html2pdf().set(opt).from(element).save().then(() => {
         element.classList.remove('pdf-export-mode');
         if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
         
-        // PDF bittikten sonra dilekçeyi tekrar render et (ekran eski haline dönsün)
-        setTimeout(() => {
-            window.renderDilekceContent();
-        }, 300);
+        // PDF bittikten sonra ekranı eski haline getir
+        setTimeout(() => window.renderDilekceContent(), 400);
     }).catch(err => {
         console.error(err);
         alert("PDF hatası: " + err.message);
