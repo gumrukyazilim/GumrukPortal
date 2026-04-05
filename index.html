@@ -933,8 +933,9 @@
 
             <div class="modal-section">
                 <div class="modal-section-title">Drive Evrak Bağlantısı</div>
-                <div class="input-group" style="margin:0;">
-                    <input type="text" id="da-evrakLink" placeholder="Google Drive klasör linki">
+                <div class="input-group" style="margin:0; display:flex; gap:8px;">
+                    <input type="text" id="da-evrakLink" placeholder="Google Drive klasör linki" style="flex:1;">
+                    <button type="button" class="btn-sm" onclick="let l=document.getElementById('da-evrakLink').value; if(l){window.open(l,'_blank');}else{alert('Henüz bir link yok!');}" style="border-color:var(--accent); color:var(--accent); white-space:nowrap;"><i data-lucide="external-link"></i> Klasörü Aç</button>
                 </div>
                 <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
                     <select id="da-doc-type-modal" class="btn-sm" style="flex:1;">
@@ -954,8 +955,6 @@
             <button class="btn-sm" onclick="window.closeDeclModal()">İptal</button>
             <button class="btn-primary" onclick="window.saveDeclEntry()"><i data-lucide="save"></i> Kaydet</button>
         </div>
-    </div>
-</div>
 
 <div id="kiymet-modal" class="modal-backdrop hidden">
     <div class="modal-box" style="max-width:500px;">
