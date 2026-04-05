@@ -176,7 +176,12 @@
         .main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
         .top-header { height:var(--header-h); display:flex; align-items:center; justify-content:space-between; padding:0 28px; background:var(--bg-surface); border-bottom:1px solid var(--border); gap:16px; flex-shrink:0; z-index:10; }
         .header-left { display:flex; align-items:center; gap:14px; flex:1; }
-        .menu-toggle { width:38px; height:38px; border-radius:var(--r-md); background:transparent; border:1px solid transparent; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.18s; }
+        .menu-toggle { 
+    width: 48px !important; 
+    height: 48px !important; 
+    background: var(--bg-elevated); 
+    border: 1px solid var(--border);
+}
         .menu-toggle:hover { background:var(--bg-elevated); border-color:var(--border); color:var(--text-primary); }
         
         .search-wrap { position:relative; display:flex; align-items:center; background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:6px 16px; width:100%; max-width:550px; height:48px; transition:0.3s; box-shadow:0 4px 20px rgba(0,0,0,0.05); }
@@ -809,20 +814,30 @@
         }
     </style>
 
-    <div class="page-hdr no-print" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; width:100%;">
-        <div>
-            <div class="page-eyebrow" style="font-size:11px; font-weight:600; color:var(--primary); text-transform:uppercase;">Dinamik Belge Üretici</div>
-            <h1 class="page-title" style="font-size:26px; font-weight:700; color:var(--text-primary); margin-top:5px;">Resmi Evrak & Tutanak</h1>
-        </div>
-        <div class="page-actions" style="display:flex; gap:10px; align-items:center;">
-            <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:36px; outline:none;">
-                <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
-                <option value="GMC">📝 Yurt Dışı Araştırma Tutanağı</option>
-            </select>
-            <button class="btn-primary" onclick="window.printDilekce()"><i data-lucide="printer"></i> Yazdır</button>
-            <button class="btn-sm" style="background:#ef4444; color:#fff; border:none; display:flex; align-items:center; gap:5px;" onclick="window.downloadPDF()"><i data-lucide="file-down"></i> PDF</button>
-            <button class="btn-sm" onclick="window.renderView('declarations')">Geri Dön</button>
-        </div>
+    <div class="page-hdr no-print" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; width:100%; gap:15px; flex-wrap:wrap;">
+    <div>
+        <div class="page-eyebrow" style="font-size:11px; font-weight:600; color:var(--primary); text-transform:uppercase;">Dinamik Belge Üretici</div>
+        <h1 class="page-title" style="font-size:26px; font-weight:700; color:var(--text-primary); margin-top:5px;">Resmi Evrak & Tutanak</h1>
+    </div>
+    <div class="page-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:48px; outline:none; min-width:200px;">
+            <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
+            <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
+        </select>
+        
+        <button class="btn-sm" onclick="window.renderView('declarations')" style="min-height:48px; min-width:110px; font-size:15px; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="arrow-left" style="width:18px; margin-right:5px;"></i> Geri Dön
+        </button>
+
+        <button class="btn-primary" onclick="window.printDilekce()" style="min-height:48px; min-width:110px; font-size:15px; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="printer" style="width:18px; margin-right:5px;"></i> Yazdır
+        </button>
+        
+        <button class="btn-sm" style="background:#ef4444; color:#fff; min-height:48px; min-width:120px; font-size:15px; display:flex; align-items:center; justify-content:center; border:none;" onclick="window.downloadPDF()">
+            <i data-lucide="file-text" style="width:18px; margin-right:5px;"></i> PDF İndir
+        </button>
+    </div>
+</div>
     </div>
     
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in"></div>
