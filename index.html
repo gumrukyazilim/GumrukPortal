@@ -404,13 +404,7 @@
             .sidebar, .top-header, .page-hdr, .page-actions { display: none !important; }
             body { background: #fff; }
         }
-@media print {
-            body * { visibility: hidden; }
-            #tcgb-print-area, #tcgb-print-area * { visibility: visible; }
-            #tcgb-print-area { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; }
-            .sidebar, .top-header, .page-hdr, .page-actions { display: none !important; }
-            body { background: #fff; }
-        }
+
 
         /* --- YENİ EKLENEN TARİH BAZLI RENKLENDİRME --- */
         .status-critical {
@@ -430,8 +424,8 @@
 .icon-btn i, .icon-btn svg {
     pointer-events: none !important;
 }
-    </style>
-    </style>
+    
+ </style>
 </head>
 <body>
 
@@ -636,46 +630,63 @@
             font-family: 'Times New Roman', Times, serif !important;
             line-height: 1.6 !important; 
             font-size: 16px !important;
-            font-weight: 700 !important; 
+            font-weight: 700 !important; /* SENİN TESPİTİN: 600 yerine 700, Canvas'ta zımba gibi çıkar */
             text-rendering: optimizeLegibility;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
             box-sizing: border-box;
             text-align: justify;
+            page-break-inside: avoid;
         }
 
         .dilekce-sayfa * { color: #000000 !important; font-weight: 700 !important; }
         .imza-satir { margin: 0 !important; padding: 0 !important; line-height: 1.1 !important; }
 
+        /* KELİME BOŞLUĞUNU DÜZELTEN DÜZENLENEBİLİR ALAN */
         .editable-field {
             border-bottom: 2px dashed #3b82f6 !important;
             color: #2563eb !important;
+            font-weight: 700 !important;
             padding: 0 4px;
             margin: 0 2px;
             cursor: text;
             display: inline-block;
+            min-width: auto !important; 
+            width: auto !important;
             background: rgba(59,130,246,0.05) !important;
             outline: none;
         }
 
-        /* PDF ÇIKTISI İÇİN GİZLİ MOD (Senin yazdığın temizleme) */
-        .pdf-export-mode .dilekce-sayfa {
-            padding: 25mm 18mm !important; /* Sağa kaymayı engeller */
-            width: 210mm !important;
-            margin: 0 auto !important;
-        }
-
-        .pdf-export-mode span[contenteditable],
+        /* PDF ÇIKTISI İÇİN GİZLİ MOD (Alanları Temizler) */
         .pdf-export-mode .editable-field,
         .pdf-export-mode .editable-field * {
-            border: none !important;
+            border-bottom: none !important;
             color: #000000 !important;
             background: transparent !important;
             padding: 0 !important;
             margin: 0 !important;
-            display: inline !important;
+            display: inline !important; 
+            min-width: auto !important;
             font-weight: 700 !important;
+        }
+
+        /* YAZICI İÇİN İZOLASYON */
+        @media print {
+            @page { margin: 0; size: A4 portrait; }
+            body, html { margin: 0; padding: 0; background: #fff !important; }
+            * { visibility: hidden; }
+            #dilekce-print-area, #dilekce-print-area * { visibility: visible; }
+            #dilekce-print-area {
+                position: absolute;
+                left: 0; top: 0;
+                width: 210mm !important;
+                height: 297mm !important; /* 2. Sayfayı Kesin Engeller */
+                margin: 0 !important;
+                padding: 30mm 20mm !important;
+                box-shadow: none !important;
+                overflow: hidden !important;
+            }
         }
     </style>
 
@@ -696,6 +707,15 @@
     </div>
     
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in"></div>
+</template>
+<template id="tpl-firms"> 
+    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firmalar</div><h1 class="page-title">Firma Arşivi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button></div></div> 
+    <div id="firms-dynamic-grid" class="firms-grid fade-in"></div> 
+</template>
+
+<template id="tpl-firmDetails"> 
+    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firma Detayı</div><h1 class="page-title" id="current-firm-title">Firma</h1></div><div class="page-actions"><button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button><button class="btn-sm" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button><button id="firm-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"></i> Sil (<span id="firm-selected-count">0</span>)</button><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button></div></div> 
+    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ ↕</th><th>BEYANNAME</th><th>FATURA</th><th>KIYMET</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-declarations"> 
@@ -765,6 +785,167 @@
         </div>
     </div>
 </template>
+<div id="decl-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>Araç / Beyanname Detayları</h2>
+            <button class="icon-btn" onclick="window.closeDeclModal()"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="decl-edit-idx" value="-1">
+            
+            <div id="decl-preview-box" class="hidden">
+                <div class="metrics-grid">
+                    <div class="metric-item"><div class="metric-label">İLK SÜRE</div><div class="metric-value" id="da-prev-ilkSure">-</div></div>
+                    <div class="metric-item"><div class="metric-label">KALAN GÜN</div><div class="metric-value" id="da-prev-klnGun">-</div></div>
+                    <div class="metric-item"><div class="metric-label">ARDİYE (Tahmini)</div><div class="metric-value" id="da-prev-ardiye">-</div></div>
+                    <div class="metric-item"><div class="metric-label">SON GÜN</div><div class="metric-value" id="da-prev-sonGun">-</div></div>
+                    <div class="metric-item"><div class="metric-label">KIYMET GEÇEN</div><div class="metric-value" id="da-prev-kiymGecen">-</div></div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <div class="modal-section-title">Temel Bilgiler</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="input-group" style="margin:0;">
+                        <label>Firma</label>
+                        <div class="firm-search-wrap">
+                            <input type="text" id="da-firma-search" class="firm-search-input" oninput="window.filterFirmDropdown(this.value)" onfocus="window.filterFirmDropdown('')" autocomplete="off">
+                            <input type="hidden" id="da-firma">
+                            <div id="da-firma-list" class="firm-dropdown-list"></div>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                        <label>Durum</label>
+                        <select id="da-evrak"><option value="Açık">Açık</option><option value="Kapalı">Kapalı</option></select>
+                    </div>
+                    <div class="input-group" style="margin:0;"><label>Marka</label><input type="text" id="da-marka"></div>
+                    <div class="input-group" style="margin:0;"><label>Model</label><input type="text" id="da-model"></div>
+                    <div class="input-group" style="margin:0;"><label>Yıl</label><input type="text" id="da-yil"></div>
+                    <div class="input-group" style="margin:0;"><label>Renk</label><input type="text" id="da-renk"></div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Şasi No</label><input type="text" id="da-sase"></div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <div class="modal-section-title">Gümrük & Tarihler</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                    <div class="input-group" style="margin:0;"><label>Geliş Tarihi</label><input type="date" id="da-tarih" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Ek Süre T.</label><input type="date" id="da-ekSure" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Antrepo T.</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Beyanname CIF</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Kıymet V. T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Kıymet G. T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc()"></div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <div class="modal-section-title">Beyanname / GTİP Detayları</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="input-group" style="margin:0; grid-column:span 2;">
+                        <label>Gönderici / İhracatçı <button type="button" class="icon-btn" style="display:inline-flex; width:20px; height:20px; margin-left:10px;" onclick="window.addGondericiPrompt()"><i data-lucide="plus"></i></button></label>
+                        <div class="firm-search-wrap">
+                            <input type="text" id="da-gonderici" oninput="window.filterGonderici(this.value)" autocomplete="off">
+                            <div id="da-gonderici-list" class="autocomplete-list"></div>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;">
+                        <label>GTİP Kodu <button type="button" class="icon-btn" style="display:inline-flex; width:20px; height:20px; margin-left:10px;" onclick="window.addGTIPPrompt()"><i data-lucide="plus"></i></button></label>
+                        <div class="firm-search-wrap">
+                            <input type="text" id="da-gtip" oninput="window.filterGTIP(this.value)" autocomplete="off">
+                            <div id="da-gtip-list" class="autocomplete-list"></div>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin:0;"><label>Özet Beyan No</label><input type="text" id="da-ozetBeyan"></div>
+                    <div class="input-group" style="margin:0;"><label>Beyanname No</label><input type="text" id="da-beyanname"></div>
+                    <div class="input-group" style="margin:0;"><label>Brüt Ağırlık (kg)</label><input type="text" id="da-brut"></div>
+                    <div class="input-group" style="margin:0;"><label>Net Ağırlık (kg)</label><input type="text" id="da-net"></div>
+                    
+                    <div class="input-group" style="margin:0;">
+                        <label>TESLİM ŞEKLİ</label>
+                        <div style="display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; overflow:hidden; width:100%;">
+                            <div id="modal-cif-btn" style="flex:1; padding:8px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; background:var(--primary); color:#fff;" onclick="window.setTeslimModal('CIF')">CIF</div>
+                            <div id="modal-exw-btn" style="flex:1; padding:8px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; color:var(--text-secondary); border-left:1px solid var(--border);" onclick="window.setTeslimModal('EXW')">EXW</div>
+                        </div>
+                        <input type="hidden" id="da-teslim" value="CIF">
+                    </div>
+
+                    <div class="input-group" style="margin:0;"><label>Fatura Tutarı (€)</label><input type="text" id="da-fatura" oninput="window.formatCurrencyInput(this)"></div>
+                    <div class="input-group" style="margin:0;"><label>Kıymet Tutarı (€)</label><input type="text" id="da-kiymet" oninput="window.formatCurrencyInput(this)"></div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <div class="modal-section-title">Drive Evrak Bağlantısı</div>
+                <div class="input-group" style="margin:0;">
+                    <input type="text" id="da-evrakLink" placeholder="Google Drive klasör linki">
+                </div>
+                <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
+                    <select id="da-doc-type-modal" class="btn-sm" style="flex:1;">
+                        <option value="BEYANNAME">Beyanname</option>
+                        <option value="FATURA">Fatura</option>
+                        <option value="DEKONT">Dekont</option>
+                        <option value="DIGER">Diğer</option>
+                    </select>
+                    <input type="file" id="da-file-input-modal" style="display:none;" accept="image/*,.pdf">
+                    <button type="button" class="btn-sm" onclick="document.getElementById('da-file-input-modal').click()"><i data-lucide="paperclip"></i> Dosya Seç</button>
+                    <button type="button" class="btn-primary" onclick="window.doModalUpload()"><i data-lucide="upload-cloud"></i> Yükle</button>
+                </div>
+                <div id="da-modal-upload-status" style="display:none; color:var(--success); font-weight:600; font-size:12px; margin-top:10px;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-sm" onclick="window.closeDeclModal()">İptal</button>
+            <button class="btn-primary" onclick="window.saveDeclEntry()"><i data-lucide="save"></i> Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<div id="kiymet-modal" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width:500px;">
+        <div class="modal-header">
+            <h2>Kıymet Kaydı</h2>
+            <button class="icon-btn" onclick="window.closeKiymetModal()"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="km-edit-index" value="-1">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="input-group" style="margin:0;"><label>Marka</label><input type="text" id="km-marka"></div>
+                <div class="input-group" style="margin:0;"><label>Model</label><input type="text" id="km-model"></div>
+                <div class="input-group" style="margin:0;"><label>Yıl</label><input type="text" id="km-yil"></div>
+                <div class="input-group" style="margin:0;"><label>Renk</label><input type="text" id="km-renk"></div>
+                <div class="input-group" style="margin:0; grid-column:span 2;"><label>Şasi No</label><input type="text" id="km-sasi"></div>
+                <div class="input-group" style="margin:0; grid-column:span 2;"><label>Geliş Tarihi</label><input type="text" id="km-tarih" placeholder="GG.AA.YYYY"></div>
+                <div class="input-group" style="margin:0;"><label>Fatura (€)</label><input type="text" id="km-fatura"></div>
+                <div class="input-group" style="margin:0;"><label>Kıymet (€)</label><input type="text" id="km-kiymet"></div>
+                <div class="input-group" style="margin:0; grid-column:span 2;">
+                    <label>Durum</label>
+                    <input type="text" id="km-durum" placeholder="Örn: Mahkeme, Bekliyor, vs.">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-sm" onclick="window.closeKiymetModal()">İptal</button>
+            <button class="btn-primary" onclick="window.saveNewKiymet()"><i data-lucide="save"></i> Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<div id="excel-modal" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width:400px;">
+        <div class="modal-header">
+            <h2>Excel'den Aktar</h2>
+            <button class="icon-btn" onclick="window.closeExcelModal()"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+            <input type="hidden" id="excel-target-context">
+            <i data-lucide="file-spreadsheet" style="width:48px;height:48px;color:var(--primary);margin-bottom:16px;"></i>
+            <p style="margin-bottom:20px; color:var(--text-secondary); font-size:13px;">.xlsx veya .xls formatındaki dosyanızı seçin.</p>
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display:none;" onchange="window.processExcelData(this)">
+            <button class="btn-primary" style="width:100%; justify-content:center;" onclick="document.getElementById('excel-file-input').click()">Dosya Seç</button>
+        </div>
+    </div>
+</div>
 
 <template id="tpl-calculator">
     <div class="page-hdr fade-in">
@@ -2722,72 +2903,31 @@ window.prepareSureDilekcesi = function(idx, ctx) {
     setTimeout(function() { window.renderDilekceContent(); }, 100);
 };
 
-// ========== YENİ FONKSİYON: SENİN YAZDIĞIN KÖKTEN TEMİZLİK ==========
-window.cleanEditableFieldsForPDF = function() {
-    const container = document.getElementById('dilekce-print-area');
-    if (!container) return;
+window.printDilekce = function() {    
+    const printArea = document.getElementById('dilekce-print-area');    
+    if (!printArea) { alert("Dilekçe alanı bulunamadı!"); return; }    
     
-    const fields = container.querySelectorAll('.editable-field');
-    fields.forEach(field => {
-        const text = field.textContent.trim();
-        const plainTextNode = document.createTextNode(text);
-        field.parentNode.replaceChild(plainTextNode, field);
-    });
-    
-    container.querySelectorAll('span[contenteditable]').forEach(span => {
-        const text = span.textContent.trim();
-        const plain = document.createTextNode(text);
-        span.parentNode.replaceChild(plain, span);
-    });
-};
-
-// ========== IPHONE UYUMLU, URL ENGELLEYİCİ YAZDIRMA MOTORU ==========
-window.printDilekce = function() {
-    const element = document.getElementById('dilekce-print-area');
-    if (!element) return;
-
-    // Yazdırmadan önce senin fonksiyonla mavi kutuları öldürüyoruz
+    // Print öncesi sihirli temizlik (Mavi kutuları tamamen düz metne çevirir)
     window.cleanEditableFieldsForPDF();
 
-    // SİHİRLİ DOKUNUŞ: iPhone'da URL çıkmasın diye gizli bir Iframe açıyoruz
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
+    const appWrap = document.querySelector('.app-wrap');
+    const originalParent = printArea.parentNode;
+    
+    if(appWrap) appWrap.style.display = 'none';
+    document.body.appendChild(printArea);
 
-    const doc = iframe.contentWindow.document;
-    doc.write(`
-        <html>
-        <head>
-            <style>
-                @page { margin: 0; size: A4 portrait; }
-                body { margin: 0; padding: 0; background: #fff; color: #000; font-family: 'Times New Roman', Times, serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                #dilekce-print-area { width: 210mm; padding: 25mm 18mm; box-sizing: border-box; font-size: 16px; line-height: 1.6; font-weight: 700; text-align: justify; }
-                .imza-satir { margin: 0; padding: 0; line-height: 1.1; }
-            </style>
-        </head>
-        <body>
-            <div id="dilekce-print-area">${element.innerHTML}</div>
-        </body>
-        </html>
-    `);
-    doc.close();
-
-    iframe.contentWindow.focus();
     setTimeout(() => {
-        iframe.contentWindow.print();
-        
-        // İşlem bitince Iframe'i çöpe at ve ekranı eski haline (mavi kutulara) geri getir
-        setTimeout(() => { 
-            document.body.removeChild(iframe); 
-            window.renderDilekceContent(); 
-        }, 1000);
-    }, 300);
+        window.print();    
+        setTimeout(() => {        
+            if(appWrap) appWrap.style.display = '';
+            originalParent.appendChild(printArea);
+            
+            // Yazdırma bitince ekranı eski haline (mavi kutulara) döndür
+            window.renderDilekceContent();
+        }, 500);
+    }, 250);
 };
 
-// ========== SENİN İYİLEŞTİRDİĞİN PDF MOTORU ==========
 window.downloadPDF = function() {
     if (typeof html2pdf === 'undefined') {
         alert("PDF kütüphanesi yüklenemedi.");
@@ -2795,44 +2935,44 @@ window.downloadPDF = function() {
     }
     const element = document.getElementById('dilekce-print-area');
     if (!element) return;
-
+    
     const tipEl = document.getElementById('dilekce-tipi');
     const tip = tipEl ? tipEl.value : 'BELGE';
     let sasi = window.currentDilekceItems && window.currentDilekceItems[0]
                 ? (window.currentDilekceItems[0].sasi || "EVRAK")
                 : "EVRAK";
 
-    // === PDF ÖNCESİ TEMİZLİK ===
+    // === ÖNEMLİ: PDF öncesi temizlik ===
     element.classList.add('pdf-export-mode');
-    window.cleanEditableFieldsForPDF(); 
+    window.cleanEditableFieldsForPDF(); // ← Bu satır tüm mavi+çizgi+boşluk sorununu çözer
     
     if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
-
+    
     const opt = {
-        margin: [8, 10, 8, 10], // Sağa kaymayı düzelten daraltılmış margin
+        margin: [10, 12, 10, 12],           // biraz daralttık (boş sayfa sorununu çözer)
         filename: `${tip}_${sasi}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-            scale: 2.8, 
+            scale: 3,                       // iPhone ve Chrome için en dengeli değer
             useCORS: true,
             letterRendering: true,
             allowTaint: true,
             dpi: 300,
             logging: false,
-            scrollY: 0,
-            width: 794, // A4 piksel genişliği (Sağa kaymayı KESİN önler)
-            windowWidth: 794 
+            scrollY: 0
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         compress: true
     };
-
+    
     html2pdf().set(opt).from(element).save().then(() => {
         element.classList.remove('pdf-export-mode');
         if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
         
-        // PDF bittikten sonra ekranı eski haline getir
-        setTimeout(() => window.renderDilekceContent(), 400);
+        // PDF bittikten sonra dilekçeyi tekrar render et (ekran eski haline dönsün)
+        setTimeout(() => {
+            window.renderDilekceContent();
+        }, 300);
     }).catch(err => {
         console.error(err);
         alert("PDF hatası: " + err.message);
