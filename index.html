@@ -2150,24 +2150,22 @@ window.fetchTCMBKur = async function(auto = false) {
             <td style="color:var(--danger);font-weight:600;">${window.formatNumber(m.ardiye)} ₺</td>
             <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
             <td style="text-align:center;">
-                <div style="display:flex;gap:3px;justify-content:center;">
-                    <button class="icon-btn" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i})" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
-                    
-                    <button class="icon-btn quick-upload-trigger" style="color:#3b82f6;" data-idx="${i}" title="Hızlı Evrak Yükle"><i data-lucide="upload-cloud"></i></button>
-                    
-                    <!-- Bulut İkonu - Hem link varsa git, hem yoksa hızlı yükleme açsın -->
-<button class="icon-btn quick-upload-trigger" 
-        style="color:${d.evrakLink ? 'var(--accent)' : '#64748b'};" 
-        data-idx="${i}" 
-        title="${d.evrakLink ? 'Evrak Klasörüne Git' : 'Hızlı Evrak Yükle'}">
-    <i data-lucide="${d.evrakLink ? 'paperclip' : 'upload-cloud'}"></i>
-</button>
-                    
-                    <button class="icon-btn" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'decl')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
-                    <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
-                    <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'decl')"><i data-lucide="edit-3"></i></button>
-                    <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})"><i data-lucide="trash-2"></i></button>
-                </div>
+
+                <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
+    <button type="button" class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'firm')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
+    
+    <button type="button" class="icon-btn quick-upload-trigger" style="color:#3b82f6;" data-idx="${i}" title="Hızlı Evrak Yükle"><i data-lucide="upload-cloud"></i></button>
+    
+    ${d.evrakLink ? 
+        `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent); display:inline-flex;" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : 
+        `<span style="color:var(--text-muted); opacity:0.3; display:inline-flex;"><i data-lucide="minus"></i></span>`
+    }
+    
+    <button type="button" class="icon-btn admin-only" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'firm')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
+    <button type="button" class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
+    <button type="button" class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')"><i data-lucide="edit-3"></i></button>
+    <button type="button" class="icon-btn text-danger-btn admin-only" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2"></i></button>
+</div>
             </td>
         </tr>`;
     }).join('');
@@ -2239,22 +2237,20 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
                 <td style="color:var(--danger);font-weight:600;">${window.formatNumber(m.ardiye)} ₺</td>
                 <td style="text-align:center;">
                     <div style="display:flex;gap:3px;justify-content:center;">
-                        <button class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'firm')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
-                        
-                        <button class="icon-btn quick-upload-trigger" style="color:#3b82f6;" data-idx="${i}" title="Hızlı Evrak Yükle"><i data-lucide="upload-cloud"></i></button>
-                        
-                        <!-- Bulut İkonu - Hem link varsa git, hem yoksa hızlı yükleme açsın -->
-<button class="icon-btn quick-upload-trigger" 
-        style="color:${d.evrakLink ? 'var(--accent)' : '#64748b'};" 
-        data-idx="${i}" 
-        title="${d.evrakLink ? 'Evrak Klasörüne Git' : 'Hızlı Evrak Yükle'}">
-    <i data-lucide="${d.evrakLink ? 'paperclip' : 'upload-cloud'}"></i>
-</button>
-                        <button class="icon-btn admin-only" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'firm')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
-                        <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
-                        <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')"><i data-lucide="edit-3"></i></button>
-                        <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2"></i></button>
-                    </div>
+    <button class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'firm')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
+    
+    <button class="icon-btn quick-upload-trigger" style="color:#3b82f6;" data-idx="${i}" title="Hızlı Evrak Yükle"><i data-lucide="upload-cloud"></i></button>
+    
+    ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent);" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : '<span style="color:var(--text-muted);opacity:0.5;margin-top:5px;"><i data-lucide="minus"></i></span>'}
+    
+    <button class="icon-btn admin-only" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'firm')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
+    
+    <button class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'firm')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
+    
+    <button class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i},'firm')"><i data-lucide="edit-3"></i></button>
+    
+    <button class="icon-btn text-danger-btn admin-only" onclick="window.deleteFirmVehicle(${i})"><i data-lucide="trash-2"></i></button>
+</div>
                 </td>
             </tr>`;
         }).join('');
@@ -3186,12 +3182,20 @@ window.baslatRobot = async function() {
         } catch(e) { console.error("Portal Hatası:", e); }
     };
 
-    // GitHub ve CSP engelini aşan güvenli dinleyici
+    // Butonların birbirini ezmesini engelleyen güvenli dinleyici
     document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.quick-upload-trigger');
-        if (btn) {
-            const idx = btn.getAttribute('data-idx');
-            window.runQuickUploadPortal(idx);
+        // Eğer tıklanan şey bir Link (Ataç) ise karışıma, bırak klasörü açsın
+        if (e.target.closest('a')) return;
+
+        // Sadece 'quick-upload-trigger' (Mavi Bulut) ise bizim pencereyi aç
+        const quickBtn = e.target.closest('.quick-upload-trigger');
+        if (quickBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const idx = quickBtn.getAttribute('data-idx');
+            if (typeof window.runQuickUploadPortal === 'function') {
+                window.runQuickUploadPortal(idx);
+            }
         }
     });
 
