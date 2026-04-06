@@ -859,7 +859,6 @@
         <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:48px; outline:none; min-width:200px;">
             <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
             <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
-            <option value="ARDIYE">📊 Ardiye Hesaplama Tablosu</option>
         </select>
         
         <button class="btn-sm" onclick="window.renderView('declarations')" style="min-height:48px; min-width:110px; font-size:15px; display:flex; align-items:center; justify-content:center;">
@@ -3150,6 +3149,184 @@ window.downloadPDF = function() {
     });
 };
 
+window.renderDilekceContent = function() {
+    let tipEl = document.getElementById('dilekce-tipi');
+    let tip = tipEl ? tipEl.value : 'SURE';
+    let container = document.getElementById('dilekce-print-area');
+    let items = window.currentDilekceItems;
+    
+    if (!items || items.length === 0) {
+        console.error("Araç verisi bulunamadı!");
+        return;
+    }
+
+    let html = "";
+    let ilkArac = items[0];
+    let firmaAdi = ilkArac.firma || "........................";
+    
+    let imzaYetkilisi = "........................";
+    let fUst = firmaAdi.toUpperCase();
+    if (fUst.indexOf("ŞAMNU") !== -1) imzaYetkilisi = "FEVZİ ALPER TAVMAN";
+    else if (fUst.indexOf("FF OTOMOTİV") !== -1) imzaYetkilisi = "FATİH İSMAİL ÇELEBİ";
+    else if (fUst.indexOf("KARABAYIR") !== -1) imzaYetkilisi = "BEHLÜL TÜREL";
+
+    if (tip === "SURE") {
+        html += `
+            <div style="text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; text-transform: uppercase;">
+                YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
+            </div>
+            <p style="text-indent: 50px; margin-bottom: 25px;">
+                Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
+            </p>
+            <p style="margin-bottom: 50px;">Gereğini emir ve müsaadelerinize arz ederiz.</p>
+            <div style="margin-bottom: 50px; padding-top: 20px;">
+        `;
+
+        let ilkOzetBeyan = items[0].ozetBeyan || items[0].beyanname || '................';
+        let hepsiAyniOzetBeyan = items.every(x => (x.ozetBeyan || x.beyanname || '................') === ilkOzetBeyan);
+
+        if (hepsiAyniOzetBeyan) {
+            html += `<p style="margin-bottom: 10px;">Özet Beyan Numarası: ${ilkOzetBeyan} / ${items.length} ARAÇ</p>`;
+            items.forEach((item) => {
+                html += `<p style="margin-bottom: 3px;">Şase No : ${item.sasi || '...................'}</p>`;
+            });
+        } else {
+            items.forEach((item) => {
+                let guncelOzet = item.ozetBeyan || item.beyanname || '...................';
+                html += `
+                <div style="margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                    <p style="margin-bottom: 3px;">Özet Beyan Numarası: ${guncelOzet} / 1 ARAÇ</p>
+                    <p>Şase No : ${item.sasi || '...................'}</p>
+                </div>`;
+            });
+        }
+        
+        html += `
+            </div>
+            <div style="float: right; text-align: center; min-width: 250px;">
+                <p class="imza-satir" style="margin-bottom: 12px !important;">Saygılarımızla</p>
+                <p class="imza-satir" style="font-size: 17px;">${firmaAdi}</p>
+                <p class="imza-satir" style="display: inline-block; min-width: 150px; margin-top: 3px !important;" contenteditable="true">${imzaYetkilisi}</p>
+            </div>
+            <div style="clear: both;"></div>
+        `;
+    } 
+    else if (tip === "GMC") {
+        let sasiList = items.map(x => x.sasi || '...................').join(', ');
+        
+        let tamFirmaAdi = firmaAdi;
+        if (firmaAdi.toUpperCase().includes("ŞAMNU")) tamFirmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SANAYİ VE TİCARET LİMİTED ŞİRKETİ";
+        else if (firmaAdi.toUpperCase().includes("FF")) tamFirmaAdi = "FF OTOMOTİV SANAYİ VE TİCARET LİMİTED ŞİRKETİ";
+
+        html += `
+            <div style="text-align: center; margin-bottom: 30px; font-size: 18px; text-decoration: underline;">
+                TUTANAK
+            </div>
+            <p style="text-indent: 50px;">
+                Gümrük Müdürlüğümüzce ${tamFirmaAdi} firması adına tescilli ${ilkArac.tarih || "................"} tarihli ${ilkArac.beyanname || ilkArac.ozetBeyan || "......................"} sayılı serbest dolaşıma giriş beyannamesi muhteviyatı ${ilkArac.yil || "...."} Model ${ilkArac.marka || "........"} Marka ${ilkArac.model || "................"} ticari tanımlı ${sasiList} şase numaralı ${ilkArac.gtip || "8704.21.31.00.00"} GTİP'inde beyan edilen Bakırköy Tasfiye İşletme Müdürlüğü Geçici depolama alanında bulunan aracın oluşturulan heyetle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin <span contenteditable="true" class="editable-field" title="Tıklayıp değiştirin">3999</span> mm ve azami dahili taban uzunluğunun <span contenteditable="true" class="editable-field" title="Tıklayıp değiştirin">2015</span> mm olduğu tespit edilmiş olup benzer araç ithalatlarına ilişkin 30.12.2021 tarihli 65887593 sayılı ile kayıtlı görüş neticesinde aracın GTİP'ini tespit edilmesini temin etmek üzere 28.07.2021 tarihli 65870084 sayılı yazımız ile TMMOB ne yönlendirildiği ve alınan rapor sonucu da dikkate alınarak GTİP yönünde beyanın doğru olduğu, heyette görevli Muayene Memurlarınca da aracın serbest dolaşıma giriş beyannamesinde belirtilen GTİP yönünde beyanın doğru olduğu, ancak söz yurt dışı araştırmasının ayrıca söz konusu belgelerin yurt dışı doğruluğunun ve aracın yurt dışında herhangi bir tadilat veya tescil işlemi görüp görmediği hususunun yurt dışı makamlarından araştırılması hususunu olurlarınıza arz ederiz.
+            </p>
+            
+            <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center;">
+                <div style="flex: 1;">Muayene Memuru</div>
+                <div style="flex: 1;">Muayene Memuru</div>
+                <div style="flex: 1;">Muayene Memuru</div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+};
+
+// EVRAK İÇERİĞİ OLUŞTURMA MOTORU
+window.renderDilekceContent = function() {
+    let tip = document.getElementById('dilekce-tipi').value;
+    let container = document.getElementById('dilekce-print-area');
+    let items = window.currentDilekceItems;
+    if (!items || items.length === 0) return;
+
+    let html = "";
+    let ilkArac = items[0];
+    let firmaAdi = ilkArac.firma || "........................";
+    
+    let imzaYetkilisi = "........................";
+    let fUst = firmaAdi.toUpperCase();
+    if (fUst.indexOf("ŞAMNU") !== -1) imzaYetkilisi = "FEVZİ ALPER TAVMAN";
+    else if (fUst.indexOf("FF OTOMOTİV") !== -1) imzaYetkilisi = "FATİH İSMAİL ÇELEBİ";
+    else if (fUst.indexOf("KARABAYIR") !== -1) imzaYetkilisi = "BEHLÜL TÜREL";
+
+    if (tip === "SURE") {
+        html += `
+            <div style="text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; text-transform: uppercase;">
+                YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
+            </div>
+            <p style="text-indent: 50px; margin-bottom: 25px;">
+                Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
+            </p>
+            <p style="margin-bottom: 50px;">Gereğini emir ve müsaadelerinize arz ederiz.</p>
+            <div style="margin-bottom: 50px; padding-top: 20px;">
+        `;
+
+        const aracSayisi = items.length;
+        let pnt = "16px"; let mb = "10px";  
+        if (aracSayisi > 3 && aracSayisi <= 6) { pnt = "13px"; mb = "6px"; } 
+        else if (aracSayisi > 6) { pnt = "10px"; mb = "4px"; }
+
+        let ilkOzetBeyan = items[0].ozetBeyan || items[0].beyanname || '................';
+        let hepsiAyniOzetBeyan = items.every(x => (x.ozetBeyan || x.beyanname || '................') === ilkOzetBeyan);
+
+        if (hepsiAyniOzetBeyan) {
+            html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: ${mb};">Özet Beyan Numarası: ${ilkOzetBeyan} / ${items.length} ARAÇ</p>`;
+            items.forEach((item) => {
+                html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px;">Şase No : ${item.sasi || '...................'}</p>`;
+            });
+        } else {
+            items.forEach((item) => {
+                let guncelOzet = item.ozetBeyan || item.beyanname || '...................';
+                html += `
+                <div style="margin-bottom: ${mb}; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                    <p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px;">Özet Beyan Numarası: ${guncelOzet} / 1 ARAÇ</p>
+                    <p style="font-size: ${pnt} !important; font-weight: bold;">Şase No : ${item.sasi || '...................'}</p>
+                </div>`;
+            });
+        }
+        
+        html += `
+            </div>
+            <div style="float: right; text-align: center; min-width: 250px;">
+                <p class="imza-satir" style="margin-bottom: 12px !important;">Saygılarımızla</p>
+                <p class="imza-satir" style="font-weight: bold; font-size: 17px;">${firmaAdi}</p>
+                <p class="imza-satir" style="font-weight: bold; display: inline-block; min-width: 150px; margin-top: 3px !important;" contenteditable="true">${imzaYetkilisi}</p>
+            </div>
+            <div style="clear: both;"></div>
+        `;
+    } 
+    else if (tip === "GMC") {
+        // GMC TUTANAĞI BİREBİR WORD FORMATI
+        let sasiList = items.map(x => x.sasi || '...................').join(', ');
+        
+        // Firma ismine göre şirket mi değil mi ayarı
+        let tamFirmaAdi = firmaAdi;
+        if (firmaAdi.toUpperCase().includes("ŞAMNU")) tamFirmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SANAYİ VE TİCARET LİMİTED ŞİRKETİ";
+        else if (firmaAdi.toUpperCase().includes("FF")) tamFirmaAdi = "FF OTOMOTİV SANAYİ VE TİCARET LİMİTED ŞİRKETİ";
+
+        html += `
+            <div style="text-align: center; font-weight: bold; margin-bottom: 30px; font-size: 18px; text-decoration: underline;">
+                TUTANAK
+            </div>
+            <p style="text-indent: 50px; line-height: 1.8;">
+                Gümrük Müdürlüğümüzce <b>${tamFirmaAdi}</b> firması adına tescilli <b>${ilkArac.tarih || "................"}</b> tarihli <b>${ilkArac.beyanname || ilkArac.ozetBeyan || "......................"}</b> sayılı serbest dolaşıma giriş beyannamesi muhteviyatı <b>${ilkArac.yil || "...."}</b> Model <b>${ilkArac.marka || "........"}</b> Marka <b>${ilkArac.model || "................"}</b> ticari tanımlı <b>${sasiList}</b> şase numaralı <b>${ilkArac.gtip || "8704.21.31.00.00"}</b> GTİP'inde beyan edilen Bakırköy Tasfiye İşletme Müdürlüğü Geçici depolama alanında bulunan aracın oluşturulan heyetle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">3999</span> mm ve azami dahili taban uzunluğunun <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">2015</span> mm olduğu tespit edilmiş olup benzer araç ithalatlarına ilişkin 30.12.2021 tarihli 65887593 sayılı ile kayıtlı görüş neticesinde aracın GTİP'ini tespit edilmesini temin etmek üzere 28.07.2021 tarihli 65870084 sayılı yazımız ile TMMOB ne yönlendirildiği ve alınan rapor sonucu da dikkate alınarak GTİP yönünde beyanın doğru olduğu, heyette görevli Muayene Memurlarınca da aracın serbest dolaşıma giriş beyannamesinde belirtilen GTİP yönünde beyanın doğru olduğu, ancak söz yurt dışı araştırmasının ayrıca söz konusu belgelerin yurt dışı doğruluğunun ve aracın yurt dışında herhangi bir tadilat veya tescil işlemi görüp görmediği hususunun yurt dışı makamlarından araştırılması hususunu olurlarınıza arz ederiz.
+            </p>
+            
+            <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-weight: bold;">
+                <div style="flex: 1;">Muayene Memuru</div>
+                <div style="flex: 1;">Muayene Memuru</div>
+                <div style="flex: 1;">Muayene Memuru</div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+};
 window.baslatRobot = async function() {
     if (!confirm("Robot her araçtan sonra yarım saniye mola vererek çalışacak. Bu işlem birkaç dakika sürebilir. Başlatılsın mı?")) return;
     
@@ -3379,406 +3556,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-// ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (KUSURSUZ ŞABLON + DOĞRU YATAY YAZDIRMA KURALI) =================
-window.renderDilekceContent = function() {
-    let tipEl = document.getElementById('dilekce-tipi');
-    if (!tipEl) return;
-    let tip = tipEl.value;
-    
-    let container = document.getElementById('dilekce-print-area');
-    if (!container) return;
-    
-    let items = window.currentDilekceItems;
-    if (!items || items.length === 0) return;
-
-    let html = "";
-    let today = new Date();
-    let cikisTarihi = window.formatTRDate(today);
-    let ilkArac = items[0];
-    let firmaAdi = ilkArac.firma || "........................";
-    
-    let imzaYetkilisi = "........................";
-    let fUst = firmaAdi.toUpperCase();
-    if (fUst.indexOf("ŞAMNU") !== -1) {
-        firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ";
-        imzaYetkilisi = "FEVZİ ALPER TAVMAN";
-    }
-    else if (fUst.indexOf("FF OTOMOTİV") !== -1) {
-        firmaAdi = "FF OTOMOTİV SANAYİ VE TİCARET LİMİTED ŞİRKETİ";
-        imzaYetkilisi = "FATİH İSMAİL ÇELEBİ";
-    }
-    else if (fUst.indexOf("KARABAYIR") !== -1) {
-        imzaYetkilisi = "BEHLÜL TÜREL";
-    }
-
-    // ====== OTOMATİK HESAPLAMA FONKSİYONU ======
-    window.hesaplaArdiye = function() {
-        let getVal = (id) => {
-            let el = document.getElementById(id);
-            if(!el) return 0;
-            let val = el.value.replace(/[^0-9,]/g, '').replace(',', '.');
-            return parseFloat(val) || 0;
-        };
-        
-        let gTutar = getVal('g_tutar');
-        let gAdet = getVal('g_adet');
-        let gTop = gTutar * gAdet;
-        if(document.getElementById('g_ara_toplam')) document.getElementById('g_ara_toplam').value = gTop > 0 ? window.formatNumber(gTop) : '0';
-        if(document.getElementById('g_toplam')) document.getElementById('g_toplam').value = gTop > 0 ? window.formatNumber(gTop) + ' TL' : '0 TL';
-        
-        let yTutar = getVal('y_tutar');
-        let yAdet = getVal('y_adet');
-        let yTop = yTutar * yAdet;
-        if(document.getElementById('y_ara_toplam')) document.getElementById('y_ara_toplam').value = yTop > 0 ? window.formatNumber(yTop) : '0';
-        if(document.getElementById('y_toplam')) document.getElementById('y_toplam').value = yTop > 0 ? window.formatNumber(yTop) + ' TL' : '0 TL';
-        
-        let anaTop = parseFloat(document.getElementById('ard-ana-toplam').value) || 0;
-        let kdvOran = getVal('kdv_oran');
-        
-        let matrah = anaTop + gTop + yTop;
-        let kdvTutar = matrah * (kdvOran / 100);
-        if(document.getElementById('kdv_tutar')) document.getElementById('kdv_tutar').value = kdvTutar > 0 ? window.formatNumber(kdvTutar) + ' TL' : '0 TL';
-        
-        let genel = matrah + kdvTutar;
-        if(document.getElementById('genel_toplam')) document.getElementById('genel_toplam').value = window.formatNumber(genel) + ' TL';
-    };
-
-    if (tip === "SURE") {
-        html += `
-            <style>
-                @media print { 
-                    @page { size: A4 portrait; margin: 10mm; } 
-                }
-            </style>
-            <div style="text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; text-transform: uppercase;">
-                YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE
-            </div>
-            <p style="text-indent: 50px; margin-bottom: 25px;">
-                Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
-            </p>
-            <p style="margin-bottom: 50px;">Gereğini emir ve müsaadelerinize arz ederiz.</p>
-            <div style="margin-bottom: 50px; padding-top: 20px;">
-        `;
-
-        const aracSayisi = items.length;
-        let pnt = "16px"; let mb = "10px";  
-        if (aracSayisi > 3 && aracSayisi <= 6) { pnt = "13px"; mb = "6px"; } 
-        else if (aracSayisi > 6) { pnt = "10px"; mb = "4px"; }
-
-        let ilkOzetBeyan = items[0].ozetBeyan || items[0].beyanname || '................';
-        let hepsiAyniOzetBeyan = items.every(x => (x.ozetBeyan || x.beyanname || '................') === ilkOzetBeyan);
-
-        if (hepsiAyniOzetBeyan) {
-            html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: ${mb};">Özet Beyan Numarası: ${ilkOzetBeyan} / ${items.length} ARAÇ</p>`;
-            items.forEach((item) => {
-                html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px;">Şase No : ${item.sasi || '...................'}</p>`;
-            });
-        } else {
-            items.forEach((item) => {
-                let guncelOzet = item.ozetBeyan || item.beyanname || '...................';
-                html += `
-                <div style="margin-bottom: ${mb}; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
-                    <p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px;">Özet Beyan Numarası: ${guncelOzet} / 1 ARAÇ</p>
-                    <p style="font-size: ${pnt} !important; font-weight: bold;">Şase No : ${item.sasi || '...................'}</p>
-                </div>`;
-            });
-        }
-        
-        html += `
-            </div>
-            <div style="float: right; text-align: center; min-width: 250px;">
-                <p class="imza-satir" style="margin-bottom: 12px !important;">Saygılarımızla</p>
-                <p class="imza-satir" style="font-weight: bold; font-size: 17px;">${ilkArac.firma || '........................'}</p>
-                <p class="imza-satir" style="font-weight: bold; display: inline-block; min-width: 150px; margin-top: 3px !important;" contenteditable="true">${imzaYetkilisi}</p>
-            </div>
-            <div style="clear: both;"></div>
-        `;
-    } 
-    else if (tip === "GMC") {
-        let sasiList = items.map(x => x.sasi || '...................').join(', ');
-
-        html += `
-            <style>
-                @media print { 
-                    @page { size: A4 portrait; margin: 10mm; } 
-                }
-            </style>
-            <div style="text-align: center; font-weight: bold; margin-bottom: 30px; font-size: 18px; text-decoration: underline;">
-                TUTANAK
-            </div>
-            <p style="text-indent: 50px; line-height: 1.8;">
-                Gümrük Müdürlüğümüzce <b>${firmaAdi}</b> firması adına tescilli <b>${ilkArac.tarih || "................"}</b> tarihli <b>${ilkArac.beyanname || ilkArac.ozetBeyan || "......................"}</b> sayılı serbest dolaşıma giriş beyannamesi muhteviyatı <b>${ilkArac.yil || "...."}</b> Model <b>${ilkArac.marka || "........"}</b> Marka <b>${ilkArac.model || "................"}</b> ticari tanımlı <b>${sasiList}</b> şase numaralı <b>${ilkArac.gtip || "8704.21.31.00.00"}</b> GTİP'inde beyan edilen Bakırköy Tasfiye İşletme Müdürlüğü Geçici depolama alanında bulunan aracın oluşturulan heyetle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">3999</span> mm ve azami dahili taban uzunluğunun <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">2015</span> mm olduğu tespit edilmiş olup benzer araç ithalatlarına ilişkin 30.12.2021 tarihli 65887593 sayılı ile kayıtlı görüş neticesinde aracın GTİP'ini tespit edilmesini temin etmek üzere 28.07.2021 tarihli 65870084 sayılı yazımız ile TMMOB ne yönlendirildiği ve alınan rapor sonucu da dikkate alınarak GTİP yönünde beyanın doğru olduğu, heyette görevli Muayene Memurlarınca da aracın serbest dolaşıma giriş beyannamesinde belirtilen GTİP yönünde beyanın doğru olduğu, ancak söz yurt dışı araştırmasının ayrıca söz konusu belgelerin yurt dışı doğruluğunun ve aracın yurt dışında herhangi bir tadilat veya tescil işlemi görüp görmediği hususunun yurt dışı makamlarından araştırılması hususunu olurlarınıza arz ederiz.
-            </p>
-            <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-weight: bold;">
-                <div style="flex: 1;">Muayene Memuru</div>
-                <div style="flex: 1;">Muayene Memuru</div>
-                <div style="flex: 1;">Muayene Memuru</div>
-            </div>
-        `;
-    }
-    else if (tip === "ARDIYE") {
-        let sasiList = [], beynList = [], girisList = [];
-        let totalGun1_20 = 0, totalGun21_50 = 0, totalGun51_80 = 0, totalGun81 = 0;
-        let sum1_20 = 0, sum21_50 = 0, sum51_80 = 0, sum81 = 0;
-        let genelToplamGun = 0;
-
-        items.forEach(item => {
-            let s4 = item.sasi ? item.sasi.slice(-4) : '....';
-            let b4 = item.beyanname ? item.beyanname.slice(-4) : '....';
-            
-            sasiList.push("ŞASE-" + s4);
-            if (item.beyanname) beynList.push("IM-" + b4);
-            girisList.push(item.tarih || ".........");
-
-            let gD = window.parseTRDate(item.tarih);
-            let gun = gD ? (window.diffDaysSigned(today, gD) + 1) : 0;
-            if (gun < 0) gun = 0;
-            genelToplamGun += gun;
-
-            let g1 = Math.min(20, gun);
-            let g2 = Math.max(0, Math.min(30, gun - 20));
-            let g3 = Math.max(0, Math.min(30, gun - 50));
-            let g4 = Math.max(0, gun - 80);
-
-            totalGun1_20 += g1;
-            totalGun21_50 += g2;
-            totalGun51_80 += g3;
-            totalGun81 += g4;
-        });
-
-        sum1_20 = totalGun1_20 * 145;
-        sum21_50 = totalGun21_50 * 725;
-        sum51_80 = totalGun51_80 * 1160;
-        sum81 = totalGun81 * 1450;
-        let araToplam = (sum1_20 + sum21_50 + sum51_80 + sum81) * items.length; 
-
-        let bSasiStr = (beynList.length > 0 ? [...new Set(beynList)].join(", ") + " / " : "IM-.... / ") + [...new Set(sasiList)].join(", ");
-        let girisStr = [...new Set(girisList)].join(", ");
-
-        html += `
-            <style>
-                @media print { 
-                    /* SENİN GÖNDERDİĞİN DOĞRU YAZDIRMA AYARI */
-                    @page { 
-                        size: A4 landscape; /* Tarayıcıya sayfayı yatay yapmasını kesin olarak söyler */
-                        margin: 10mm; /* Standart kenar boşluğu */
-                    } 
-                    body, html { 
-                        background-color: #ffffff !important; 
-                        -webkit-print-color-adjust: exact !important; 
-                        print-color-adjust: exact !important; 
-                        margin: 0; padding: 0;
-                    }
-                    .dilekce-sayfa { 
-                        width: 100% !important; 
-                        padding: 0 !important; 
-                        margin: 0 !important; 
-                        box-shadow: none !important; 
-                        background-color: #ffffff !important; 
-                        border: none !important;
-                    }
-                    * { color: #000000 !important; }
-                }
-                
-                .ardiye-container {
-                    font-family: Calibri, Arial, sans-serif;
-                    /* Senin taktiğin: Yatayda veri sığması için font boyutu biraz küçültüldü */
-                    font-size: 13pt; 
-                    font-weight: bold;
-                    color: #000;
-                    background-color: #fff;
-                    padding: 5px;
-                    width: 100%;
-                    box-sizing: border-box;
-                }
-                
-                .ardiye-title {
-                    text-align: left;
-                    font-size: 20pt;
-                    margin-bottom: 20px;
-                    background-color: #fff;
-                    letter-spacing: 1px;
-                    padding-left: 280px; /* GİRİŞ TARİHİ hizası */
-                    white-space: nowrap;
-                }
-                
-                /* TABLO %100 GENİŞLİKLE KAĞIDA TAM YAYILIR */
-                .ardiye-excel-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-bottom: 25px;
-                    background-color: #fff;
-                }
-                
-                .ardiye-excel-table td {
-                    border: 1px solid #000 !important;
-                    padding: 6px 8px;
-                    vertical-align: middle;
-                    background-color: #ffffff !important; 
-                    white-space: nowrap !important; /* Asla alt satıra inmez */
-                }
-                
-                .editable-field {
-                    background: transparent;
-                    color: #000;
-                    border: none;
-                    outline: none;
-                    font-family: inherit;
-                    font-size: inherit;
-                    font-weight: bold;
-                    width: 100%;
-                    white-space: nowrap !important;
-                }
-                
-                .center-text { text-align: center; }
-                .right-text { text-align: right; }
-                .red-text { color: red !important; }
-                
-                /* İMZA SATIRLARI İÇİN BORDER SİLİCİ */
-                table.ardiye-excel-table td.no-border { 
-                    border: none !important; 
-                    background-color: #ffffff !important; 
-                }
-            </style>
-
-            <div class="ardiye-container">
-                <input type="hidden" id="ard-ana-toplam" value="${araToplam}">
-
-                <div class="ardiye-title">
-                    ARDİYE ÜCRETİ HESAPLAMA TABLOSU
-                </div>
-                
-                <table class="ardiye-excel-table">
-                    <tr><td style="width: 280px;">GİRİŞ TARİHİ:</td><td colspan="5">${girisStr}</td></tr>
-                    <tr><td>ÇIKIŞ TARİHİ:</td><td colspan="5">${cikisTarihi}</td></tr>
-                    <tr><td>TOPLAM GÜN</td><td colspan="5">${genelToplamGun}</td></tr>
-                    <tr><td>ARAÇ ADETİ</td><td colspan="5">${items.length}</td></tr>
-                    <tr><td>BEYANNAME/DİLEKÇE/ŞASE/TAKRİR NO:</td><td colspan="5">${bSasiStr}</td></tr>
-                    <tr><td>İTHALATÇI FİRMA /AD SOYAD</td><td colspan="5">${firmaAdi}</td></tr>
-                    <tr><td>TC/VERGİ NO :</td><td colspan="5"><input class="editable-field" value="4110376484"></td></tr>
-                </table>
-
-                <table class="ardiye-excel-table">
-                    <tr>
-                        <td style="width: 28%;">ARDİYE ÜCRETİ</td>
-                        <td class="center-text" style="width: 14%;">TUTAR</td>
-                        <td class="center-text" style="width: 14%;">GÜN</td>
-                        <td class="center-text" style="width: 14%;"></td>
-                        <td class="center-text" style="width: 14%;">KDV</td>
-                        <td class="right-text" style="width: 16%;">TOPLAM</td>
-                    </tr>
-                    <tr>
-                        <td>1-20 Gün</td>
-                        <td class="center-text">145</td>
-                        <td class="center-text">${totalGun1_20}</td>
-                        <td class="center-text">${sum1_20 > 0 ? window.formatNumber(sum1_20) : ''}</td>
-                        <td></td>
-                        <td class="right-text">${sum1_20 > 0 ? window.formatNumber(sum1_20) : ''}</td>
-                    </tr>
-                    <tr>
-                        <td>21-50 Gün</td>
-                        <td class="center-text">725</td>
-                        <td class="center-text">${totalGun21_50}</td>
-                        <td class="center-text">${sum21_50 > 0 ? window.formatNumber(sum21_50) : ''}</td>
-                        <td></td>
-                        <td class="right-text">${sum21_50 > 0 ? window.formatNumber(sum21_50) : ''}</td>
-                    </tr>
-                    <tr>
-                        <td>51-80 Gün</td>
-                        <td class="center-text">1160</td>
-                        <td class="center-text">${totalGun51_80}</td>
-                        <td class="center-text">${sum51_80 > 0 ? window.formatNumber(sum51_80) : ''}</td>
-                        <td></td>
-                        <td class="right-text">${sum51_80 > 0 ? window.formatNumber(sum51_80) : ''}</td>
-                    </tr>
-                    <tr>
-                        <td>81 gün ve sonrası</td>
-                        <td class="center-text">1450</td>
-                        <td class="center-text">${totalGun81}</td>
-                        <td class="center-text">${sum81 > 0 ? window.formatNumber(sum81) : ''}</td>
-                        <td></td>
-                        <td class="right-text">${sum81 > 0 ? window.formatNumber(sum81) : ''}</td>
-                    </tr>
-                    <tr>
-                        <td>TOPLAM</td>
-                        <td></td>
-                        <td class="center-text red-text">ADET</td>
-                        <td></td>
-                        <td></td>
-                        <td class="right-text">${window.formatNumber(araToplam)} TL</td>
-                    </tr>
-                    <tr>
-                        <td>ARAÇ GİRİŞ ÇIKIŞ ÜCRETİ</td>
-                        <td class="center-text"><input id="g_tutar" class="editable-field center-text" value="366" onkeyup="window.hesaplaArdiye()"></td>
-                        <td class="center-text"><input id="g_adet" class="editable-field center-text red-text" value="0" onkeyup="window.hesaplaArdiye()"></td>
-                        <td class="center-text"><input id="g_ara_toplam" class="editable-field center-text" value="0" readonly></td>
-                        <td></td>
-                        <td class="right-text"><input id="g_toplam" class="editable-field right-text" value="0 TL" readonly></td>
-                    </tr>
-                    <tr>
-                        <td>YÜKLEME-BOŞALTMA</td>
-                        <td class="center-text"><input id="y_tutar" class="editable-field center-text" value="240" onkeyup="window.hesaplaArdiye()"></td>
-                        <td class="center-text"><input id="y_adet" class="editable-field center-text red-text" value="0" onkeyup="window.hesaplaArdiye()"></td>
-                        <td class="center-text"><input id="y_ara_toplam" class="editable-field center-text" value="0" readonly></td>
-                        <td></td>
-                        <td class="right-text"><input id="y_toplam" class="editable-field right-text" value="0 TL" readonly></td>
-                    </tr>
-                    <tr>
-                        <td>KDV</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td class="center-text">
-                            <div style="display: flex; align-items: center; justify-content: center;">
-                                % <input id="kdv_oran" class="editable-field center-text" value="0" style="width: 40px; margin-left: 5px;" onkeyup="window.hesaplaArdiye()">
-                            </div>
-                        </td>
-                        <td class="right-text"><input id="kdv_tutar" class="editable-field right-text" value="0 TL" readonly></td>
-                    </tr>
-                    <tr style="font-size: 18pt;">
-                        <td>TOPLAM</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td class="right-text"><input id="genel_toplam" class="editable-field right-text bold-text" value="${window.formatNumber(araToplam)} TL" style="font-size: 18pt;" readonly></td>
-                    </tr>
-
-                    <tr><td colspan="6" class="no-border" style="height: 30px;"></td></tr>
-                    <tr>
-                        <td class="no-border"></td> <td class="center-text no-border" style="font-size: 13pt;">DÜZENLEYEN</td> <td class="center-text no-border" style="font-size: 13pt;">TAHSİLATI YAPAN</td> <td class="no-border"></td> <td class="no-border"></td> <td class="center-text no-border" style="font-size: 13pt;">ALINDI NO:</td> </tr>
-                    <tr>
-                        <td class="no-border"></td>
-                        <td class="center-text no-border" style="padding-top: 30px;"><input class="editable-field center-text" value="ALİ YÜKSEL" style="border-bottom: 1px solid #000; width: 90%; margin: 0 auto;"></td>
-                        <td class="center-text no-border" style="padding-top: 30px;"><input class="editable-field center-text" value="DAMLA KOÇ" style="border-bottom: 1px solid #000; width: 90%; margin: 0 auto;"></td>
-                        <td class="no-border"></td>
-                        <td class="no-border"></td>
-                        <td class="center-text no-border" style="padding-top: 30px;"><input class="editable-field center-text" value="" style="border-bottom: 1px solid #000; width: 90%; margin: 0 auto;"></td>
-                    </tr>
-                    <tr>
-                        <td class="no-border"></td>
-                        <td class="center-text no-border" style="padding-top: 10px;"><input class="editable-field center-text" value="AMBAR MEMURU" style="width: 90%; margin: 0 auto;"></td>
-                        <td class="center-text no-border" style="padding-top: 10px;"><input class="editable-field center-text" value="SATIŞ MEMURU" style="width: 90%; margin: 0 auto;"></td>
-                        <td class="no-border"></td>
-                        <td class="no-border"></td>
-                        <td class="no-border"></td>
-                    </tr>
-                    <tr>
-                        <td class="no-border"></td>
-                        <td class="center-text no-border" style="padding-top: 10px;"><input class="editable-field center-text" value="${cikisTarihi}" style="width: 90%; margin: 0 auto;"></td>
-                        <td class="center-text no-border" style="padding-top: 10px;"><input class="editable-field center-text" value="${cikisTarihi}" style="width: 90%; margin: 0 auto;"></td>
-                        <td class="no-border"></td>
-                        <td class="no-border"></td>
-                        <td class="no-border"></td>
-                    </tr>
-                </table>
-            </div>
-        `;
-    }
-    
-    container.innerHTML = html;
-};
-// =========================================================================
 </script>
 </body>
 </html>
