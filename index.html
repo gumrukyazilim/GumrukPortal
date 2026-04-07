@@ -1933,8 +1933,89 @@ window.searchGoTo=function(type,idx,firmName){
     };
 
 // ================= TCMB KUR ÇEKME - KALICI ÇÖZÜM =================
-// Google Apps Script URL'nizi buraya yapıştırın:
+// Kendi Google Apps Script URL'niz:
 const TCMB_PROXY_URL = "https://script.google.com/macros/s/AKfycby0n1LaXDaznO6uBdM9DX8T-z7WQH2fVs9LPNMmlbGFI05YCKVarl-zXgry09p_-Io8kQ/exec";
+
+// ============ TOAST BİLDİRİM SİSTEMİ ============
+let toastTimeout = null;
+
+function showSyncToast(message, isSuccess = true) {
+    // Varsa önceki timeout'u temizle
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+    }
+    
+    let toast = document.getElementById('sync-toast');
+    
+    // Toast elementi yoksa oluştur
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'sync-toast';
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-family: inherit;
+        `;
+        document.body.appendChild(toast);
+    }
+    
+    // İçerik ve renk ayarla
+    toast.style.background = isSuccess ? 'var(--success, #22c55e)' : 'var(--danger, #ef4444)';
+    toast.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            ${isSuccess 
+                ? '<path d="M20 6L9 17l-5-5"/>' 
+                : '<circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>'}
+        </svg>
+        <span>${message}</span>
+    `;
+    
+    // Göster (animasyonlu)
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    });
+    
+    // 3 saniye sonra otomatik kapat
+    toastTimeout = setTimeout(() => {
+        hideSyncToast();
+    }, 3000);
+}
+
+function hideSyncToast() {
+    const toast = document.getElementById('sync-toast');
+    if (toast) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        
+        // Animasyon bitince DOM'dan kaldır
+        setTimeout(() => {
+            if (toast && toast.style.opacity === '0') {
+                toast.remove();
+            }
+        }, 300);
+    }
+    
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+    }
+}
+// ================================================
 
 window.fetchTCMBKur = async function(auto = false) {
     let st = document.getElementById('kur-status');
@@ -1942,7 +2023,7 @@ window.fetchTCMBKur = async function(auto = false) {
     
     if(st){
         st.innerHTML = '<i data-lucide="loader" style="width:10px;height:10px;animation:spin 1s linear infinite;"></i> TCMB bağlanıyor...';
-        st.style.color = 'var(--muted)';
+        st.style.color = 'var(--text-muted)';
         if(window.lucide) lucide.createIcons();
     }
 
@@ -1951,7 +2032,7 @@ window.fetchTCMBKur = async function(auto = false) {
         try {
             console.log("📡 Google Apps Script proxy deneniyor...");
             const response = await fetch(TCMB_PROXY_URL, {
-                signal: AbortSignal.timeout(10000)
+                signal: AbortSignal.timeout(10000) // 10 saniye bekleme süresi
             });
             
             if (response.ok) {
@@ -1978,7 +2059,7 @@ window.fetchTCMBKur = async function(auto = false) {
                     }));
 
                     if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
-                    if(!auto && typeof showSyncToast === 'function') showSyncToast(`TCMB kurları güncellendi`, true);
+                    if(!auto) showSyncToast(`TCMB kurları güncellendi`, true);
                     if(window.lucide) lucide.createIcons();
                     return; // Başarılı!
                 }
@@ -2056,7 +2137,7 @@ window.fetchTCMBKur = async function(auto = false) {
                 }));
 
                 if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
-                if(!auto && typeof showSyncToast === 'function') showSyncToast(`Kurlar güncellendi`, true);
+                if(!auto) showSyncToast(`Kurlar güncellendi`, true);
                 if(window.lucide) lucide.createIcons();
                 return;
             }
@@ -2108,6 +2189,7 @@ function handleKurFailure(auto, bugun, st) {
         }));
         
         if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
+        showSyncToast(`Manuel kur girildi`, true);
     } else {
         useFallback(lastKur, st);
     }
