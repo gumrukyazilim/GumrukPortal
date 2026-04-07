@@ -1932,7 +1932,7 @@ window.searchGoTo=function(type,idx,firmName){
         }, 150);
     };
 
-// ================= ÇİFT MOTORLU TCMB KUR ÇEKME SİSTEMİ =================
+// ================= GELİŞTİRİLMİŞ TCMB KUR ÇEKME SİSTEMİ =================
 window.fetchTCMBKur = async function(auto = false) {
     let st = document.getElementById('kur-status');
     let bugun = new Date().toLocaleDateString('tr-TR');
@@ -1942,101 +1942,138 @@ window.fetchTCMBKur = async function(auto = false) {
         if(window.lucide) lucide.createIcons();
     }
 
-    const targetUrl = "https://www.tcmb.gov.tr/kurlar/today.xml";
-    // 1. ANA KÖPRÜ (Daha hızlı ve kararlı)
-    const proxy1 = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
-    // 2. YEDEK KÖPRÜ (Eğer ana köprü çökerse devreye girer)
-    const proxy2 = "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
+    // Birden fazla TCMB URL ve Proxy kombinasyonu dene
+    const tcmbUrls = [
+        "https://www.tcmb.gov.tr/kurlar/today.xml",
+        "https://tcmb1.tcmb.gov.tr/kurlar/today.xml"
+    ];
+    
+    const proxyTemplates = [
+        (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+    ];
 
-    try {
-        let response;
-        try {
-            response = await fetch(proxy1);
-            if (!response.ok) throw new Error('Proxy 1 Yanıt Vermedi');
-        } catch (e) {
-            // Birinci köprü patlarsa sessizce ikinciye geç
-            console.warn("Ana köprü yanıt vermedi, yedek köprü deneniyor...");
-            response = await fetch(proxy2);
-            if (!response.ok) throw new Error('Proxy 2 de Yanıt Vermedi');
-        }
-
-        const xmlText = await response.text();
-        
-        const extractRate = (code) => {
-            const regex = new RegExp(`<Currency[^>]*CurrencyCode="${code}"[^>]*>[\\s\\S]*?<ForexSelling>([^<]+)<\\/ForexSelling>`, 'i');
-            const match = xmlText.match(regex);
-            return match ? parseFloat(match[1].trim().replace(',', '.')) : null;
-        };
-
-        let usd = extractRate("USD");
-        let eur = extractRate("EUR");
-
-        if (usd && eur) {
-            document.getElementById('calc-kur-usd').value = usd.toFixed(4).replace('.', ',');
-            document.getElementById('calc-kur-eur').value = eur.toFixed(4).replace('.', ',');
-            
-            if(st){
-                st.innerHTML = `✓ TCMB Kurları (${bugun})`;
-                st.className = 'kur-badge kur-live';
-                st.style.color = 'var(--success)';
-            }
-
-            localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({
-                usd: usd, eur: eur, date: bugun
-            }));
-
-            if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
-            if(!auto && typeof hideSyncToast === 'function') hideSyncToast(`Kurlar güncellendi (${bugun})`, true);
-        } else {
-            throw new Error('Merkez Bankası verisinde kur bulunamadı');
-        }
-
-    } catch (error) {
-        console.error("Kur hatası:", error);
-        let lastKur = JSON.parse(localStorage.getItem('gumruk_tcmb_last_kur'));
-        
-        if (!auto) {
-            let mUsd = prompt(`Sistem TCMB'ye bağlanamadı.\nLütfen ${bugun} tarihli USD kurunu manuel girin:`, lastKur ? lastKur.usd.toFixed(4).replace('.', ',') : "");
-            let mEur = prompt(`Lütfen ${bugun} tarihli EUR kurunu manuel girin:`, lastKur ? lastKur.eur.toFixed(4).replace('.', ',') : "");
-            
-            if (mUsd && mEur) {
-                let nUsd = parseFloat(mUsd.replace(',', '.'));
-                let nEur = parseFloat(mEur.replace(',', '.'));
-                document.getElementById('calc-kur-usd').value = nUsd.toFixed(4).replace('.', ',');
-                document.getElementById('calc-kur-eur').value = nEur.toFixed(4).replace('.', ',');
+    let xmlText = null;
+    
+    // Tüm kombinasyonları dene
+    outerLoop:
+    for (const tcmbUrl of tcmbUrls) {
+        for (const proxyFn of proxyTemplates) {
+            try {
+                const proxyUrl = proxyFn(tcmbUrl);
+                console.log("Deneniyor:", proxyUrl);
                 
-                if(st) {
-                    st.innerHTML = `⚠ Manuel Kur (${bugun})`;
-                    st.style.color = 'var(--warning)';
+                const response = await fetch(proxyUrl, { 
+                    signal: AbortSignal.timeout(8000) // 8 saniye timeout
+                });
+                
+                if (!response.ok) continue;
+                
+                const text = await response.text();
+                
+                // XML içeriği doğrula
+                if (text.includes('<Currency') && text.includes('ForexSelling')) {
+                    xmlText = text;
+                    console.log("✓ Başarılı kaynak bulundu");
+                    break outerLoop;
                 }
-                
-                localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({
-                    usd: nUsd, eur: nEur, date: bugun
-                }));
-                
-                if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
-                return;
-            }
-        }
-
-        // Otomatik modda başarısız olursa veya kullanıcı iptale basarsa hafızadaki son kuru kullan
-        if (lastKur) {
-            document.getElementById('calc-kur-usd').value = parseFloat(lastKur.usd).toFixed(4).replace('.', ',');
-            document.getElementById('calc-kur-eur').value = parseFloat(lastKur.eur).toFixed(4).replace('.', ',');
-            if(st) {
-                st.innerHTML = `⚠ Hafızadaki Kur (${lastKur.date})`;
-                st.style.color = 'var(--warning)';
-            }
-        } else {
-            if(st) {
-                st.innerHTML = `❌ Kur Çekilemedi`;
-                st.style.color = 'var(--danger)';
+            } catch (e) {
+                console.warn("Proxy başarısız:", e.message);
+                continue;
             }
         }
     }
+
+    if (xmlText) {
+        try {
+            const extractRate = (code) => {
+                const regex = new RegExp(
+                    `<Currency[^>]*CurrencyCode="${code}"[^>]*>[\\s\\S]*?<ForexSelling>([\\d.,]+)</ForexSelling>`,
+                    'i'
+                );
+                const match = xmlText.match(regex);
+                return match ? parseFloat(match[1].replace(',', '.')) : null;
+            };
+
+            let usd = extractRate("USD");
+            let eur = extractRate("EUR");
+
+            if (usd && eur) {
+                document.getElementById('calc-kur-usd').value = usd.toFixed(4).replace('.', ',');
+                document.getElementById('calc-kur-eur').value = eur.toFixed(4).replace('.', ',');
+                
+                if(st){
+                    st.innerHTML = `✓ TCMB Kurları (${bugun})`;
+                    st.className = 'kur-badge kur-live';
+                    st.style.color = 'var(--success)';
+                }
+
+                localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({
+                    usd: usd, eur: eur, date: bugun
+                }));
+
+                if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
+                if(!auto && typeof hideSyncToast === 'function') hideSyncToast(`Kurlar güncellendi (${bugun})`, true);
+                
+                if(window.lucide) lucide.createIcons();
+                return; // Başarılı, çık
+            }
+        } catch (parseError) {
+            console.error("XML parse hatası:", parseError);
+        }
+    }
+
+    // ========== BAŞARISIZ - FALLBACK ==========
+    console.error("Tüm kaynaklar başarısız oldu");
+    handleKurFailure(auto, bugun, st);
     if(window.lucide) lucide.createIcons();
 };
-// =======================================================================
+
+function handleKurFailure(auto, bugun, st) {
+    let lastKur = JSON.parse(localStorage.getItem('gumruk_tcmb_last_kur'));
+    
+    if (!auto) {
+        let mUsd = prompt(`TCMB'ye bağlanılamadı.\n${bugun} USD kurunu girin:`, 
+            lastKur ? lastKur.usd.toFixed(4).replace('.', ',') : "43,2500");
+        let mEur = prompt(`${bugun} EUR kurunu girin:`, 
+            lastKur ? lastKur.eur.toFixed(4).replace('.', ',') : "49,5000");
+        
+        if (mUsd && mEur) {
+            let nUsd = parseFloat(mUsd.replace(',', '.'));
+            let nEur = parseFloat(mEur.replace(',', '.'));
+            document.getElementById('calc-kur-usd').value = nUsd.toFixed(4).replace('.', ',');
+            document.getElementById('calc-kur-eur').value = nEur.toFixed(4).replace('.', ',');
+            
+            if(st) {
+                st.innerHTML = `⚠ Manuel Kur (${bugun})`;
+                st.style.color = 'var(--warning)';
+            }
+            
+            localStorage.setItem('gumruk_tcmb_last_kur', JSON.stringify({
+                usd: nUsd, eur: nEur, date: bugun
+            }));
+            
+            if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
+            return;
+        }
+    }
+
+    // Hafızadaki son kuru kullan
+    if (lastKur) {
+        document.getElementById('calc-kur-usd').value = parseFloat(lastKur.usd).toFixed(4).replace('.', ',');
+        document.getElementById('calc-kur-eur').value = parseFloat(lastKur.eur).toFixed(4).replace('.', ',');
+        if(st) {
+            st.innerHTML = `⚠ Hafızadaki Kur (${lastKur.date})`;
+            st.style.color = 'var(--warning)';
+        }
+    } else {
+        if(st) {
+            st.innerHTML = `❌ Kur Çekilemedi`;
+            st.style.color = 'var(--danger)';
+        }
+    }
+}
     window.exportCalcExcel=function(){
         let rows=[['KALEM','DEĞER']];
         document.querySelectorAll('.calc-result-table tr').forEach(tr=>{
