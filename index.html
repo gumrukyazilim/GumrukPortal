@@ -1242,9 +1242,12 @@
                         </select>
                     </div>
                     <div class="input-group" style="margin:0;"><label>KKDF %</label><select id="calc-kkdf-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>ATR'siz GV %</label><input id="calc-atr-oran" type="text" value="0" oninput="window.calculateTaxes()"></div>
-                </div>
-            </div>
+                    <div class="input-group" style="margin:0;">
+                        <label>ATR'siz GV %</label>
+                        <select id="calc-atr-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
+                            <option value="0" selected>%0</option><option value="10">%10</option><option value="22">%22</option>
+                       </select>
+                    </div>
             
             <div class="calc-section green">
                 <div class="calc-sec-title"><i data-lucide="wallet"></i> Araç Tipi & Masraflar</div>
@@ -3826,92 +3829,197 @@ window.renderDilekceContent = function() {
     container.innerHTML = html;
 };
 
-window.formatNumber = function(num, showKurus = true) {
+window.formatNumber = function(num) {
     if (num === null || num === undefined || isNaN(num)) return "0,00";
+    
     let n = parseFloat(num).toFixed(2);
-    let [tam, kurus] = n.split('.');
+    let parts = n.split('.');
+    let tam = parts[0];
+    let kurus = parts[1];
+    
     tam = tam.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    return showKurus ? tam + "," + kurus : tam;
+    
+    return tam + "," + kurus;
 };
-
-// 2. ANA HESAPLAMA MOTORU
+ 
+// ========== ANA HESAPLAMA FONKSİYONU ==========
 window.calculateTaxes = function(){
+    
+    // Değer okuma fonksiyonu (input ve select için)
     let gV = id => {
         let el = document.getElementById(id);
-        if(!el || !el.value) return 0;
-        return parseFloat(String(el.value).replace(/\./g, "").replace(/,/g, ".").trim()) || 0;
+        if(!el) return 0;
+        
+        let rawVal = el.value || "";
+        
+        // %, boşluk ve diğer karakterleri temizle, sadece sayı ve virgül/nokta kalsın
+        let val = String(rawVal)
+            .replace(/%/g, "")      // % işaretini kaldır
+            .replace(/\s/g, "")     // Boşlukları kaldır
+            .replace(/\./g, "")     // Binlik ayracı (nokta) kaldır
+            .replace(/,/g, ".")     // Virgülü noktaya çevir
+            .trim();
+        
+        return parseFloat(val) || 0;
     };
     
+    // Ekrana yazma fonksiyonu (kuruşlu)
     let sH = (id, v, eur = false) => {
         let el = document.getElementById(id);
-        if(el) el.innerText = window.formatNumber(v) + (eur ? ' €' : ' ₺');
+        if(el) {
+            el.innerText = window.formatNumber(v) + (eur ? ' €' : ' ₺');
+        }
     };
     
-    // Temel Yuvarlama (Kuruş hassasiyeti)
+    // Standart yuvarlama (2 ondalık - ara hesaplar için)
     let r2 = (v) => Math.round(v * 100) / 100;
-    // Devlet Sistemi Yuvarlaması (Vergi toplamları için her zaman yukarı)
+    
+    // Yukarı yuvarlama (devlet sistemi - toplam vergiler için)
     let ceil2 = (v) => Math.ceil(v * 100) / 100;
-
-    // Döviz Kuru
+ 
+    // ========== DÖVİZ KURLARI ==========
     let kurEUR = gV("calc-kur-eur") || 51.4974;
     let kurUSD = gV("calc-kur-usd") || 44.6057;
     let currency = document.getElementById('calc-currency')?.value || 'EUR';
     let kur = currency === 'EUR' ? kurEUR : kurUSD;
-
-    // Girişler
-    let fat = gV("calc-fatura"), nav = gV("calc-navlun"), sig = gV("calc-sigorta");
-    let yd  = gV("calc-yurtdisi"), yi  = gV("calc-yurtici"), dmg = gV("calc-damga");
-    let gvO = gV("calc-gv-oran"), ilvO = gV("calc-ilave-gv-oran"), atrO = gV("calc-atr-oran");
-    let otvO = gV("calc-otv-oran"), kdvO = gV("calc-kdv-oran"), kkdf = gV("calc-kkdf-oran");
-
-    // --- ADIM 1: GÜMRÜK KIYMETİ ---
-    let fTL = r2(fat * kur), nTL = r2(nav * kur), sTL = r2(sig * kur);
-    let cif = r2(fTL + nTL + sTL);
-    let ydTL = r2(yd * kur);
-    let gvM = r2(cif + ydTL); 
-
-    // --- ADIM 2: GÜMRÜK VERGİLERİ ---
-    let gvT  = r2(gvM * (gvO / 100));
-    let ilvT = r2(gvM * (ilvO / 100));
-    let atrT = r2(gvM * (atrO / 100));
-
-    // --- ADIM 3: TRT VE MATRAH OLUŞUMU ---
-    let araT = r2(gvM + yi); 
-    let trtMatrah = r2(araT + dmg + gvT + ilvT + atrT); // Excel formülündeki gibi Damga dahil
-    let trtT = r2(trtMatrah * 0.008); 
-
-    // --- ADIM 4: ÖTV VE KDV ---
-    let otvM = r2(araT + trtT + dmg + gvT + ilvT + atrT); // ÖTV Matrahı (Excel B25)
-    let otvT = r2(otvM * (otvO / 100));
-    let kdvM = r2(otvM + otvT); // KDV Matrahı
-    let kdvT = r2(kdvM * (kdvO / 100));
+ 
+    // ========== GİRİŞLER ==========
+    let fat = gV("calc-fatura");    // Fatura tutarı (EUR/USD)
+    let nav = gV("calc-navlun");    // Navlun
+    let sig = gV("calc-sigorta");   // Sigorta
+    let yd  = gV("calc-yurtdisi");  // Yurt dışı gider
+    let yi  = gV("calc-yurtici");   // Yurt içi gider (TL)
+    let dmg = gV("calc-damga");     // Damga vergisi (TL)
+ 
+    // ========== VERGİ ORANLARI (Dropdown'lardan) ==========
+    let gvO  = gV("calc-gv-oran");        // Gümrük Vergisi % (örn: 10)
+    let ilvO = gV("calc-ilave-gv-oran");  // İlave GV % (örn: 25)
+    let atrO = gV("calc-atr-oran");       // ATR'siz GV % (örn: 22)
+    let otvO = gV("calc-otv-oran");       // ÖTV % (örn: 220)
+    let kdvO = gV("calc-kdv-oran");       // KDV % (örn: 20)
+    let kkdf = gV("calc-kkdf-oran");      // KKDF % (örn: 6)
+ 
+    // ========== DEBUG: Okunan Oranları Konsola Yaz ==========
+    console.log("═══════════════════════════════════════════");
+    console.log("📋 OKUNAN VERGİ ORANLARI:");
+    console.log("───────────────────────────────────────────");
+    console.log("Gümrük Vergisi %:", gvO);
+    console.log("İlave GV %:", ilvO);
+    console.log("ATR'siz GV %:", atrO);
+    console.log("ÖTV %:", otvO);
+    console.log("KDV %:", kdvO);
+    console.log("KKDF %:", kkdf);
+    console.log("───────────────────────────────────────────");
+ 
+    // =====================================================
+    // ADIM ADIM BEYANNAME MATEMATİĞİ
+    // =====================================================
+ 
+    // --- ADIM 1: CIF HESABI ---
+    let fTL = r2(fat * kur);         // Fatura TL
+    let nTL = r2(nav * kur);         // Navlun TL
+    let sTL = r2(sig * kur);         // Sigorta TL
+    let cif = r2(fTL + nTL + sTL);   // CIF = Fatura + Navlun + Sigorta
+ 
+    // --- ADIM 2: GÜMRÜK VERGİSİ MATRAHI ---
+    let ydTL = r2(yd * kur);         // Yurt dışı gider TL
+    let gvM = r2(cif + ydTL);        // GV Matrahı = CIF + Yurt Dışı
+ 
+    // --- ADIM 3: GÜMRÜK VERGİLERİ ---
+    let gvT  = r2(gvM * (gvO / 100));   // Gümrük Vergisi
+    let ilvT = r2(gvM * (ilvO / 100));  // İlave Gümrük Vergisi
+    let atrT = r2(gvM * (atrO / 100));  // ATR'siz Gümrük Vergisi
+ 
+    // --- ADIM 4: KKDF HESABI ---
+    // KKDF = GV Matrahı × KKDF Oranı
     let kkdfT = r2(gvM * (kkdf / 100));
-
-    // --- ADIM 5: TOPLAM VERGİ (YUKARI YUVARLAMA) ---
+ 
+    // --- ADIM 5: ARA TOPLAM ---
+    let araT = r2(gvM + yi);         // ARA TOPLAM = GV Matrahı + Yurt İçi
+ 
+    // --- ADIM 6: TRT BANDROL VERGİSİ ---
+    // Matrah = ARA TOPLAM + DAMGA + Gümrük Vergileri + KKDF
+    let trtMatrah = r2(araT + dmg + gvT + ilvT + atrT + kkdfT);
+    let trtT = r2(trtMatrah * 0.008);  // TRT = Matrah × %0.8
+ 
+    // --- ADIM 7: ÖTV MATRAHI ---
+    // ÖTV Matrahı = ARA TOPLAM + TRT + DAMGA + Tüm Vergiler
+    let otvM = r2(araT + trtT + dmg + gvT + ilvT + atrT + kkdfT);
+ 
+    // --- ADIM 8: ÖTV VE KDV (STANDART SENARYO) ---
+    let otvT = r2(otvM * (otvO / 100));      // ÖTV Tutarı
+    let kdvM = r2(otvM + otvT);              // KDV Matrahı = ÖTV Matrahı + ÖTV
+    let kdvT = r2(kdvM * (kdvO / 100));      // KDV Tutarı
+ 
+    // --- ADIM 9: TOPLAM VERGİ (YUKARI YUVARLAMA) ---
     let topV = ceil2(kdvT + trtT + otvT + dmg + gvT + ilvT + atrT + kkdfT);
-
-    // --- ADIM 6: MUAF (ÖTV'SİZ) SENARYO ---
+ 
+    // --- ADIM 10: MUAF (ÖTV'SİZ) SENARYO ---
     let kdvMsiz = otvM;
     let kdvTsiz = r2(kdvMsiz * (kdvO / 100));
     let topVsiz = ceil2(kdvTsiz + trtT + dmg + gvT + ilvT + atrT + kkdfT);
-
-    // --- ADIM 7: MALİYETLER ---
+ 
+    // --- ADIM 11: FİNAL MALİYETLER ---
     let araciKiymet = r2((fat + nav + sig + yd) * kur);
     let mTL = r2(araciKiymet + topV);
     let mTLsiz = r2(araciKiymet + topVsiz);
-
+ 
+    // =====================================================
     // EKRANA YAZDIR
-    sH("res-cif", cif); sH("res-gv-matrah", gvM); sH("res-gv-tutar", gvT);
-    sH("res-damga-tutar", dmg); sH("res-trt", trtT); sH("res-otv-matrahi", otvM);
-    sH("res-otv-tutar", otvT); sH("res-kdv-tutar", kdvT); sH("res-kdv-tutar-otvsiz", kdvTsiz);
-    sH("res-toplam-vergi", topV); sH("res-toplam-vergi-otvsiz", topVsiz);
-    sH("res-genel-maliyet", mTL); sH("res-genel-eur", r2(mTL / kur), true);
-    sH("res-otvsiz-maliyet", mTLsiz); sH("res-otvsiz-eur", r2(mTLsiz / kur), true);
+    // =====================================================
+    
+    sH("res-cif", cif);
+    sH("res-gv-matrah", gvM);
+    sH("res-gv-tutar", gvT);
+    sH("res-ilave-gv", ilvT);           // İlave GV tutarı
+sH("res-atr-tutar", atrT);          // ATR'siz GV tutarı ← BURASI DEĞİŞTİ
+sH("res-kkdf-tutar", kkdfT);        // KKDF tutarı (Standart) ← BURASI DEĞİŞTİ
+sH("res-kkdf-tutar-otvsiz", kkdfT); // KKDF tutarı (ÖTV'siz) ← YENİ SATIR
+    sH("res-damga-tutar", dmg);
+    sH("res-trt", trtT);
+    sH("res-otv-matrahi", otvM);
 
-    let dTL = r2((gV("calc-gumruk") + gV("calc-nakliye")) * kur + gV("calc-ardiye-tl") + gV("calc-tse-muh-tl") + gV("calc-tse-harci-manual"));
+    sH("res-otv-tutar", otvT);
+    sH("res-kdv-tutar", kdvT);
+    sH("res-kdv-tutar-otvsiz", kdvTsiz);
+    sH("res-toplam-vergi", topV);
+    sH("res-toplam-vergi-otvsiz", topVsiz);
+
+    sH("res-genel-maliyet", mTL);
+    sH("res-genel-eur", r2(mTL / kur), true);
+    sH("res-otvsiz-maliyet", mTLsiz);
+    sH("res-otvsiz-eur", r2(mTLsiz / kur), true);
+
+    // Diğer masraflar
+    let digerEUR = gV("calc-gumruk") + gV("calc-nakliye");
+    let digerTL = gV("calc-ardiye-tl") + gV("calc-tse-muh-tl") + gV("calc-tse-harci-manual");
+    let dTL = r2(digerEUR * kur + digerTL);
     sH("res-diger-tl", dTL);
 
+    // State kaydet
     if(window.saveCalcState) window.saveCalcState();
+ 
+    // =====================================================
+    // DEBUG - KONSOL ÇIKTISI
+    // =====================================================
+    console.log("📊 HESAPLAMA SONUÇLARI:");
+    console.log("───────────────────────────────────────────");
+    console.log("CIF:", cif.toFixed(2));
+    console.log("GV Matrahı:", gvM.toFixed(2));
+    console.log("───────────────────────────────────────────");
+    console.log("Gümrük Vergisi:", gvT.toFixed(2));
+    console.log("İlave GV:", ilvT.toFixed(2));
+    console.log("ATR'siz GV:", atrT.toFixed(2));
+    console.log("KKDF:", kkdfT.toFixed(2));
+    console.log("───────────────────────────────────────────");
+    console.log("TRT:", trtT.toFixed(2));
+    console.log("ÖTV Matrahı:", otvM.toFixed(2));
+    console.log("ÖTV:", otvT.toFixed(2));
+    console.log("KDV:", kdvT.toFixed(2));
+    console.log("───────────────────────────────────────────");
+    console.log("✅ TOPLAM VERGİ:", topV.toFixed(2));
+    console.log("✅ TOPLAM VERGİ (ÖTV'siz):", topVsiz.toFixed(2));
+    console.log("═══════════════════════════════════════════");
 };
 </script>
 </body>
