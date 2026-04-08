@@ -3021,6 +3021,19 @@ function setupMTVListeners() {
 
     if(motorSecim && mtvKutusu) {
         
+        // =======================================================
+        // EKSİK OLAN KISIM BURASIYDI: KASADAN (HAFIZADAN) OKU VE YERİNE KOY!
+        // =======================================================
+        try {
+            let kasa = JSON.parse(localStorage.getItem('gumruk_calc_state_v15') || "{}");
+            if (kasa['calc-mtv']) {
+                mtvKutusu.value = kasa['calc-mtv'];
+            }
+        } catch(e) {
+            console.log("Hafıza okuma hatası", e);
+        }
+        // =======================================================
+
         // Araç (Motor Hacmi) Seçildiğinde Otomatik MTV Atsın
         motorSecim.addEventListener("change", function() {
             let secilenMotor = this.value;
