@@ -1335,38 +1335,61 @@
                 <div style="font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
                     Vergi & Maliyet Özeti <span id="res-gtip-mini" style="font-size:11px;font-weight:600;color:var(--primary);font-family:monospace;"></span>
                 </div>
-                <table class="calc-result-table">
-                    <tr class="section-header"><td colspan="2">Gümrük Vergileri</td></tr>
-                    <tr><td class="label-col">CIF Kıymet (TL)</td><td class="value-col" id="res-cif">0 ₺</td></tr>
-                    <tr><td class="label-col">GV Matrahı</td><td class="value-col" id="res-gv-matrah">0 ₺</td></tr>
-                    <tr><td class="label-col">G.V Tutarı</td><td class="value-col" id="res-gv-tutar">0 ₺</td></tr>
-                    <tr><td class="label-col">İlave GV</td><td class="value-col" id="res-ilave-gv">0 ₺</td></tr>
-                    <tr><td class="label-col">ATR'siz GV</td><td class="value-col" id="res-atr-tutar">0 ₺</td></tr>
-                    <tr><td class="label-col" style="color:var(--primary);font-weight:600;">Ara Toplam</td><td class="value-col" id="res-ara-toplam" style="color:var(--primary);">0 ₺</td></tr>
-                    
-                    <tr class="section-header"><td colspan="2">ÖTV & KDV</td></tr>
-                    <tr><td class="label-col">TRT (%0.8)</td><td class="value-col" id="res-trt">0 ₺</td></tr>
-                    <tr><td class="label-col">ÖTV Matrahı</td><td class="value-col" id="res-otv-matrahi">0 ₺</td></tr>
-                    <tr><td class="label-col">Hesaplanan ÖTV</td><td class="value-col" id="res-otv-tutar" style="color:var(--danger);">0 ₺</td></tr>
-                    <tr><td class="label-col">KDV Matrahı</td><td class="value-col" id="res-kdv-matrahi">0 ₺</td></tr>
-                    <tr><td class="label-col">KDV Tutarı</td><td class="value-col" id="res-kdv-tutar">0 ₺</td></tr>
-                    <tr><td class="label-col">KKDF</td><td class="value-col" id="res-kkdf-tutar">0 ₺</td></tr>
-                    <tr class="total-row"><td>VERGİ TOPLAMI</td><td class="value-col" id="res-toplam-vergi" style="color:var(--danger);">0 ₺</td></tr>
-                    
-                    <tr class="section-header"><td colspan="2">Masraflar</td></tr>
-                    <tr><td class="label-col">Araç+Vergi (EUR)</td><td class="value-col" id="res-arac-vergi-eur">0 €</td></tr>
-                    <tr><td class="label-col">Diğer Masraflar</td><td class="value-col" id="res-diger-tl" style="color:var(--warning);">0 ₺</td></tr>
+                
+                <table class="calc-result-table" style="width:100%; border-collapse: collapse;">
+                    <tr class="section-header"><td colspan="2" style="background: rgba(59, 130, 246, 0.1); padding: 8px; border-radius: 4px;">Ortak Gümrük Vergileri</td></tr>
+                    <tr style="border-bottom: 1px solid var(--border);"><td class="label-col" style="padding: 8px 0;">CIF Kıymet (TL)</td><td class="value-col" id="res-cif" style="text-align:right; font-weight: 600;">0 ₺</td></tr>
+                    <tr style="border-bottom: 1px solid var(--border);"><td class="label-col" style="padding: 8px 0;">G.V Matrahı</td><td class="value-col" id="res-gv-matrah" style="text-align:right;">0 ₺</td></tr>
+                    <tr style="border-bottom: 1px solid var(--border);"><td class="label-col" style="padding: 8px 0;">G.V Tutarı</td><td class="value-col" id="res-gv-tutar" style="text-align:right;">0 ₺</td></tr>
+                    <tr style="border-bottom: 1px solid var(--border);"><td class="label-col" style="padding: 8px 0;">İlave GV</td><td class="value-col" id="res-ilave-gv" style="text-align:right;">0 ₺</td></tr>
+                    <tr style="border-bottom: 1px solid var(--border);"><td class="label-col" style="padding: 8px 0;">ATR'siz GV</td><td class="value-col" id="res-atr-tutar" style="text-align:right;">0 ₺</td></tr>
+                    <tr style="border-bottom: 1px solid var(--border);"><td class="label-col" style="padding: 8px 0;">TRT (%0.8)</td><td class="value-col" id="res-trt" style="text-align:right;">0 ₺</td></tr>
+                    <tr style="border-bottom: 2px solid var(--primary);"><td class="label-col" style="padding: 8px 0; color:var(--primary); font-weight: bold;">Damga Vergisi</td><td class="value-col" id="res-damga-tutar" style="text-align:right; color:var(--primary); font-weight: bold;">0 ₺</td></tr>
                 </table>
-                <div class="result-total">
-                    <span class="result-total-label">FİNAL MALİYET</span>
-                    <div>
-                        <div id="res-genel-eur" class="result-total-sub">0 €</div>
-                        <strong id="res-genel-maliyet" class="result-total-value" style="color:#fff !important;">0 ₺</strong>
+
+                <table class="calc-result-table" style="width:100%; margin-top:15px; border-collapse: collapse; table-layout: fixed;">
+                    <tr class="section-header">
+                        <td style="width:35%; color:var(--text-primary); padding: 8px;">Karşılaştırma</td>
+                        <td style="width:32%; text-align:left; padding: 8px; color:var(--danger); font-size:10px; font-weight:800; border-left: 1px solid var(--border);">STANDART</td>
+                        <td style="width:33%; text-align:left; padding: 8px; color:var(--success); font-size:10px; font-weight:800; border-left: 1px solid var(--border);">ÖTV'SİZ</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td class="label-col" style="padding: 8px 0;">ÖTV Tutarı</td>
+                        <td id="res-otv-tutar" style="color:var(--danger); font-weight:bold; padding-left: 8px; border-left: 1px solid var(--border);">0 ₺</td>
+                        <td style="color:var(--success); font-weight:bold; padding-left: 8px; border-left: 1px solid var(--border);">0 ₺</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td class="label-col" style="padding: 8px 0;">KDV Tutarı</td>
+                        <td id="res-kdv-tutar" style="font-weight:600; padding-left: 8px; border-left: 1px solid var(--border);">0 ₺</td>
+                        <td id="res-kdv-tutar-otvsiz" style="font-weight:600; color:var(--success); padding-left: 8px; border-left: 1px solid var(--border);">0 ₺</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td class="label-col" style="padding: 8px 0;">KKDF</td>
+                        <td id="res-kkdf-tutar" style="padding-left: 8px; border-left: 1px solid var(--border);">0 ₺</td>
+                        <td id="res-kkdf-tutar-otvsiz" style="padding-left: 8px; border-left: 1px solid var(--border);">0 ₺</td>
+                    </tr>
+                    <tr style="background: rgba(255,255,255,0.03);">
+                        <td class="label-col" style="padding: 10px 0; font-weight: 800;">TOPLAM VERGİ</td>
+                        <td id="res-toplam-vergi" style="color:var(--danger); font-weight:800; padding-left: 8px; border-left: 1px solid var(--border);">0 ₺</td>
+                        <td id="res-toplam-vergi-otvsiz" style="color:var(--success); font-weight:800; padding-left: 8px; border-left: 1px solid var(--border);">0 ₺</td>
+                    </tr>
+                    <tr><td colspan="3" class="section-header" style="padding: 8px 0;">Diğer Masraflar</td></tr>
+                    <tr><td class="label-col" style="padding: 8px 0;">Masraf Toplamı</td><td colspan="2" id="res-diger-tl" style="text-align:right; color:var(--warning); font-weight: bold;">0 ₺</td></tr>
+                </table>
+                
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <div class="result-total" style="flex:1; padding:12px; background:linear-gradient(135deg,#ef4444 0%,#991b1b 100%); border-radius:12px;">
+                        <div style="font-size:10px; font-weight:700; color:#fff; opacity:0.8;">ÖTV'Lİ FİNAL</div>
+                        <strong id="res-genel-maliyet" style="font-size:18px; color:#fff !important;">0 ₺</strong>
+                        <div id="res-genel-eur" style="font-size:11px; opacity:0.7; text-align:right;">0 €</div>
+                    </div>
+                    <div class="result-total" style="flex:1; padding:12px; background:linear-gradient(135deg,#10b981 0%,#065f46 100%); border-radius:12px;">
+                        <div style="font-size:10px; font-weight:700; color:#fff; opacity:0.8;">ÖTV'SİZ FİNAL</div>
+                        <strong id="res-otvsiz-maliyet" style="font-size:18px; color:#fff !important;">0 ₺</strong>
+                        <div id="res-otvsiz-eur" style="font-size:11px; opacity:0.7; text-align:right;">0 €</div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 </template>
 
 <template id="tpl-searchResults">
@@ -2985,7 +3008,7 @@ window.sendWhatsApp = function(index, type) {
         window.saveCalcState();
     };
 
-    window.calculateTaxes=function(){
+    window.calculateTaxes = function(){
         let gV=id=>{let el=document.getElementById(id);if(!el||!el.value)return 0;return parseFloat(String(el.value).replace(/\./g,"").replace(/,/g,".").trim())||0;};
         let sH=(id,v,eur=false)=>{let el=document.getElementById(id);if(el)el.innerText=window.formatNumber(v)+(eur?' €':' ₺');};
 
@@ -3002,13 +3025,16 @@ window.sendWhatsApp = function(index, type) {
         let teslim=document.getElementById('calc-teslim')?.value||'CIF';
         if(teslim==='CIF'){nav=0;sig=0;}
 
+        // --- ORTAK MATRAHLAR ---
         let topD=fat+nav+sig+yd;
         let fTL=fat*kur,nTL=nav*kur,sTL=sig*kur,cif=fTL+nTL+sTL,ydTL=yd*kur;
         let gvM=cif+ydTL,araT=gvM+yi;
         let atrT=gvM*(atrO/100),gvT=gvM*(gvO/100),ilvT=gvM*(ilvO/100);
         let trt=(araT+dmg+gvT+ilvT)*0.008;
         let otvM=araT+trt+dmg+atrT+gvT+ilvT;
+        let kkdfT=kkdf?gvM*(kkdf/100):0;
         
+        // Elektrikli Araç Özel ÖTV Durumu
         let yakit=document.getElementById('calc-yakit')?.value||'BENZİNLİ';
         if (yakit === 'ELEKTRİK') {
             let motor = document.getElementById('calc-motor')?.value;
@@ -3023,25 +3049,47 @@ window.sendWhatsApp = function(index, type) {
             }
         }
 
-        let otvT=otvM*(otvO/100),kdvM=otvM+otvT,kdvT=kdvM*(kdvO/100),kkdfT=kkdf?gvM*(kkdf/100):0;
-        let topV=kdvT+trt+otvT+atrT+dmg+gvT+ilvT,top=topV+kkdfT;
-        let aEUR=kur?(top/kur)+topD:0,aTL=aEUR*kur;
+        // --- 1. SENARYO: STANDART (ÖTV'Lİ) HESAPLAMA ---
+        let otvT=otvM*(otvO/100);
+        let kdvM=otvM+otvT;
+        let kdvT=kdvM*(kdvO/100);
+        let topV=kdvT+trt+otvT+atrT+dmg+gvT+ilvT, top=topV+kkdfT;
+        let aEUR=kur?(top/kur)+topD:0, aTL=aEUR*kur;
 
+        // --- 2. SENARYO: MUAF (ÖTV'SİZ) HESAPLAMA ---
+        let otvTsiz=0; 
+        let kdvMsiz=otvM+otvTsiz;
+        let kdvTsiz=kdvMsiz*(kdvO/100);
+        let topVsiz=kdvTsiz+trt+otvTsiz+atrT+dmg+gvT+ilvT, topsiz=topVsiz+kkdfT;
+        let aEURsiz=kur?(topsiz/kur)+topD:0, aTLsiz=aEURsiz*kur;
+
+        // --- MASRAFLAR ---
         let mmo=tip==="DEFENDER"?60000:0,isik=tip==="AMERİKAN"?65000:0,cek=tip==="AMERİKAN"?25000:0;
-        let dEUR=gH+nkl+alm+(kur?(ardTL+tseHTL+tseMTL+mmo+isik+cek)/kur:0),dTL=dEUR*kur;
-        let gEUR=aEUR+dEUR,gTL=aTL+dTL;
+        let dEUR=gH+nkl+alm+(kur?(ardTL+tseHTL+tseMTL+mmo+isik+cek)/kur:0), dTL=dEUR*kur;
 
-        sH("res-cif",cif);sH("res-gv-matrah",gvM);sH("res-gv-tutar",gvT);sH("res-ilave-gv",ilvT);sH("res-atr-tutar",atrT);sH("res-ara-toplam",araT);
-        sH("res-trt",trt);sH("res-otv-matrahi",otvM);sH("res-otv-tutar",otvT);sH("res-kdv-matrahi",kdvM);sH("res-kdv-tutar",kdvT);sH("res-kkdf-tutar",kkdfT);
-        sH("res-toplam-vergi",top);sH("res-arac-vergi-eur",aEUR,true);
-        sH("res-mmo",mmo);sH("res-isik",isik);sH("res-cekici",cek);
-        sH("res-diger-eur",dEUR,true);sH("res-diger-tl",dTL);sH("res-genel-eur",gEUR,true);sH("res-genel-maliyet",gTL);
+        // --- FİNAL SONUÇLAR ---
+        let gEUR=aEUR+dEUR, gTL=aTL+dTL; // Standart
+        let gEURsiz=aEURsiz+dEUR, gTLsiz=aTLsiz+dTL; // ÖTV'siz
+
+        // Ekranı Güncelle (Ortak)
+        sH("res-cif",cif); sH("res-gv-matrah",gvM); sH("res-gv-tutar",gvT); sH("res-ilave-gv",ilvT); 
+        sH("res-atr-tutar",atrT); sH("res-trt",trt); sH("res-otv-matrahi",otvM); sH("res-kkdf-tutar",kkdfT);
+        
+        // Ekranı Güncelle (Standart / ÖTV'li)
+        sH("res-otv-tutar",otvT); sH("res-kdv-tutar",kdvT); sH("res-toplam-vergi",top); 
+        sH("res-genel-maliyet",gTL); sH("res-genel-eur",gEUR,true);
+        
+        // Ekranı Güncelle (Muaf / ÖTV'siz)
+        sH("res-kdv-tutar-otvsiz",kdvTsiz); sH("res-toplam-vergi-otvsiz",topsiz); 
+        sH("res-otvsiz-maliyet",gTLsiz); sH("res-otvsiz-eur",gEURsiz,true);
+
+        sH("res-diger-tl",dTL); // Masraflar
 
         let mtvOtoDeger = document.getElementById('mtv-oto-deger');
         if (mtvOtoDeger && mtvOtoDeger.checked) {
             let mtvDegerInput = document.getElementById('mtv-deger');
             if(mtvDegerInput) {
-                mtvDegerInput.value = window.formatNumber(kdvM);
+                mtvDegerInput.value = window.formatNumber(kdvM); // MTV her zaman standart kdv matrahı üzerinden alınır
                 window.calculateMTV(); 
             }
         }
@@ -3776,6 +3824,94 @@ window.renderDilekceContent = function() {
     }
     
     container.innerHTML = html;
+};
+
+window.formatNumber = function(num, showKurus = true) {
+    if (num === null || num === undefined || isNaN(num)) return "0,00";
+    let n = parseFloat(num).toFixed(2);
+    let [tam, kurus] = n.split('.');
+    tam = tam.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return showKurus ? tam + "," + kurus : tam;
+};
+
+// 2. ANA HESAPLAMA MOTORU
+window.calculateTaxes = function(){
+    let gV = id => {
+        let el = document.getElementById(id);
+        if(!el || !el.value) return 0;
+        return parseFloat(String(el.value).replace(/\./g, "").replace(/,/g, ".").trim()) || 0;
+    };
+    
+    let sH = (id, v, eur = false) => {
+        let el = document.getElementById(id);
+        if(el) el.innerText = window.formatNumber(v) + (eur ? ' €' : ' ₺');
+    };
+    
+    // Temel Yuvarlama (Kuruş hassasiyeti)
+    let r2 = (v) => Math.round(v * 100) / 100;
+    // Devlet Sistemi Yuvarlaması (Vergi toplamları için her zaman yukarı)
+    let ceil2 = (v) => Math.ceil(v * 100) / 100;
+
+    // Döviz Kuru
+    let kurEUR = gV("calc-kur-eur") || 51.4974;
+    let kurUSD = gV("calc-kur-usd") || 44.6057;
+    let currency = document.getElementById('calc-currency')?.value || 'EUR';
+    let kur = currency === 'EUR' ? kurEUR : kurUSD;
+
+    // Girişler
+    let fat = gV("calc-fatura"), nav = gV("calc-navlun"), sig = gV("calc-sigorta");
+    let yd  = gV("calc-yurtdisi"), yi  = gV("calc-yurtici"), dmg = gV("calc-damga");
+    let gvO = gV("calc-gv-oran"), ilvO = gV("calc-ilave-gv-oran"), atrO = gV("calc-atr-oran");
+    let otvO = gV("calc-otv-oran"), kdvO = gV("calc-kdv-oran"), kkdf = gV("calc-kkdf-oran");
+
+    // --- ADIM 1: GÜMRÜK KIYMETİ ---
+    let fTL = r2(fat * kur), nTL = r2(nav * kur), sTL = r2(sig * kur);
+    let cif = r2(fTL + nTL + sTL);
+    let ydTL = r2(yd * kur);
+    let gvM = r2(cif + ydTL); 
+
+    // --- ADIM 2: GÜMRÜK VERGİLERİ ---
+    let gvT  = r2(gvM * (gvO / 100));
+    let ilvT = r2(gvM * (ilvO / 100));
+    let atrT = r2(gvM * (atrO / 100));
+
+    // --- ADIM 3: TRT VE MATRAH OLUŞUMU ---
+    let araT = r2(gvM + yi); 
+    let trtMatrah = r2(araT + dmg + gvT + ilvT + atrT); // Excel formülündeki gibi Damga dahil
+    let trtT = r2(trtMatrah * 0.008); 
+
+    // --- ADIM 4: ÖTV VE KDV ---
+    let otvM = r2(araT + trtT + dmg + gvT + ilvT + atrT); // ÖTV Matrahı (Excel B25)
+    let otvT = r2(otvM * (otvO / 100));
+    let kdvM = r2(otvM + otvT); // KDV Matrahı
+    let kdvT = r2(kdvM * (kdvO / 100));
+    let kkdfT = r2(gvM * (kkdf / 100));
+
+    // --- ADIM 5: TOPLAM VERGİ (YUKARI YUVARLAMA) ---
+    let topV = ceil2(kdvT + trtT + otvT + dmg + gvT + ilvT + atrT + kkdfT);
+
+    // --- ADIM 6: MUAF (ÖTV'SİZ) SENARYO ---
+    let kdvMsiz = otvM;
+    let kdvTsiz = r2(kdvMsiz * (kdvO / 100));
+    let topVsiz = ceil2(kdvTsiz + trtT + dmg + gvT + ilvT + atrT + kkdfT);
+
+    // --- ADIM 7: MALİYETLER ---
+    let araciKiymet = r2((fat + nav + sig + yd) * kur);
+    let mTL = r2(araciKiymet + topV);
+    let mTLsiz = r2(araciKiymet + topVsiz);
+
+    // EKRANA YAZDIR
+    sH("res-cif", cif); sH("res-gv-matrah", gvM); sH("res-gv-tutar", gvT);
+    sH("res-damga-tutar", dmg); sH("res-trt", trtT); sH("res-otv-matrahi", otvM);
+    sH("res-otv-tutar", otvT); sH("res-kdv-tutar", kdvT); sH("res-kdv-tutar-otvsiz", kdvTsiz);
+    sH("res-toplam-vergi", topV); sH("res-toplam-vergi-otvsiz", topVsiz);
+    sH("res-genel-maliyet", mTL); sH("res-genel-eur", r2(mTL / kur), true);
+    sH("res-otvsiz-maliyet", mTLsiz); sH("res-otvsiz-eur", r2(mTLsiz / kur), true);
+
+    let dTL = r2((gV("calc-gumruk") + gV("calc-nakliye")) * kur + gV("calc-ardiye-tl") + gV("calc-tse-muh-tl") + gV("calc-tse-harci-manual"));
+    sH("res-diger-tl", dTL);
+
+    if(window.saveCalcState) window.saveCalcState();
 };
 </script>
 </body>
