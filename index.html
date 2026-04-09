@@ -1338,6 +1338,7 @@
         <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-secondary);">G.V Tutarı</span><span id="res-gv-tutar" style="font-weight:600;">0 ₺</span></div>
         <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-secondary);">İlave GV</span><span id="res-ilave-gv" style="font-weight:600;">0 ₺</span></div>
         <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-secondary);">ATR'siz GV</span><span id="res-atr-tutar" style="font-weight:600;">0 ₺</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-secondary);">Damga Vergisi</span><span id="res-damga" style="font-weight:600;">0 ₺</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="color:var(--primary);font-weight:700;">Ara Toplam</span><span id="res-ara-toplam" style="font-weight:700;color:var(--primary);">0 ₺</span></div>
     </div>
     
@@ -1382,6 +1383,8 @@
         <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);">G.V Tutarı</span><span id="res-otvsiz-gv" style="font-weight:600;">0 ₺</span></div>
         <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);">İlave GV</span><span id="res-otvsiz-igv" style="font-weight:600;">0 ₺</span></div>
         <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);">ATR'siz GV</span><span id="res-otvsiz-atr" style="font-weight:600;">0 ₺</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);">Damga Vergisi</span><span id="res-otvsiz-damga" style="font-weight:600;">0 ₺</span></div>
+<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);">TRT (%0.8)</span><span id="res-otvsiz-trt" style="font-weight:600;">0 ₺</span></div>
         <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid var(--border);"><span style="color:var(--text-muted);">KDV (ÖTV'siz)</span><span id="res-otvsiz-kdv" style="font-weight:600;">0 ₺</span></div>
         <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;margin-bottom:8px;"><span style="color:var(--success);font-weight:600;">Vergi Toplamı</span><span id="res-otvsiz-toplam-vergi" style="font-weight:700;color:var(--success);">0 ₺</span></div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:2px solid var(--success);">
@@ -3117,7 +3120,7 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     let dEUR=gH+nkl+alm+(kur?(ardTL+tseHTL+tseMTL+isik+cek)/kur:0),dTL=dEUR*kur;
     let gEUR=aEUR+dEUR,gTL=aTL+dTL;
 
-    sH("res-cif",cif);sH("res-gv-matrah",gvM);sH("res-gv-tutar",gvT);sH("res-ilave-gv",ilvT);sH("res-atr-tutar",atrT);sH("res-ara-toplam",araT);
+    sH("res-cif",cif);sH("res-gv-matrah",gvM);sH("res-gv-tutar",gvT);sH("res-ilave-gv",ilvT);sH("res-atr-tutar",atrT);sH("res-damga",dmg);sH("res-ara-toplam",araT);
     sH("res-trt",trt);sH("res-otv-matrahi",otvM);sH("res-otv-tutar",otvT);sH("res-kdv-matrahi",kdvM);sH("res-kdv-tutar",kdvT);sH("res-kkdf-tutar",kkdfT);
     sH("res-toplam-vergi",top);sH("res-arac-vergi-eur",aEUR,true);
     sH("res-isik",isik);sH("res-cekici",cek);
@@ -3137,6 +3140,8 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     sH("res-otvsiz-gv", gvT);
     sH("res-otvsiz-igv", ilvT);
     sH("res-otvsiz-atr", atrT);
+    sH("res-otvsiz-damga", dmg);
+    sH("res-otvsiz-trt", trt);
     sH("res-otvsiz-kdv", otvSizKdvT);
     sH("res-otvsiz-toplam-vergi", topVsiz);
 
