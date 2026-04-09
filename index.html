@@ -3723,91 +3723,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-// ================= SIFIR HATA: DİNAMİK EXCEL MOTORU (ARKA PLANDA ÇALIŞIR) =================
 window.autoSaveArdiyeToDrive = function(r) {
     if (!r.beyanname || r.beyanname.trim() === '') return;
 
-    let b4 = r.beyanname.slice(-4);
-    let s4 = r.sasi ? r.sasi.slice(-4) : '....';
-    let today = new Date();
-    let cikisTarihi = window.formatTRDate(today);
+    const ARDIYE_GAS = "https://script.google.com/macros/s/AKfycbyWXRHyyA85147i8sjfnzMTrUE2E78knDQFZjXoXrDdiXt9hMTQ-dQtWBU8q_4tHvt8Kg/exec";
     
-    let gD = window.parseTRDate(r.tarih);
-    let gun = gD ? (window.diffDaysSigned(today, gD) + 1) : 0;
-    if (gun < 0) gun = 0;
+    if(typeof showSyncToast === 'function') showSyncToast("Ardiye şablondan üretiliyor...");
 
-    let g1 = Math.min(20, gun), g2 = Math.max(0, Math.min(30, gun - 20)), g3 = Math.max(0, Math.min(30, gun - 50)), g4 = Math.max(0, gun - 80);
-    let sum1_20 = g1 * 145, sum21_50 = g2 * 725, sum51_80 = g3 * 1160, sum81 = g4 * 1450;
-    let araToplam = sum1_20 + sum21_50 + sum51_80 + sum81;
-
-    let bSasiStr = "IM-" + b4 + " / ŞASE-" + s4;
-
-    let excelSablonu = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-        <meta charset="UTF-8">
-        <style>
-            .t-sag { text-align: right; }
-            .t-orta { text-align: center; }
-            .kirmizi { color: red; font-weight: bold; }
-            .bold { font-weight: bold; }
-            .border { border: 1px solid #000; font-weight: bold; padding: 5px; }
-            .tl { mso-number-format:"#,##0 \\"TL\\""; }
-            .tl-orta { mso-number-format:"#,##0 \\"TL\\""; text-align: center; }
-            .yuzde { mso-number-format:"0 \\"%\\""; color: red; font-weight: bold; text-align: center; }
-            .sayi { mso-number-format:"0"; text-align: center; }
-            .sayi-kirmizi { mso-number-format:"0"; color: red; font-weight: bold; text-align: center; }
-        </style>
-    </head>
-    <body>
-        <table border="0" cellpadding="5" cellspacing="0" style="font-family: Calibri, Arial, sans-serif; font-size: 14px; width: 100%;">
-            <tr><td colspan="6" style="text-align: center; font-size: 20px; font-weight: bold;">ARDİYE ÜCRETİ HESAPLAMA TABLOSU</td></tr>
-            <tr><td colspan="6"></td></tr>
-            <tr><td class="border">GİRİŞ TARİHİ:</td><td colspan="5" class="border">${r.tarih || '-'}</td></tr>
-            <tr><td class="border">ÇIKIŞ TARİHİ:</td><td colspan="5" class="border">${cikisTarihi}</td></tr>
-            <tr><td class="border">TOPLAM GÜN</td><td colspan="5" class="border" x:num>${gun}</td></tr>
-            <tr><td class="border">ARAÇ ADETİ</td><td colspan="5" class="border" x:num>1</td></tr>
-            <tr><td class="border">BEYANNAME/DİLEKÇE/ŞASE/TAKRİR NO:</td><td colspan="5" class="border">${bSasiStr}</td></tr>
-            <tr><td class="border">İTHALATÇI FİRMA /AD SOYAD</td><td colspan="5" class="border">${r.firma}</td></tr>
-            <tr><td class="border">TC/VERGİ NO :</td><td colspan="5" class="border" x:num>4110376484</td></tr>
-            <tr><td colspan="6"></td></tr>
-            
-            <tr>
-                <td class="border">ARDİYE ÜCRETİ</td><td class="border t-orta">TUTAR</td><td class="border t-orta">GÜN</td><td class="border t-orta"></td><td class="border t-orta">KDV</td><td class="border t-sag">TOPLAM</td>
-            </tr>
-            <tr><td class="border">1-20 Gün</td><td class="border tl-orta" x:num>145</td><td class="border sayi" x:num>${g1}</td><td class="border tl-orta" x:fmla="=B12*C12" x:num>${sum1_20}</td><td class="border"></td><td class="border t-sag tl" x:fmla="=D12" x:num>${sum1_20}</td></tr>
-            <tr><td class="border">21-50 Gün</td><td class="border tl-orta" x:num>725</td><td class="border sayi" x:num>${g2}</td><td class="border tl-orta" x:fmla="=B13*C13" x:num>${sum21_50}</td><td class="border"></td><td class="border t-sag tl" x:fmla="=D13" x:num>${sum21_50}</td></tr>
-            <tr><td class="border">51-80 Gün</td><td class="border tl-orta" x:num>1160</td><td class="border sayi" x:num>${g3}</td><td class="border tl-orta" x:fmla="=B14*C14" x:num>${sum51_80}</td><td class="border"></td><td class="border t-sag tl" x:fmla="=D14" x:num>${sum51_80}</td></tr>
-            <tr><td class="border">81 gün ve sonrası</td><td class="border tl-orta" x:num>1450</td><td class="border sayi" x:num>${g4}</td><td class="border tl-orta" x:fmla="=B15*C15" x:num>${sum81}</td><td class="border"></td><td class="border t-sag tl" x:fmla="=D15" x:num>${sum81}</td></tr>
-            <tr><td class="border">TOPLAM</td><td class="border"></td><td class="border kirmizi t-orta">ADET</td><td class="border"></td><td class="border"></td><td class="border t-sag tl" x:fmla="=F12+F13+F14+F15" x:num>${araToplam}</td></tr>
-            
-            <tr><td class="border">ARAÇ GİRİŞ ÇIKIŞ ÜCRETİ</td><td class="border tl-orta" x:num>366</td><td class="border sayi-kirmizi" x:num>0</td><td class="border tl-orta" x:fmla="=B17*C17" x:num>0</td><td class="border sayi" x:num>0</td><td class="border t-sag tl" x:fmla="=D17" x:num>0</td></tr>
-            <tr><td class="border">YÜKLEME-BOŞALTMA</td><td class="border tl-orta" x:num>240</td><td class="border sayi-kirmizi" x:num>0</td><td class="border tl-orta" x:fmla="=B18*C18" x:num>0</td><td class="border sayi" x:num>0</td><td class="border t-sag tl" x:fmla="=D18" x:num>0</td></tr>
-            <tr><td class="border">KDV</td><td class="border"></td><td class="border"></td><td class="border"></td><td class="border yuzde" x:num>0</td><td class="border t-sag tl" x:fmla="=(F16+F17+F18)*(E19/100)" x:num>0</td></tr>
-            <tr><td class="border" style="font-size: 16px;">TOPLAM</td><td class="border"></td><td class="border"></td><td class="border"></td><td class="border"></td><td class="border t-sag tl" style="font-size: 16px;" x:fmla="=F16+F17+F18+F19" x:num>${araToplam}</td></tr>
-            
-            <tr><td colspan="6"></td></tr>
-            <tr><td></td><td class="bold t-orta">DÜZENLEYEN</td><td class="bold t-orta">TAHSİLATI YAPAN</td><td></td><td colspan="2" class="bold t-orta">ALINDI NO:</td></tr>
-            <tr><td></td><td class="t-orta" style="vertical-align: bottom; height: 50px;">ALİ YÜKSEL</td><td class="t-orta" style="vertical-align: bottom; height: 50px;">DAMLA KOÇ</td><td></td><td colspan="2" class="t-orta" style="vertical-align: bottom; height: 50px;">...................</td></tr>
-            <tr><td></td><td class="t-orta">AMBAR MEMURU</td><td class="t-orta">SATIŞ MEMURU</td><td></td><td colspan="2"></td></tr>
-            <tr><td></td><td class="t-orta">${cikisTarihi}</td><td class="t-orta">${cikisTarihi}</td><td></td><td colspan="2"></td></tr>
-        </table>
-    </body>
-    </html>
-    `;
-
-    if(typeof showSyncToast === 'function') showSyncToast("Ardiye Excel Olarak Yükleniyor...");
-
-    let base64Excel = btoa(unescape(encodeURIComponent(excelSablonu)));
-    let fileName = "ARDIYE_BEYAN-" + b4 + "_SASE-" + (r.sasi?r.sasi.slice(-4):'') + ".xls";
+    const callbackName = 'ardiyeCallback_' + Date.now();
     
-    const scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
-    fetch(scriptURL, {
-        method: "POST", mode: 'no-cors',
-        body: JSON.stringify({ action: "uploadFile", fileData: base64Excel, fileName: fileName, sasi: r.sasi, firma: r.firma, marka: r.marka })
-    }).then(() => {
-        if(typeof hideSyncToast === 'function') hideSyncToast("Oto-Ardiye Excel Yüklendi!", true);
-    });
+    window[callbackName] = function(res) {
+        if(res && res.success) {
+            if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye Excel+PDF üretildi!", true);
+            if(res.excelUrl) window.open(res.excelUrl, '_blank');
+        } else {
+            if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye üretilemedi: " + (res?.error || ""), false);
+        }
+        delete window[callbackName];
+    };
+
+    let script = document.createElement('script');
+    script.src = ARDIYE_GAS + 
+        "?action=create" +
+        "&firma=" + encodeURIComponent(r.firma || "") +
+        "&beyanname=" + encodeURIComponent(r.beyanname || "") +
+        "&sasi=" + encodeURIComponent(r.sasi || "") +
+        "&girisTarihi=" + encodeURIComponent(r.tarih || "") +
+        "&evrakLink=" + encodeURIComponent(r.evrakLink || "") +
+        "&callback=" + callbackName;
+    
+    script.onerror = function() {
+        if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye bağlantı hatası", false);
+        delete window[callbackName];
+        script.remove();
+    };
+    
+    document.body.appendChild(script);
 };
 
 // ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (SADECE SÜRE VE TUTANAK KALDI) =================
