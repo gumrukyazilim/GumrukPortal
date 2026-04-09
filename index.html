@@ -1696,6 +1696,9 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                     }
                 });
                 window.kiymetData.forEach(k=>{if(k)k.tarih=window.fixExcelDate(k.tarih);});
+                if(data.calcState) {
+    localStorage.setItem('gumruk_calc_state_v15', JSON.stringify(data.calcState));
+}
                 
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
                 saveToLocal();
@@ -2746,7 +2749,10 @@ window.sendWhatsApp = function(index, type) {
 if(tipEl)state['calc-arac-tipi']=tipEl.value;
         let mtvOtoDeger = document.getElementById('mtv-oto-deger');
         if(mtvOtoDeger) state['mtv-oto-deger'] = mtvOtoDeger.checked;
-        localStorage.setItem('gumruk_calc_state_v15',JSON.stringify(state)); 
+        localStorage.setItem('gumruk_calc_state_v15',JSON.stringify(state));
+        if(window._firebaseSave && window._dataLoaded) {
+    window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,calcState:state});
+}
     };
 
     window.loadCalcState=function(){
