@@ -1242,8 +1242,7 @@
                         </select>
                     </div>
                     <div class="input-group" style="margin:0;"><label>KKDF %</label><select id="calc-kkdf-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
-                    <div class="input-group" style="margin:0;"><label>ATR'siz GV %</label><input id="calc-atr-oran" type="text" value="0" oninput="window.calculateTaxes()"></div>
-                </div>
+<div class="input-group" style="margin:0;"><label>ATR'siz GV %</label><select id="calc-atr-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);"><option value="0" selected>%0</option><option value="10">%10</option><option value="22">%22</option></select></div>                </div>
             </div>
             
             <div class="calc-section green">
@@ -1357,13 +1356,22 @@
                     <tr><td class="label-col">Araç+Vergi (EUR)</td><td class="value-col" id="res-arac-vergi-eur">0 €</td></tr>
                     <tr><td class="label-col">Diğer Masraflar</td><td class="value-col" id="res-diger-tl" style="color:var(--warning);">0 ₺</td></tr>
                 </table>
-                <div class="result-total">
-                    <span class="result-total-label">FİNAL MALİYET</span>
-                    <div>
-                        <div id="res-genel-eur" class="result-total-sub">0 €</div>
-                        <strong id="res-genel-maliyet" class="result-total-value" style="color:#fff !important;">0 ₺</strong>
-                    </div>
-                </div>
+                <div class="result-total" style="flex-direction:column;gap:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+        <span class="result-total-label">ÖTV'Lİ FİNAL</span>
+        <div style="text-align:right;">
+            <div id="res-genel-eur" class="result-total-sub">0 €</div>
+            <strong id="res-genel-maliyet" class="result-total-value" style="color:#fff !important;">0 ₺</strong>
+        </div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.25);padding-top:12px;display:flex;justify-content:space-between;align-items:center;width:100%;">
+        <span class="result-total-label" style="opacity:0.85;">ÖTV'SİZ FİNAL</span>
+        <div style="text-align:right;">
+            <div id="res-otvsiz-eur" class="result-total-sub">0 €</div>
+            <strong id="res-otvsiz-maliyet" class="result-total-value" style="color:#fff !important;font-size:18px;">0 ₺</strong>
+        </div>
+    </div>
+</div>
             </div>
         </div>
     </div>
@@ -1601,7 +1609,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.formatTRDate=function(d){if(!d||isNaN(d.getTime()))return"";return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;};
     window.addDays=function(d,n){if(!d)return null;let r=new Date(d);r.setDate(r.getDate()+Number(n));return r;};
     window.diffDaysSigned=function(a,b){if(!a||!b)return 0;return Math.round((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())-Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/(864e5));};
-    window.formatNumber=function(v){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;return n.toLocaleString('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0});};
+    window.formatNumber=function(v,kurus){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;let fd=kurus?2:0;return n.toLocaleString('tr-TR',{minimumFractionDigits:fd,maximumFractionDigits:fd});};
     window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
     function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));}catch(e){}}
@@ -2987,7 +2995,7 @@ window.sendWhatsApp = function(index, type) {
 
     window.calculateTaxes=function(){
         let gV=id=>{let el=document.getElementById(id);if(!el||!el.value)return 0;return parseFloat(String(el.value).replace(/\./g,"").replace(/,/g,".").trim())||0;};
-        let sH=(id,v,eur=false)=>{let el=document.getElementById(id);if(el)el.innerText=window.formatNumber(v)+(eur?' €':' ₺');};
+        let sH=(id,v,eur=false)=>{let el=document.getElementById(id);if(el)el.innerText=window.formatNumber(v,true)+(eur?' €':' ₺');};
 
         let currency=document.getElementById('calc-currency')?.value||'EUR';
         let kurEUR=gV("calc-kur-eur")||51.1069;
@@ -2998,6 +3006,12 @@ window.sendWhatsApp = function(index, type) {
         let otvO=gV("calc-otv-oran"),kdvO=gV("calc-kdv-oran"),atrO=gV("calc-atr-oran"),kkdf=gV("calc-kkdf-oran"),gvO=gV("calc-gv-oran"),ilvO=gV("calc-ilave-gv-oran");
         let tip=document.querySelector('input[name="calc-tip"]:checked')?.value||"AVRUPA";
         let gH=gV("calc-gumruk"),nkl=gV("calc-nakliye"),alm=gV("calc-almanya"),ardTL=gV("calc-ardiye-tl"),tseMTL=gV("calc-tse-muh-tl"),tseHTL=gV("calc-tse-harci-manual");
+        // KKDF seçiliyken faturanın %6'sını TL'ye çevirip Yurt İçi'ye yaz
+if(kkdf > 0) {
+    let kkdfTL = fat * (kkdf / 100) * kur;
+    let yiEl = document.getElementById('calc-yurtici');
+    if(yiEl) { yiEl.value = window.formatNumber(kkdfTL); yi = kkdfTL; }
+}
 
         let teslim=document.getElementById('calc-teslim')?.value||'CIF';
         if(teslim==='CIF'){nav=0;sig=0;}
@@ -3037,14 +3051,40 @@ window.sendWhatsApp = function(index, type) {
         sH("res-mmo",mmo);sH("res-isik",isik);sH("res-cekici",cek);
         sH("res-diger-eur",dEUR,true);sH("res-diger-tl",dTL);sH("res-genel-eur",gEUR,true);sH("res-genel-maliyet",gTL);
 
-        let mtvOtoDeger = document.getElementById('mtv-oto-deger');
-        if (mtvOtoDeger && mtvOtoDeger.checked) {
-            let mtvDegerInput = document.getElementById('mtv-deger');
-            if(mtvDegerInput) {
-                mtvDegerInput.value = window.formatNumber(kdvM);
-                window.calculateMTV(); 
-            }
-        }
+        // MTV OTOMATİK: Yakıt tipine göre MTV türünü, motor seçimine göre hacmi ayarla
+let mtvTurEl = document.getElementById('mtv-tur');
+let mtvHacimEl = document.getElementById('mtv-hacim');
+if(mtvTurEl && mtvHacimEl) {
+    // Yakıt → MTV türü eşleme
+    if(yakit === 'ELEKTRİK') { if(mtvTurEl.value !== 'elektrikli') { mtvTurEl.value = 'elektrikli'; window.handleMTVTuruChange(true); } }
+    else { if(mtvTurEl.value !== 'otomobil') { mtvTurEl.value = 'otomobil'; window.handleMTVTuruChange(true); } }
+    
+    // Motor hacmi → MTV hacim eşleme
+    let motor = document.getElementById('calc-motor')?.value || '1600-2000';
+    const hacimMap = {'0-1000':'1300','1000-1500':'1300','1500-1600':'1600','1600-2000':'1800','2000-2500':'2500','2500-3000':'3000','3000+':'4001','<=160':'2000','>160':'4001'};
+    let hedef = hacimMap[motor] || '1800';
+    if(Array.from(mtvHacimEl.options).some(o=>o.value===hedef)) mtvHacimEl.value = hedef;
+}
+
+let mtvOtoDeger = document.getElementById('mtv-oto-deger');
+if (mtvOtoDeger && mtvOtoDeger.checked) {
+    let mtvDegerInput = document.getElementById('mtv-deger');
+    if(mtvDegerInput) {
+        mtvDegerInput.value = window.formatNumber(kdvM);
+    }
+}
+window.calculateMTV();
+        // ÖTV'SİZ FİNAL HESABI
+let topVsiz = kdvT + trt + atrT + dmg + gvT + ilvT + kkdfT; // ÖTV hariç vergi
+let otvSizKdvM = otvM; // ÖTV'siz KDV matrahı = ÖTV matrahı (ÖTV eklenmeden)
+let otvSizKdvT = otvSizKdvM * (kdvO / 100);
+let topVsiz2 = otvSizKdvT + trt + atrT + dmg + gvT + ilvT + kkdfT;
+let aEURsiz = kur ? (topVsiz2 / kur) + topD : 0;
+let aTLsiz = aEURsiz * kur;
+let gEURsiz = aEURsiz + dEUR;
+let gTLsiz = aTLsiz + dTL;
+sH("res-otvsiz-eur", gEURsiz, true);
+sH("res-otvsiz-maliyet", gTLsiz);
 
         window.saveCalcState();
     };
