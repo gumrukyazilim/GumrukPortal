@@ -2373,7 +2373,7 @@ window.exportCalcPDF = async function() {
     const getI = id => document.getElementById(id) ? document.getElementById(id).value : '';
     
     let div = document.createElement('div');
-    div.style.cssText = 'width:210mm;padding:20px 25px;font-family:Arial,sans-serif;color:#000;background:#fff;';
+    div.style.cssText = 'width:190mm;padding:15px 20px;font-family:Arial,sans-serif;color:#000;background:#fff;font-size:11px;';
     
     div.innerHTML = `
         <div style="text-align:center;margin-bottom:20px;">
@@ -2386,9 +2386,8 @@ window.exportCalcPDF = async function() {
             <tr style="background:#f1f5f9;"><td colspan="2" style="padding:8px;font-weight:700;color:#1e3a8a;border:1px solid #cbd5e1;">ARAÇ BİLGİLERİ</td></tr>
             <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;width:40%;color:#555;">Yakıt Tipi</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-yakit')}</td></tr>
             <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Motor Hacmi</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-motor')}</td></tr>
-            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Teslim Şekli</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-teslim')}</td></tr>
-            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Fatura Tutarı</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-fatura')} ${getI('calc-currency')}</td></tr>
-            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Kur</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-kur-eur')} EUR · ${getI('calc-kur-usd')} USD</td></tr>
+                        <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Fatura Tutarı</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-fatura')} ${getI('calc-currency')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Kur (${getI('calc-currency')})</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-currency')==='EUR' ? getI('calc-kur-eur') : getI('calc-kur-usd')} TL</td></tr>
         </table>
         
         <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:12px;">
@@ -2439,7 +2438,12 @@ window.exportCalcPDF = async function() {
             </div>
         </div>
         
-        <p style="text-align:center;margin-top:15px;font-size:9px;color:#999;">Bu belge GümrükPortal sistemi tarafından otomatik oluşturulmuştur.</p>
+        <div style="margin-top:20px;padding:10px 14px;background:#fefce8;border:1px solid #fde68a;border-radius:6px;font-size:9px;color:#92400e;line-height:1.5;">
+    <strong>⚠ Önemli Bilgilendirme:</strong><br>
+    • Vergi ve Kur Değişimi: Teslimat tarihine kadar oluşabilecek resmi vergi artışları (ÖTV/KDV vb.) ve döviz kuru farkları alıcıya yansıtılır.<br>
+    • Fiyat Geçerliliği: Nihai satış bedeli, teslim günündeki güncel mevzuat ve kurlar üzerinden kesinleşir.
+</div>
+<p style="text-align:center;margin-top:10px;font-size:9px;color:#999;"></p>
     `;
     
     document.body.appendChild(div);
