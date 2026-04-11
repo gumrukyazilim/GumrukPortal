@@ -3735,35 +3735,35 @@ window.ardiyeUret = function(idx) {
     if(!d) { alert("Araç bulunamadı!"); return; }
     if(!d.tarih) { alert("Geliş tarihi girilmemiş!"); return; }
     
-    // Seçili checkbox'ları kontrol et
     let checked = document.querySelectorAll('.decl-cb:checked');
     let adet = 1;
     let sasiList = [d.sasi || ""];
+    let beyannameList = [d.beyanname || ""];
     
-    if(checked.length > 1) {
-        // Aynı firma + aynı tarih mi kontrol et
+    if(checked.length >= 2) {
         let ayni = true;
         let items = [];
         checked.forEach(cb => {
             let item = window.declarationsData[parseInt(cb.value)];
             if(item) {
                 items.push(item);
-                if(item.firma !== d.firma || item.tarih !== d.tarih) ayni = false;
+                if(item.firma !== items[0].firma || item.tarih !== items[0].tarih) ayni = false;
             }
         });
-        if(ayni) {
-            adet = items.length;
-            sasiList = items.map(x => x.sasi || "").filter(x => x);
-        } else {
+        if(!ayni) {
             alert("Seçili araçlar farklı firma veya tarihe sahip! Tek ardiye için aynı firma ve tarih olmalı.");
             return;
         }
+        adet = items.length;
+        sasiList = items.map(x => x.sasi || "").filter(x => x);
+        beyannameList = items.map(x => x.beyanname || "").filter(x => x);
+        d = items[0];
     }
     
     window.autoSaveArdiyeToDrive({
         firma: d.firma || "",
-        beyanname: d.beyanname || d.sasi || "BELGE",
-        sasi: sasiList.join(" / "),
+        beyanname: beyannameList.join("|") || d.sasi || "BELGE",
+        sasi: sasiList.join("|"),
         tarih: d.tarih || "",
         evrakLink: d.evrakLink || "",
         adet: adet
@@ -3779,15 +3779,15 @@ window.autoSaveArdiyeToDrive = function(r) {
     const callbackName = 'ardiyeCallback_' + Date.now();
     
     window[callbackName] = function(res) {
-        if(res && res.success) {
-            if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye Excel+PDF üretildi!", true);
-            if(res.pdfUrl) { window.open(res.pdfUrl, '_blank'); }
-else if(res.excelUrl) { window.open(res.excelUrl, '_blank'); }
-        } else {
-            if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye üretilemedi: " + (res?.error || ""), false);
-        }
-        delete window[callbackName];
-    };
+    if(res && res.success) {
+        if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye PDF üretildi!", true);
+        if(res.pdfUrl) { window.open(res.pdfUrl, '_blank'); }
+        else if(res.excelUrl) { window.open(res.excelUrl, '_blank'); }
+    } else {
+        if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye üretilemedi: " + (res?.error || ""), false);
+    }
+    delete window[callbackName];
+};
 
     let script = document.createElement('script');
     script.src = ARDIYE_GAS + 
