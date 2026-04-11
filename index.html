@@ -1122,8 +1122,8 @@
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Gelişmiş Vergi & Maliyet Hesaplama</h1><p class="page-sub">TCMB kurları · GTİP otomatik · ÖTV akıllı öneri</p></div>
         <div class="page-actions" style="display: flex; gap: 10px;">
-    <button class="btn-sm" style="border-color: var(--primary); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportToWord()">
-        <i data-lucide="file-text" style="width:16px;height:16px;"></i> Word Çıktısı
+    <button class="btn-sm" style="border-color: var(--danger); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcPDF()">
+        <i data-lucide="file-text" style="width:16px;height:16px;"></i> PDF Çıktısı
     </button>
     <button class="btn-sm" style="border-color: var(--success); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcExcel()">
         <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Excel Çıktısı
@@ -2366,6 +2366,101 @@ function useFallback(lastKur, st) {
         const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Maliyet_Analizi.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     };
+window.exportCalcPDF = async function() {
+    if(typeof html2pdf === 'undefined') { alert("PDF modülü yüklenemedi."); return; }
+    
+    const getV = id => document.getElementById(id) ? document.getElementById(id).innerText : '';
+    const getI = id => document.getElementById(id) ? document.getElementById(id).value : '';
+    
+    let div = document.createElement('div');
+    div.style.cssText = 'width:210mm;padding:20px 25px;font-family:Arial,sans-serif;color:#000;background:#fff;';
+    
+    div.innerHTML = `
+        <div style="text-align:center;margin-bottom:20px;">
+            <h1 style="color:#1e3a8a;font-size:20px;margin:0 0 5px;">SIFIR OTOMOBİL İTHALAT</h1>
+            <h2 style="color:#3b82f6;font-size:16px;margin:0;border-bottom:2px solid #3b82f6;padding-bottom:8px;">MALİYET VE VERGİ ANALİZİ</h2>
+            <p style="font-size:11px;color:#666;margin-top:6px;">Tarih: ${new Date().toLocaleDateString('tr-TR')} · GTİP: ${getV('res-gtip-mini')}</p>
+        </div>
+        
+        <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:12px;">
+            <tr style="background:#f1f5f9;"><td colspan="2" style="padding:8px;font-weight:700;color:#1e3a8a;border:1px solid #cbd5e1;">ARAÇ BİLGİLERİ</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;width:40%;color:#555;">Yakıt Tipi</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-yakit')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Motor Hacmi</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-motor')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Teslim Şekli</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-teslim')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Fatura Tutarı</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-fatura')} ${getI('calc-currency')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Kur</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getI('calc-kur-eur')} EUR · ${getI('calc-kur-usd')} USD</td></tr>
+        </table>
+        
+        <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:12px;">
+            <tr style="background:#dbeafe;"><td colspan="2" style="padding:8px;font-weight:700;color:#1e3a8a;border:1px solid #cbd5e1;">GÜMRÜK VERGİLERİ</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;width:40%;color:#555;">CIF Kıymet</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-cif')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">GV Matrahı</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-gv-matrah')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">G.V Tutarı</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-gv-tutar')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">İlave GV</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-ilave-gv')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">ATR'siz GV</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-atr-tutar')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Damga Vergisi</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-damga')}</td></tr>
+            <tr style="background:#f0f9ff;"><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#1e3a8a;font-weight:700;">Ara Toplam</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:700;color:#1e3a8a;">${getV('res-ara-toplam')}</td></tr>
+        </table>
+        
+        <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:12px;">
+            <tr style="background:#fee2e2;"><td colspan="2" style="padding:8px;font-weight:700;color:#991b1b;border:1px solid #cbd5e1;">ÖTV & KDV</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;width:40%;color:#555;">TRT (%0.8)</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-trt')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">ÖTV Matrahı</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-otv-matrahi')}</td></tr>
+            <tr style="background:#fef2f2;"><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#dc2626;font-weight:700;">Hesaplanan ÖTV</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:700;color:#dc2626;">${getV('res-otv-tutar')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">KDV Matrahı</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-kdv-matrahi')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">KDV Tutarı</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-kdv-tutar')}</td></tr>
+            <tr style="background:#dc2626;"><td style="padding:8px;border:1px solid #991b1b;color:#fff;font-weight:700;">VERGİ TOPLAMI</td><td style="padding:8px;border:1px solid #991b1b;color:#fff;font-weight:800;font-size:14px;">${getV('res-toplam-vergi')}</td></tr>
+        </table>
+        
+        <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:12px;">
+            <tr style="background:#fef3c7;"><td colspan="2" style="padding:8px;font-weight:700;color:#92400e;border:1px solid #cbd5e1;">MASRAFLAR</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;width:40%;color:#555;">Araç+Vergi (EUR)</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-arac-vergi-eur')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">Diğer Masraflar</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-diger-tl')}</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #cbd5e1;color:#555;">2026 MTV</td><td style="padding:6px 8px;border:1px solid #cbd5e1;font-weight:600;">${getV('res-mtv-sonuc')}</td></tr>
+        </table>
+        
+        <div style="background:linear-gradient(135deg,#1e3a8a,#7c3aed);padding:15px 20px;border-radius:8px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="color:#fff;font-size:16px;font-weight:700;">🔥 ÖTV'Lİ FİNAL</span>
+                <div style="text-align:right;">
+                    <div style="color:rgba(255,255,255,0.8);font-size:11px;">${getV('res-genel-eur')}</div>
+                    <strong style="color:#fff;font-size:22px;">${getV('res-genel-maliyet')}</strong>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background:#f0fdf4;border:2px solid #10b981;padding:12px 20px;border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="color:#10b981;font-size:14px;font-weight:700;">✅ ÖTV'SİZ FİNAL</span>
+                <div style="text-align:right;">
+                    <div style="color:#666;font-size:10px;">${getV('res-otvsiz-eur')}</div>
+                    <strong style="color:#10b981;font-size:18px;">${getV('res-otvsiz-maliyet')}</strong>
+                </div>
+            </div>
+        </div>
+        
+        <p style="text-align:center;margin-top:15px;font-size:9px;color:#999;">Bu belge GümrükPortal sistemi tarafından otomatik oluşturulmuştur.</p>
+    `;
+    
+    document.body.appendChild(div);
+    
+    if(typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
+await new Promise(r => setTimeout(r, 500));
+    
+    html2pdf().set({
+        margin: 8,
+        filename: 'Maliyet_Analizi_' + new Date().toISOString().slice(0,10) + '.pdf',
+        image: {type:'jpeg', quality:1},
+        html2canvas: {scale:3, useCORS:true},
+        jsPDF: {unit:'mm', format:'a4', orientation:'portrait'}
+    }).from(div).save().then(() => {
+        document.body.removeChild(div);
+        if(typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
+    }).catch(err => {
+        document.body.removeChild(div);
+        alert("PDF hatası: " + err.message);
+    });
+};
 
     window.updateDashboardStats=function(){
     if(!window.declarationsData)return;
