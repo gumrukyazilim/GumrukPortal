@@ -1216,7 +1216,7 @@
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                     <div class="input-group" style="margin:0;">
                         <label>ÖTV %</label>
-                        <select id="calc-otv-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
+                        <select id="calc-otv-oran" onchange="window._otvManuel=true; window.calculateTaxes()"
                             <option value="0">%0</option>
                             <option value="25">%25</option>
                             <option value="45">%45</option>
@@ -2418,7 +2418,7 @@ function useFallback(lastKur, st) {
             <td>${sh}</td>
             <td>${evBadge}</td>
             <td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
-            <td style="color:var(--danger);font-weight:600;">${window.formatNumber(m.ardiye)} ₺</td>
+            <td style="text-align:center;"><button class="btn-sm admin-only" style="padding:4px 10px;font-size:11px;color:var(--danger);border-color:rgba(239,68,68,0.3);" onclick="event.stopPropagation(); window.ardiyeUret(${i})" title="Ardiye Excel+PDF üret">${window.formatNumber(m.ardiye)} ₺</button></td>
             <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
             <td style="text-align:center;">
                 <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
@@ -2740,6 +2740,7 @@ window.sendWhatsApp = function(index, type) {
     window._calcInputIds=['calc-currency','calc-kur-eur','calc-kur-usd','calc-yakit','calc-motor','calc-teslim','calc-fatura','calc-navlun','calc-sigorta','calc-yurtdisi','calc-yurtici','calc-damga','calc-otv-oran','calc-kdv-oran','calc-gv-oran','calc-ilave-gv-oran','calc-kkdf-oran','calc-atr-oran','calc-gumruk','calc-nakliye','calc-almanya','calc-ardiye-tl','calc-tse-muh-tl','calc-tse-harci-manual', 'mtv-tur', 'mtv-tescil', 'mtv-hacim', 'mtv-yas', 'mtv-deger', 'calc-arac-tipi'];
 
     window._isRestoring = false;
+    window._otvManuel = false;
 
     window.saveCalcState=function(){
         if(window._isRestoring) return;
@@ -2792,6 +2793,7 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     };
 
     window.handleYakitChange = function(isInitialLoad = false) {
+        window._otvManuel = false;
         let yakit = document.getElementById('calc-yakit')?.value || 'BENZİNLİ';
         let motorSel = document.getElementById('calc-motor');
         let currentMotor = motorSel.value;
@@ -2847,6 +2849,7 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
         let gm=document.getElementById('res-gtip-mini');if(gm)gm.innerText=gtip;
         
         if(!isInitialLoad) {
+            window._otvManuel = false;
             let otvSel=document.getElementById('calc-otv-oran');
             if(otvSel){otvSel.value=String(otv);if(!otvSel.value)otvSel.value='220';}
             window.calculateTaxes();
@@ -3112,9 +3115,13 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     }
     
     let otvSel = document.getElementById('calc-otv-oran');
-    if (otvSel && parseFloat(otvSel.value) !== otvO) {
-        otvSel.value = String(otvO);
-        if(!otvSel.value) otvSel.value = '220';
+    if (!window._otvManuel) {
+        if (otvSel && parseFloat(otvSel.value) !== otvO) {
+            otvSel.value = String(otvO);
+            if(!otvSel.value) otvSel.value = '220';
+        }
+    } else {
+        otvO = parseFloat(otvSel.value) || 0;
     }
     // ===== MATRAH BAZLI OTV SONU =====
 
@@ -3723,8 +3730,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+window.ardiyeUret = function(idx) {
+    let d = window.declarationsData[idx];
+    if(!d) { alert("Araç bulunamadı!"); return; }
+    if(!d.tarih) { alert("Geliş tarihi girilmemiş!"); return; }
+
+    window.autoSaveArdiyeToDrive({
+        firma: d.firma || "",
+        beyanname: d.beyanname || d.sasi || "BELGE",
+        sasi: d.sasi || "",
+        tarih: d.tarih || "",
+        evrakLink: d.evrakLink || ""
+    });
+};
+
 window.autoSaveArdiyeToDrive = function(r) {
-    if (!r.beyanname || r.beyanname.trim() === '') return;
 
     const ARDIYE_GAS = "https://script.google.com/macros/s/AKfycbyWXRHyyA85147i8sjfnzMTrUE2E78knDQFZjXoXrDdiXt9hMTQ-dQtWBU8q_4tHvt8Kg/exec";
     
