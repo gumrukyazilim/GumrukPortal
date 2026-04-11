@@ -2592,13 +2592,14 @@ window.closeDeclModal=function(){
 // --- 1. DRIVE KÖPRÜSÜ (MARKA İÇİ ŞASİ VERSİYONU) ---
 window.triggerDriveBridge = function(firma, marka, sasi) {
     return new Promise((resolve) => {
-        const bridgeURL = "https://script.google.com/macros/s/AKfycbz1dizxpDvnYhYq8cGxJMJbWuAO9u7mLVJvhvcm9y4N5-IZrKFiQs82Cs19KD_0Ndy-lg/exec"; 
-        const finalURL = `${bridgeURL}?firma=${encodeURIComponent(firma)}&marka=${encodeURIComponent(marka)}&sasi=${encodeURIComponent(sasi)}`;
+        const bridgeURL = "https://script.google.com/macros/s/AKfycbzoPN8r1krLnWSwC1y3pUntc1e8fs2cYEXQ0BzRle_L4g-vlsqgb_BdacJqe0k4xGc9/exec"; 
+        const finalURL = `${bridgeURL}?action=create&firma=${encodeURIComponent(firma)}&marka=${encodeURIComponent(marka)}&sasi=${encodeURIComponent(sasi)}`;
         
         if(typeof showSyncToast === 'function') showSyncToast("Drive klasörü ayarlanıyor...");
         
         let script = document.createElement('script');
         window.driveCallback = function(data) {
+alert("DRIVE YANIT: " + JSON.stringify(data));
             if(data && data.url) {
                 document.getElementById('da-evrakLink').value = data.url;
                 if(typeof hideSyncToast === 'function') hideSyncToast("Klasör Drive'a bağlandı!", true);
@@ -2658,7 +2659,7 @@ window.saveDeclEntry = async function(){
     if(window.currentModalContext==='decl'){
         let os=i===-1?null:window.declarationsData[i].sasi;
         if(i===-1){
-            window.declarationsData.unshift({...r});
+            if(!window.declarationsData.find(x=>x.sasi===r.sasi)) window.declarationsData.unshift({...r});
             if(!window.firmData[r.firma])window.firmData[r.firma]=[];
             if(!window.firmData[r.firma].find(x=>x.sasi===r.sasi))window.firmData[r.firma].unshift({...r});
         }else{
