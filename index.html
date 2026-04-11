@@ -2379,7 +2379,7 @@ window.exportCalcPDF = async function() {
         <div style="text-align:center;margin-bottom:20px;">
             <h1 style="color:#1e3a8a;font-size:20px;margin:0 0 5px;">SIFIR OTOMOBİL İTHALAT</h1>
             <h2 style="color:#3b82f6;font-size:16px;margin:0;border-bottom:2px solid #3b82f6;padding-bottom:8px;">MALİYET VE VERGİ ANALİZİ</h2>
-            <p style="font-size:11px;color:#666;margin-top:6px;">Tarih: ${new Date().toLocaleDateString('tr-TR')} · GTİP: ${getV('res-gtip-mini')}</p>
+            <p style="font-size:11px;color:#666;margin-top:6px;">Tarih: ${new Date().toLocaleDateString('tr-TR')}</p>
         </div>
         
         <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:12px;">
@@ -2451,12 +2451,13 @@ window.exportCalcPDF = async function() {
     if(typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
 await new Promise(r => setTimeout(r, 500));
     
-    html2pdf().set({
-        margin: 8,
+  html2pdf().set({
+        margin: 4,
         filename: 'Maliyet_Analizi_' + new Date().toISOString().slice(0,10) + '.pdf',
         image: {type:'jpeg', quality:1},
         html2canvas: {scale:3, useCORS:true},
-        jsPDF: {unit:'mm', format:'a4', orientation:'portrait'}
+        jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
+pagebreak: {mode: 'avoid-all'}
     }).from(div).save().then(() => {
         document.body.removeChild(div);
         if(typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
