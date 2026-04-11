@@ -1815,6 +1815,8 @@ alert("Siliniyor: " + sasi);
         let I=window.parseTRDate(data.beynmCif),J=window.parseTRDate(data.kiymVv),K=window.parseTRDate(data.kiymGt);
         let result={ilkSureSonu:"",klnSonTarih:"",klnGun:"",kiymGecen:"",sonGun:"",ardiye:0,gecenGun:""};
         if(!E)return result;
+        let evrakDurumuErken = (data.evrak || '').toLocaleLowerCase('tr');
+        if(evrakDurumuErken === 'kapalı' || evrakDurumuErken === 'kapali') { result.ardiye = 0; result.gecenGun = 0; return result; }
         
         let F=window.addDays(E,20);result.ilkSureSonu=window.formatTRDate(F);
         let L_date=null;
@@ -1850,9 +1852,7 @@ alert("Siliniyor: " + sasi);
         
         if(result.klnSonTarih==="Süresiz"&&!J&&!K){result.klnGun="Süresiz";}else if(J&&!K){if(L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else result.klnGun="Süresiz";}else if(sonGunDate){let d=window.diffDaysSigned(sonGunDate,today);result.klnGun=d<0?0:d;}else if(I){let p30=window.addDays(I,30);result.klnGun=p30>today?window.diffDaysSigned(p30,today):0;}else if(!H&&L_date){let d=window.diffDaysSigned(L_date,today);result.klnGun=d<0?0:d;}else{result.klnGun="Süresiz";}
         
-        let evrakDurumu = (data.evrak || '').toLocaleLowerCase('tr');
-        let isKapali = evrakDurumu === 'kapalı' || evrakDurumu === 'kapali';
-        let ardiyeBitis = (isKapali && I) ? I : today; 
+        let ardiyeBitis = today; 
         
         let gun = window.diffDaysSigned(ardiyeBitis, E) + 1;
         if(gun < 0) gun = 0;
