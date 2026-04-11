@@ -1774,8 +1774,37 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 
     window.addNewFirm=function(){let n=prompt("Firma Adı:");if(n&&n.trim()){let name=n.trim().toUpperCase();if(!window.firmData[name]){window.firmData[name]=[];saveData('firm');window.renderView('firms');}}};
     window.deleteFirm=function(fn,e){e.stopPropagation();let name=fn.replace(/&quot;/g,'"');if(confirm(`'${name}' firmasını SİL?`)){delete window.firmData[name];saveData('firm');window.renderView('firms');}};
-    window.deleteDeclaration=function(i){if(confirm('Sil?')){window.declarationsData.splice(i,1);saveData('decl');window.renderDeclarationsTable();}};
-    window.deleteFirmVehicle=function(i){if(confirm('Sil?')){window.firmData[window.currentFirm].splice(i,1);saveData('firm');window.renderFirmVehicles();}};
+    window.deleteDeclaration=function(i){if(confirm('Sil?')){
+    let d=window.declarationsData[i];
+    let sasi=d?d.sasi:'';
+    window.declarationsData.splice(i,1);
+    if(sasi){
+alert("Siliniyor: " + sasi);
+        Object.keys(window.firmData).forEach(fn=>{
+            let fi=window.firmData[fn].findIndex(x=>x.sasi===sasi);
+            if(fi!==-1)window.firmData[fn].splice(fi,1);
+        });
+        let ki=window.kiymetData.findIndex(x=>x.sasi===sasi);
+        if(ki!==-1)window.kiymetData.splice(ki,1);
+    }
+    saveData('decl');saveData('firm');saveData('kiymet');
+    window.renderDeclarationsTable();
+    if(window.updateDashboardStats)window.updateDashboardStats();
+}};
+    window.deleteFirmVehicle=function(i){if(confirm('Sil?')){
+    let d=window.firmData[window.currentFirm][i];
+    let sasi=d?d.sasi:'';
+    window.firmData[window.currentFirm].splice(i,1);
+    if(sasi){
+        let di=window.declarationsData.findIndex(x=>x.sasi===sasi);
+        if(di!==-1)window.declarationsData.splice(di,1);
+        let ki=window.kiymetData.findIndex(x=>x.sasi===sasi);
+        if(ki!==-1)window.kiymetData.splice(ki,1);
+    }
+    saveData('decl');saveData('firm');saveData('kiymet');
+    window.renderFirmVehicles();
+    if(window.updateDashboardStats)window.updateDashboardStats();
+}};
 
     window.inlineEditDate=function(el,idx,field){if(el.querySelector('input'))return;let cur=window.declarationsData[idx][field]||'';let iso='';if(cur){let p=cur.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}el.innerHTML=`<input type="date" value="${iso}" style="padding:4px;height:28px;font-size:12px;" onblur="window.saveInlineDate(this,${idx},'${field}')" onchange="window.saveInlineDate(this,${idx},'${field}')">`;let inp=el.querySelector('input');inp.focus();inp.showPicker&&inp.showPicker();};
     window.saveInlineDate=function(inp,idx,field){let iso=inp.value;let tr='';if(iso){let p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;}if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{inp.parentElement.innerHTML=tr||'-';}};
@@ -1916,7 +1945,58 @@ window.searchGoTo=function(type,idx,firmName){
         window.editKiymet(idx);
     }
 };
-    window.handleGlobalSearch=function(v){window.liveSearch(v);};
+    window.handleGlobalSearch=function(query){
+    if(!query||query.trim().length<2) return;
+    let dd=document.getElementById('live-search-dropdown');
+    if(dd){dd.classList.remove('show');dd.innerHTML='';}
+    
+    let role = localStorage.getItem('gumruk_role') || 'admin';
+    let qWords = query.toLocaleLowerCase('tr').trim().split(/\s+/);
+    let match = v => v && qWords.every(qw => v.toLocaleLowerCase('tr').includes(qw));
+    let items=[];
+    
+    (window.declarationsData||[]).forEach((d,i)=>{
+        if(role !== 'admin' && d.firma !== role) return;
+        let searchStr = `${d.sasi||''} ${d.marka||''} ${d.model||''} ${d.firma||''} ${d.beyanname||''}`;
+        if(match(searchStr)) items.push({...d, _idx:i, _type:'decl'});
+    });
+    
+    window.renderView('searchResults');
+    document.getElementById('search-query-display').innerText=query;
+    let container=document.getElementById('search-results-container');
+    
+    if(!items.length){
+        container.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Kayıt bulunamadı.</div>';
+        return;
+    }
+    
+    container.innerHTML=`<div style="margin-bottom:12px;color:var(--text-secondary);font-size:13px;">${items.length} sonuç bulundu</div>` +
+    items.map(d=>{
+        let m=window.calculateVehicleMetrics(d);
+        let isAcik=(d.evrak||'').toLocaleLowerCase('tr')==='açık'||(d.evrak||'').toLocaleLowerCase('tr')==='acik';
+        let evBadge=isAcik?'<span class="badge badge-warning">Açık</span>':'<span class="badge badge-dark">Kapalı</span>';
+        return `<div class="card card-pad" style="cursor:pointer;transition:0.2s;border-left:4px solid var(--primary);" onclick="window.openDeclVehicleModal(${d._idx},'decl')" onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--bg-hover)'" onmouseout="this.style.borderColor='var(--primary)';this.style.background=''">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div>
+                    <span style="font-weight:700;font-size:15px;color:var(--text-primary);">${d.marka||''} ${d.model||''}</span>
+                    <span style="color:var(--text-muted);font-size:12px;margin-left:8px;">(${d.yil||'-'})</span>
+                    <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
+                        <span style="font-family:monospace;font-weight:600;">${d.sasi||'-'}</span>
+                        <span style="margin:0 8px;">·</span>${d.firma||'-'}
+                        <span style="margin:0 8px;">·</span>${d.tarih||'-'}
+                        ${d.beyanname?'<span style="margin:0 8px;">·</span>Byn: '+d.beyanname:''}
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    ${evBadge}
+                    <span style="color:var(--danger);font-weight:600;font-size:12px;">${window.formatNumber(m.ardiye)} ₺</span>
+                    ${d.fatura?'<span style="color:var(--text-muted);font-size:12px;">'+window.formatNumber(d.fatura)+' €</span>':''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+    if(window.lucide)lucide.createIcons();
+};
 
     window.openVehicleCalc = function(idx) {
         let d = window.declarationsData[idx];
