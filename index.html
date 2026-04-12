@@ -14,6 +14,33 @@
     </script>
     <style>
         :root {
+/* Banka Arama Listesi Özel Stili */
+#banka-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-active);
+    border-radius: 0 0 10px 10px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 9999;
+    display: none;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+}
+.banka-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: 0.15s;
+}
+.banka-item:hover {
+    background: var(--bg-hover);
+    border-left: 4px solid var(--primary);
+}
+.banka-item .b-ad { font-weight: 700; color: var(--primary); font-size: 13px; }
+.banka-item .b-detay { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
             /* Koyu Mod (Slate / Antrasit Tonları) */
             --bg-main: #0f172a; 
             --bg-surface: #1e293b;
@@ -571,7 +598,8 @@
             
             <div class="sidebar-section-label admin-only" style="margin-top:8px;">Araçlar & Bilgi</div>
             <button class="nav-btn admin-only" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
-            <button class="nav-btn admin-only" data-view="mevzuat"><i data-lucide="book-open"></i><span style="color:var(--primary); font-weight:600;">2026 Mevzuat Rehberi</span></button>
+            <button class="nav-btn admin-only" data-view="bankaListesi"><i data-lucide="landmark"></i><span>Banka Listesi</span></button>
+<button class="nav-btn admin-only" data-view="mevzuat"><i data-lucide="book-open"></i><span style="color:var(--primary); font-weight:600;">2026 Mevzuat Rehberi</span></button>
         </nav>
         <div class="sidebar-footer admin-only">
             <button class="footer-btn primary-subtle" onclick="window.forceCloudSync()"><i data-lucide="refresh-cw"></i> Firebase Eşitle</button>
@@ -970,6 +998,34 @@
         </div>
     </div>
 </template>
+<template id="tpl-bankaListesi">
+    <div class="page-hdr fade-in">
+        <div><div class="page-eyebrow">Araçlar & Bilgi</div><h1 class="page-title">Banka & Şube Arama</h1></div>
+    </div>
+    <div class="card card-pad fade-in">
+        <div class="input-group" style="position:relative; max-width:600px;">
+            <label>Banka veya Şube Adı Yazın (En az 3 karakter)</label>
+            <input type="text" id="banka-arama-input" oninput="window.buluttanBankaAra(this.value)" onkeyup="if(event.key==='Enter')window.buluttanBankaAra(this.value)" placeholder="Örn: Garanti, Ziraat, Garanti Ayazağa..." autocomplete="off" style="font-size:15px;padding:14px;">
+            <div id="banka-dropdown"></div>
+        </div>
+        <div id="banka-sonuc-detay" style="margin-top:20px;display:none;">
+            <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                <div class="input-group" style="flex:1; min-width:200px;">
+                    <label>Banka Adı</label>
+                    <input type="text" id="banka-secilen-ad" readonly style="background:rgba(59,130,246,0.08); font-weight:600; font-size:14px;">
+                </div>
+                <div class="input-group" style="width:150px;">
+                    <label>EFT Kodu</label>
+                    <input type="text" id="banka-secilen-eft" readonly style="background:rgba(59,130,246,0.08); color:var(--primary); font-weight:bold; letter-spacing:1px; text-align:center; font-size:16px;">
+                </div>
+                <div class="input-group" style="width:150px;">
+                    <label>Şube Kodu</label>
+                    <input type="text" id="banka-secilen-sube" readonly style="background:rgba(59,130,246,0.08); color:var(--primary); font-weight:bold; letter-spacing:1px; text-align:center; font-size:16px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
 <div id="decl-modal" class="modal-backdrop hidden">
     <div class="modal-box">
         <div class="modal-header">
@@ -1012,7 +1068,7 @@
                 </div>
             </div>
 
-            <div class="modal-section">
+                <div class="modal-section">
                 <div class="modal-section-title">Gümrük & Tarihler</div>
                 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
                     <div class="input-group" style="margin:0;"><label>Geliş Tarihi</label><input type="date" id="da-tarih" onchange="window.declAutoCalc()"></div>
@@ -1422,7 +1478,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getDatabase, ref, set, get, query, orderByChild, startAt, endAt } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDxlTVb_JsefQHCE8pFiOiDjMaEVZJNiI0",
@@ -1446,9 +1502,98 @@ window._firebaseLoad = async function() {
         return null;
     } catch(e) { console.error("Firebase load error:", e); return null; }
 };
-
+window._fbRef = ref;
+window._fbGet = get;
+window._fbDb = db;
+window._fbQuery = query;
+window._fbOrderByChild = orderByChild;
+window._fbStartAt = startAt;
+window._fbEndAt = endAt;
 window._firebaseReady = true;
 if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
+// Banka verisi cache
+window._bankaCache = null;
+
+window.bankaVerisiYukle = async function() {
+    if(window._bankaCache) return;
+    try {
+        const bankaRef = window._fbRef(window._fbDb, 'banka_listesi');
+        const snapshot = await window._fbGet(bankaRef);
+        if(snapshot.exists()) {
+            window._bankaCache = Object.values(snapshot.val());
+        }
+    } catch(e) { console.error("Banka verisi yüklenemedi:", e); }
+};
+
+window._bankaCache = null;
+
+window.bankaVerisiYukle = async function() {
+    if(window._bankaCache) return;
+    try {
+        const bankaRef = window._fbRef(window._fbDb, 'banka_listesi');
+        const snapshot = await window._fbGet(bankaRef);
+        if(snapshot.exists()) {
+            window._bankaCache = Object.values(snapshot.val());
+        }
+    } catch(e) { console.error("Banka verisi yüklenemedi:", e); }
+};
+
+window.buluttanBankaAra = async function(val) {
+    let dd = document.getElementById('banka-dropdown');
+    if(!dd) return;
+    
+    let q = val.toLocaleUpperCase('tr').trim();
+    if(q.length < 2) { dd.style.display = 'none'; return; }
+    
+    if(!window._bankaCache) {
+        dd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);">Banka listesi yükleniyor...</div>';
+        dd.style.display = 'block';
+        await window.bankaVerisiYukle();
+    }
+    
+    if(!window._bankaCache) {
+        dd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--danger);">Veri yüklenemedi</div>';
+        dd.style.display = 'block';
+        return;
+    }
+    
+    let kelimeler = q.split(/\s+/);
+    let sonuclar = window._bankaCache.filter(function(b) {
+        let metin = ((b.banka_adi||'') + ' ' + (b.sube_adi||'')).toLocaleUpperCase('tr');
+        return kelimeler.every(function(k) { return metin.indexOf(k) !== -1; });
+    }).slice(0, 50);
+    
+    if(sonuclar.length > 0) {
+        let html = '<div style="padding:6px 12px;font-size:10px;color:var(--text-muted);border-bottom:1px solid var(--border);">' + sonuclar.length + ' sonuç</div>';
+        sonuclar.forEach(function(b) {
+            let ad = (b.banka_adi||'').replace(/'/g,"\\'");
+            let sAd = (b.sube_adi||'').replace(/'/g,"\\'");
+            html += '<div class="banka-item" onclick="window.bankasec(\'' + b.eft_kodu + '\', \'' + b.sube_kodu + '\', \'' + ad + ' - ' + sAd + '\')">' +
+                '<div class="b-ad">' + b.banka_adi + '</div>' +
+                '<div class="b-detay">' + b.sube_adi + ' · İl: ' + (b.il_kodu||'-') + ' · Şube: ' + b.sube_kodu + ' · EFT: ' + b.eft_kodu + '</div>' +
+            '</div>';
+        });
+        dd.innerHTML = html;
+        dd.style.display = 'block';
+    } else {
+        dd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);">Sonuç bulunamadı</div>';
+        dd.style.display = 'block';
+    }
+};
+
+window.bankasec = function(eft, sube, tamAd) {
+    document.getElementById('banka-arama-input').value = tamAd;
+    let dd = document.getElementById('banka-dropdown');
+    if(dd) dd.style.display = 'none';
+    let detay = document.getElementById('banka-sonuc-detay');
+    if(detay) detay.style.display = 'block';
+    let adEl = document.getElementById('banka-secilen-ad');
+    if(adEl) adEl.value = tamAd;
+    let eftEl = document.getElementById('banka-secilen-eft');
+    if(eftEl) eftEl.value = eft;
+    let subeEl = document.getElementById('banka-secilen-sube');
+    if(subeEl) subeEl.value = sube;
+};
 </script>
 <script>
     // --- YENİ EKLENEN VERİ LİSTELERİ ---
@@ -3398,6 +3543,7 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
         if(vn==='dashboard')window.updateDashboardStats();
         if(vn==='declarations')window.renderDeclarationsTable();
         if(vn==='kiymetListesi')window.renderKiymetTable();
+        if(vn==='bankaListesi'){}
         if(vn==='firms')window.renderFirmsList();
         if(vn==='firmDetails'){if(document.getElementById('current-firm-title')&&window.currentFirm)document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();}
         if(vn==='calculator'){
