@@ -1009,18 +1009,14 @@
             <div id="banka-dropdown"></div>
         </div>
         <div id="banka-sonuc-detay" style="margin-top:20px;display:none;">
-            <div style="display:flex; gap:15px; flex-wrap:wrap;">
+            <div style="display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end;">
                 <div class="input-group" style="flex:1; min-width:200px;">
                     <label>Banka Adı</label>
                     <input type="text" id="banka-secilen-ad" readonly style="background:rgba(59,130,246,0.08); font-weight:600; font-size:14px;">
                 </div>
-                <div class="input-group" style="width:150px;">
-                    <label>EFT Kodu</label>
-                    <input type="text" id="banka-secilen-eft" readonly style="background:rgba(59,130,246,0.08); color:var(--primary); font-weight:bold; letter-spacing:1px; text-align:center; font-size:16px;">
-                </div>
-                <div class="input-group" style="width:150px;">
-                    <label>Şube Kodu</label>
-                    <input type="text" id="banka-secilen-sube" readonly style="background:rgba(59,130,246,0.08); color:var(--primary); font-weight:bold; letter-spacing:1px; text-align:center; font-size:16px;">
+                <div class="input-group" style="flex:1; min-width:300px;">
+                    <label>BANKA KODU</label>
+                    <input type="text" id="banka-secilen-kod" readonly style="background:rgba(59,130,246,0.08); color:var(--primary); font-weight:bold; letter-spacing:2px; text-align:center; font-size:18px;">
                 </div>
             </div>
         </div>
@@ -1589,10 +1585,14 @@ window.bankasec = function(eft, sube, tamAd) {
     if(detay) detay.style.display = 'block';
     let adEl = document.getElementById('banka-secilen-ad');
     if(adEl) adEl.value = tamAd;
-    let eftEl = document.getElementById('banka-secilen-eft');
-    if(eftEl) eftEl.value = eft;
-    let subeEl = document.getElementById('banka-secilen-sube');
-    if(subeEl) subeEl.value = sube;
+    // İl kodunu bul
+    let ilKodu = '';
+    if(window._bankaCache) {
+        let bulunan = window._bankaCache.find(function(b) { return b.eft_kodu === eft && b.sube_kodu === sube; });
+        if(bulunan) ilKodu = bulunan.il_kodu || '';
+    }
+    let kodEl = document.getElementById('banka-secilen-kod');
+    if(kodEl) kodEl.value = eft + ' / ' + sube + ' / ' + ilKodu;
 };
 </script>
 <script>
