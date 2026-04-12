@@ -646,7 +646,7 @@
 
     /* MOBİL BOTTOM NAVİGASYON */
     .bottom-nav {
-        display: flex;
+        display: flex !important;
         position: fixed;
         bottom: 0;
         left: 0;
@@ -691,7 +691,7 @@
     .bottom-nav-btn:active { transform: scale(0.9); }
     .view-area { padding-bottom: 80px !important; }
 }
-/* =========================================================================== */   
+.bottom-nav { display: none; }
  </style>
 </head>
 <body>
@@ -4788,7 +4788,7 @@ window.renderDilekceContent = function() {
     container.innerHTML = stilAlani + icerik;
 };
 </script>
-<div class="bottom-nav admin-only" id="bottom-nav" style="display:none;">
+<div class="bottom-nav" id="bottom-nav">
     <button class="bottom-nav-btn bnav-active" onclick="window.bnavGo('dashboard')" id="bnav-dashboard">
         <i data-lucide="layout-dashboard"></i><span>Özet</span>
     </button>
