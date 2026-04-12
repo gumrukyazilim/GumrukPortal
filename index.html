@@ -2210,22 +2210,23 @@ function saveCariData() {
     };
     
     window.applyRoleUI = function() {
-        let role = localStorage.getItem('gumruk_role') || 'admin';
-        let name = localStorage.getItem('gumruk_user_name') || 'Bayram';
-        
-        let nameEl = document.querySelector('.user-name');
-        let roleEl = document.querySelector('.user-role');
-        let avatarEl = document.getElementById('header-avatar');
-        
-        if(nameEl) nameEl.innerText = name;
-        if(roleEl) roleEl.innerText = role === 'admin' ? 'Yönetici' : 'Müşteri';
-        if(avatarEl) avatarEl.src = `https://ui-avatars.com/api/?name=${name}&background=1e3a5f&color=60a5fa&rounded=true`;
-        
-        document.querySelectorAll('.admin-only').forEach(el => {
-            if(role !== 'admin') el.classList.add('hidden-role');
-            else el.classList.remove('hidden-role');
-        });
-    };
+    let role = localStorage.getItem('gumruk_role') || 'admin';
+    let name = localStorage.getItem('gumruk_user_name') || 'Bayram';
+    
+    let nameEl = document.querySelector('.user-name');
+    let roleEl = document.querySelector('.user-role');
+    let avatarEl = document.getElementById('header-avatar');
+    
+    if(nameEl) nameEl.innerText = name;
+    if(roleEl) roleEl.innerText = role === 'admin' ? 'Yönetici' : 'Müşteri';
+    if(avatarEl) avatarEl.src = `https://ui-avatars.com/api/?name=${name}&background=1e3a5f&color=60a5fa&rounded=true`;
+    
+    document.querySelectorAll('.admin-only').forEach(el => {
+        if(role !== 'admin') el.classList.add('hidden-role');
+        else el.classList.remove('hidden-role');
+    });
+  if(window.checkBottomNav) window.checkBottomNav();
+};
 
     window.declarationsData=[]; window.firmData={}; window.firmMeta={}; window.cariData={}; window.kiymetData=[];
     
@@ -4546,7 +4547,7 @@ window.bnavGo = function(view) {
     }
 };
 
-function checkBottomNav() {
+window.checkBottomNav = function() {
     let nav = document.getElementById('bottom-nav');
     if(!nav) return;
     if(window.innerWidth <= 768) {
@@ -4555,10 +4556,10 @@ function checkBottomNav() {
         nav.style.display = 'none';
     }
     if(window.lucide) lucide.createIcons();
-}
-window.addEventListener('resize', checkBottomNav);
+};
+window.addEventListener('resize', window.checkBottomNav);
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(checkBottomNav, 500);
+    setTimeout(window.checkBottomNav, 500);
 });
 </script>
 <script>
