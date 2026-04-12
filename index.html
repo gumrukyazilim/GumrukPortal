@@ -184,6 +184,66 @@
         .login-input-wrap input:focus { border-color:var(--border-active); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
         .login-btn { width:100%; padding:14px; background:linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%); color:#fff; font-size:14px; font-weight:600; border-radius:var(--r-md); cursor:pointer; transition:0.2s; box-shadow:0 4px 16px rgba(59,130,246,0.35); }
         .login-btn:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(59,130,246,0.45); }
+/* GİRİŞ EKRANI ANİMASYONLU LOGO */
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-8px) rotate(2deg); }
+    75% { transform: translateY(-4px) rotate(-2deg); }
+}
+@keyframes logoGlow {
+    0%, 100% { box-shadow: 0 8px 24px rgba(59,130,246,0.4), 0 0 0 0 rgba(124,58,237,0); }
+    50% { box-shadow: 0 8px 32px rgba(59,130,246,0.6), 0 0 40px 8px rgba(124,58,237,0.15); }
+}
+@keyframes logoPulseRing {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes titleReveal {
+    0% { opacity: 0; transform: translateY(15px); letter-spacing: 8px; }
+    100% { opacity: 1; transform: translateY(0); letter-spacing: -0.5px; }
+}
+@keyframes subtitleFade {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+.login-logo {
+    animation: logoFloat 4s ease-in-out infinite, logoGlow 3s ease-in-out infinite;
+    position: relative;
+}
+.login-logo::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--primary), #7c3aed, var(--primary));
+    z-index: -1;
+    animation: logoPulseRing 2.5s ease-out infinite;
+    opacity: 0;
+}
+.login-logo::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(124,58,237,0.3));
+    z-index: -1;
+    filter: blur(12px);
+    animation: logoGlow 3s ease-in-out infinite;
+}
+.login-title {
+    animation: titleReveal 1s ease-out 0.3s both;
+}
+.login-sub {
+    animation: subtitleFade 1s ease-out 0.8s both;
+}
+.login-input-wrap {
+    animation: subtitleFade 0.6s ease-out both;
+}
+.login-input-wrap:nth-child(1) { animation-delay: 1s; }
+.login-input-wrap:nth-child(2) { animation-delay: 1.2s; }
+.login-btn {
+    animation: subtitleFade 0.6s ease-out 1.4s both;
+}
         .auth-error { color:var(--danger); text-align:center; margin-top:14px; font-size:12.5px; display:none; padding:10px; background:rgba(239,68,68,0.1); border-radius:var(--r-sm); border:1px solid rgba(239,68,68,0.2); }
         
         .app-wrap { display:flex; height:100vh; overflow:hidden; }
@@ -573,7 +633,7 @@
 
 <div id="login-screen">
     <div class="login-card">
-        <div class="login-logo"><i data-lucide="shield-check" style="color:#fff;width:24px;height:24px;"></i></div>
+        <div class="login-logo"><i data-lucide="ship" style="color:#fff;width:28px;height:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></div>
         <h1 class="login-title">GümrükPortal</h1>
         <p class="login-sub">Kurumsal Müşteri ve Yönetim Paneli</p>
         <div id="auth-alert" class="auth-error"></div>
