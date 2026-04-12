@@ -4080,8 +4080,8 @@ if(vn==='cariKart'){
         }
         window.applyRoleUI();
 window.applyRoleUI();
-document.querySelectorAll('.bottom-nav-btn').forEach(function(btn){btn.classList.remove('bnav-active');});
-let bnavBtn=document.getElementById('bnav-'+vn);if(bnavBtn)bnavBtn.classList.add('bnav-active');
+document.querySelectorAll('.bnav-btn').forEach(function(btn){btn.style.color='var(--text-muted)';});
+let bnavBtn=document.getElementById('bnav-'+vn);if(bnavBtn)bnavBtn.style.color='var(--primary)';
         if(window.lucide)lucide.createIcons();
         if(window.lucide)lucide.createIcons();
 if(vn==='cariKart'){
@@ -4602,14 +4602,13 @@ window.toggleSidebar = function() {
         sidebar.classList.toggle('collapsed');
     }
 };
-// MOBİL BOTTOM NAVİGASYON
 window.bnavGo = function(view) {
     window.renderView(view);
-    document.querySelectorAll('.bottom-nav-btn').forEach(function(btn) {
-        btn.classList.remove('bnav-active');
+    document.querySelectorAll('.bnav-btn').forEach(function(btn) {
+        btn.style.color = 'var(--text-muted)';
     });
     let aktif = document.getElementById('bnav-' + view);
-    if(aktif) aktif.classList.add('bnav-active');
+    if(aktif) aktif.style.color = 'var(--primary)';
     let sidebar = document.querySelector('.sidebar');
     if(sidebar && !sidebar.classList.contains('collapsed')) {
         sidebar.classList.add('collapsed');
@@ -4859,22 +4858,22 @@ window.renderDilekceContent = function() {
 </script>
 <div id="sutun-menu" style="position:fixed;right:20px;top:130px;width:240px;max-height:500px;z-index:99999;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:12px;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:none;padding:10px 0;"></div>
 
-<div id="bottom-nav" class="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid rgba(255,255,255,0.12);z-index:99999;padding:6px 0;box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
-    <div style="display:flex;">
-        <button onclick="window.bnavGo('dashboard')" id="bnav-dashboard" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#3b82f6;font-size:10px;font-weight:600;cursor:pointer;">
-            <i data-lucide="layout-dashboard" style="width:22px;height:22px;"></i><span>Özet</span>
+<div id="bottom-nav" class="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:8px 0;padding-bottom:env(safe-area-inset-bottom,8px);box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
+    <div style="display:flex;background:var(--bg-surface);border-top:1px solid var(--border);margin:0;padding:4px 0;">
+        <button onclick="window.bnavGo('dashboard')" id="bnav-dashboard" class="bnav-btn bnav-active" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--primary);">
+            <i data-lucide="layout-dashboard" style="width:24px;height:24px;"></i><span>Özet</span>
         </button>
-        <button onclick="window.bnavGo('declarations')" id="bnav-declarations" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer;">
-            <i data-lucide="car" style="width:22px;height:22px;"></i><span>Araçlar</span>
+        <button onclick="window.bnavGo('declarations')" id="bnav-declarations" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+            <i data-lucide="car" style="width:24px;height:24px;"></i><span>Araçlar</span>
         </button>
-        <button onclick="window.bnavGo('cariKart')" id="bnav-cariKart" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer;">
-            <i data-lucide="wallet" style="width:22px;height:22px;"></i><span>Cari</span>
+        <button onclick="window.bnavGo('cariKart')" id="bnav-cariKart" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+            <i data-lucide="wallet" style="width:24px;height:24px;"></i><span>Cari</span>
         </button>
-        <button onclick="window.bnavGo('calculator')" id="bnav-calculator" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer;">
-            <i data-lucide="calculator" style="width:22px;height:22px;"></i><span>Hesapla</span>
+        <button onclick="window.bnavGo('calculator')" id="bnav-calculator" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+            <i data-lucide="calculator" style="width:24px;height:24px;"></i><span>Hesapla</span>
         </button>
-        <button onclick="window.toggleSidebar()" id="bnav-menu" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer;">
-            <i data-lucide="menu" style="width:22px;height:22px;"></i><span>Menü</span>
+        <button onclick="window.toggleSidebar()" id="bnav-menu" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+            <i data-lucide="menu" style="width:24px;height:24px;"></i><span>Menü</span>
         </button>
     </div>
 </div>
