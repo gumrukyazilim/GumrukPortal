@@ -166,7 +166,26 @@
     transition: none !important; 
 }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:var(--font-family); background:var(--bg-main); color:var(--text-primary); min-height:100vh; overflow-x:hidden; font-size:14px; -webkit-font-smoothing:antialiased; transition: background 0.3s, color 0.3s; }
+        body { font-family:var(--font-family); background:var(--bg-main); color:var(--text-primary); min-height:100vh; overflow-x:hidden; font-size:14px; -webkit-font-smoothing:antialiased; transition: background 0.5s ease, color 0.5s ease; }
+/* TEMA GEÇİŞ ANİMASYONU */
+.theme-transition, .theme-transition *, .theme-transition *::before, .theme-transition *::after {
+    transition: background 0.5s ease, background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease !important;
+}
+@keyframes themeSunrise {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.3); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+@keyframes themeMoonrise {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(-180deg) scale(1.3); }
+    100% { transform: rotate(-360deg) scale(1); }
+}
+.theme-icon-spin {
+    display: inline-block;
+}
+.theme-icon-spin.to-light { animation: themeSunrise 0.6s ease; }
+.theme-icon-spin.to-dark { animation: themeMoonrise 0.6s ease; }
         button, input, select { font-family:inherit; outline:none; border:none; }
         .hidden { display:none !important; }
         
@@ -567,7 +586,7 @@
 .icon-btn i, .icon-btn svg {
     pointer-events: none !important;
 }
-/* ====================== BAYRAM ABİ MOBİL UYUMLULUK PAKETİ ====================== */
+
 @media (max-width: 768px) {
     :root { --sidebar-w: 280px; }
     
@@ -623,8 +642,56 @@
     }
     
     .app-wrap { flex-direction: column; }
+.app-wrap { flex-direction: column; }
+
+    /* MOBİL BOTTOM NAVİGASYON */
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border);
+        z-index: 10001;
+        padding: 6px 0;
+        padding-bottom: env(safe-area-inset-bottom, 6px);
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    }
+    .bottom-nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 8px 0;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        position: relative;
+    }
+    .bottom-nav-btn i { width: 22px; height: 22px; }
+    .bottom-nav-btn.bnav-active {
+        color: var(--primary);
+    }
+    .bottom-nav-btn.bnav-active::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 25%;
+        right: 25%;
+        height: 3px;
+        background: var(--primary);
+        border-radius: 0 0 3px 3px;
+    }
+    .bottom-nav-btn:active { transform: scale(0.9); }
+    .view-area { padding-bottom: 80px !important; }
 }
-/* =========================================================================== */    
+/* =========================================================================== */   
  </style>
 </head>
 <body>
@@ -2081,12 +2148,32 @@ function saveCariData() {
     // ------------------------------------------
 
     window.toggleTheme = function() {
-        let html = document.documentElement;
-        let current = html.getAttribute('data-theme');
-        let next = current === 'light' ? 'dark' : 'light';
-        html.setAttribute('data-theme', next);
-        localStorage.setItem('gumruk_theme', next);
-    };
+    let html = document.documentElement;
+    let current = html.getAttribute('data-theme');
+    let next = current === 'light' ? 'dark' : 'light';
+    
+    // Geçiş animasyonunu başlat
+    document.body.classList.add('theme-transition');
+    
+    // İkon animasyonu
+    let btn = document.querySelector('.hdr-icon-btn[onclick*="toggleTheme"] i');
+    if(btn) {
+        let parent = btn.parentElement;
+        parent.classList.add('theme-icon-spin');
+        parent.classList.add(next === 'light' ? 'to-light' : 'to-dark');
+        setTimeout(function() {
+            parent.classList.remove('theme-icon-spin', 'to-light', 'to-dark');
+        }, 600);
+    }
+    
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('gumruk_theme', next);
+    
+    // Geçiş bittikten sonra class'ı kaldır (performans için)
+    setTimeout(function() {
+        document.body.classList.remove('theme-transition');
+    }, 600);
+};
 
     function showSyncToast(text,ok=false){const t=document.getElementById('sync-toast'),ic=document.getElementById('sync-icon');document.getElementById('sync-text').innerText=text;if(ok){ic.style.animation='none';ic.style.border='none';ic.innerHTML='<i data-lucide="check-circle" style="color:var(--success);width:16px;height:16px;"></i>';if(window.lucide)lucide.createIcons();}else{ic.innerHTML='';ic.style.border='2px solid rgba(255,255,255,0.1)';ic.style.borderTopColor='var(--primary)';ic.style.animation='spin 1s linear infinite';}t.classList.add('show');}
     function hideSyncToast(text,ok=true){showSyncToast(text,ok);setTimeout(()=>document.getElementById('sync-toast').classList.remove('show'),2500);}
@@ -2881,6 +2968,7 @@ function useFallback(lastKur, st) {
         const content = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head><meta charset='utf-8'><title>Maliyet Analizi</title><style>body{font-family:Arial,sans-serif;color:#333;}h1{color:#1e3a8a;text-align:center;border-bottom:2px solid #3b82f6;padding-bottom:10px;}h3{color:#2563eb;margin-top:20px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th,td{border:1px solid #cbd5e1;padding:8px 12px;text-align:left;}th{background-color:#f1f5f9;color:#0f172a;}.total-row{background-color:#e0f2fe;font-weight:bold;}.final-row{background-color:#10b981;color:white;font-weight:bold;font-size:16px;}</style></head>
+
             <body>
                 <h1>Sıfır Otomobil İthalat Maliyet ve Vergi Analizi</h1>
                 <p style="text-align: right;"><b>Tarih:</b> ${new Date().toLocaleDateString('tr-TR')}</p>
@@ -3921,6 +4009,10 @@ if(vn==='cariKart'){
             window.calculateTaxes();
         }
         window.applyRoleUI();
+window.applyRoleUI();
+document.querySelectorAll('.bottom-nav-btn').forEach(function(btn){btn.classList.remove('bnav-active');});
+let bnavBtn=document.getElementById('bnav-'+vn);if(bnavBtn)bnavBtn.classList.add('bnav-active');
+        if(window.lucide)lucide.createIcons();
         if(window.lucide)lucide.createIcons();
 if(vn==='cariKart'){
     let sel=document.getElementById('cari-firma-sec');
@@ -4440,6 +4532,34 @@ window.toggleSidebar = function() {
         sidebar.classList.toggle('collapsed');
     }
 };
+// MOBİL BOTTOM NAVİGASYON
+window.bnavGo = function(view) {
+    window.renderView(view);
+    document.querySelectorAll('.bottom-nav-btn').forEach(function(btn) {
+        btn.classList.remove('bnav-active');
+    });
+    let aktif = document.getElementById('bnav-' + view);
+    if(aktif) aktif.classList.add('bnav-active');
+    let sidebar = document.querySelector('.sidebar');
+    if(sidebar && !sidebar.classList.contains('collapsed')) {
+        sidebar.classList.add('collapsed');
+    }
+};
+
+function checkBottomNav() {
+    let nav = document.getElementById('bottom-nav');
+    if(!nav) return;
+    if(window.innerWidth <= 768) {
+        nav.style.display = 'flex';
+    } else {
+        nav.style.display = 'none';
+    }
+    if(window.lucide) lucide.createIcons();
+}
+window.addEventListener('resize', checkBottomNav);
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(checkBottomNav, 500);
+});
 </script>
 <script>
 // Mobilde menüden bir seçenek tıklandığında menüyü otomatik yukarı topla
@@ -4667,6 +4787,23 @@ window.renderDilekceContent = function() {
     container.innerHTML = stilAlani + icerik;
 };
 </script>
+<div class="bottom-nav admin-only" id="bottom-nav" style="display:none;">
+    <button class="bottom-nav-btn bnav-active" onclick="window.bnavGo('dashboard')" id="bnav-dashboard">
+        <i data-lucide="layout-dashboard"></i><span>Özet</span>
+    </button>
+    <button class="bottom-nav-btn" onclick="window.bnavGo('declarations')" id="bnav-declarations">
+        <i data-lucide="car"></i><span>Araçlar</span>
+    </button>
+    <button class="bottom-nav-btn" onclick="window.bnavGo('cariKart')" id="bnav-cariKart">
+        <i data-lucide="wallet"></i><span>Cari</span>
+    </button>
+    <button class="bottom-nav-btn" onclick="window.bnavGo('calculator')" id="bnav-calculator">
+        <i data-lucide="calculator"></i><span>Hesapla</span>
+    </button>
+    <button class="bottom-nav-btn" onclick="window.toggleSidebar()" id="bnav-menu">
+        <i data-lucide="menu"></i><span>Menü</span>
+    </button>
+</div>
 </body>
 </html>
 
