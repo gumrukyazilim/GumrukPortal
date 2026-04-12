@@ -1072,6 +1072,13 @@
             <button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden admin-only" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button>
         </div>
         <div class="toolbar-right">
+<div style="position:relative;display:inline-block;">
+    <button class="btn-sm" onclick="document.getElementById('sutun-menu').classList.toggle('show')" style="margin-right:10px;">
+        <i data-lucide="columns-3"></i> Sütunlar
+    </button>
+    <div id="sutun-menu" class="autocomplete-list" style="right:0;left:auto;width:220px;max-height:400px;top:100%;">
+    </div>
+</div>
 <button class="btn-primary admin-only" style="background-color: var(--success); margin-right: 10px;" onclick="window.baslatRobot()">
     <i data-lucide="folder-sync"></i> Dosya Tara
 </button>
@@ -3130,6 +3137,70 @@ pagebreak: {mode: 'avoid-all'}
         if(bar) bar.style.width = t > 0 ? (riskDinamik/t*100) + '%' : '0%';
     }
 };
+window._hiddenCols = JSON.parse(localStorage.getItem('gumruk_hidden_cols') || '[]');
+
+window.renderSutunMenu = function() {
+    let menu = document.getElementById('sutun-menu');
+    if(!menu) return;
+    let cols = [
+        {idx:1, ad:'Firma/Araç'},
+        {idx:2, ad:'Şasi No'},
+        {idx:3, ad:'G.Tarihi'},
+        {idx:4, ad:'İlk Süre'},
+        {idx:5, ad:'Ek Süre'},
+        {idx:6, ad:'Antrepo'},
+        {idx:7, ad:'Beyanname'},
+        {idx:8, ad:'K.Ver.'},
+        {idx:9, ad:'K.Gel.'},
+        {idx:10, ad:'Kln Son'},
+        {idx:11, ad:'Kalan'},
+        {idx:12, ad:'Son Gün'},
+        {idx:13, ad:'Durum'},
+        {idx:14, ad:'Fatura'},
+        {idx:15, ad:'Ardiye'}
+    ];
+    menu.innerHTML = cols.map(function(c) {
+        let checked = window._hiddenCols.indexOf(c.idx) === -1;
+        return '<label style="display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;font-weight:500;color:var(--text-primary);" onmouseover="this.style.background=\'var(--bg-hover)\'" onmouseout="this.style.background=\'\'">' +
+            '<input type="checkbox" class="custom-cb" ' + (checked?'checked':'') + ' onchange="window.toggleSutun(' + c.idx + ', this.checked)">' +
+            c.ad +
+        '</label>';
+    }).join('');
+};
+
+window.toggleSutun = function(idx, show) {
+    if(show) {
+        window._hiddenCols = window._hiddenCols.filter(function(x){return x!==idx;});
+    } else {
+        if(window._hiddenCols.indexOf(idx) === -1) window._hiddenCols.push(idx);
+    }
+    localStorage.setItem('gumruk_hidden_cols', JSON.stringify(window._hiddenCols));
+    window.applySutunGizle();
+};
+
+window.applySutunGizle = function() {
+    let table = document.querySelector('#declarations-tbody')?.closest('table');
+    if(!table) return;
+    let rows = table.querySelectorAll('tr');
+    rows.forEach(function(row) {
+        let cells = row.querySelectorAll('th, td');
+        cells.forEach(function(cell, i) {
+            if(window._hiddenCols.indexOf(i) !== -1) {
+                cell.style.display = 'none';
+            } else {
+                cell.style.display = '';
+            }
+        });
+    });
+};
+
+// Menü dışına tıklanınca kapat
+document.addEventListener('click', function(e) {
+    let menu = document.getElementById('sutun-menu');
+    if(menu && menu.classList.contains('show') && !e.target.closest('#sutun-menu') && !e.target.closest('[onclick*="sutun-menu"]')) {
+        menu.classList.remove('show');
+    }
+});
 
     window.renderDeclarationsTable=function(){
     let tbody=document.getElementById('declarations-tbody');if(!tbody)return;
@@ -3234,7 +3305,7 @@ pagebreak: {mode: 'avoid-all'}
             </td>
         </tr>`;
     }).join('');
-    document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();
+    document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();window.renderSutunMenu();window.applySutunGizle();
 };
 
     window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");let meta=window.firmMeta[fn]||{};return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta('${sn}')"><i data-lucide="edit-3"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div>${meta.vergiNo?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: '+meta.vergiNo+'</div>':''}${meta.tcNo?'<div style="font-size:10px;color:var(--text-muted);">TC: '+meta.tcNo+'</div>':''}</div>`;}).join('');if(window.lucide)lucide.createIcons();};
