@@ -13,6 +13,18 @@
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
     <style>
+/* BUTON TIKLAMA HASSASİYETİ (Tıklamayı Yutan İkonları Pasifize Et) */
+.menu-toggle *, .bnav-btn * {
+    pointer-events: none !important;
+}
+
+/* Mobilde arama kutusunun 3 çizgiyi ezmesini/örtmesini önle */
+@media (max-width: 768px) {
+    .search-wrap {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
         :root {
 /* Banka Arama Listesi Özel Stili */
 #banka-dropdown {
@@ -4871,6 +4883,40 @@ window.renderDilekceContent = function() {
     
     // 4. DOM'A YAZDIRMA (Stil ve İçeriği birleştirip ekrana basıyoruz)
     container.innerHTML = stilAlani + icerik;
+};
+// ================= ALT MENÜ (BNAV) VE 3 ÇİZGİ MOTORU =================
+
+// Alt butonlara tıklanınca çalışacak yönlendirme motoru
+window.bnavGo = function(hedef) {
+    // 1. Tüm alt butonların rengini soluk (gri) yap
+    document.querySelectorAll('.bnav-btn').forEach(btn => {
+        btn.style.color = 'var(--text-muted)';
+    });
+    
+    // 2. Tıklanan butonu bul ve rengini Mavi (Aktif) yap
+    let aktifBtn = document.getElementById('bnav-' + hedef);
+    if(aktifBtn) aktifBtn.style.color = 'var(--primary)';
+    
+    // 3. İlgili sayfayı ekrana getir
+    if (hedef === 'cariKart') {
+        window.renderView('cari'); // Cari sayfasının şablon adı 'cari' olduğu için
+    } else {
+        window.renderView(hedef);
+    }
+    
+    // 4. Eğer 3 çizgi menüsü açıksa, sayfaya geçince otomatik kapat
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar && !sidebar.classList.contains('collapsed')) {
+        sidebar.classList.add('collapsed');
+    }
+};
+
+// 3 Çizgi (Hamburger) Menü motoru (Eğer silindiyse diye sağlama alıyoruz)
+window.toggleSidebar = function() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+    }
 };
 </script>
 <div id="sutun-menu" style="position:fixed;right:20px;top:130px;width:240px;max-height:500px;z-index:99999;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:12px;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:none;padding:10px 0;"></div>
