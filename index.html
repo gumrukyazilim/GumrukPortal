@@ -813,18 +813,6 @@
             <div class="stat-label">Yaklaşan Tescil (Son 60 Gün)</div>
             <div class="stat-bar"><div class="stat-bar-fill" style="background:linear-gradient(90deg, #f97316, #fb923c); width:0%;"></div></div>
         </div>
-<div id="dash-whatsapp-panel" class="card card-pad fade-in" style="display:none;margin-top:20px;border-left:4px solid var(--danger);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-            <div>
-                <span style="font-size:16px;font-weight:700;color:var(--danger);">⚠️ Süre Uyarısı — Son 5 Gün</span>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Aşağıdaki araçların süresi dolmak üzere</div>
-            </div>
-            <button class="btn-primary" style="background:var(--danger);" onclick="window.topluWhatsAppGonder()">
-                <i data-lucide="message-circle"></i> Tümüne WhatsApp Gönder
-            </button>
-        </div>
-        <div id="dash-whatsapp-list"></div>
-    </div>
 
     </div>
 </template>
@@ -3144,147 +3132,8 @@ pagebreak: {mode: 'avoid-all'}
         let bar = document.querySelector('#dash-risk-dinamik + .stat-bar .stat-bar-fill');
         if(bar) bar.style.width = t > 0 ? (riskDinamik/t*100) + '%' : '0%';
     }
-// WhatsApp Hatırlatma Paneli
-    window.checkWhatsAppReminders();
-};
-window.checkWhatsAppReminders = function() {
-    let panel = document.getElementById('dash-whatsapp-panel');
-    let list = document.getElementById('dash-whatsapp-list');
-    if(!panel || !list) return;
-    
-    let today = new Date(); today.setHours(0,0,0,0);
-    let riskliAraclar = [];
-    
-    (window.declarationsData || []).forEach(function(d, i) {
-        let evrak = (d.evrak || '').toLocaleLowerCase('tr');
-        if(evrak !== 'açık' && evrak !== 'acik') return;
-        
-        let m = window.calculateVehicleMetrics(d);
-        let kalan = parseInt(m.klnGun);
-        if(isNaN(kalan) || kalan > 5 || kalan < 0) return;
-        
-        riskliAraclar.push({
-            data: d,
-            idx: i,
-            kalan: kalan,
-            firma: d.firma || '-'
-        });
-    });
-    
-    if(!riskliAraclar.length) {
-        panel.style.display = 'none';
-        return;
-    }
-    
-    panel.style.display = 'block';
-    
-    // Firmaya göre grupla
-    let firmaGrup = {};
-    riskliAraclar.forEach(function(r) {
-        if(!firmaGrup[r.firma]) firmaGrup[r.firma] = [];
-        firmaGrup[r.firma].push(r);
-    });
-    
-    let html = '';
-    Object.keys(firmaGrup).forEach(function(firma) {
-        let araclar = firmaGrup[firma];
-        html += '<div style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:10px;">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
-        html += '<span style="font-weight:700;color:var(--text-primary);">' + firma + ' (' + araclar.length + ' araç)</span>';
-        html += '<button class="btn-sm" style="color:#25D366;border-color:#25D366;padding:4px 12px;" onclick="window.firmaWhatsAppGonder(\'' + firma.replace(/'/g, "\\'") + '\')"><i data-lucide="message-circle" style="width:14px;height:14px;"></i> Gönder</button>';
-        html += '</div>';
-        araclar.forEach(function(r) {
-            let renk = r.kalan <= 2 ? 'var(--danger)' : 'var(--warning)';
-            html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;border-top:1px solid var(--border);">';
-            html += '<span style="color:var(--text-secondary);">' + (r.data.marka||'') + ' ' + (r.data.model||'') + ' · <span style="font-family:monospace;">' + (r.data.sasi||'-') + '</span></span>';
-            html += '<span style="font-weight:700;color:' + renk + ';">' + r.kalan + ' gün kaldı</span>';
-            html += '</div>';
-        });
-        html += '</div>';
-    });
-    
-    list.innerHTML = html;
-    if(window.lucide) lucide.createIcons();
-    
-    // Bugün daha önce bildirim gönderdik mi?
-    let bugun = today.toISOString().slice(0,10);
-    let sonGonderim = localStorage.getItem('gumruk_wp_last_remind');
-    if(sonGonderim !== bugun && riskliAraclar.length > 0) {
-        // Günde 1 kez otomatik uyarı
-        setTimeout(function() {
-    let ozet = "*⚠️ GÜNLÜK SÜRE RAPORU*%0A%0A";
-    riskliAraclar.forEach(function(r) {
-        ozet += "🚗 " + r.firma + " — " + (r.data.marka||'') + " " + (r.data.model||'') + "%0A";
-        ozet += "   Şasi: " + (r.data.sasi||'-') + "%0A";
-        ozet += "   *" + r.kalan + " gün kaldı*%0A%0A";
-    });
-    ozet += "Toplam: " + riskliAraclar.length + " araç%0A_GümrükPortal Otomatik Rapor_";
-    window.open("https://wa.me/905326321661?text=" + ozet, '_blank');
-    localStorage.setItem('gumruk_wp_last_remind', bugun);
-}, 3000);
-    }
 };
 
-window.firmaWhatsAppGonder = function(firma) {
-    const rehber = {
-        "ŞAMNU GT": "905322969006",
-        "FF OTOMOTİV": "905322862328"
-    };
-    
-    let phone = rehber[firma.trim().toUpperCase()] || "";
-    if(!phone) { alert("'" + firma + "' için rehberde numara yok!"); return; }
-    
-    let araclar = (window.declarationsData || []).filter(function(d) {
-        if(d.firma !== firma) return false;
-        let evrak = (d.evrak || '').toLocaleLowerCase('tr');
-        if(evrak !== 'açık' && evrak !== 'acik') return false;
-        let m = window.calculateVehicleMetrics(d);
-        let kalan = parseInt(m.klnGun);
-        return !isNaN(kalan) && kalan <= 5 && kalan >= 0;
-    });
-    
-    if(!araclar.length) { alert("Bu firmada riskli araç yok."); return; }
-    
-    let mesaj = "*⚠️ SÜRE UYARISI — " + firma + "*%0A%0A";
-    mesaj += "Sayın İlgili,%0A%0AAşağıdaki araçlarınızın gümrük bekleme süresi dolmak üzeredir:%0A%0A";
-    
-    araclar.forEach(function(d) {
-        let m = window.calculateVehicleMetrics(d);
-        mesaj += "🚗 *" + (d.marka||'') + " " + (d.model||'') + "*%0A";
-        mesaj += "   Şasi: " + (d.sasi||'-') + "%0A";
-        mesaj += "   Kalan: *" + m.klnGun + " gün*%0A%0A";
-    });
-    
-    mesaj += "Süre uzatımı veya işlem başlatılması için lütfen en kısa sürede bilgi veriniz.%0A%0A";
-    mesaj += "_GümrükPortal Otomatik Bildirim_";
-    
-    window.open("https://wa.me/" + phone + "?text=" + mesaj, '_blank');
-};
-
-window.topluWhatsAppGonder = function() {
-    let today = new Date(); today.setHours(0,0,0,0);
-    let firmalar = {};
-    
-    (window.declarationsData || []).forEach(function(d) {
-        let evrak = (d.evrak || '').toLocaleLowerCase('tr');
-        if(evrak !== 'açık' && evrak !== 'acik') return;
-        let m = window.calculateVehicleMetrics(d);
-        let kalan = parseInt(m.klnGun);
-        if(isNaN(kalan) || kalan > 5 || kalan < 0) return;
-        if(!firmalar[d.firma]) firmalar[d.firma] = true;
-    });
-    
-    let firmaList = Object.keys(firmalar);
-    if(!firmaList.length) { alert("Riskli araç yok."); return; }
-    
-    firmaList.forEach(function(firma, i) {
-        setTimeout(function() {
-            window.firmaWhatsAppGonder(firma);
-        }, i * 1500);
-    });
-    
-    localStorage.setItem('gumruk_wp_last_remind', today.toISOString().slice(0,10));
-};
 window._hiddenCols = JSON.parse(localStorage.getItem('gumruk_hidden_cols') || '[]');
 
 window.renderSutunMenu = function() {
@@ -5032,4 +4881,3 @@ window.renderDilekceContent = function() {
 </div>
 </body>
 </html>
-
