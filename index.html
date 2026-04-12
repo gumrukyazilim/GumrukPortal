@@ -1072,13 +1072,9 @@
             <button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden admin-only" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button>
         </div>
         <div class="toolbar-right">
-<div style="position:relative;display:inline-block;">
-    <button class="btn-sm" onclick="document.getElementById('sutun-menu').classList.toggle('show')" style="margin-right:10px;">
-        <i data-lucide="columns-3"></i> Sütunlar
-    </button>
-    <div id="sutun-menu" class="autocomplete-list" style="right:0;left:auto;width:220px;max-height:400px;top:100%;">
-    </div>
-</div>
+<button class="btn-sm" onclick="let m=document.getElementById('sutun-menu');m.style.display=m.style.display==='block'?'none':'block';" style="margin-right:10px;">
+    <i data-lucide="columns-3"></i> Sütunlar
+</button>
 <button class="btn-primary admin-only" style="background-color: var(--success); margin-right: 10px;" onclick="window.baslatRobot()">
     <i data-lucide="folder-sync"></i> Dosya Tara
 </button>
@@ -3197,8 +3193,8 @@ window.applySutunGizle = function() {
 // Menü dışına tıklanınca kapat
 document.addEventListener('click', function(e) {
     let menu = document.getElementById('sutun-menu');
-    if(menu && menu.classList.contains('show') && !e.target.closest('#sutun-menu') && !e.target.closest('[onclick*="sutun-menu"]')) {
-        menu.classList.remove('show');
+    if(menu && menu.style.display==='block' && !e.target.closest('#sutun-menu') && !e.target.closest('[onclick*="sutun-menu"]')) {
+        menu.style.display='none';
     }
 });
 
@@ -4860,6 +4856,9 @@ window.renderDilekceContent = function() {
     container.innerHTML = stilAlani + icerik;
 };
 </script>
+<div id="sutun-menu" style="position:fixed;right:20px;top:130px;width:240px;max-height:500px;z-index:99999;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:12px;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:none;padding:10px 0;"></div>
+
+<div id="bottom-nav">
 <div id="bottom-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid rgba(255,255,255,0.12);z-index:99999;padding:6px 0;box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
     <div style="display:flex;">
         <button onclick="window.bnavGo('dashboard')" id="bnav-dashboard" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#3b82f6;font-size:10px;font-weight:600;cursor:pointer;">
