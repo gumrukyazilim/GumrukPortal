@@ -599,6 +599,7 @@
             <div class="sidebar-section-label admin-only" style="margin-top:8px;">Araçlar & Bilgi</div>
             <button class="nav-btn admin-only" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
             <button class="nav-btn admin-only" data-view="bankaListesi"><i data-lucide="landmark"></i><span>Banka Listesi</span></button>
+<button class="nav-btn admin-only" data-view="cariKart"><i data-lucide="wallet"></i><span>Cari Kart</span></button>
 <button class="nav-btn admin-only" data-view="mevzuat"><i data-lucide="book-open"></i><span style="color:var(--primary); font-weight:600;">2026 Mevzuat Rehberi</span></button>
         </nav>
         <div class="sidebar-footer admin-only">
@@ -1019,6 +1020,56 @@
                     <input type="text" id="banka-secilen-kod" readonly style="background:rgba(59,130,246,0.08); color:var(--primary); font-weight:bold; letter-spacing:2px; text-align:center; font-size:18px;">
                 </div>
             </div>
+        </div>
+    </div>
+</template>
+<template id="tpl-cariKart">
+    <div class="page-hdr fade-in">
+        <div><div class="page-eyebrow">Finans</div><h1 class="page-title">Cari Kart</h1></div>
+        <div class="page-actions">
+            <select id="cari-firma-sec" onchange="window.renderCariTable()" style="min-width:200px;padding:10px;font-weight:600;">
+                <option value="">Firma Seçin...</option>
+            </select>
+            <button class="btn-primary" onclick="window.cariHareketEkle()"><i data-lucide="plus"></i> Hareket Ekle</button>
+        </div>
+    </div>
+    
+    <div id="cari-ozet" class="stats-grid fade-in" style="display:none;">
+        <div class="stat-card">
+            <div class="stat-card-top"><div class="stat-icon-box" style="background:rgba(239,68,68,0.12);color:var(--danger);"><i data-lucide="trending-down"></i></div></div>
+            <div class="stat-value" id="cari-toplam-borc" style="color:var(--danger);">0</div>
+            <div class="stat-label">Toplam Borç</div>
+        </div>
+<div id="cari-genel-ozet" class="card card-pad fade-in" style="display:none;margin-bottom:20px;">
+    <div style="font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;">TÜM FİRMALAR GENEL ÖZET</div>
+    <div id="cari-genel-icerik" style="display:flex;gap:20px;flex-wrap:wrap;"></div>
+</div>
+        <div class="stat-card">
+            <div class="stat-card-top"><div class="stat-icon-box green"><i data-lucide="trending-up"></i></div></div>
+            <div class="stat-value" id="cari-toplam-alacak" style="color:var(--success);">0</div>
+            <div class="stat-label">Toplam Alacak</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-top"><div class="stat-icon-box blue"><i data-lucide="scale"></i></div></div>
+            <div class="stat-value" id="cari-bakiye">0</div>
+            <div class="stat-label">Bakiye</div>
+        </div>
+    </div>
+    
+    <div class="card fade-in" style="padding:0;overflow:hidden;">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead><tr>
+                    <th>TARİH</th>
+                    <th>AÇIKLAMA</th>
+                    <th>TÜR</th>
+                    <th>TUTAR</th>
+                    <th>BİRİM</th>
+                    <th>KALAN</th>
+                    <th style="text-align:center;">İŞLEM</th>
+                </tr></thead>
+                <tbody id="cari-tbody"></tbody>
+            </table>
         </div>
     </div>
 </template>
@@ -1594,6 +1645,250 @@ window.bankasec = function(eft, sube, tamAd) {
     let kodEl = document.getElementById('banka-secilen-kod');
     if(kodEl) kodEl.value = eft + ' / ' + sube + ' / ' + ilKodu;
 };
+window.renderCariTable = function() {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    let tbody = document.getElementById('cari-tbody');
+    let ozet = document.getElementById('cari-ozet');
+    if(!firma) {
+    if(ozet) ozet.style.display='none';
+    if(tbody) {
+        // Tüm firmaların hareketlerini göster
+        let tumHareketler = [];
+        Object.keys(window.cariData).forEach(function(fn) {
+            (window.cariData[fn]||[]).forEach(function(h,i) {
+                tumHareketler.push({h:h, firma:fn, idx:i});
+            });
+        });
+        if(!tumHareketler.length) {
+            tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">Henüz hareket yok</td></tr>';
+            return;
+        }
+        tbody.innerHTML = tumHareketler.map(function(item) {
+            let h = item.h;
+            let b = (h.birim||'EUR').toUpperCase();
+            let isim = b==='EUR'?'€':b==='USD'?'$':'₺';
+            let tutarRenk = h.tur === 'borc' ? 'var(--danger)' : 'var(--success)';
+            let turBadge = h.tur === 'borc' ? '<span class="badge badge-danger">BORÇ</span>' : '<span class="badge badge-success">ALACAK</span>';
+            return '<tr>' +
+                '<td>' + (h.tarih||'-') + '</td>' +
+                '<td style="font-weight:600;"><span style="color:var(--primary);font-size:10px;">[' + item.firma + ']</span> ' + (h.aciklama||'-') + '</td>' +
+                '<td>' + turBadge + '</td>' +
+                '<td style="color:' + tutarRenk + ';font-weight:700;">' + window.formatNumber(h.tutar,true) + ' ' + isim + '</td>' +
+                '<td style="font-weight:600;">' + b + '</td>' +
+                '<td>-</td>' +
+                '<td style="text-align:center;">-</td>' +
+            '</tr>';
+        }).join('');
+        if(window.lucide) lucide.createIcons();
+    }
+    return;
+}
+if(!tbody) return;
+    
+    let hareketler = window.cariData[firma] || [];
+    if(ozet) ozet.style.display = 'grid';
+    
+    // EUR ve TRY ayrı hesapla
+    let borcEUR=0, alacakEUR=0, borcTRY=0, alacakTRY=0, borcUSD=0, alacakUSD=0;
+    hareketler.forEach(function(h) {
+        let t = parseFloat(h.tutar) || 0;
+        let b = (h.birim || 'EUR').toUpperCase();
+        if(h.tur === 'borc') {
+            if(b==='EUR') borcEUR+=t; else if(b==='USD') borcUSD+=t; else borcTRY+=t;
+        } else {
+            if(b==='EUR') alacakEUR+=t; else if(b==='USD') alacakUSD+=t; else alacakTRY+=t;
+        }
+    });
+    
+    let borcText = '';
+    let alacakText = '';
+    let bakiyeText = '';
+    
+    if(borcEUR>0) borcText += window.formatNumber(borcEUR,true) + ' €';
+    if(borcUSD>0) borcText += (borcText?' + ':'') + window.formatNumber(borcUSD,true) + ' $';
+    if(borcTRY>0) borcText += (borcText?' + ':'') + window.formatNumber(borcTRY,true) + ' ₺';
+    if(!borcText) borcText = '0';
+    
+    if(alacakEUR>0) alacakText += window.formatNumber(alacakEUR,true) + ' €';
+    if(alacakUSD>0) alacakText += (alacakText?' + ':'') + window.formatNumber(alacakUSD,true) + ' $';
+    if(alacakTRY>0) alacakText += (alacakText?' + ':'') + window.formatNumber(alacakTRY,true) + ' ₺';
+    if(!alacakText) alacakText = '0';
+    
+    let bakiyeEUR = alacakEUR - borcEUR;
+    let bakiyeUSD = alacakUSD - borcUSD;
+    let bakiyeTRY = alacakTRY - borcTRY;
+    if(bakiyeEUR!==0) bakiyeText += window.formatNumber(bakiyeEUR,true) + ' €';
+    if(bakiyeUSD!==0) bakiyeText += (bakiyeText?' | ':'') + window.formatNumber(bakiyeUSD,true) + ' $';
+    if(bakiyeTRY!==0) bakiyeText += (bakiyeText?' | ':'') + window.formatNumber(bakiyeTRY,true) + ' ₺';
+    if(!bakiyeText) bakiyeText = '0';
+    
+    let borcEl = document.getElementById('cari-toplam-borc');
+    let alacakEl = document.getElementById('cari-toplam-alacak');
+    let bakiyeEl = document.getElementById('cari-bakiye');
+    if(borcEl) { borcEl.innerText = borcText; borcEl.style.fontSize = '20px'; }
+    if(alacakEl) { alacakEl.innerText = alacakText; alacakEl.style.fontSize = '20px'; }
+    if(bakiyeEl) {
+        bakiyeEl.innerText = bakiyeText;
+        bakiyeEl.style.fontSize = '20px';
+        let genelDurum = (bakiyeEUR >= 0 && bakiyeUSD >= 0 && bakiyeTRY >= 0);
+        bakiyeEl.style.color = genelDurum ? 'var(--success)' : 'var(--danger)';
+    }
+    
+    if(!hareketler.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait hareket yok</td></tr>';
+        return;
+    }
+    
+    // Birim bazlı kalan hesabı
+    let kalanEUR=0, kalanUSD=0, kalanTRY=0;
+    tbody.innerHTML = hareketler.map(function(h, i) {
+        let t = parseFloat(h.tutar) || 0;
+        let b = (h.birim || 'EUR').toUpperCase();
+        let isim = b==='EUR'?'€':b==='USD'?'$':'₺';
+        
+        if(h.tur === 'borc') {
+            if(b==='EUR') kalanEUR-=t; else if(b==='USD') kalanUSD-=t; else kalanTRY-=t;
+        } else {
+            if(b==='EUR') kalanEUR+=t; else if(b==='USD') kalanUSD+=t; else kalanTRY+=t;
+        }
+        
+        let kalanDeger = b==='EUR'?kalanEUR:b==='USD'?kalanUSD:kalanTRY;
+        let tutarRenk = h.tur === 'borc' ? 'var(--danger)' : 'var(--success)';
+        let kalanRenk = kalanDeger >= 0 ? 'var(--success)' : 'var(--danger)';
+        let turBadge = h.tur === 'borc' 
+            ? '<span class="badge badge-danger">BORÇ</span>' 
+            : '<span class="badge badge-success">ALACAK</span>';
+        
+        return '<tr>' +
+            '<td>' + (h.tarih || '-') + '</td>' +
+            '<td style="font-weight:600;">' + (h.aciklama || '-') + '</td>' +
+            '<td>' + turBadge + '</td>' +
+            '<td style="color:' + tutarRenk + ';font-weight:700;">' + window.formatNumber(t,true) + ' ' + isim + '</td>' +
+            '<td style="font-weight:600;">' + b + '</td>' +
+            '<td style="color:' + kalanRenk + ';font-weight:700;">' + window.formatNumber(kalanDeger,true) + ' ' + isim + '</td>' +
+            '<td style="text-align:center;"><button class="icon-btn text-danger-btn" onclick="window.cariHareketSil(' + i + ')"><i data-lucide="trash-2"></i></button></td>' +
+        '</tr>';
+    }).join('');
+    
+    if(window.lucide) lucide.createIcons();
+};
+window.renderGenelCariOzet = function() {
+    let container = document.getElementById('cari-genel-icerik');
+    let wrapper = document.getElementById('cari-genel-ozet');
+    if(!container || !wrapper) return;
+    
+    let firmalar = Object.keys(window.cariData);
+    if(!firmalar.length) { wrapper.style.display='none'; return; }
+    wrapper.style.display='block';
+    
+    let genelBorcEUR=0, genelAlacakEUR=0, genelBorcTRY=0, genelAlacakTRY=0, genelBorcUSD=0, genelAlacakUSD=0;
+    let html = '';
+    
+    firmalar.forEach(function(fn) {
+        let hareketler = window.cariData[fn] || [];
+        if(!hareketler.length) return;
+        let bEUR=0,aEUR=0,bTRY=0,aTRY=0,bUSD=0,aUSD=0;
+        hareketler.forEach(function(h) {
+            let t = parseFloat(h.tutar)||0;
+            let b = (h.birim||'EUR').toUpperCase();
+            if(h.tur==='borc'){if(b==='EUR')bEUR+=t;else if(b==='USD')bUSD+=t;else bTRY+=t;}
+            else{if(b==='EUR')aEUR+=t;else if(b==='USD')aUSD+=t;else aTRY+=t;}
+        });
+        genelBorcEUR+=bEUR; genelAlacakEUR+=aEUR;
+        genelBorcTRY+=bTRY; genelAlacakTRY+=aTRY;
+        genelBorcUSD+=bUSD; genelAlacakUSD+=aUSD;
+        
+        let bakiye = '';
+        let bakEUR=aEUR-bEUR, bakUSD=aUSD-bUSD, bakTRY=aTRY-bTRY;
+        if(bakEUR!==0) bakiye+=window.formatNumber(bakEUR,true)+' €';
+        if(bakUSD!==0) bakiye+=(bakiye?' | ':'')+window.formatNumber(bakUSD,true)+' $';
+        if(bakTRY!==0) bakiye+=(bakiye?' | ':'')+window.formatNumber(bakTRY,true)+' ₺';
+        if(!bakiye) bakiye='0';
+        let renk = (bakEUR>=0&&bakUSD>=0&&bakTRY>=0)?'var(--success)':'var(--danger)';
+        
+        html += '<div style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;min-width:200px;">' +
+            '<div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:4px;">' + fn + '</div>' +
+            '<div style="font-size:18px;font-weight:800;color:' + renk + ';">' + bakiye + '</div>' +
+        '</div>';
+    });
+    
+    // Genel toplam
+    let genelBakiye = '';
+    let gbEUR=genelAlacakEUR-genelBorcEUR, gbUSD=genelAlacakUSD-genelBorcUSD, gbTRY=genelAlacakTRY-genelBorcTRY;
+    if(gbEUR!==0) genelBakiye+=window.formatNumber(gbEUR,true)+' €';
+    if(gbUSD!==0) genelBakiye+=(genelBakiye?' | ':'')+window.formatNumber(gbUSD,true)+' $';
+    if(gbTRY!==0) genelBakiye+=(genelBakiye?' | ':'')+window.formatNumber(gbTRY,true)+' ₺';
+    if(!genelBakiye) genelBakiye='0';
+    let gRenk = (gbEUR>=0&&gbUSD>=0&&gbTRY>=0)?'var(--success)':'var(--danger)';
+    
+    html += '<div style="background:linear-gradient(135deg,var(--primary),#7c3aed);border-radius:8px;padding:12px 16px;min-width:200px;">' +
+        '<div style="font-weight:700;font-size:13px;color:rgba(255,255,255,0.8);margin-bottom:4px;">GENEL TOPLAM</div>' +
+        '<div style="font-size:20px;font-weight:800;color:#fff;">' + genelBakiye + '</div>' +
+    '</div>';
+    
+    container.innerHTML = html;
+};
+
+window.cariHareketEkle = function() {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) { alert('Önce firma seçin!'); return; }
+    
+    let tur = prompt("Tür girin:\n1 = BORÇ (Masraf/Çekim)\n2 = ALACAK (Ödeme/Havale)");
+    if(!tur) return;
+    tur = tur.trim() === '2' ? 'alacak' : 'borc';
+    
+    let aciklama = prompt("Açıklama:\n(Örn: BMW X5 WBA123 Çekim Ücreti, TSE Hizmet, Havale)");
+    if(!aciklama) return;
+    
+    let tutar = prompt("Tutar (Rakam):");
+    if(!tutar) return;
+    tutar = parseFloat(tutar.replace(/\./g,'').replace(',','.')) || 0;
+    if(tutar <= 0) { alert('Geçersiz tutar!'); return; }
+    
+    let birim = prompt("Birim:\n1 = EUR\n2 = TRY\n3 = USD", "1");
+    if(!birim) return;
+    if(birim.trim() === '2') birim = 'TRY';
+    else if(birim.trim() === '3') birim = 'USD';
+    else birim = 'EUR';
+    
+    let tarih = window.formatTRDate(new Date());
+    
+    if(!window.cariData[firma]) window.cariData[firma] = [];
+    window.cariData[firma].push({
+        tarih: tarih,
+        aciklama: aciklama.toUpperCase(),
+        tur: tur,
+        tutar: tutar,
+        birim: birim
+    });
+    
+    saveCariData();
+    window.renderCariTable();
+};
+
+window.cariHareketSil = function(idx) {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) return;
+    if(!confirm('Bu hareketi silmek istediğinize emin misiniz?')) return;
+    if(window.cariData[firma]) {
+        window.cariData[firma].splice(idx, 1);
+        saveCariData();
+        window.renderCariTable();
+    }
+};
+
+function saveCariData() {
+    localStorage.setItem('gumrukCariData', JSON.stringify(window.cariData));
+    if(window._firebaseSave && window._dataLoaded) {
+        window._firebaseSave({
+            decl: window.declarationsData,
+            firm: window.firmData,
+            kiymet: window.kiymetData,
+            firmMeta: window.firmMeta,
+            cariData: window.cariData
+        });
+    }
+}
 </script>
 <script>
     // --- YENİ EKLENEN VERİ LİSTELERİ ---
@@ -1785,7 +2080,7 @@ window.bankasec = function(eft, sube, tamAd) {
         });
     };
 
-    window.declarationsData=[]; window.firmData={}; window.firmMeta={}; window.kiymetData=[];
+    window.declarationsData=[]; window.firmData={}; window.firmMeta={}; window.cariData={}; window.kiymetData=[];
     
     window.fixExcelDate=function(v){if(!v)return'';if(typeof v==='number'||(!isNaN(v)&&Number(v)>30000)){try{let d=new Date((Number(v)-25569)*86400*1000);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}catch(e){return v;}}if(typeof v==='string'&&v.includes('T')){try{let d=new Date(v);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}catch(e){}}return String(v).trim();};
     window.parseTRDate=function(s){if(!s||s.trim().length<8)return null;let p=s.trim().split(/[\.\-\/]/);if(p.length!==3)return null;let d,m,y;if(p[0].length===4){y=parseInt(p[0]);m=parseInt(p[1])-1;d=parseInt(p[2]);}else{d=parseInt(p[0]);m=parseInt(p[1])-1;y=parseInt(p[2]);if(y<100)y+=2000;}let dt=new Date(y,m,d);dt.setHours(0,0,0,0);return isNaN(dt.getTime())?null:dt;};
@@ -1796,7 +2091,9 @@ window.bankasec = function(eft, sube, tamAd) {
     window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
     function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));localStorage.setItem('gumrukFirmMeta',JSON.stringify(window.firmMeta));}catch(e){}}
-    function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);let fm=localStorage.getItem('gumrukFirmMeta');if(fm&&fm!=="null")window.firmMeta=JSON.parse(fm);}catch(e){}}
+localStorage.setItem('gumrukCariData',JSON.stringify(window.cariData));
+    function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
+let cd=localStorage.getItem('gumrukCariData');if(cd&&cd!=="null")window.cariData=JSON.parse(cd);let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);let fm=localStorage.getItem('gumrukFirmMeta');if(fm&&fm!=="null")window.firmMeta=JSON.parse(fm);}catch(e){}}
 
     
     window._dataLoaded = false; // SİSTEM KİLİDİ (BAŞLANGIÇTA KAPALI)
@@ -1824,7 +2121,7 @@ window.bankasec = function(eft, sube, tamAd) {
                     }
                 }
 
-                let ok=await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,firmMeta:window.firmMeta});
+                let ok=await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,firmMeta:window.firmMeta,cariData:window.cariData});
                 if(ok)hideSyncToast("Firebase'e kaydedildi!",true);else hideSyncToast("Kayıt başarısız!",false);
             }else{hideSyncToast("Firebase henüz hazır değil",false);}
         },1500);
@@ -1863,6 +2160,7 @@ window.bankasec = function(eft, sube, tamAd) {
 }
                 
                 if(data.firmMeta) window.firmMeta = data.firmMeta;
+                if(data.cariData) window.cariData = data.cariData;
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
                 saveToLocal();
                 hideSyncToast("Firebase'den çekildi!",true);
@@ -3105,7 +3403,7 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
         if(mtvOtoDeger) state['mtv-oto-deger'] = mtvOtoDeger.checked;
         localStorage.setItem('gumruk_calc_state_v15',JSON.stringify(state));
         if(window._firebaseSave && window._dataLoaded) {
-    window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,calcState:state});
+    window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,calcState:state,firmMeta:window.firmMeta,cariData:window.cariData});
 }
     };
 
@@ -3544,6 +3842,12 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
         if(vn==='declarations')window.renderDeclarationsTable();
         if(vn==='kiymetListesi')window.renderKiymetTable();
         if(vn==='bankaListesi'){}
+if(vn==='cariKart'){
+    let sel=document.getElementById('cari-firma-sec');
+    if(sel){sel.innerHTML='<option value="">Tüm Firmalar</option>';Object.keys(window.firmData).forEach(fn=>{sel.innerHTML+='<option value="'+fn+'">'+fn+'</option>';});}
+    window.renderGenelCariOzet();
+    window.renderCariTable();
+}
         if(vn==='firms')window.renderFirmsList();
         if(vn==='firmDetails'){if(document.getElementById('current-firm-title')&&window.currentFirm)document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();}
         if(vn==='calculator'){
@@ -3558,6 +3862,11 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
         }
         window.applyRoleUI();
         if(window.lucide)lucide.createIcons();
+if(vn==='cariKart'){
+    let sel=document.getElementById('cari-firma-sec');
+    if(sel){sel.innerHTML='<option value="">Firma Seçin...</option>';Object.keys(window.firmData).forEach(fn=>{sel.innerHTML+='<option value="'+fn+'">'+fn+'</option>';});}
+    window.renderGenelCariOzet();
+}
     };
 
     document.querySelectorAll('.nav-btn[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.view)window.renderView(b.dataset.view);}));
