@@ -4011,113 +4011,136 @@ window.autoSaveArdiyeToDrive = function(r) {
     document.body.appendChild(script);
 };
 
-// ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (SADECE SÜRE VE TUTANAK KALDI) =================
+// ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (PROFESYONEL YAPI) =================
 window.renderDilekceContent = function() {
     let tipEl = document.getElementById('dilekce-tipi');
-    if (!tipEl) return;
-    let tip = tipEl.value;
-    
     let container = document.getElementById('dilekce-print-area');
-    if (!container) return;
-    
     let items = window.currentDilekceItems;
-    if (!items || items.length === 0) return;
 
-    let html = "";
-    let today = new Date();
-    let cikisTarihi = window.formatTRDate(today);
+    if (!tipEl || !container || !items || items.length === 0) return;
+
+    let tip = tipEl.value;
     let ilkArac = items[0];
-    let firmaAdi = ilkArac.firma || "........................";
-    
-    let imzaYetkilisi = "........................";
-    let fUst = firmaAdi.toUpperCase();
-    if (fUst.indexOf("ŞAMNU") !== -1) {
-        firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ";
-        imzaYetkilisi = "FEVZİ ALPER TAVMAN";
+
+    // 1. VERİ HAZIRLIĞI (Verileri HTML'den ayırıyoruz)
+    let veri = {
+        firmaAdi: ilkArac.firma || "........................",
+        imzaYetkilisi: "........................",
+        tarih: window.formatTRDate(new Date()),
+        aracSayisi: items.length,
+        sasiListesi: items.map(x => x.sasi || '...................').join(', '),
+        beyanname: ilkArac.beyanname || ilkArac.ozetBeyan || "......................",
+        tescilTarihi: ilkArac.tarih || "................",
+        yil: ilkArac.yil || "....",
+        marka: ilkArac.marka || "........",
+        model: ilkArac.model || "................",
+        gtip: ilkArac.gtip || "8704.21.31.00.00"
+    };
+
+    // Firma özel kuralları (İsim ve yetkililer)
+    let fUst = veri.firmaAdi.toUpperCase();
+    if (fUst.includes("ŞAMNU")) {
+        veri.firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ";
+        veri.imzaYetkilisi = "FEVZİ ALPER TAVMAN";
+    } else if (fUst.includes("FF OTOMOTİV")) {
+        veri.firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş";
+        veri.imzaYetkilisi = "FATİH İSMAİL ÇELEBİ";
+    } else if (fUst.includes("KARABAYIR")) {
+        veri.imzaYetkilisi = "BEHLÜL TÜREL";
     }
-    else if (fUst.indexOf("FF OTOMOTİV") !== -1) {
-        firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş";
-        imzaYetkilisi = "FATİH İSMAİL ÇELEBİ";
-    }
-    else if (fUst.indexOf("KARABAYIR") !== -1) {
-        imzaYetkilisi = "BEHLÜL TÜREL";
-    }
+
+    // 2. ORTAK STİLLER (CSS'i ayrı bir blokta tutuyoruz, HTML'i şişirmiyoruz)
+    let stilAlani = `
+        <style>
+            .belge-kapsayici { font-family: 'Times New Roman', Times, serif; font-size: 16px; color: #000; line-height: 1.6; }
+            .belge-baslik { text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 40px; text-transform: uppercase; }
+            .belge-alt-baslik { text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 30px; text-decoration: underline; }
+            .belge-paragraf { text-indent: 50px; text-align: justify; margin-bottom: 25px; }
+            .belge-imza-alani { float: right; text-align: center; min-width: 250px; margin-top: 30px; }
+            .imza-isim { font-weight: bold; font-size: 17px; margin-bottom: 3px; }
+            .imza-yetkili { font-weight: bold; display: inline-block; min-width: 150px; }
+            .arac-listesi { margin-bottom: 30px; padding: 15px; background: rgba(59,130,246,0.05); border: 1px dashed #cbd5e1; border-radius: 8px; }
+            .arac-item { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #ccc; }
+            .arac-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+            .heyet-alani { margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-weight: bold; }
+            .heyet-uye { flex: 1; }
+            
+            /* PDF ve Yazdırma için izolasyon (Arka planları temizle, kenarlıkları siyah yap) */
+            @media print { 
+                @page { size: A4 portrait; margin: 10mm; } 
+                .arac-listesi { background: transparent; border: 1px solid #000; }
+                .arac-item { border-bottom: 1px solid #000; }
+            }
+        </style>
+    `;
+
+    // 3. ŞABLONLAR (İçeriği temiz bir şekilde oluşturuyoruz)
+    let icerik = "";
 
     if (tip === "SURE") {
-        html += `
-            <style>
-                @media print { 
-                    @page { size: A4 portrait; margin: 10mm; } 
-                }
-            </style>
-            <div style="text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; text-transform: uppercase;">
-                YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE
-            </div>
-            <p style="text-indent: 50px; margin-bottom: 25px;">
-                Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
-            </p>
-            <p style="margin-bottom: 50px;">Gereğini emir ve müsaadelerinize arz ederiz.</p>
-            <div style="margin-bottom: 50px; padding-top: 20px;">
-        `;
-
-        const aracSayisi = items.length;
-        let pnt = "16px"; let mb = "10px";  
-        if (aracSayisi > 3 && aracSayisi <= 6) { pnt = "13px"; mb = "6px"; } 
-        else if (aracSayisi > 6) { pnt = "10px"; mb = "4px"; }
-
+        // Çoklu araç mantığı
         let ilkOzetBeyan = items[0].ozetBeyan || items[0].beyanname || '................';
-        let hepsiAyniOzetBeyan = items.every(x => (x.ozetBeyan || x.beyanname || '................') === ilkOzetBeyan);
+        let hepsiAyniOzet = items.every(x => (x.ozetBeyan || x.beyanname || '................') === ilkOzetBeyan);
+        
+        let aracListesiHTML = "";
+        let fontSize = veri.aracSayisi > 6 ? "10px" : (veri.aracSayisi > 3 ? "13px" : "16px");
 
-        if (hepsiAyniOzetBeyan) {
-            html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: ${mb};">Özet Beyan Numarası: ${ilkOzetBeyan} / ${items.length} ARAÇ</p>`;
-            items.forEach((item) => {
-                html += `<p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px;">Şase No : ${item.sasi || '...................'}</p>`;
+        if (hepsiAyniOzet) {
+            aracListesiHTML += `<div style="font-size: ${fontSize}; font-weight: bold; margin-bottom: 10px;">Özet Beyan Numarası: ${ilkOzetBeyan} / ${veri.aracSayisi} ARAÇ</div>`;
+            items.forEach(item => {
+                aracListesiHTML += `<div style="font-size: ${fontSize}; font-weight: bold;">Şase No : ${item.sasi || '...................'}</div>`;
             });
         } else {
-            items.forEach((item) => {
+            items.forEach(item => {
                 let guncelOzet = item.ozetBeyan || item.beyanname || '...................';
-                html += `
-                <div style="margin-bottom: ${mb}; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
-                    <p style="font-size: ${pnt} !important; font-weight: bold; margin-bottom: 3px;">Özet Beyan Numarası: ${guncelOzet} / 1 ARAÇ</p>
-                    <p style="font-size: ${pnt} !important; font-weight: bold;">Şase No : ${item.sasi || '...................'}</p>
-                </div>`;
+                aracListesiHTML += `
+                    <div class="arac-item" style="font-size: ${fontSize};">
+                        <strong>Özet Beyan:</strong> ${guncelOzet} <br>
+                        <strong>Şase No:</strong> ${item.sasi || '...................'}
+                    </div>`;
             });
         }
-        
-        html += `
+
+        icerik = `
+            <div class="belge-kapsayici">
+                <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE</div>
+                <p class="belge-paragraf">
+                    Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
+                </p>
+                <p class="belge-paragraf">Gereğini emir ve müsaadelerinize arz ederiz.</p>
+                
+                <div class="arac-listesi">
+                    ${aracListesiHTML}
+                </div>
+
+                <div class="belge-imza-alani">
+                    <p style="margin-bottom: 15px;">Saygılarımızla</p>
+                    <p class="imza-isim">${veri.firmaAdi}</p>
+                    <p class="imza-yetkili editable-field" contenteditable="true" title="Değiştirmek için tıklayın">${veri.imzaYetkilisi}</p>
+                </div>
+                <div style="clear: both;"></div>
             </div>
-            <div style="float: right; text-align: center; min-width: 250px;">
-                <p class="imza-satir" style="margin-bottom: 12px !important;">Saygılarımızla</p>
-                <p class="imza-satir" style="font-weight: bold; font-size: 17px;">${firmaAdi}</p>
-                <p class="imza-satir" style="font-weight: bold; display: inline-block; min-width: 150px; margin-top: 3px !important;" contenteditable="true">${imzaYetkilisi}</p>
-            </div>
-            <div style="clear: both;"></div>
         `;
     } 
     else if (tip === "GMC") {
-        let sasiList = items.map(x => x.sasi || '...................').join(', ');
-
-        html += `
-            <style>
-                @media print { 
-                    @page { size: A4 portrait; margin: 10mm; } 
-                }
-            </style>
-            <div style="text-align: center; font-weight: bold; margin-bottom: 30px; font-size: 18px; text-decoration: underline;">
-                TUTANAK
-            </div>
-            <p style="text-indent: 50px; line-height: 1.8;">
-                Gümrük Müdürlüğümüzce <b>${firmaAdi}</b> firması adına tescilli <b>${ilkArac.tarih || "................"}</b> tarihli <b>${ilkArac.beyanname || ilkArac.ozetBeyan || "......................"}</b> sayılı serbest dolaşıma giriş beyannamesi muhteviyatı <b>${ilkArac.yil || "...."}</b> Model <b>${ilkArac.marka || "........"}</b> Marka <b>${ilkArac.model || "................"}</b> ticari tanımlı <b>${sasiList}</b> şase numaralı <b>${ilkArac.gtip || "8704.21.31.00.00"}</b> GTİP'inde beyan edilen Bakırköy Tasfiye İşletme Müdürlüğü Geçici depolama alanında bulunan aracın oluşturulan heyetle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">3999</span> mm ve azami dahili taban uzunluğunun <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">2015</span> mm olduğu tespit edilmiş olup benzer araç ithalatlarına ilişkin 30.12.2021 tarihli 65887593 sayılı ile kayıtlı görüş neticesinde aracın GTİP'ini tespit edilmesini temin etmek üzere 28.07.2021 tarihli 65870084 sayılı yazımız ile TMMOB ne yönlendirildiği ve alınan rapor sonucu da dikkate alınarak GTİP yönünde beyanın doğru olduğu, heyette görevli Muayene Memurlarınca da aracın serbest dolaşıma giriş beyannamesinde belirtilen GTİP yönünde beyanın doğru olduğu, ancak söz yurt dışı araştırmasının ayrıca söz konusu belgelerin yurt dışı doğruluğunun ve aracın yurt dışında herhangi bir tadilat veya tescil işlemi görüp görmediği hususunun yurt dışı makamlarından araştırılması hususunu olurlarınıza arz ederiz.
-            </p>
-            <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-weight: bold;">
-                <div style="flex: 1;">Muayene Memuru</div>
-                <div style="flex: 1;">Muayene Memuru</div>
-                <div style="flex: 1;">Muayene Memuru</div>
+        icerik = `
+            <div class="belge-kapsayici">
+                <div class="belge-alt-baslik">TUTANAK</div>
+                <p class="belge-paragraf">
+                    Gümrük Müdürlüğümüzce <b>${veri.firmaAdi}</b> firması adına tescilli <b>${veri.tescilTarihi}</b> tarihli <b>${veri.beyanname}</b> sayılı serbest dolaşıma giriş beyannamesi muhteviyatı <b>${veri.yil}</b> Model <b>${veri.marka}</b> Marka <b>${veri.model}</b> ticari tanımlı <b>${veri.sasiListesi}</b> şase numaralı <b>${veri.gtip}</b> GTİP'inde beyan edilen Bakırköy Tasfiye İşletme Müdürlüğü Geçici depolama alanında bulunan aracın oluşturulan heyetle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">3999</span> mm ve azami dahili taban uzunluğunun <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">2015</span> mm olduğu tespit edilmiş olup benzer araç ithalatlarına ilişkin 30.12.2021 tarihli 65887593 sayılı ile kayıtlı görüş neticesinde aracın GTİP'ini tespit edilmesini temin etmek üzere 28.07.2021 tarihli 65870084 sayılı yazımız ile TMMOB ne yönlendirildiği ve alınan rapor sonucu da dikkate alınarak GTİP yönünde beyanın doğru olduğu, heyette görevli Muayene Memurlarınca da aracın serbest dolaşıma giriş beyannamesinde belirtilen GTİP yönünde beyanın doğru olduğu, ancak söz yurt dışı araştırmasının ayrıca söz konusu belgelerin yurt dışı doğruluğunun ve aracın yurt dışında herhangi bir tadilat veya tescil işlemi görüp görmediği hususunun yurt dışı makamlarından araştırılması hususunu olurlarınıza arz ederiz.
+                </p>
+                
+                <div class="heyet-alani">
+                    <div class="heyet-uye">Muayene Memuru</div>
+                    <div class="heyet-uye">Muayene Memuru</div>
+                    <div class="heyet-uye">Muayene Memuru</div>
+                </div>
             </div>
         `;
     }
     
-    container.innerHTML = html;
+    // 4. DOM'A YAZDIRMA (Stil ve İçeriği birleştirip ekrana basıyoruz)
+    container.innerHTML = stilAlani + icerik;
 };
 </script>
 </body>
