@@ -642,24 +642,21 @@
     }
     
     .app-wrap { flex-direction: column; }
-    .app-wrap { flex-direction: column; }
 
-.header-right {
-        display: flex !important;
-        gap: 6px;
-    }
-    .header-right .hdr-icon-btn {
-        width: 34px;
-        height: 34px;
-    }
-    .header-right .divider-v { display: none; }
-    .header-right .user-pill { display: none; }
-    .search-wrap { max-width: 140px !important; height: 36px !important; padding: 4px 8px !important; }
+    /* MOBİL ÜST BAR */
+    .top-header { padding: 6px 10px !important; gap: 6px !important; }
+    .header-left { flex: 1 !important; overflow: hidden !important; }
+    .search-wrap { width: auto !important; max-width: none !important; flex: 1 !important; height: 36px !important; padding: 4px 10px !important; border-radius: 20px !important; border: 2px solid var(--primary) !important; box-shadow: 0 0 12px rgba(59,130,246,0.3) !important; }
     .search-wrap input { font-size: 12px !important; }
     .search-wrap button { display: none !important; }
     .menu-toggle { width: 36px !important; height: 36px !important; min-width: 36px !important; }
-.toolbar { flex-direction: column; gap: 10px; padding: 10px !important; }
+    .header-right { display: flex !important; gap: 4px !important; flex-shrink: 0 !important; }
+    .header-right .hdr-icon-btn { width: 32px !important; height: 32px !important; }
+    .header-right .divider-v { display: none !important; }
+    .header-right .user-pill { display: none !important; }
+    .toolbar { flex-direction: column; gap: 10px; padding: 10px !important; }
     .toolbar-left, .toolbar-right { width: 100%; justify-content: center; flex-wrap: wrap; }
+
     /* MOBİL BOTTOM NAVİGASYON */
     .bottom-nav {
         display: flex !important;
@@ -4618,6 +4615,7 @@ window.toggleSidebar = function() {
         sidebar.classList.toggle('collapsed');
     }
 };
+// MOBİL BOTTOM NAVİGASYON
 window.bnavGo = function(view) {
     window.renderView(view);
     document.querySelectorAll('.bnav-btn').forEach(function(btn) {
@@ -4625,6 +4623,9 @@ window.bnavGo = function(view) {
     });
     let aktif = document.getElementById('bnav-' + view);
     if(aktif) aktif.style.color = 'var(--primary)';
+    });
+    let aktif = document.getElementById('bnav-' + view);
+    if(aktif) aktif.classList.add('bnav-active');
     let sidebar = document.querySelector('.sidebar');
     if(sidebar && !sidebar.classList.contains('collapsed')) {
         sidebar.classList.add('collapsed');
@@ -4874,21 +4875,21 @@ window.renderDilekceContent = function() {
 </script>
 <div id="sutun-menu" style="position:fixed;right:20px;top:130px;width:240px;max-height:500px;z-index:99999;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:12px;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:none;padding:10px 0;"></div>
 
-<div id="bottom-nav" class="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:0;box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
-    <div style="display:flex;width:100%;background:var(--bg-surface);border-top:1px solid var(--border);padding:6px 0 10px 0;">
-        <button onclick="window.bnavGo('dashboard')" id="bnav-dashboard" class="bnav-btn bnav-active" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--primary);">
+<div id="bottom-nav" class="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;background:var(--bg-surface);border-top:1px solid var(--border);z-index:99999;padding:0;box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
+    <div style="display:flex;width:100%;padding:8px 0 12px 0;">
+        <button onclick="window.bnavGo('dashboard')" id="bnav-dashboard" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;background:none;border:none;color:var(--primary);font-size:11px;font-weight:700;cursor:pointer;">
             <i data-lucide="layout-dashboard" style="width:24px;height:24px;"></i><span>Özet</span>
         </button>
-        <button onclick="window.bnavGo('declarations')" id="bnav-declarations" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+        <button onclick="window.bnavGo('declarations')" id="bnav-declarations" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;background:none;border:none;color:var(--text-muted);font-size:11px;font-weight:700;cursor:pointer;">
             <i data-lucide="car" style="width:24px;height:24px;"></i><span>Araçlar</span>
         </button>
-        <button onclick="window.bnavGo('cariKart')" id="bnav-cariKart" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+        <button onclick="window.bnavGo('cariKart')" id="bnav-cariKart" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;background:none;border:none;color:var(--text-muted);font-size:11px;font-weight:700;cursor:pointer;">
             <i data-lucide="wallet" style="width:24px;height:24px;"></i><span>Cari</span>
         </button>
-        <button onclick="window.bnavGo('calculator')" id="bnav-calculator" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+        <button onclick="window.bnavGo('calculator')" id="bnav-calculator" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;background:none;border:none;color:var(--text-muted);font-size:11px;font-weight:700;cursor:pointer;">
             <i data-lucide="calculator" style="width:24px;height:24px;"></i><span>Hesapla</span>
         </button>
-        <button onclick="window.bnavGo('bankaListesi')" id="bnav-bankaListesi" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+        <button onclick="window.bnavGo('bankaListesi')" id="bnav-bankaListesi" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;background:none;border:none;color:var(--text-muted);font-size:11px;font-weight:700;cursor:pointer;">
             <i data-lucide="landmark" style="width:24px;height:24px;"></i><span>Banka</span>
         </button>
     </div>
