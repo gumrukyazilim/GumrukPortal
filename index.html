@@ -4551,7 +4551,7 @@ window.checkBottomNav = function() {
     let nav = document.getElementById('bottom-nav');
     if(!nav) return;
     if(window.innerWidth <= 768) {
-        nav.style.display = 'flex';
+        nav.style.display = 'block';
     } else {
         nav.style.display = 'none';
     }
@@ -4788,22 +4788,24 @@ window.renderDilekceContent = function() {
     container.innerHTML = stilAlani + icerik;
 };
 </script>
-<div class="bottom-nav" id="bottom-nav">
-    <button class="bottom-nav-btn bnav-active" onclick="window.bnavGo('dashboard')" id="bnav-dashboard">
-        <i data-lucide="layout-dashboard"></i><span>Özet</span>
-    </button>
-    <button class="bottom-nav-btn" onclick="window.bnavGo('declarations')" id="bnav-declarations">
-        <i data-lucide="car"></i><span>Araçlar</span>
-    </button>
-    <button class="bottom-nav-btn" onclick="window.bnavGo('cariKart')" id="bnav-cariKart">
-        <i data-lucide="wallet"></i><span>Cari</span>
-    </button>
-    <button class="bottom-nav-btn" onclick="window.bnavGo('calculator')" id="bnav-calculator">
-        <i data-lucide="calculator"></i><span>Hesapla</span>
-    </button>
-    <button class="bottom-nav-btn" onclick="window.toggleSidebar()" id="bnav-menu">
-        <i data-lucide="menu"></i><span>Menü</span>
-    </button>
+<div id="bottom-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid rgba(255,255,255,0.12);z-index:99999;padding:6px 0;box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
+    <div style="display:flex;">
+        <button onclick="window.bnavGo('dashboard')" id="bnav-dashboard" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#3b82f6;font-size:10px;font-weight:600;cursor:pointer;">
+            <i data-lucide="layout-dashboard" style="width:22px;height:22px;"></i><span>Özet</span>
+        </button>
+        <button onclick="window.bnavGo('declarations')" id="bnav-declarations" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer;">
+            <i data-lucide="car" style="width:22px;height:22px;"></i><span>Araçlar</span>
+        </button>
+        <button onclick="window.bnavGo('cariKart')" id="bnav-cariKart" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer;">
+            <i data-lucide="wallet" style="width:22px;height:22px;"></i><span>Cari</span>
+        </button>
+        <button onclick="window.bnavGo('calculator')" id="bnav-calculator" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer;">
+            <i data-lucide="calculator" style="width:22px;height:22px;"></i><span>Hesapla</span>
+        </button>
+        <button onclick="window.toggleSidebar()" id="bnav-menu" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;background:none;border:none;color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer;">
+            <i data-lucide="menu" style="width:22px;height:22px;"></i><span>Menü</span>
+        </button>
+    </div>
 </div>
 </body>
 </html>
