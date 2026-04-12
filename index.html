@@ -3212,11 +3212,16 @@ window.checkWhatsAppReminders = function() {
     if(sonGonderim !== bugun && riskliAraclar.length > 0) {
         // Günde 1 kez otomatik uyarı
         setTimeout(function() {
-            if(confirm('⚠️ ' + riskliAraclar.length + ' aracın süresi 5 gün içinde doluyor!\n\nFirmalara WhatsApp hatırlatması göndermek ister misiniz?')) {
-                window.topluWhatsAppGonder();
-            }
-            localStorage.setItem('gumruk_wp_last_remind', bugun);
-        }, 3000);
+    let ozet = "*⚠️ GÜNLÜK SÜRE RAPORU*%0A%0A";
+    riskliAraclar.forEach(function(r) {
+        ozet += "🚗 " + r.firma + " — " + (r.data.marka||'') + " " + (r.data.model||'') + "%0A";
+        ozet += "   Şasi: " + (r.data.sasi||'-') + "%0A";
+        ozet += "   *" + r.kalan + " gün kaldı*%0A%0A";
+    });
+    ozet += "Toplam: " + riskliAraclar.length + " araç%0A_GümrükPortal Otomatik Rapor_";
+    window.open("https://wa.me/905326321661?text=" + ozet, '_blank');
+    localStorage.setItem('gumruk_wp_last_remind', bugun);
+}, 3000);
     }
 };
 
