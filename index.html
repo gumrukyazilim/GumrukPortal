@@ -1779,31 +1779,27 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.deleteFirm=function(fn,e){e.stopPropagation();let name=fn.replace(/&quot;/g,'"');if(confirm(`'${name}' firmasını SİL?`)){delete window.firmData[name];saveData('firm');window.renderView('firms');}};
     window.deleteDeclaration=function(i){if(confirm('Sil?')){
     let d=window.declarationsData[i];
-    let sasi=d?d.sasi:'';
-    window.declarationsData.splice(i,1);
-    if(sasi){
-alert("Siliniyor: " + sasi);
-        Object.keys(window.firmData).forEach(fn=>{
-            let fi=window.firmData[fn].findIndex(x=>x.sasi===sasi);
-            if(fi!==-1)window.firmData[fn].splice(fi,1);
+alert("Şasi: " + (d?d.sasi:'YOK') + "\nFirma sayısı: " + Object.keys(window.firmData).length + "\nKıymet sayısı: " + window.kiymetData.length);
+    if(d && d.sasi){
+        let sasi=d.sasi;
+        Object.keys(window.firmData).forEach(function(fn){
+            window.firmData[fn]=window.firmData[fn].filter(function(x){return x.sasi!==sasi;});
         });
-        let ki=window.kiymetData.findIndex(x=>x.sasi===sasi);
-        if(ki!==-1)window.kiymetData.splice(ki,1);
+        window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});
     }
+    window.declarationsData.splice(i,1);
     saveData('decl');saveData('firm');saveData('kiymet');
     window.renderDeclarationsTable();
     if(window.updateDashboardStats)window.updateDashboardStats();
 }};
     window.deleteFirmVehicle=function(i){if(confirm('Sil?')){
     let d=window.firmData[window.currentFirm][i];
-    let sasi=d?d.sasi:'';
-    window.firmData[window.currentFirm].splice(i,1);
-    if(sasi){
-        let di=window.declarationsData.findIndex(x=>x.sasi===sasi);
-        if(di!==-1)window.declarationsData.splice(di,1);
-        let ki=window.kiymetData.findIndex(x=>x.sasi===sasi);
-        if(ki!==-1)window.kiymetData.splice(ki,1);
+    if(d && d.sasi){
+        let sasi=d.sasi;
+        window.declarationsData=window.declarationsData.filter(function(x){return x.sasi!==sasi;});
+        window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});
     }
+    window.firmData[window.currentFirm].splice(i,1);
     saveData('decl');saveData('firm');saveData('kiymet');
     window.renderFirmVehicles();
     if(window.updateDashboardStats)window.updateDashboardStats();
@@ -2723,10 +2719,10 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
 
     window.toggleDeclCb=function(){let c=document.querySelectorAll('.decl-cb:checked'),b=document.getElementById('decl-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('decl-sel-count').innerText=c.length;}else b.classList.add('hidden');}};
     window.toggleAllDeclarations=function(v){document.querySelectorAll('.decl-cb').forEach(c=>c.checked=v);window.toggleDeclCb();};
-    window.bulkDeleteDeclarations=function(){let c=document.querySelectorAll('.decl-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a).forEach(i=>window.declarationsData.splice(i,1));saveData('decl');window.renderDeclarationsTable();}};
+    window.bulkDeleteDeclarations=function(){let c=document.querySelectorAll('.decl-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.declarationsData[i];if(d&&d.sasi){let sasi=d.sasi;Object.keys(window.firmData).forEach(function(fn){window.firmData[fn]=window.firmData[fn].filter(function(x){return x.sasi!==sasi;});});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.declarationsData.splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderDeclarationsTable();if(window.updateDashboardStats)window.updateDashboardStats();}};
     window.toggleAllFirmVehicles=function(v){document.querySelectorAll('.firm-cb').forEach(c=>c.checked=v);window.toggleFirmCb();};
     window.toggleFirmCb=function(){let c=document.querySelectorAll('.firm-cb:checked'),b=document.getElementById('firm-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('firm-selected-count').innerText=c.length;}else b.classList.add('hidden');}};
-    window.bulkDeleteFirmVehicles=function(){let c=document.querySelectorAll('.firm-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a).forEach(i=>window.firmData[window.currentFirm].splice(i,1));saveData('firm');window.renderFirmVehicles();}};
+    window.bulkDeleteFirmVehicles=function(){let c=document.querySelectorAll('.firm-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.firmData[window.currentFirm][i];if(d&&d.sasi){let sasi=d.sasi;window.declarationsData=window.declarationsData.filter(function(x){return x.sasi!==sasi;});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.firmData[window.currentFirm].splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderFirmVehicles();if(window.updateDashboardStats)window.updateDashboardStats();}};
     window.toggleSelectAllKiymet=function(v){document.querySelectorAll('.kiymet-cb').forEach(c=>c.checked=v);window.toggleKiymetCb();};
     window.toggleKiymetCb=function(){let c=document.querySelectorAll('.kiymet-cb:checked'),b=document.getElementById('kiymet-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('kiymet-sel-count').innerText=c.length;}else b.classList.add('hidden');}};
     window.deleteSelectedKiymets=function(){let c=document.querySelectorAll('.kiymet-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a).forEach(i=>window.kiymetData.splice(i,1));saveData('kiymet');window.renderKiymetTable();}};
