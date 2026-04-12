@@ -4859,7 +4859,7 @@ window.renderDilekceContent = function() {
 <div id="sutun-menu" style="position:fixed;right:20px;top:130px;width:240px;max-height:500px;z-index:99999;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:12px;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:none;padding:10px 0;"></div>
 
 <div id="bottom-nav" class="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:8px 0;padding-bottom:env(safe-area-inset-bottom,8px);box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
-    <div style="display:flex;background:var(--bg-surface);border-top:1px solid var(--border);margin:0;padding:4px 0;">
+    <div style="display:flex;width:100%;background:var(--bg-surface);border-top:1px solid var(--border);margin:0;padding:4px 0;">
         <button onclick="window.bnavGo('dashboard')" id="bnav-dashboard" class="bnav-btn bnav-active" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--primary);">
             <i data-lucide="layout-dashboard" style="width:24px;height:24px;"></i><span>Özet</span>
         </button>
@@ -4872,8 +4872,8 @@ window.renderDilekceContent = function() {
         <button onclick="window.bnavGo('calculator')" id="bnav-calculator" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
             <i data-lucide="calculator" style="width:24px;height:24px;"></i><span>Hesapla</span>
         </button>
-        <button onclick="window.toggleSidebar()" id="bnav-menu" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
-            <i data-lucide="menu" style="width:24px;height:24px;"></i><span>Menü</span>
+        <button onclick="window.bnavGo('bankaListesi')" id="bnav-bankaListesi" class="bnav-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:none;border:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">
+            <i data-lucide="landmark" style="width:24px;height:24px;"></i><span>Banka</span>
         </button>
     </div>
 </div>
