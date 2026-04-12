@@ -366,6 +366,8 @@
         .firm-delete-btn { position:absolute; top:14px; right:14px; width:28px; height:28px; border-radius:var(--r-sm); background:transparent; color:var(--text-muted); display:flex; justify-content:center; align-items:center; cursor:pointer; transition:0.18s; opacity:0; border:1px solid transparent; }
         .firm-card:hover .firm-delete-btn { opacity:1; }
         .firm-delete-btn:hover { background:rgba(239,68,68,0.1); color:var(--danger); border-color:rgba(239,68,68,0.2); }
+.firm-card:hover .firm-edit-btn { opacity:1 !important; }
+.firm-edit-btn:hover { background:rgba(59,130,246,0.1); color:var(--primary); border-color:rgba(59,130,246,0.2); }
         
         .calc-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:32px; }
         .result-panel { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:28px; position:sticky; top:0; }
@@ -1218,7 +1220,7 @@
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                     <div class="input-group" style="margin:0;">
                         <label>ÖTV %</label>
-                        <select id="calc-otv-oran" onchange="window._otvManuel=true; window.calculateTaxes()"
+                        <select id="calc-otv-oran" onchange="window._otvManuel=true; window.calculateTaxes()" style="background:var(--input-bg);">
                             <option value="0">%0</option>
                             <option value="25">%25</option>
                             <option value="45">%45</option>
@@ -1625,7 +1627,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
         });
     };
 
-    window.declarationsData=[]; window.firmData={}; window.kiymetData=[];
+    window.declarationsData=[]; window.firmData={}; window.firmMeta={}; window.kiymetData=[];
     
     window.fixExcelDate=function(v){if(!v)return'';if(typeof v==='number'||(!isNaN(v)&&Number(v)>30000)){try{let d=new Date((Number(v)-25569)*86400*1000);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}catch(e){return v;}}if(typeof v==='string'&&v.includes('T')){try{let d=new Date(v);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}catch(e){}}return String(v).trim();};
     window.parseTRDate=function(s){if(!s||s.trim().length<8)return null;let p=s.trim().split(/[\.\-\/]/);if(p.length!==3)return null;let d,m,y;if(p[0].length===4){y=parseInt(p[0]);m=parseInt(p[1])-1;d=parseInt(p[2]);}else{d=parseInt(p[0]);m=parseInt(p[1])-1;y=parseInt(p[2]);if(y<100)y+=2000;}let dt=new Date(y,m,d);dt.setHours(0,0,0,0);return isNaN(dt.getTime())?null:dt;};
@@ -1635,8 +1637,8 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     window.formatNumber=function(v,kurus){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;let fd=kurus?2:0;return n.toLocaleString('tr-TR',{minimumFractionDigits:fd,maximumFractionDigits:fd});};
     window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
-    function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));}catch(e){}}
-    function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);}catch(e){}}
+    function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));localStorage.setItem('gumrukFirmMeta',JSON.stringify(window.firmMeta));}catch(e){}}
+    function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);let fm=localStorage.getItem('gumrukFirmMeta');if(fm&&fm!=="null")window.firmMeta=JSON.parse(fm);}catch(e){}}
 
     
     window._dataLoaded = false; // SİSTEM KİLİDİ (BAŞLANGIÇTA KAPALI)
@@ -1664,7 +1666,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
                     }
                 }
 
-                let ok=await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData});
+                let ok=await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,firmMeta:window.firmMeta});
                 if(ok)hideSyncToast("Firebase'e kaydedildi!",true);else hideSyncToast("Kayıt başarısız!",false);
             }else{hideSyncToast("Firebase henüz hazır değil",false);}
         },1500);
@@ -1702,6 +1704,7 @@ if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
     localStorage.setItem('gumruk_calc_state_v15', JSON.stringify(data.calcState));
 }
                 
+                if(data.firmMeta) window.firmMeta = data.firmMeta;
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
                 saveToLocal();
                 hideSyncToast("Firebase'den çekildi!",true);
@@ -1861,6 +1864,19 @@ alert("Siliniyor: " + sasi);
         if(gun>0){if(gun<=20)result.ardiye=gun*145;else if(gun<=50)result.ardiye=2900+(gun-20)*725;else if(gun<=80)result.ardiye=24650+(gun-50)*1160;else result.ardiye=59450+(gun-80)*1450;}
         return result;
     };
+window.editFirmMeta=function(fn){
+    let name=fn.replace(/&quot;/g,'"').replace(/\\'/g,"'");
+    let meta=window.firmMeta[name]||{};
+    let vn=prompt("Vergi No:",meta.vergiNo||"");
+    if(vn===null)return;
+    let tc=prompt("TC No:",meta.tcNo||"");
+    if(tc===null)return;
+    if(!window.firmMeta[name])window.firmMeta[name]={};
+    window.firmMeta[name].vergiNo=vn.trim();
+    window.firmMeta[name].tcNo=tc.trim();
+    saveData('firm');
+    window.renderFirmsList();
+};
 
     window.declAutoCalc=function(){
         let val=id=>document.getElementById(id)?.value;
@@ -2619,7 +2635,7 @@ pagebreak: {mode: 'avoid-all'}
     document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();
 };
 
-    window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div></div>`;}).join('');if(window.lucide)lucide.createIcons();};
+    window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");let meta=window.firmMeta[fn]||{};return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta('${sn}')"><i data-lucide="edit-3"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div>${meta.vergiNo?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: '+meta.vergiNo+'</div>':''}${meta.tcNo?'<div style="font-size:10px;color:var(--text-muted);">TC: '+meta.tcNo+'</div>':''}</div>`;}).join('');if(window.lucide)lucide.createIcons();};
     window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
     window.renderFirmVehicles=function(){
         let tbody=document.getElementById('firm-vehicles-tbody');if(!tbody)return;
@@ -3944,13 +3960,15 @@ window.ardiyeUret = function(idx) {
     }
     
     window.autoSaveArdiyeToDrive({
-        firma: d.firma || "",
-        beyanname: beyannameList.join("|") || d.sasi || "BELGE",
-        sasi: sasiList.join("|"),
-        tarih: d.tarih || "",
-        evrakLink: d.evrakLink || "",
-        adet: adet
-    });
+    firma: d.firma || "",
+    beyanname: beyannameList.join("|") || d.sasi || "BELGE",
+    sasi: sasiList.join("|"),
+    tarih: d.tarih || "",
+    evrakLink: d.evrakLink || "",
+    adet: adet,
+    vergiNo: (window.firmMeta[d.firma]||{}).vergiNo || (window.firmMeta[d.firma]||{}).tcNo || "4110376484"
+});
+
 };
 
 window.autoSaveArdiyeToDrive = function(r) {
@@ -3981,7 +3999,8 @@ window.autoSaveArdiyeToDrive = function(r) {
         "&girisTarihi=" + encodeURIComponent(r.tarih || "") +
         "&evrakLink=" + encodeURIComponent(r.evrakLink || "") +
         "&adet=" + encodeURIComponent(r.adet || 1) +
-        "&callback=" + callbackName;
+"&vergiNo=" + encodeURIComponent(r.vergiNo || "4110376484") +
+"&callback=" + callbackName;
     
     script.onerror = function() {
         if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye bağlantı hatası", false);
