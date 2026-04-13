@@ -1182,8 +1182,9 @@
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Finans</div><h1 class="page-title">Cari Kart</h1></div>
         <div class="page-actions">
+            <button class="btn-sm" id="cari-geri-btn" style="display:none;" onclick="document.getElementById('cari-firma-sec').value='';window.renderCariTable();"><i data-lucide="arrow-left"></i> Geri</button>
             <select id="cari-firma-sec" onchange="window.renderCariTable()" style="min-width:200px;padding:10px;font-weight:600;">
-                <option value="">Firma Seçin...</option>
+                <option value="">Tüm Firmalar</option>
             </select>
             <button class="btn-primary" onclick="window.cariHareketEkle()"><i data-lucide="plus"></i> Hareket Ekle</button>
         </div>
@@ -1809,38 +1810,57 @@ window.renderCariTable = function() {
     let ozet = document.getElementById('cari-ozet');
     if(!firma) {
     if(ozet) ozet.style.display='none';
+    let geriBtn = document.getElementById('cari-geri-btn');
+    if(geriBtn) geriBtn.style.display='none';
+    let tableHead = document.querySelector('#cari-tbody')?.closest('table')?.querySelector('thead');
+    if(tableHead) tableHead.style.display = 'none';
     if(tbody) {
-        // Tüm firmaların hareketlerini göster
-        let tumHareketler = [];
-        Object.keys(window.cariData).forEach(function(fn) {
-            (window.cariData[fn]||[]).forEach(function(h,i) {
-                tumHareketler.push({h:h, firma:fn, idx:i});
-            });
-        });
-        if(!tumHareketler.length) {
+        let firmalar = Object.keys(window.cariData);
+        if(!firmalar.length) {
             tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">Henüz hareket yok</td></tr>';
             return;
         }
-        tbody.innerHTML = tumHareketler.map(function(item) {
-            let h = item.h;
-            let b = (h.birim||'EUR').toUpperCase();
-            let isim = b==='EUR'?'€':b==='USD'?'$':'₺';
-            let tutarRenk = h.tur === 'borc' ? 'var(--danger)' : 'var(--success)';
-            let turBadge = h.tur === 'borc' ? '<span class="badge badge-danger">BORÇ</span>' : '<span class="badge badge-success">ALACAK</span>';
-            return '<tr>' +
-                '<td>' + (h.tarih||'-') + '</td>' +
-                '<td style="font-weight:600;"><span style="color:var(--primary);font-size:10px;">[' + item.firma + ']</span> ' + (h.aciklama||'-') + '</td>' +
-                '<td>' + turBadge + '</td>' +
-                '<td style="color:' + tutarRenk + ';font-weight:700;">' + window.formatNumber(h.tutar,true) + ' ' + isim + '</td>' +
-                '<td style="font-weight:600;">' + b + '</td>' +
-                '<td>-</td>' +
-                '<td style="text-align:center;">-</td>' +
-            '</tr>';
-        }).join('');
-        if(window.lucide) lucide.createIcons();
+        let html = '<tr><td colspan="7" style="padding:0;border:none;">';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px;">';
+        firmalar.forEach(function(fn) {
+            let hareketler = window.cariData[fn] || [];
+            if(!hareketler.length) return;
+            let bEUR=0,aEUR=0,bTRY=0,aTRY=0,bUSD=0,aUSD=0;
+            hareketler.forEach(function(h) {
+                let t=parseFloat(h.tutar)||0;
+                let b=(h.birim||'EUR').toUpperCase();
+                if(h.tur==='borc'){if(b==='EUR')bEUR+=t;else if(b==='USD')bUSD+=t;else bTRY+=t;}
+                else{if(b==='EUR')aEUR+=t;else if(b==='USD')aUSD+=t;else aTRY+=t;}
+            });
+            let bakEUR=aEUR-bEUR, bakUSD=aUSD-bUSD, bakTRY=aTRY-bTRY;
+            let bakiye='';
+            if(bakEUR!==0) bakiye+=window.formatNumber(bakEUR,true).replace(',00','')+' €';
+            if(bakUSD!==0) bakiye+=(bakiye?' | ':'')+window.formatNumber(bakUSD,true).replace(',00','')+' $';
+            if(bakTRY!==0) bakiye+=(bakiye?' | ':'')+window.formatNumber(bakTRY,true).replace(',00','')+' ₺';
+            if(!bakiye) bakiye='0';
+            let renk=(bakEUR>=0&&bakUSD>=0&&bakTRY>=0)?'var(--success)':'var(--danger)';
+            let sonHareket = hareketler[hareketler.length-1];
+            let sonTarih = sonHareket ? sonHareket.tarih : '-';
+            let sonAciklama = sonHareket ? sonHareket.aciklama : '-';
+            
+            html += '<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;transition:0.2s;border-left:4px solid '+renk+';" onclick="document.getElementById(\'cari-firma-sec\').value=\''+fn+'\';window.renderCariTable();" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(0,0,0,0.2)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+            html += '<span style="font-weight:700;font-size:15px;color:var(--text-primary);">'+fn+'</span>';
+            html += '<span class="badge" style="background:rgba(59,130,246,0.1);color:var(--primary);">'+hareketler.length+' hareket</span>';
+            html += '</div>';
+            html += '<div style="font-size:22px;font-weight:800;color:'+renk+';margin-bottom:8px;">'+bakiye+'</div>';
+            html += '<div style="font-size:11px;color:var(--text-muted);">Son: '+sonTarih+' · '+sonAciklama+'</div>';
+            html += '</div>';
+        });
+        html += '</div></td></tr>';
+        tbody.innerHTML = html;
     }
     return;
 }
+let geriBtn = document.getElementById('cari-geri-btn');
+let tableHead2 = document.querySelector('#cari-tbody')?.closest('table')?.querySelector('thead');
+if(tableHead2) tableHead2.style.display = '';
+if(geriBtn) geriBtn.style.display='flex';
 if(!tbody) return;
     
     let hareketler = window.cariData[firma] || [];
