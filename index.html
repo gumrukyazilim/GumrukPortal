@@ -4158,8 +4158,7 @@ if(vn==='cariKart'){
         document.getElementById('da-firma').value = name;
         document.getElementById('da-firma-list').classList.remove('show');
     };
- // --- YENİ GÖNDERİCİ EKLEME BUTONU MOTORU ---
-    window.addGondericiPrompt = function() {
+ window.addGondericiPrompt = function() {
         let ad = prompt("Yeni Gönderici / İhracatçı Firma Adını Girin:");
         if (!ad || ad.trim() === "") return;
         
@@ -4177,6 +4176,18 @@ if(vn==='cariKart'){
         let ekler = JSON.parse(localStorage.getItem('gumruk_ek_gonderici') || '[]');
         ekler.unshift(yeniGonderici);
         localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(ekler));
+        
+        // Firebase'e kaydet
+        if(window._firebaseSave && window._dataLoaded) {
+            window._firebaseSave({
+                decl: window.declarationsData,
+                firm: window.firmData,
+                kiymet: window.kiymetData,
+                firmMeta: window.firmMeta,
+                cariData: window.cariData,
+                ekGonderici: ekler
+            });
+        }
         
         let gorunecekMetin = yeniGonderici.id ? `${yeniGonderici.id} - ${yeniGonderici.ad}` : yeniGonderici.ad;
         document.getElementById('da-gonderici').value = gorunecekMetin;
