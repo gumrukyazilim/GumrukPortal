@@ -1334,8 +1334,9 @@
                         <option value="TASTİKLİ">TASTİKLİ EVRAK</option>
                         <option value="DIGER">Diğer</option>
                     </select>
-                    <input type="file" id="da-file-input-modal" style="display:none;" accept="image/*,.pdf">
-                    <button type="button" class="btn-sm" onclick="document.getElementById('da-file-input-modal').click()"><i data-lucide="paperclip"></i> Dosya Seç</button>
+                    <input type="file" id="da-file-input-modal" style="display:none;" accept="image/*,.pdf" onchange="let n=this.files[0]?this.files[0].name:'';let s=document.getElementById('da-file-name-display');if(s)s.innerText=n;">
+<button type="button" class="btn-sm" onclick="document.getElementById('da-file-input-modal').click()"><i data-lucide="paperclip"></i> Dosya Seç</button>
+<div id="da-file-name-display" style="font-size:11px;color:var(--success);font-weight:600;margin-top:4px;word-break:break-all;"></div>
                     <button type="button" class="btn-primary" onclick="window.doModalUpload()"><i data-lucide="upload-cloud"></i> Yükle</button>
                 </div>
                 <div id="da-modal-upload-status" style="display:none; color:var(--success); font-weight:600; font-size:12px; margin-top:10px;"></div>
