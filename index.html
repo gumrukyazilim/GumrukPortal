@@ -1288,7 +1288,7 @@
                     <div class="input-group" style="margin:0; grid-column:span 2;">
                         <label>Gönderici / İhracatçı <button type="button" class="icon-btn" style="display:inline-flex; width:20px; height:20px; margin-left:10px;" onclick="window.addGondericiPrompt()"><i data-lucide="plus"></i></button></label>
                         <div class="firm-search-wrap">
-                            <input type="text" id="da-gonderici" oninput="window.filterGonderici(this.value)" autocomplete="off">
+                            <input type="text" id="da-gonderici" oninput="window.filterGonderici(this.value)" onblur="setTimeout(function(){let l=document.getElementById('da-gonderici-list');if(l)l.classList.remove('show');},300)" autocomplete="off">
                             <div id="da-gonderici-list" class="autocomplete-list"></div>
                         </div>
                     </div>
@@ -4635,9 +4635,6 @@ window.bnavGo = function(view) {
     });
     let aktif = document.getElementById('bnav-' + view);
     if(aktif) aktif.style.color = 'var(--primary)';
-    });
-    let aktif = document.getElementById('bnav-' + view);
-    if(aktif) aktif.classList.add('bnav-active');
     let sidebar = document.querySelector('.sidebar');
     if(sidebar && !sidebar.classList.contains('collapsed')) {
         sidebar.classList.add('collapsed');
@@ -4801,17 +4798,17 @@ window.renderDilekceContent = function() {
             .belge-imza-alani { float: right; text-align: center; min-width: 250px; margin-top: 30px; }
             .imza-isim { font-weight: bold; font-size: 17px; margin-bottom: 3px; }
             .imza-yetkili { font-weight: bold; display: inline-block; min-width: 150px; }
-            .arac-listesi { margin-bottom: 30px; padding: 15px; background: rgba(59,130,246,0.05); border: 1px dashed #cbd5e1; border-radius: 8px; }
-            .arac-item { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #ccc; }
-            .arac-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+            .arac-listesi { margin-bottom: 30px; padding: 15px; }
+            .arac-item { margin-bottom: 8px; padding-bottom: 8px; }
+            .arac-item:last-child { margin-bottom: 0; padding-bottom: 0; }
             .heyet-alani { margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-weight: bold; }
             .heyet-uye { flex: 1; }
             
             /* PDF ve Yazdırma için izolasyon (Arka planları temizle, kenarlıkları siyah yap) */
             @media print { 
                 @page { size: A4 portrait; margin: 10mm; } 
-                .arac-listesi { background: transparent; border: 1px solid #000; }
-                .arac-item { border-bottom: 1px solid #000; }
+                .arac-listesi { background: transparent; }
+                .arac-item { }
             }
         </style>
     `;
@@ -4833,13 +4830,20 @@ window.renderDilekceContent = function() {
                 aracListesiHTML += `<div style="font-size: ${fontSize}; font-weight: bold;">Şase No : ${item.sasi || '...................'}</div>`;
             });
         } else {
+            // Özet beyana göre grupla
+            let ozetGrup = {};
             items.forEach(item => {
                 let guncelOzet = item.ozetBeyan || item.beyanname || '...................';
-                aracListesiHTML += `
-                    <div class="arac-item" style="font-size: ${fontSize};">
-                        <strong>Özet Beyan:</strong> ${guncelOzet} <br>
-                        <strong>Şase No:</strong> ${item.sasi || '...................'}
-                    </div>`;
+                if(!ozetGrup[guncelOzet]) ozetGrup[guncelOzet] = [];
+                ozetGrup[guncelOzet].push(item);
+            });
+            Object.keys(ozetGrup).forEach(ozet => {
+                let grpItems = ozetGrup[ozet];
+                aracListesiHTML += `<div style="font-size: ${fontSize}; font-weight: bold; margin-bottom: 6px;">Özet Beyan Numarası: ${ozet} / ${grpItems.length} ARAÇ</div>`;
+                grpItems.forEach(item => {
+                    aracListesiHTML += `<div style="font-size: ${fontSize}; font-weight: bold;">Şase No : ${item.sasi || '...................'}</div>`;
+                });
+                aracListesiHTML += `<div style="margin-bottom:10px;"></div>`;
             });
         }
 
@@ -4886,38 +4890,6 @@ window.renderDilekceContent = function() {
 };
 // ================= ALT MENÜ (BNAV) VE 3 ÇİZGİ MOTORU =================
 
-// Alt butonlara tıklanınca çalışacak yönlendirme motoru
-window.bnavGo = function(hedef) {
-    // 1. Tüm alt butonların rengini soluk (gri) yap
-    document.querySelectorAll('.bnav-btn').forEach(btn => {
-        btn.style.color = 'var(--text-muted)';
-    });
-    
-    // 2. Tıklanan butonu bul ve rengini Mavi (Aktif) yap
-    let aktifBtn = document.getElementById('bnav-' + hedef);
-    if(aktifBtn) aktifBtn.style.color = 'var(--primary)';
-    
-    // 3. İlgili sayfayı ekrana getir
-    if (hedef === 'cariKart') {
-        window.renderView('cari'); // Cari sayfasının şablon adı 'cari' olduğu için
-    } else {
-        window.renderView(hedef);
-    }
-    
-    // 4. Eğer 3 çizgi menüsü açıksa, sayfaya geçince otomatik kapat
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar && !sidebar.classList.contains('collapsed')) {
-        sidebar.classList.add('collapsed');
-    }
-};
-
-// 3 Çizgi (Hamburger) Menü motoru (Eğer silindiyse diye sağlama alıyoruz)
-window.toggleSidebar = function() {
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('collapsed');
-    }
-};
 </script>
 <div id="sutun-menu" style="position:fixed;right:20px;top:130px;width:240px;max-height:500px;z-index:99999;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:12px;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:none;padding:10px 0;"></div>
 
