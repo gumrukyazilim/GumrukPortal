@@ -2346,6 +2346,7 @@ let cd=localStorage.getItem('gumrukCariData');if(cd&&cd!=="null")window.cariData
                 
                 if(data.firmMeta) window.firmMeta = data.firmMeta;
                 if(data.cariData) window.cariData = data.cariData;
+if(data.ekGonderici) localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(data.ekGonderici));
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
                 saveToLocal();
                 hideSyncToast("Firebase'den çekildi!",true);
