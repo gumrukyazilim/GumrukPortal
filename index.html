@@ -1295,7 +1295,7 @@
                     <div class="input-group" style="margin:0; grid-column:span 2;">
                         <label>GTİP Kodu <button type="button" class="icon-btn" style="display:inline-flex; width:20px; height:20px; margin-left:10px;" onclick="window.addGTIPPrompt()"><i data-lucide="plus"></i></button></label>
                         <div class="firm-search-wrap">
-                            <input type="text" id="da-gtip" oninput="window.filterGTIP(this.value)" autocomplete="off">
+                            <input type="text" id="da-gtip" oninput="window.filterGTIP(this.value)" onblur="setTimeout(function(){let l=document.getElementById('da-gtip-list');if(l)l.classList.remove('show');},300)" autocomplete="off">
                             <div id="da-gtip-list" class="autocomplete-list"></div>
                         </div>
                     </div>
@@ -2048,6 +2048,7 @@ function saveCariData() {
 }
 </script>
 <script>
+
     // --- YENİ EKLENEN VERİ LİSTELERİ ---
     window.GondericiList = [
         {id: "21US000661501", ad: "34 LLC SUNA TATAR"},
@@ -2090,6 +2091,10 @@ function saveCariData() {
         {id: "25DE000992490", ad: "HM AUTOMOBİLE"},
         {id: "25DE000991628", ad: "AUTOLINE INH BRESCHAK LUKAS"}
     ];
+(function(){
+    let ekler = JSON.parse(localStorage.getItem('gumruk_ek_gonderici') || '[]');
+    ekler.forEach(function(g) { window.GondericiList.unshift(g); });
+})();
 
     window.GTIPList = [
         {kod: "8703.21.10.10.00", desc: "Silindir hacmi 1000 cm³’ü geçmeyen binek otomobilleri (yeni)"},
@@ -2138,6 +2143,7 @@ function saveCariData() {
         let listEl = document.getElementById('da-gonderici-list');
         if(!listEl) return;
         let q = val.toLocaleLowerCase('tr').trim();
+        if(!q) { listEl.classList.remove('show'); return; }
         let matches = window.GondericiList;
         if(q) {
             matches = window.GondericiList.filter(g => g.ad.toLocaleLowerCase('tr').includes(q) || g.id.toLocaleLowerCase('tr').includes(q));
@@ -2159,6 +2165,7 @@ function saveCariData() {
         let listEl = document.getElementById('da-gtip-list');
         if(!listEl) return;
         let q = val.toLocaleLowerCase('tr').trim();
+        if(!q) { listEl.classList.remove('show'); return; }
         let matches = window.GTIPList;
         if(q) {
             matches = window.GTIPList.filter(g => g.kod.replace(/\./g,'').includes(q.replace(/\./g,'')) || g.desc.toLocaleLowerCase('tr').includes(q));
@@ -4154,24 +4161,27 @@ if(vn==='cariKart'){
  // --- YENİ GÖNDERİCİ EKLEME BUTONU MOTORU ---
     window.addGondericiPrompt = function() {
         let ad = prompt("Yeni Gönderici / İhracatçı Firma Adını Girin:");
-        if (!ad || ad.trim() === "") return; // Boş bırakılırsa iptal et
+        if (!ad || ad.trim() === "") return;
         
         let id = prompt("Firma ID'sini Girin (Örn: 21DE00066...):");
-        if (id === null) id = ""; // İptale basılırsa boş bırak
+        if (id === null) id = "";
         
         let yeniGonderici = { 
             id: id.trim().toUpperCase(), 
             ad: ad.trim().toUpperCase() 
         };
         
-        // Listeye en üste ekle
         window.GondericiList.unshift(yeniGonderici);
         
-        // Kutunun içine otomatik yaz
+        // localStorage'a kaydet
+        let ekler = JSON.parse(localStorage.getItem('gumruk_ek_gonderici') || '[]');
+        ekler.unshift(yeniGonderici);
+        localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(ekler));
+        
         let gorunecekMetin = yeniGonderici.id ? `${yeniGonderici.id} - ${yeniGonderici.ad}` : yeniGonderici.ad;
         document.getElementById('da-gonderici').value = gorunecekMetin;
         
-        alert("Başarılı! Yeni gönderici firma listeye eklendi ve kutuya yazıldı.");
+        alert("Başarılı! Yeni gönderici firma listeye eklendi.");
     };
  
        // --- YENİ GTİP EKLEME BUTONU MOTORU ---
