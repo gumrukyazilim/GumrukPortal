@@ -745,6 +745,7 @@
             
             <div class="sidebar-section-label" style="margin-top:8px;">Yönetim</div>
             <button class="nav-btn" data-view="declarations"><i data-lucide="car"></i><span>Gelen Araçlar</span></button>
+            <button class="nav-btn admin-only" data-view="gelecekAraclar"><i data-lucide="ship"></i><span>Gelecek Araçlar</span></button>
             <button class="nav-btn admin-only" data-view="firms"><i data-lucide="building-2"></i><span>Firma Arşivi</span></button>
             <button class="nav-btn admin-only" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
             <button class="nav-btn admin-only" data-view="beyanname"><i data-lucide="file-text"></i><span>Beyanname Formu</span></button>
@@ -1229,6 +1230,23 @@
             </table>
         </div>
     </div>
+</template>
+<template id="tpl-gelecekAraclar">
+    <div class="page-hdr fade-in">
+        <div><div class="page-eyebrow">Pipeline</div><h1 class="page-title">Gelecek Araçlar</h1></div>
+        <div class="page-actions">
+            <select id="gelecek-filtre" onchange="window.renderGelecekTable()" style="min-width:160px;padding:10px;font-weight:600;">
+                <option value="">Tüm Durumlar</option>
+                <option value="YÜKLENDI">Yüklendi</option>
+                <option value="TIRDA">Tırda</option>
+                <option value="YOLDA">Yolda</option>
+                <option value="GÜMRÜKTE">Gümrükte</option>
+            </select>
+            <button class="btn-primary" onclick="window.gelecekAracEkle()"><i data-lucide="plus"></i> Yeni Araç</button>
+        </div>
+    </div>
+    <div id="gelecek-pipeline" class="stats-grid fade-in" style="margin-bottom:20px;"></div>
+    <div id="gelecek-cards" class="fade-in"></div>
 </template>
 <div id="decl-modal" class="modal-backdrop hidden">
     <div class="modal-box">
@@ -2020,6 +2038,256 @@ window.renderGenelCariOzet = function() {
     
     container.innerHTML = html;
 };
+// ============ GELECEK ARAÇLAR SİSTEMİ ============
+window.renderGelecekTable = function() {
+    let pipeline = document.getElementById('gelecek-pipeline');
+    let cards = document.getElementById('gelecek-cards');
+    if(!pipeline || !cards) return;
+    
+    let filtre = document.getElementById('gelecek-filtre')?.value || '';
+    let data = window.gelecekData || [];
+    
+    // Pipeline istatistikleri
+    let durumlar = {YÜKLENDI:0, TIRDA:0, YOLDA:0, GÜMRÜKTE:0};
+    data.forEach(function(d) { if(durumlar[d.durum] !== undefined) durumlar[d.durum]++; });
+    
+    pipeline.innerHTML = [
+        {key:'YÜKLENDI', icon:'package', renk:'#6366f1', label:'Yüklendi'},
+        {key:'TIRDA', icon:'ship', renk:'#3b82f6', label:'Gemide'},
+        {key:'YOLDA', icon:'anchor', renk:'#f59e0b', label:'Limanda'},
+        {key:'GÜMRÜKTE', icon:'building-2', renk:'#10b981', label:'Gümrükte'}
+    ].map(function(s) {
+        return '<div class="stat-card" style="cursor:pointer;border-left:4px solid '+s.renk+';" onclick="document.getElementById(\'gelecek-filtre\').value=\''+s.key+'\';window.renderGelecekTable();">' +
+            '<div class="stat-card-top"><div class="stat-icon-box" style="background:'+s.renk+'22;color:'+s.renk+';"><i data-lucide="'+s.icon+'"></i></div></div>' +
+            '<div class="stat-value" style="color:'+s.renk+';">'+durumlar[s.key]+'</div>' +
+            '<div class="stat-label">'+s.label+'</div></div>';
+    }).join('');
+    
+    // Filtreleme
+    let liste = data.map(function(d,i) { return {d:d, idx:i}; });
+    if(filtre) liste = liste.filter(function(x) { return x.d.durum === filtre; });
+    
+    if(!liste.length) {
+        cards.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);">Henüz gelecek araç yok</div>';
+        if(window.lucide) lucide.createIcons();
+        return;
+    }
+    
+    let durumRenk = {YÜKLENDI:'#6366f1', TIRDA:'#3b82f6', YOLDA:'#f59e0b', GÜMRÜKTE:'#10b981'};
+    let durumIcon = {YÜKLENDI:'package', TIRDA:'ship', YOLDA:'anchor', GÜMRÜKTE:'building-2'};
+    let durumSonraki = {YÜKLENDI:'TIRDA', TIRDA:'YOLDA', YOLDA:'GÜMRÜKTE', GÜMRÜKTE:'GELDİ'};
+    
+    cards.innerHTML = liste.map(function(item) {
+        let d = item.d;
+        let i = item.idx;
+        let renk = durumRenk[d.durum] || 'var(--primary)';
+        let icon = durumIcon[d.durum] || 'car';
+        let sonraki = durumSonraki[d.durum] || '';
+        let sonrakiBtn = '';
+        
+        if(sonraki === 'GELDİ') {
+            sonrakiBtn = '<button class="btn-primary" style="background:var(--success);padding:6px 14px;font-size:11px;" onclick="event.stopPropagation();window.gelecekAracGeldi('+i+')"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> GELDİ — Aktar</button>';
+        } else if(sonraki) {
+            sonrakiBtn = '<button class="btn-sm" style="border-color:'+renk+';color:'+renk+';padding:4px 12px;font-size:11px;" onclick="event.stopPropagation();window.gelecekDurumIlerle('+i+')"><i data-lucide="arrow-right" style="width:12px;height:12px;"></i> '+sonraki+'</button>';
+        }
+        
+        // Tahmini geliş geri sayım
+        let kalanGun = '';
+        if(d.tahminiGelis) {
+            let parts = d.tahminiGelis.split('.');
+            if(parts.length === 3) {
+                let hedef = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
+                let bugun = new Date(); bugun.setHours(0,0,0,0);
+                let fark = Math.ceil((hedef - bugun) / (1000*60*60*24));
+                if(fark > 0) kalanGun = '<span style="color:var(--warning);font-size:11px;font-weight:600;">~'+fark+' gün</span>';
+                else if(fark === 0) kalanGun = '<span style="color:var(--success);font-size:11px;font-weight:700;">BUGÜN!</span>';
+                else kalanGun = '<span style="color:var(--danger);font-size:11px;font-weight:600;">'+Math.abs(fark)+' gün gecikti</span>';
+            }
+        }
+        
+        return '<div class="card card-pad" style="margin-bottom:12px;border-left:4px solid '+renk+';cursor:pointer;" onclick="window.gelecekAracDuzenle('+i+')">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">' +
+                '<div style="flex:1;">' +
+                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                        '<i data-lucide="'+icon+'" style="width:20px;height:20px;color:'+renk+';"></i>' +
+                        '<span style="font-weight:700;font-size:15px;color:var(--text-primary);">'+( d.marka||'')+' '+(d.model||'')+'</span>' +
+                        '<span style="font-size:12px;color:var(--text-muted);">('+( d.yil||'-')+')</span>' +
+                        '<span class="badge" style="background:'+renk+'22;color:'+renk+';font-weight:700;">'+( d.durum||'-')+'</span>' +
+                    '</div>' +
+                    '<div style="font-size:12px;color:var(--text-secondary);display:flex;gap:16px;flex-wrap:wrap;">' +
+                        '<span><strong>Firma:</strong> '+(d.firma||'-')+'</span>' +
+                        '<span><strong>Şasi:</strong> <span style="font-family:monospace;">'+(d.sasi||'-')+'</span></span>' +
+                        (d.cikisUlke ? '<span><strong>Çıkış:</strong> '+d.cikisUlke+'</span>' : '') +
+                        (d.fatura ? '<span><strong>Fatura:</strong> '+window.formatNumber(d.fatura)+' €</span>' : '') +
+                        (d.tahminiGelis ? '<span><strong>Tahmini:</strong> '+d.tahminiGelis+' '+kalanGun+'</span>' : '') +
+                    '</div>' +
+                    (d.not ? '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;">📝 '+d.not+'</div>' : '') +
+                '</div>' +
+                '<div style="display:flex;gap:8px;align-items:center;">' +
+                    sonrakiBtn +
+                    '<button class="icon-btn text-danger-btn" onclick="event.stopPropagation();window.gelecekAracSil('+i+')"><i data-lucide="trash-2"></i></button>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+    
+    if(window.lucide) lucide.createIcons();
+};
+
+window.gelecekAracEkle = function() {
+    let firma = prompt('Firma:');
+    if(!firma) return;
+    let marka = prompt('Marka:');
+    if(!marka) return;
+    let model = prompt('Model:');
+    let yil = prompt('Yıl:', '2025');
+    let renk = prompt('Renk:');
+    let sasi = prompt('Şasi No (varsa):');
+    let fatura = prompt('Fatura (EUR):');
+    let cikisUlke = prompt('Çıkış Ülkesi:', 'Almanya');
+    let tahminiGelis = prompt('Tahmini Geliş (GG.AA.YYYY):');
+    let not2 = prompt('Not (opsiyonel):');
+    
+    let yeni = {
+        firma: firma.toUpperCase(),
+        marka: marka.toUpperCase(),
+        model: (model||'').toUpperCase(),
+        yil: yil || '',
+        renk: (renk||'').toUpperCase(),
+        sasi: (sasi||'').toUpperCase(),
+        fatura: fatura ? parseFloat(fatura.replace(/\./g,'').replace(',','.')) : 0,
+        cikisUlke: cikisUlke || '',
+        tahminiGelis: tahminiGelis || '',
+        durum: 'YÜKLENDI',
+        not: not2 || '',
+        eklenmeTarihi: window.formatTRDate(new Date())
+    };
+    
+    window.gelecekData.unshift(yeni);
+    window.saveGelecekData();
+    window.renderGelecekTable();
+    
+    // Drive klasörü oluştur
+    if(yeni.sasi) {
+        window.triggerDriveBridge(yeni.firma, yeni.marka, yeni.sasi).then(function(url) {
+            if(url) {
+                yeni.evrakLink = url;
+                window.saveGelecekData();
+            }
+        });
+    }
+};
+
+window.gelecekAracDuzenle = function(idx) {
+    let d = window.gelecekData[idx];
+    if(!d) return;
+    
+    let firma = prompt('Firma:', d.firma);
+    if(firma === null) return;
+    let marka = prompt('Marka:', d.marka);
+    if(marka === null) return;
+    let model = prompt('Model:', d.model);
+    let yil = prompt('Yıl:', d.yil);
+    let renk = prompt('Renk:', d.renk);
+    let sasi = prompt('Şasi No:', d.sasi);
+    let fatura = prompt('Fatura (EUR):', d.fatura);
+    let cikisUlke = prompt('Çıkış Ülkesi:', d.cikisUlke);
+    let tahminiGelis = prompt('Tahmini Geliş (GG.AA.YYYY):', d.tahminiGelis);
+    let durum = prompt('Durum (YÜKLENDI / TIRDA / YOLDA / GÜMRÜKTE):', d.durum);
+    let not2 = prompt('Not:', d.not);
+    
+    d.firma = (firma||'').toUpperCase();
+    d.marka = (marka||'').toUpperCase();
+    d.model = (model||'').toUpperCase();
+    d.yil = yil || '';
+    d.renk = (renk||'').toUpperCase();
+    d.sasi = (sasi||'').toUpperCase();
+    d.fatura = fatura ? parseFloat(fatura.toString().replace(/\./g,'').replace(',','.')) : 0;
+    d.cikisUlke = cikisUlke || '';
+    d.tahminiGelis = tahminiGelis || '';
+    d.durum = (durum||'YÜKLENDI').toUpperCase();
+    d.not = not2 || '';
+    
+    window.saveGelecekData();
+    window.renderGelecekTable();
+};
+
+window.gelecekDurumIlerle = function(idx) {
+    let d = window.gelecekData[idx];
+    if(!d) return;
+    let sira = {YÜKLENDI:'TIRDA', TIRDA:'YOLDA', YOLDA:'GÜMRÜKTE'};
+    if(sira[d.durum]) {
+        d.durum = sira[d.durum];
+        window.saveGelecekData();
+        window.renderGelecekTable();
+        if(typeof showSyncToast === 'function') showSyncToast('Durum güncellendi: ' + d.durum);
+    }
+};
+
+window.gelecekAracGeldi = function(idx) {
+    let d = window.gelecekData[idx];
+    if(!d) return;
+    if(!confirm(d.marka + ' ' + d.model + ' geldi mi? Gelen Araçlar\'a aktarılacak.')) return;
+    
+    // Gelen Araçlar'a aktar
+    let yeniKayit = {
+        firma: d.firma,
+        marka: d.marka,
+        model: d.model,
+        yil: d.yil,
+        renk: d.renk,
+        sasi: d.sasi,
+        fatura: d.fatura,
+        tarih: window.formatTRDate(new Date()),
+        evrak: 'Açık',
+        evrakLink: d.evrakLink || '',
+        gonderici: d.gonderici || '',
+        not: d.not || ''
+    };
+    
+    // Declarations'a ekle
+    if(!window.declarationsData.find(function(x){ return x.sasi === d.sasi; })) {
+        window.declarationsData.unshift(yeniKayit);
+    }
+    
+    // Firma'ya ekle
+    if(!window.firmData[d.firma]) window.firmData[d.firma] = [];
+    if(!window.firmData[d.firma].find(function(x){ return x.sasi === d.sasi; })) {
+        window.firmData[d.firma].unshift(yeniKayit);
+    }
+    
+    // Gelecek'ten sil
+    window.gelecekData.splice(idx, 1);
+    
+    // Kaydet
+    saveData('decl');
+    saveData('firm');
+    window.saveGelecekData();
+    window.renderGelecekTable();
+    
+    alert('✅ ' + d.marka + ' ' + d.model + ' Gelen Araçlar\'a aktarıldı!');
+};
+
+window.gelecekAracSil = function(idx) {
+    if(!confirm('Bu aracı silmek istediğinize emin misiniz?')) return;
+    window.gelecekData.splice(idx, 1);
+    window.saveGelecekData();
+    window.renderGelecekTable();
+};
+
+window.saveGelecekData = function() {
+    localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData));
+    if(window._firebaseSave && window._dataLoaded) {
+        window._firebaseSave({
+            decl: window.declarationsData,
+            firm: window.firmData,
+            kiymet: window.kiymetData,
+            firmMeta: window.firmMeta,
+            cariData: window.cariData,
+            gelecekData: window.gelecekData
+        });
+    }
+};
 
 window.cariHareketEkle = function() {
     let firma = document.getElementById('cari-firma-sec')?.value;
@@ -2077,7 +2345,8 @@ function saveCariData() {
             firm: window.firmData,
             kiymet: window.kiymetData,
             firmMeta: window.firmMeta,
-            cariData: window.cariData
+            cariData: window.cariData,
+            gelecekData: window.gelecekData
         });
     }
 }
@@ -2300,7 +2569,7 @@ function saveCariData() {
   if(window.checkBottomNav) window.checkBottomNav();
 };
 
-    window.declarationsData=[]; window.firmData={}; window.firmMeta={}; window.cariData={}; window.kiymetData=[];
+    window.declarationsData=[]; window.firmData={}; window.firmMeta={}; window.cariData={}; window.gelecekData=[]; window.kiymetData=[];
     
     window.fixExcelDate=function(v){if(!v)return'';if(typeof v==='number'||(!isNaN(v)&&Number(v)>30000)){try{let d=new Date((Number(v)-25569)*86400*1000);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}catch(e){return v;}}if(typeof v==='string'&&v.includes('T')){try{let d=new Date(v);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}catch(e){}}return String(v).trim();};
     window.parseTRDate=function(s){if(!s||s.trim().length<8)return null;let p=s.trim().split(/[\.\-\/]/);if(p.length!==3)return null;let d,m,y;if(p[0].length===4){y=parseInt(p[0]);m=parseInt(p[1])-1;d=parseInt(p[2]);}else{d=parseInt(p[0]);m=parseInt(p[1])-1;y=parseInt(p[2]);if(y<100)y+=2000;}let dt=new Date(y,m,d);dt.setHours(0,0,0,0);return isNaN(dt.getTime())?null:dt;};
@@ -2310,10 +2579,40 @@ function saveCariData() {
     window.formatNumber=function(v,kurus){if(v===null||v===undefined||v==='')return'-';let n=typeof v==='string'?parseFloat(v.replace(/\./g,'').replace(',','.')):v;if(isNaN(n))return v;let fd=kurus?2:0;return n.toLocaleString('tr-TR',{minimumFractionDigits:fd,maximumFractionDigits:fd});};
     window.formatCurrencyInput=function(i){let c=i.selectionStart,o=i.value;let v=o.replace(/[^0-9,]/g,'');let p=v.split(',');if(p.length>2)v=p[0]+','+p.slice(1).join('');p=v.split(',');let ip=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');let nv=p.length>1?ip+','+p[1]:ip;if(o!==nv){i.value=nv;let np=c+(nv.length-o.length);i.setSelectionRange(np,np);}};
 
-    function saveToLocal(){try{localStorage.setItem('gumrukDeclData',JSON.stringify(window.declarationsData));localStorage.setItem('gumrukFirmData',JSON.stringify(window.firmData));localStorage.setItem('gumrukKiymetData',JSON.stringify(window.kiymetData));localStorage.setItem('gumrukFirmMeta',JSON.stringify(window.firmMeta));}catch(e){}}
-localStorage.setItem('gumrukCariData',JSON.stringify(window.cariData));
-    function loadFromLocal(){try{let d=localStorage.getItem('gumrukDeclData');if(d&&d!=="null")window.declarationsData=JSON.parse(d);let f=localStorage.getItem('gumrukFirmData');window.firmData=f&&f!=="null"?JSON.parse(f):{"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
-let cd=localStorage.getItem('gumrukCariData');if(cd&&cd!=="null")window.cariData=JSON.parse(cd);let k=localStorage.getItem('gumrukKiymetData');if(k&&k!=="null")window.kiymetData=JSON.parse(k);let fm=localStorage.getItem('gumrukFirmMeta');if(fm&&fm!=="null")window.firmMeta=JSON.parse(fm);}catch(e){}}
+    function saveToLocal() {
+    try {
+        localStorage.setItem('gumrukDeclData', JSON.stringify(window.declarationsData));
+        localStorage.setItem('gumrukFirmData', JSON.stringify(window.firmData));
+        localStorage.setItem('gumrukKiymetData', JSON.stringify(window.kiymetData));
+        localStorage.setItem('gumrukFirmMeta', JSON.stringify(window.firmMeta));
+        // DIŞARIDA KALAN KODLAR İÇERİ ALINDI:
+        localStorage.setItem('gumrukCariData', JSON.stringify(window.cariData));
+        localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData));
+    } catch(e) {}
+}
+
+function loadFromLocal() {
+    try {
+        let d = localStorage.getItem('gumrukDeclData');
+        if(d && d !== "null") window.declarationsData = JSON.parse(d);
+        
+        let f = localStorage.getItem('gumrukFirmData');
+        window.firmData = f && f !== "null" ? JSON.parse(f) : {"ŞAMNU GT":[],"FF OTOMOTİV":[],"SANDIKÇI":[],"KARABAYIR":[],"ŞAHISLAR":[]};
+        
+        let cd = localStorage.getItem('gumrukCariData');
+        if(cd && cd !== "null") window.cariData = JSON.parse(cd);
+        
+        // YENİ EKLEDİĞİMİZ KISIM BURASI:
+        let gd = localStorage.getItem('gumrukGelecekData');
+        if(gd && gd !== "null") window.gelecekData = JSON.parse(gd);
+        
+        let k = localStorage.getItem('gumrukKiymetData');
+        if(k && k !== "null") window.kiymetData = JSON.parse(k);
+        
+        let fm = localStorage.getItem('gumrukFirmMeta');
+        if(fm && fm !== "null") window.firmMeta = JSON.parse(fm);
+    } catch(e) {}
+}
 
     
     window._dataLoaded = false; // SİSTEM KİLİDİ (BAŞLANGIÇTA KAPALI)
@@ -2386,6 +2685,7 @@ Object.keys(varsayilanMeta).forEach(function(fn){
     else if(!window.firmMeta[fn].vergiNo) window.firmMeta[fn].vergiNo = varsayilanMeta[fn].vergiNo;
 });
                 if(data.cariData) window.cariData = data.cariData;
+		if(data.gelecekData) window.gelecekData = data.gelecekData;
 if(data.ekGonderici) {
     localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(data.ekGonderici));
     data.ekGonderici.forEach(function(g) {
@@ -2443,7 +2743,8 @@ if(data.ekGonderici) {
                         let ok = await window._firebaseSave({
                             decl: window.declarationsData, 
                             firm: window.firmData, 
-                            kiymet: window.kiymetData
+                            kiymet: window.kiymetData,
+                            gelecekData: window.gelecekData
                         });
                         
                         if(ok) {
@@ -4172,8 +4473,10 @@ if(vn==='cariKart'){
     if(sel){sel.innerHTML='<option value="">Firma Seçin...</option>';Object.keys(window.firmData).forEach(fn=>{sel.innerHTML+='<option value="'+fn+'">'+fn+'</option>';});}
     window.renderGenelCariOzet();
 }
-    };
-
+if(vn==='gelecekAraclar'){
+    window.renderGelecekTable();
+}
+}; 
     document.querySelectorAll('.nav-btn[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.view)window.renderView(b.dataset.view);}));
     
     document.addEventListener('DOMContentLoaded',()=>{
@@ -4235,6 +4538,7 @@ if(vn==='cariKart'){
                 kiymet: window.kiymetData,
                 firmMeta: window.firmMeta,
                 cariData: window.cariData,
+                gelecekData: window.gelecekData,
                 ekGonderici: ekler
             });
         }
