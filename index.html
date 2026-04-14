@@ -2386,7 +2386,14 @@ Object.keys(varsayilanMeta).forEach(function(fn){
     else if(!window.firmMeta[fn].vergiNo) window.firmMeta[fn].vergiNo = varsayilanMeta[fn].vergiNo;
 });
                 if(data.cariData) window.cariData = data.cariData;
-if(data.ekGonderici) localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(data.ekGonderici));
+if(data.ekGonderici) {
+    localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(data.ekGonderici));
+    data.ekGonderici.forEach(function(g) {
+        if(!window.GondericiList.find(function(x){ return x.id===g.id && x.ad===g.ad; })) {
+            window.GondericiList.unshift(g);
+        }
+    });
+}
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
                 saveToLocal();
                 hideSyncToast("Firebase'den çekildi!",true);
