@@ -4610,7 +4610,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Fotoğrafları Drive'a yükle
 window.uploadPhotos = async function() {
     let fileInput = document.getElementById('da-photo-input');
     let sasi = document.getElementById('da-sase')?.value;
@@ -4625,21 +4624,21 @@ window.uploadPhotos = async function() {
     let files = Array.from(fileInput.files);
     let total = files.length;
     btn.disabled = true;
-    btn.innerHTML = '<i class="spinner" style="width:14px;height:14px;border-width:2px;"></i> Yükleniyor...';
     
     const scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
     
     for(let i = 0; i < total; i++) {
         let file = files[i];
-        status.innerHTML = '<span style="color:var(--warning);">' + (i+1) + '/' + total + ' yükleniyor...</span>';
-// Fotoğrafı küçült (max 1200px)
+        status.innerHTML = '<span style="color:var(--warning);">' + (i+1) + '/' + total + ' küçültülüyor...</span>';
+        
+        // Fotoğrafı küçült (max 800px, düşük kalite)
         if(file.type.startsWith('image/')) {
             file = await new Promise(function(resolve) {
                 let img = new Image();
                 let reader2 = new FileReader();
                 reader2.onload = function(ev) {
                     img.onload = function() {
-                        let max = 1200;
+                        let max = 800;
                         let w = img.width, h = img.height;
                         if(w > max || h > max) {
                             if(w > h) { h = Math.round(h * max / w); w = max; }
@@ -4650,7 +4649,7 @@ window.uploadPhotos = async function() {
                         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                         canvas.toBlob(function(blob) {
                             resolve(new File([blob], file.name, {type: 'image/jpeg'}));
-                        }, 'image/jpeg', 0.8);
+                        }, 'image/jpeg', 0.6);
                     };
                     img.src = ev.target.result;
                 };
@@ -4658,25 +4657,65 @@ window.uploadPhotos = async function() {
             });
         }
         
+        status.innerHTML = '<span style="color:var(--warning);">' + (i+1) + '/' + total + ' yükleniyor...</span>';
+        
+        // Base64 çevir
         let base64 = await new Promise(function(resolve) {
             let reader = new FileReader();
             reader.onload = function(e) { resolve(e.target.result.split(',')[1]); };
             reader.readAsDataURL(file);
         });
         
-        try {
-            await fetch(scriptURL, {
-                method: "POST",
-                mode: 'no-cors',
-                body: JSON.stringify({
-                    action: "uploadFile",
-                    fileData: base64,
-                    fileName: "FOTO_" + (i+1) + "_" + sasi + "." + file.name.split('.').pop(),
-                    sasi: sasi, firma: firma, marka: marka
-                })
+        // Iframe + form ile yükle (CORS sorunu yok)
+        await new Promise(function(resolve) {
+            let iframe = document.createElement('iframe');
+            iframe.name = 'upload_frame_' + i;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+            
+            let form = document.createElement('form');
+            form.method = 'POST';
+            form.action = scriptURL;
+            form.target = iframe.name;
+            form.style.display = 'none';
+            
+            let fields = {
+                action: 'uploadFile',
+                fileData: base64,
+                fileName: 'FOTO_' + (i+1) + '_' + sasi + '.' + file.name.split('.').pop(),
+                sasi: sasi,
+                firma: firma,
+                marka: marka
+            };
+            
+            Object.keys(fields).forEach(function(key) {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
             });
-        } catch(err) { console.log("Upload err:", err); }
-        await new Promise(function(r){ setTimeout(r, 1000); });
+            
+            document.body.appendChild(form);
+            
+            // 15 saniye timeout
+            let timeout = setTimeout(function() {
+                resolve();
+                try { document.body.removeChild(iframe); } catch(e) {}
+                try { document.body.removeChild(form); } catch(e) {}
+            }, 15000);
+            
+            iframe.onload = function() {
+                clearTimeout(timeout);
+                setTimeout(function() {
+                    resolve();
+                    try { document.body.removeChild(iframe); } catch(e) {}
+                    try { document.body.removeChild(form); } catch(e) {}
+                }, 500);
+            };
+            
+            form.submit();
+        });
     }
     
     status.innerHTML = '<span style="color:var(--success);">✅ ' + total + ' fotoğraf yüklendi!</span>';
@@ -4686,7 +4725,6 @@ window.uploadPhotos = async function() {
     document.getElementById('da-photo-names').innerText = '';
     if(window.lucide) lucide.createIcons();
     
-    // Galeriyi yenile
     setTimeout(function() { window.loadPhotoGallery(); }, 2000);
 };
 
