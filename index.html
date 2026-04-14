@@ -668,6 +668,7 @@
     .header-right .user-pill { display: none !important; }
     .toolbar { flex-direction: column; gap: 10px; padding: 10px !important; }
     .toolbar-left, .toolbar-right { width: 100%; justify-content: center; flex-wrap: wrap; }
+    .modal-footer { padding-bottom: 80px !important; }
 
     /* MOBİL BOTTOM NAVİGASYON */
     .bottom-nav {
@@ -2379,6 +2380,11 @@ let cd=localStorage.getItem('gumrukCariData');if(cd&&cd!=="null")window.cariData
 }
                 
                 if(data.firmMeta) window.firmMeta = data.firmMeta;
+let varsayilanMeta = {"ŞAMNU GT":{vergiNo:"4110376487"},"FF OTOMOTİV":{vergiNo:"3851704324"},"SANDIKÇI":{vergiNo:"7430416290"},"KARABAYIR":{vergiNo:"5030641487"}};
+Object.keys(varsayilanMeta).forEach(function(fn){
+    if(!window.firmMeta[fn]) window.firmMeta[fn] = varsayilanMeta[fn];
+    else if(!window.firmMeta[fn].vergiNo) window.firmMeta[fn].vergiNo = varsayilanMeta[fn].vergiNo;
+});
                 if(data.cariData) window.cariData = data.cariData;
 if(data.ekGonderici) localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(data.ekGonderici));
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
@@ -4626,6 +4632,31 @@ window.uploadPhotos = async function() {
     for(let i = 0; i < total; i++) {
         let file = files[i];
         status.innerHTML = '<span style="color:var(--warning);">' + (i+1) + '/' + total + ' yükleniyor...</span>';
+// Fotoğrafı küçült (max 1200px)
+        if(file.type.startsWith('image/')) {
+            file = await new Promise(function(resolve) {
+                let img = new Image();
+                let reader2 = new FileReader();
+                reader2.onload = function(ev) {
+                    img.onload = function() {
+                        let max = 1200;
+                        let w = img.width, h = img.height;
+                        if(w > max || h > max) {
+                            if(w > h) { h = Math.round(h * max / w); w = max; }
+                            else { w = Math.round(w * max / h); h = max; }
+                        }
+                        let canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(function(blob) {
+                            resolve(new File([blob], file.name, {type: 'image/jpeg'}));
+                        }, 'image/jpeg', 0.8);
+                    };
+                    img.src = ev.target.result;
+                };
+                reader2.readAsDataURL(file);
+            });
+        }
         
         let base64 = await new Promise(function(resolve) {
             let reader = new FileReader();
@@ -4633,16 +4664,19 @@ window.uploadPhotos = async function() {
             reader.readAsDataURL(file);
         });
         
-        await fetch(scriptURL, {
-            method: "POST",
-            mode: 'no-cors',
-            body: JSON.stringify({
-                action: "uploadFile",
-                fileData: base64,
-                fileName: "FOTO_" + (i+1) + "_" + sasi + "." + file.name.split('.').pop(),
-                sasi: sasi, firma: firma, marka: marka
-            })
-        });
+        try {
+            await fetch(scriptURL, {
+                method: "POST",
+                mode: 'no-cors',
+                body: JSON.stringify({
+                    action: "uploadFile",
+                    fileData: base64,
+                    fileName: "FOTO_" + (i+1) + "_" + sasi + "." + file.name.split('.').pop(),
+                    sasi: sasi, firma: firma, marka: marka
+                })
+            });
+        } catch(err) { console.log("Upload err:", err); }
+        await new Promise(function(r){ setTimeout(r, 1000); });
     }
     
     status.innerHTML = '<span style="color:var(--success);">✅ ' + total + ' fotoğraf yüklendi!</span>';
