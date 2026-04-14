@@ -4636,35 +4636,8 @@ window.uploadPhotos = async function() {
     
     for(let i = 0; i < total; i++) {
         let file = files[i];
-        status.innerHTML = '<span style="color:var(--warning);">' + (i+1) + '/' + total + ' küçültülüyor...</span>';
         
-        // Fotoğrafı küçült (max 800px, düşük kalite)
-        if(file.type.startsWith('image/')) {
-            file = await new Promise(function(resolve) {
-                let img = new Image();
-                let reader2 = new FileReader();
-                reader2.onload = function(ev) {
-                    img.onload = function() {
-                        let max = 800;
-                        let w = img.width, h = img.height;
-                        if(w > max || h > max) {
-                            if(w > h) { h = Math.round(h * max / w); w = max; }
-                            else { w = Math.round(w * max / h); h = max; }
-                        }
-                        let canvas = document.createElement('canvas');
-                        canvas.width = w; canvas.height = h;
-                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                        canvas.toBlob(function(blob) {
-                            resolve(new File([blob], file.name, {type: 'image/jpeg'}));
-                        }, 'image/jpeg', 0.6);
-                    };
-                    img.src = ev.target.result;
-                };
-                reader2.readAsDataURL(file);
-            });
-        }
-        
-        status.innerHTML = '<span style="color:var(--warning);">' + (i+1) + '/' + total + ' yükleniyor...</span>';
+status.innerHTML = '<span style="color:var(--warning);">' + (i+1) + '/' + total + ' yükleniyor...</span>';
         
         // Base64 çevir
         let base64 = await new Promise(function(resolve) {
