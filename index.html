@@ -4865,20 +4865,24 @@ window.baslatRobot = async function() {
     }
     hideSyncToast("Tarama tamamlandı.", true);
 };
-// --- KALEM PENCERESİ İÇİNDEN DİREKT DRIVE YÜKLEME MOTORU (GELİŞMİŞ FETCH YÖNTEMİ) ---
+// --- KALEM PENCERESİ İÇİNDEN DİREKT DRIVE YÜKLEME MOTORU (KLASÖR HEDEFLİ KESİN ÇÖZÜM) ---
 window.doModalUpload = async function() {
     const fileInput = document.getElementById('da-file-input-modal');
     const docType = document.getElementById('da-doc-type-modal').value;
-    const sasi = document.getElementById('da-sase').value.trim(); // Şasi boşluklarını temizle
+    const sasi = document.getElementById('da-sase').value.trim();
     const firma = document.getElementById('da-firma').value;
     const marka = document.getElementById('da-marka').value;
+    const evrakLink = document.getElementById('da-evrakLink').value.trim(); // EKRANDAKİ LİNKİ ALIYORUZ
     const status = document.getElementById('da-modal-upload-status');
-    
-    // Butonu güvenli yakala
     const uploadBtn = (window.event && window.event.currentTarget) ? window.event.currentTarget : document.querySelector('button[onclick="window.doModalUpload()"]');
 
     if (!fileInput || !fileInput.files.length) { alert("Lütfen önce bir dosya seçin!"); return; }
-    if (!sasi) { alert("Lütfen araca ait 'Şasi No' bilgisini doldurun! Klasör şasi numarasına göre bulunuyor."); return; }
+    if (!evrakLink) { alert("Hata: Araç için bir Drive klasör linki yok! Lütfen önce klasör oluşturun."); return; }
+
+    // --- EKSİK OLAN HAYATİ PARÇA: LİNKTEN KLASÖR ID'SİNİ ÇIKARMA ---
+    let targetFolderId = '';
+    let match = evrakLink.match(/folders\/([a-zA-Z0-9_-]+)/);
+    if (match) targetFolderId = match[1];
 
     const originalBtnHTML = uploadBtn ? uploadBtn.innerHTML : "Yükle";
     if (uploadBtn) {
@@ -4887,41 +4891,71 @@ window.doModalUpload = async function() {
     }
     
     status.style.display = 'block';
-    status.innerHTML = '<span style="color:var(--warning)">⚡ Dosya Drive\'a Aktarılıyor (PDF ise biraz sürebilir)...</span>';
+    status.innerHTML = '<span style="color:var(--warning)">⚡ Doğru Klasöre Aktarılıyor...</span>';
 
     const file = fileInput.files[0];
     const scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
 
     try {
-        // 1) Dosyayı Base64 formatına çevir
-        let base64 = await new Promise(function(resolve, reject) {
+        let base64 = await new Promise(function(resolve) {
             let reader = new FileReader();
             reader.onload = function(e) { resolve(e.target.result.split(',')[1]); };
-            reader.onerror = function(err) { reject(err); };
             reader.readAsDataURL(file);
         });
 
-        // 2) Form verisini Google Apps Script'in tam beklediği gibi kodla (URL-Encoded)
-        const formData = new URLSearchParams();
-        formData.append('action', 'uploadFile');
-        formData.append('fileData', base64);
-        formData.append('fileName', docType + "_" + sasi + "." + file.name.split('.').pop());
-        formData.append('sasi', sasi);
-        formData.append('firma', firma);
-        formData.append('marka', marka);
+        await new Promise(function(resolve) {
+            let iframe = document.createElement('iframe');
+            iframe.name = 'upload_frame_' + Date.now();
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
 
-        // 3) Veriyi gönder
-        await fetch(scriptURL, {
-            method: 'POST',
-            body: formData,
-            mode: 'no-cors' // Google sunucusu için gerekli
+            let form = document.createElement('form');
+            form.method = 'POST';
+            form.action = scriptURL;
+            form.target = iframe.name;
+            form.style.display = 'none';
+
+            // GOOGLE APPS SCRIPT'E GİDEN VERİ PAKETİ
+            let fields = {
+                action: 'uploadFile',
+                fileData: base64,
+                fileName: docType + "_" + sasi + "." + file.name.split('.').pop(),
+                sasi: sasi,
+                firma: firma,
+                marka: marka,
+                folderId: targetFolderId, // İŞTE BU SAYEDE DOĞRU KLASÖRE GİDECEK
+                evrakLink: evrakLink      // Yedek olarak linkin tamamını da gönderiyoruz
+            };
+
+            Object.keys(fields).forEach(function(key) {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+
+            let timeout = setTimeout(function() {
+                resolve();
+                try { document.body.removeChild(iframe); } catch(e) {}
+                try { document.body.removeChild(form); } catch(e) {}
+            }, 15000);
+
+            iframe.onload = function() {
+                clearTimeout(timeout);
+                setTimeout(function() {
+                    resolve();
+                    try { document.body.removeChild(iframe); } catch(e) {}
+                    try { document.body.removeChild(form); } catch(e) {}
+                }, 500);
+            };
+
+            form.submit();
         });
 
-        // Sunucunun dosyayı Drive'a işlemesi için ona 2 saniye süre tanı
-        await new Promise(r => setTimeout(r, 2000));
-
-        // --- İŞLEM BAŞARILI ---
-        status.innerHTML = "✅ Yükleme Tamamlandı!";
+        status.innerHTML = "✅ İlgili Klasöre Yüklendi!";
         if (uploadBtn) {
             uploadBtn.innerHTML = '<i data-lucide="check"></i> Tamamlandı';
             uploadBtn.style.background = "var(--success)";
