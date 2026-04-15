@@ -4865,97 +4865,114 @@ window.baslatRobot = async function() {
     }
     hideSyncToast("Tarama tamamlandı.", true);
 };
-// --- KALEM PENCERESİ İÇİNDEN DİREKT DRIVE YÜKLEME MOTORU (CORS Uyumlu Iframe Yöntemi) ---
-window.doModalUpload = function() {
+// --- KALEM PENCERESİ İÇİNDEN DİREKT DRIVE YÜKLEME MOTORU (YENİ VE HATASIZ) ---
+window.doModalUpload = async function() {
     const fileInput = document.getElementById('da-file-input-modal');
     const docType = document.getElementById('da-doc-type-modal').value;
     const sasi = document.getElementById('da-sase').value;
     const firma = document.getElementById('da-firma').value;
     const marka = document.getElementById('da-marka').value;
     const status = document.getElementById('da-modal-upload-status');
-    const uploadBtn = event.currentTarget; // Tıklanan butonu yakala
+    
+    const uploadBtn = (window.event && window.event.currentTarget) ? window.event.currentTarget : document.querySelector('button[onclick="window.doModalUpload()"]');
 
-    if (!fileInput.files.length) { alert("Lütfen önce bir dosya seçin!"); return; }
+    if (!fileInput || !fileInput.files.length) { alert("Lütfen önce bir dosya seçin!"); return; }
 
-    // --- YÜKLEME BAŞLADI İŞARETİ ---
-    const originalBtnHTML = uploadBtn.innerHTML;
-    uploadBtn.disabled = true;
-    uploadBtn.innerHTML = `<i class="spinner" style="width:14px; height:14px; border-width:2px; margin-right:8px;"></i> Yükleniyor...`;
+    const originalBtnHTML = uploadBtn ? uploadBtn.innerHTML : "Yükle";
+    if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="spinner" style="width:14px; height:14px; border-width:2px; margin-right:8px;"></i> Yükleniyor...';
+    }
+    
     status.style.display = 'block';
-    status.innerHTML = `<span style="color:var(--warning)">⚡ Dosya Yükleniyor...</span>`;
+    status.innerHTML = '<span style="color:var(--warning)">⚡ Dosya Yükleniyor...</span>';
 
     const file = fileInput.files[0];
-    const reader = new FileReader();
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
 
-    reader.onload = function(e) {
-        const base64 = e.target.result.split(',')[1];
-        const scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
-        
-        // Iframe + form ile yükle (CORS sorunu yok)
-        let iframe = document.createElement('iframe');
-        iframe.name = 'upload_frame_' + Date.now();
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-        
-        let form = document.createElement('form');
-        form.method = 'POST';
-        form.action = scriptURL;
-        form.target = iframe.name;
-        form.style.display = 'none';
-        
-        let fields = {
-            action: 'uploadFile',
-            fileData: base64,
-            fileName: docType + "_" + sasi + "." + file.name.split('.').pop(),
-            sasi: sasi,
-            firma: firma,
-            marka: marka
-        };
-        
-        Object.keys(fields).forEach(function(key) {
-            let input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = fields[key];
-            form.appendChild(input);
+    try {
+        let base64 = await new Promise(function(resolve) {
+            let reader = new FileReader();
+            reader.onload = function(e) { resolve(e.target.result.split(',')[1]); };
+            reader.readAsDataURL(file);
         });
-        
-        document.body.appendChild(form);
-        
-        // 15 saniye zaman aşımı
-        let timeout = setTimeout(function() {
-            tamamla();
-        }, 15000);
-        
-        iframe.onload = function() {
-            clearTimeout(timeout);
-            setTimeout(function() {
-                tamamla();
-            }, 500);
-        };
-        
-        function tamamla() {
-            status.innerHTML = "✅ Yükleme Tamamlandı!";
-            uploadBtn.innerHTML = `<i data-lucide="check"></i> Tamamlandı`;
+
+        await new Promise(function(resolve) {
+            let iframe = document.createElement('iframe');
+            iframe.name = 'upload_frame_' + Date.now();
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            let form = document.createElement('form');
+            form.method = 'POST';
+            form.action = scriptURL;
+            form.target = iframe.name;
+            form.style.display = 'none';
+
+            let fields = {
+                action: 'uploadFile',
+                fileData: base64,
+                fileName: docType + "_" + sasi + "." + file.name.split('.').pop(),
+                sasi: sasi,
+                firma: firma,
+                marka: marka
+            };
+
+            Object.keys(fields).forEach(function(key) {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+
+            let timeout = setTimeout(function() {
+                resolve();
+                try { document.body.removeChild(iframe); } catch(e) {}
+                try { document.body.removeChild(form); } catch(e) {}
+            }, 15000);
+
+            iframe.onload = function() {
+                clearTimeout(timeout);
+                setTimeout(function() {
+                    resolve();
+                    try { document.body.removeChild(iframe); } catch(e) {}
+                    try { document.body.removeChild(form); } catch(e) {}
+                }, 500);
+            };
+
+            form.submit();
+        });
+
+        status.innerHTML = "✅ Yükleme Tamamlandı!";
+        if (uploadBtn) {
+            uploadBtn.innerHTML = '<i data-lucide="check"></i> Tamamlandı';
             uploadBtn.style.background = "var(--success)";
-            
-            setTimeout(() => { 
-                status.style.display = 'none'; 
+        }
+        
+        setTimeout(() => { 
+            status.style.display = 'none'; 
+            if (uploadBtn) {
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = originalBtnHTML;
                 uploadBtn.style.background = "";
-                fileInput.value = ""; 
-                if(window.lucide) lucide.createIcons();
-                
-                // Temizlik
-                try { document.body.removeChild(iframe); } catch(e) {}
-                try { document.body.removeChild(form); } catch(e) {}
-            }, 3000);
+            }
+            fileInput.value = ""; 
+            let nameDisplay = document.getElementById('da-file-name-display');
+            if (nameDisplay) nameDisplay.innerText = "";
+            if (window.lucide) lucide.createIcons();
+        }, 3000);
+
+    } catch(err) {
+        alert("Yükleme sırasında hata: " + err);
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalBtnHTML;
         }
-        
-        form.submit();
-    };
-    reader.readAsDataURL(file);
+        status.style.display = 'none';
+    }
 };
 // Fotoğraf dosya seçildiğinde isimleri göster
 document.addEventListener('DOMContentLoaded', function() {
