@@ -4865,7 +4865,7 @@ window.baslatRobot = async function() {
     }
     hideSyncToast("Tarama tamamlandı.", true);
 };
-// --- KALEM PENCERESİ İÇİNDEN DİREKT DRIVE YÜKLEME MOTORU ---
+// --- KALEM PENCERESİ İÇİNDEN DİREKT DRIVE YÜKLEME MOTORU (CORS Uyumlu Iframe Yöntemi) ---
 window.doModalUpload = function() {
     const fileInput = document.getElementById('da-file-input-modal');
     const docType = document.getElementById('da-doc-type-modal').value;
@@ -4891,17 +4891,50 @@ window.doModalUpload = function() {
         const base64 = e.target.result.split(',')[1];
         const scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
         
-        fetch(scriptURL, {
-            method: "POST",
-            mode: 'no-cors',
-            body: JSON.stringify({
-                action: "uploadFile",
-                fileData: base64,
-                fileName: docType + "_" + sasi + "." + file.name.split('.').pop(),
-                sasi: sasi, firma: firma, marka: marka
-            })
-        }).then(() => {
-            // --- BAŞARILI BİTİŞ ---
+        // Iframe + form ile yükle (CORS sorunu yok)
+        let iframe = document.createElement('iframe');
+        iframe.name = 'upload_frame_' + Date.now();
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        
+        let form = document.createElement('form');
+        form.method = 'POST';
+        form.action = scriptURL;
+        form.target = iframe.name;
+        form.style.display = 'none';
+        
+        let fields = {
+            action: 'uploadFile',
+            fileData: base64,
+            fileName: docType + "_" + sasi + "." + file.name.split('.').pop(),
+            sasi: sasi,
+            firma: firma,
+            marka: marka
+        };
+        
+        Object.keys(fields).forEach(function(key) {
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = fields[key];
+            form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        
+        // 15 saniye zaman aşımı
+        let timeout = setTimeout(function() {
+            tamamla();
+        }, 15000);
+        
+        iframe.onload = function() {
+            clearTimeout(timeout);
+            setTimeout(function() {
+                tamamla();
+            }, 500);
+        };
+        
+        function tamamla() {
             status.innerHTML = "✅ Yükleme Tamamlandı!";
             uploadBtn.innerHTML = `<i data-lucide="check"></i> Tamamlandı`;
             uploadBtn.style.background = "var(--success)";
@@ -4913,13 +4946,14 @@ window.doModalUpload = function() {
                 uploadBtn.style.background = "";
                 fileInput.value = ""; 
                 if(window.lucide) lucide.createIcons();
+                
+                // Temizlik
+                try { document.body.removeChild(iframe); } catch(e) {}
+                try { document.body.removeChild(form); } catch(e) {}
             }, 3000);
-        }).catch(err => {
-            alert("Hata oluştu: " + err);
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = originalBtnHTML;
-            status.style.display = 'none';
-        });
+        }
+        
+        form.submit();
     };
     reader.readAsDataURL(file);
 };
