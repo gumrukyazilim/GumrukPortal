@@ -1236,8 +1236,6 @@
         <div class="page-actions">
             <select id="gelecek-filtre" onchange="window.renderGelecekTable()" style="min-width:160px;padding:10px;font-weight:600;">
                 <option value="">Tüm Durumlar</option>
-                <option value="YÜKLENDI">Yüklendi</option>
-                <option value="TIRDA">Tırda</option>
                 <option value="YOLDA">Yolda</option>
                 <option value="GÜMRÜKTE">Gümrükte</option>
             </select>
@@ -2060,13 +2058,11 @@ window.renderGelecekTable = function() {
     let data = window.gelecekData || [];
     
     // Pipeline istatistikleri
-    let durumlar = {YÜKLENDI:0, TIRDA:0, YOLDA:0, GÜMRÜKTE:0};
+    let durumlar = {YOLDA:0, GÜMRÜKTE:0};
     data.forEach(function(d) { if(durumlar[d.durum] !== undefined) durumlar[d.durum]++; });
     
     pipeline.innerHTML = [
-        {key:'YÜKLENDI', icon:'package', renk:'#6366f1', label:'Yüklendi'},
-        {key:'TIRDA', icon:'ship', renk:'#3b82f6', label:'Gemide'},
-        {key:'YOLDA', icon:'anchor', renk:'#f59e0b', label:'Limanda'},
+        {key:'YOLDA', icon:'ship', renk:'#3b82f6', label:'Yolda'},
         {key:'GÜMRÜKTE', icon:'building-2', renk:'#10b981', label:'Gümrükte'}
     ].map(function(s) {
         return '<div class="stat-card" style="cursor:pointer;border-left:4px solid '+s.renk+';" onclick="document.getElementById(\'gelecek-filtre\').value=\''+s.key+'\';window.renderGelecekTable();">' +
@@ -2085,9 +2081,9 @@ window.renderGelecekTable = function() {
         return;
     }
     
-    let durumRenk = {YÜKLENDI:'#6366f1', TIRDA:'#3b82f6', YOLDA:'#f59e0b', GÜMRÜKTE:'#10b981'};
-    let durumIcon = {YÜKLENDI:'package', TIRDA:'ship', YOLDA:'anchor', GÜMRÜKTE:'building-2'};
-    let durumSonraki = {YÜKLENDI:'TIRDA', TIRDA:'YOLDA', YOLDA:'GÜMRÜKTE', GÜMRÜKTE:'GELDİ'};
+    let durumRenk = {YOLDA:'#3b82f6', GÜMRÜKTE:'#10b981'};
+    let durumIcon = {YOLDA:'ship', GÜMRÜKTE:'building-2'};
+    let durumSonraki = {YOLDA:'GÜMRÜKTE', GÜMRÜKTE:'GELDİ'};
     
     cards.innerHTML = liste.map(function(item) {
         let d = item.d;
@@ -2170,7 +2166,7 @@ window.gelecekAracEkle = function() {
         fatura: fatura ? parseFloat(fatura.replace(/\./g,'').replace(',','.')) : 0,
         cikisUlke: cikisUlke || '',
         tahminiGelis: tahminiGelis || '',
-        durum: 'YÜKLENDI',
+        durum: 'YOLDA',
         not: not2 || '',
         eklenmeTarihi: window.formatTRDate(new Date())
     };
@@ -2205,7 +2201,7 @@ window.gelecekAracDuzenle = function(idx) {
     let fatura = prompt('Fatura (EUR):', d.fatura);
     let cikisUlke = prompt('Çıkış Ülkesi:', d.cikisUlke);
     let tahminiGelis = prompt('Tahmini Geliş (GG.AA.YYYY):', d.tahminiGelis);
-    let durum = prompt('Durum (YÜKLENDI / TIRDA / YOLDA / GÜMRÜKTE):', d.durum);
+    let durum = prompt('Durum (YOLDA / GÜMRÜKTE):', d.durum);
     let not2 = prompt('Not:', d.not);
     
     d.firma = (firma||'').toUpperCase();
@@ -2227,7 +2223,7 @@ window.gelecekAracDuzenle = function(idx) {
 window.gelecekDurumIlerle = function(idx) {
     let d = window.gelecekData[idx];
     if(!d) return;
-    let sira = {YÜKLENDI:'TIRDA', TIRDA:'YOLDA', YOLDA:'GÜMRÜKTE'};
+    let sira = {YOLDA:'GÜMRÜKTE'};
     if(sira[d.durum]) {
         d.durum = sira[d.durum];
         window.saveGelecekData();
