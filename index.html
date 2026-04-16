@@ -1986,7 +1986,7 @@ if(!tbody) return;
             '<td style="color:' + tutarRenk + ';font-weight:700;">' + window.formatNumber(t,true) + ' ' + isim + '</td>' +
             '<td style="font-weight:600;">' + b + '</td>' +
             '<td style="color:' + kalanRenk + ';font-weight:700;">' + window.formatNumber(kalanDeger,true) + ' ' + isim + '</td>' +
-            '<td style="text-align:center;"><button class="icon-btn text-danger-btn" onclick="window.cariHareketSil(' + i + ')"><i data-lucide="trash-2"></i></button></td>' +
+            '<td style="text-align:center;"><div style="display:flex;gap:4px;justify-content:center;"><button class="icon-btn" style="color:var(--primary);" onclick="window.cariHareketDuzenle(' + i + ')" title="Düzenle"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.cariHareketSil(' + i + ')"><i data-lucide="trash-2"></i></button></div></td>' +
         '</tr>';
     }).join('');
     
@@ -2133,6 +2133,7 @@ window.renderGelecekTable = function() {
                 '</div>' +
                 '<div style="display:flex;gap:8px;align-items:center;">' +
                     sonrakiBtn +
+'<button class="icon-btn" style="color:var(--primary);" onclick="event.stopPropagation();window.gelecekAracDuzenle('+i+')" title="Düzenle"><i data-lucide="edit-3"></i></button>' +
                     '<button class="icon-btn text-danger-btn" onclick="event.stopPropagation();window.gelecekAracSil('+i+')"><i data-lucide="trash-2"></i></button>' +
                 '</div>' +
             '</div>' +
@@ -2329,6 +2330,35 @@ window.cariHareketEkle = function() {
         tutar: tutar,
         birim: birim
     });
+    
+    saveCariData();
+    window.renderCariTable();
+};
+window.cariHareketDuzenle = function(idx) {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma || !window.cariData[firma]) return;
+    let h = window.cariData[firma][idx];
+    if(!h) return;
+    
+    let aciklama = prompt("Açıklama:", h.aciklama || "");
+    if(aciklama === null) return;
+    let tutar = prompt("Tutar:", h.tutar || "");
+    if(tutar === null) return;
+    tutar = parseFloat(tutar.replace(/\./g,'').replace(',','.')) || 0;
+    if(tutar <= 0) { alert('Geçersiz tutar!'); return; }
+    let tur = prompt("Tür (1=BORÇ, 2=ALACAK):", h.tur === 'alacak' ? '2' : '1');
+    if(tur === null) return;
+    tur = tur.trim() === '2' ? 'alacak' : 'borc';
+    let birim = prompt("Birim (1=EUR, 2=TRY, 3=USD):", h.birim === 'TRY' ? '2' : h.birim === 'USD' ? '3' : '1');
+    if(birim === null) return;
+    if(birim.trim() === '2') birim = 'TRY';
+    else if(birim.trim() === '3') birim = 'USD';
+    else birim = 'EUR';
+    
+    h.aciklama = aciklama.toUpperCase();
+    h.tutar = tutar;
+    h.tur = tur;
+    h.birim = birim;
     
     saveCariData();
     window.renderCariTable();
