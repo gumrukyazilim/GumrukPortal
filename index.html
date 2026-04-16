@@ -1187,6 +1187,7 @@
             <select id="cari-firma-sec" onchange="window.renderCariTable()" style="min-width:200px;padding:10px;font-weight:600;">
                 <option value="">Tüm Firmalar</option>
             </select>
+<button class="btn-sm" style="border-color:var(--danger);color:var(--danger);" onclick="window.cariPdfOlustur()"><i data-lucide="file-text"></i> PDF</button>
             <button class="btn-primary" onclick="window.cariHareketEkle()"><i data-lucide="plus"></i> Hareket Ekle</button>
         </div>
     </div>
@@ -1217,7 +1218,7 @@
         <div class="table-wrap">
             <table class="data-table">
                 <thead><tr>
-                    <th>TARİH</th>
+                    <th style="width:35px;text-align:center;"><input type="checkbox" class="custom-cb" onclick="document.querySelectorAll('.cari-cb').forEach(c=>c.checked=this.checked)"></th><th>TARİH</th>
                     <th>AÇIKLAMA</th>
                     <th>TÜR</th>
                     <th>TUTAR</th>
@@ -1859,10 +1860,10 @@ window.renderCariTable = function() {
     if(tbody) {
         let firmalar = Object.keys(window.cariData);
         if(!firmalar.length) {
-            tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">Henüz hareket yok</td></tr>';
+            tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Henüz hareket yok</td></tr>';
             return;
         }
-        let html = '<tr><td colspan="7" style="padding:0;border:none;">';
+        let html = '<tr><td colspan="8" style="padding:0;border:none;">';
         html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px;">';
         firmalar.forEach(function(fn) {
             let hareketler = window.cariData[fn] || [];
@@ -1955,7 +1956,7 @@ if(!tbody) return;
     }
     
     if(!hareketler.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait hareket yok</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait hareket yok</td></tr>';
         return;
     }
     
@@ -1980,6 +1981,7 @@ if(!tbody) return;
             : '<span class="badge badge-success">ALACAK</span>';
         
         return '<tr>' +
+            '<td style="text-align:center;"><input type="checkbox" class="custom-cb cari-cb" value="' + i + '"></td>' +
             '<td>' + (h.tarih || '-') + '</td>' +
             '<td style="font-weight:600;">' + (h.aciklama || '-') + '</td>' +
             '<td>' + turBadge + '</td>' +
@@ -2362,6 +2364,118 @@ window.cariHareketDuzenle = function(idx) {
     
     saveCariData();
     window.renderCariTable();
+};
+window.cariPdfOlustur = function() {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    
+    // Hangi firmaları işleyeceğiz
+    let firmalar = firma ? [firma] : Object.keys(window.cariData);
+    if(!firmalar.length) { alert('Cari veri yok!'); return; }
+    
+    let bugun = new Date().toLocaleDateString('tr-TR');
+    let html = '<div style="font-family:Arial,sans-serif;color:#000;padding:15px 20px;background:#fff;width:180mm;">';
+    html += '<h1 style="text-align:center;color:#1e3a8a;font-size:20px;border-bottom:2px solid #3b82f6;padding-bottom:8px;">CARİ HESAP RAPORU</h1>';
+    html += '<p style="text-align:right;font-size:11px;color:#666;">Tarih: ' + bugun + '</p>';
+    
+    firmalar.forEach(function(fn) {
+        let hareketler = window.cariData[fn] || [];
+        if(!hareketler.length) return;
+        
+        // Seçili satırları kontrol et (sadece aktif firmadaysa)
+        let seciliIdxler = [];
+        if(fn === firma) {
+            document.querySelectorAll('.cari-cb:checked').forEach(function(cb) {
+                seciliIdxler.push(parseInt(cb.value));
+            });
+        }
+        
+        // Seçili varsa sadece onlar, yoksa hepsi
+        let liste = seciliIdxler.length > 0 
+            ? hareketler.filter(function(h, i) { return seciliIdxler.indexOf(i) !== -1; }) 
+            : hareketler;
+        
+        if(!liste.length) return;
+        
+        // Firma başlığı
+        html += '<div style="margin-top:20px;padding:10px 14px;background:#f1f5f9;border-left:4px solid #3b82f6;border-radius:4px;">';
+        html += '<strong style="font-size:15px;color:#1e3a8a;">' + fn + '</strong>';
+        let meta = window.firmMeta[fn] || {};
+        if(meta.vergiNo) html += '<span style="margin-left:15px;font-size:11px;color:#666;">VN: ' + meta.vergiNo + '</span>';
+        html += '</div>';
+        
+        // Tablo
+        html += '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:11px;table-layout:fixed;">';
+html += '<colgroup><col style="width:18%"><col style="width:52%"><col style="width:30%"></colgroup>';
+        html += '<tr style="background:#dbeafe;">' +
+            '<th style="border:1px solid #cbd5e1;padding:6px 8px;text-align:left;color:#1e3a8a;">Tarih</th>' +
+            '<th style="border:1px solid #cbd5e1;padding:6px 8px;text-align:left;color:#1e3a8a;">Açıklama</th>' +
+            '<th style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:#1e3a8a;">Tutar</th>' +
+            '</tr>';
+        
+        let topBorcEUR=0,topAlacakEUR=0,topBorcTRY=0,topAlacakTRY=0,topBorcUSD=0,topAlacakUSD=0;
+        
+        liste.forEach(function(h) {
+            let t = parseFloat(h.tutar) || 0;
+            let b = (h.birim || 'EUR').toUpperCase();
+            let simge = b==='EUR'?'€':b==='USD'?'$':'₺';
+            let renk = h.tur === 'borc' ? '#dc2626' : '#16a34a';
+            let turYazi = h.tur === 'borc' ? 'BORÇ' : 'ALACAK';
+            
+            if(h.tur==='borc'){if(b==='EUR')topBorcEUR+=t;else if(b==='USD')topBorcUSD+=t;else topBorcTRY+=t;}
+            else{if(b==='EUR')topAlacakEUR+=t;else if(b==='USD')topAlacakUSD+=t;else topAlacakTRY+=t;}
+            
+            html += '<tr>' +
+    '<td style="border:1px solid #cbd5e1;padding:5px 8px;">' + (h.tarih||'-') + '</td>' +
+    '<td style="border:1px solid #cbd5e1;padding:5px 8px;font-weight:600;">' + (h.aciklama||'-') + '</td>' +
+    '<td style="border:1px solid #cbd5e1;padding:5px 8px;text-align:right;font-weight:600;color:' + renk + ';white-space:nowrap;">' +      window.formatNumber(t,true) + ' ' + simge + '</td>' +
+    '</tr>';
+        });
+        
+        // Özet satırı
+        let bakEUR = topAlacakEUR - topBorcEUR;
+        let bakUSD = topAlacakUSD - topBorcUSD;
+        let bakTRY = topAlacakTRY - topBorcTRY;
+        let bakiye = '';
+        if(bakEUR!==0) bakiye += window.formatNumber(bakEUR,true) + ' €';
+        if(bakUSD!==0) bakiye += (bakiye?' | ':'') + window.formatNumber(bakUSD,true) + ' $';
+        if(bakTRY!==0) bakiye += (bakiye?' | ':'') + window.formatNumber(bakTRY,true) + ' ₺';
+        if(!bakiye) bakiye = '0';
+        let bakRenk = (bakEUR>=0 && bakUSD>=0 && bakTRY>=0) ? '#16a34a' : '#dc2626';
+        
+        html += '<tr style="background:#f0fdf4;">' +
+            '<td colspan="2" style="border:1px solid #cbd5e1;padding:6px 8px;font-weight:700;text-align:right;">BAKİYE:</td>' +
+'<td style="border:1px solid #cbd5e1;padding:6px 8px;font-weight:800;font-size:13px;color:' + bakRenk + ';text-align:right;white-space:nowrap;">' + bakiye + '</td>' +
+            '</tr>';
+        html += '</table>';
+    });
+    
+    html += '</div>';
+    
+    // html2pdf ile PDF üret
+    if(typeof html2pdf === 'undefined') { alert('PDF modülü yüklenemedi!'); return; }
+    
+    let div = document.createElement('div');
+    div.innerHTML = html;
+    document.body.appendChild(div);
+    
+    let dosyaAdi = firma ? 'Cari_' + firma.replace(/\s+/g,'_') + '_' + bugun.replace(/\./g,'') : 'Cari_Tum_Firmalar_' + bugun.replace(/\./g,'');
+    
+    if(typeof showSyncToast === 'function') showSyncToast("Cari PDF hazırlanıyor...");
+    
+    html2pdf().set({
+        margin: 8,
+        filename: dosyaAdi + '.pdf',
+        image: {type:'jpeg', quality:0.95},
+        html2canvas: {scale:2, useCORS:true},
+        jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
+        pagebreak: {mode:'avoid-all'}
+    }).from(div).save().then(function() {
+        document.body.removeChild(div);
+        if(typeof hideSyncToast === 'function') hideSyncToast("Cari PDF indirildi!", true);
+    }).catch(function(err) {
+        document.body.removeChild(div);
+        alert("PDF hatası: " + err.message);
+    });
 };
 
 window.cariHareketSil = function(idx) {
