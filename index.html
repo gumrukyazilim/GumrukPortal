@@ -2001,7 +2001,12 @@ if(!tbody) return;
             '<td style="font-weight:600;">' + (h.aciklama || '-') + '</td>' +
             '<td>' + (gumrukDeger || '<span style="color:var(--text-muted);">-</span>') + '</td>' +
             '<td>' + (tseDeger || '<span style="color:var(--text-muted);">-</span>') + '</td>' +
-            '<td style="text-align:center;"><button class="icon-btn text-danger-btn" onclick="window.cariHareketSil(' + i + ')"><i data-lucide="trash-2"></i></button></td>' +
+            '<td style="text-align:center;">' +
+                '<div style="display:flex;gap:6px;justify-content:center;">' +
+                    '<button class="icon-btn" style="color:var(--primary);" onclick="window.cariHareketEkle(' + i + ')" title="Düzenle"><i data-lucide="pencil"></i></button>' +
+                    '<button class="icon-btn text-danger-btn" onclick="window.cariHareketSil(' + i + ')" title="Sil"><i data-lucide="trash-2"></i></button>' +
+                '</div>' +
+            '</td>' +
         '</tr>';
     }).join('');
     
@@ -2360,9 +2365,15 @@ window.saveGelecekData = function() {
     }
 };
 
-window.cariHareketEkle = function() {
+window.cariHareketEkle = function(editIdx) {
     let firma = document.getElementById('cari-firma-sec')?.value;
     if(!firma) { alert('Önce bir firma seçin!'); return; }
+    
+    // Düzenleme modu için mevcut veri
+    let editData = null;
+    if(editIdx !== undefined && window.cariData[firma] && window.cariData[firma][editIdx]) {
+        editData = window.cariData[firma][editIdx];
+    }
     
     // Firma VKN/TC'sini bul
     let meta = window.firmMeta[firma] || {};
@@ -2427,59 +2438,123 @@ window.cariHareketEkle = function() {
     
     // Modal oluştur
     let modal = document.createElement('div');
-    modal.id = 'hareket-sec-modal';
+    modal.id = 'hareket-ekle-modal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
     
+    let isEditMode = editData !== null;
+    let modalTitle = isEditMode ? '✏️ Hareket Düzenle' : '➕ Hareket Ekle';
+    
     let icerik = document.createElement('div');
-    icerik.style.cssText = 'background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;width:90%;max-width:600px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,0.5);';
+    icerik.style.cssText = 'background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;width:90%;max-width:500px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,0.5);';
     
     let baslik = '<div style="padding:20px 24px;border-bottom:1px solid var(--border,#333);display:flex;justify-content:space-between;align-items:center;">' +
-        '<div><h3 style="margin:0;color:var(--text-primary,#fff);font-size:18px;">🚗 Araç Seç</h3>' +
-        '<p style="margin:4px 0 0;color:var(--text-muted,#888);font-size:12px;">' + firma + ' - Tıklayarak seçin</p></div>' +
-        '<button onclick="document.getElementById(\'hareket-sec-modal\').remove()" style="background:var(--danger,#ef4444);color:#fff;border:none;border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button></div>';
+        '<div><h3 style="margin:0;color:var(--text-primary,#fff);font-size:18px;">' + modalTitle + '</h3>' +
+        '<p style="margin:4px 0 0;color:var(--text-muted,#888);font-size:12px;">' + firma + '</p></div>' +
+        '<button onclick="document.getElementById(\'hareket-ekle-modal\').remove()" style="background:var(--danger,#ef4444);color:#fff;border:none;border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button></div>';
     
-    let listeHTML = '<div style="padding:16px;overflow-y:auto;flex:1;">';
+    // Araç seçimi dropdown
+    let aracSecHTML = '<div style="padding:16px 24px;">' +
+        '<label style="display:block;color:var(--text-secondary,#aaa);font-size:12px;margin-bottom:6px;font-weight:600;">🚗 Araç Seçin</label>' +
+        '<select id="hareket-arac-select" style="width:100%;padding:12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:14px;box-sizing:border-box;">' +
+        '<option value="">-- Araç Seçin --</option>';
     
-    if(firmaAraclari.length === 0) {
-        listeHTML += '<div style="text-align:center;padding:40px;color:var(--text-muted,#888);">' +
-            '<div style="font-size:48px;margin-bottom:16px;">📋</div>' +
-            '<p style="font-size:14px;">Bu firmaya ait araç kaydı bulunamadı.</p>' +
-            '<p style="font-size:12px;margin-top:8px;">Önce Ekstreler bölümünden araç ekleyin.</p></div>';
-    } else {
-        listeHTML += '<div style="display:flex;flex-direction:column;gap:8px;">';
-        firmaAraclari.forEach(function(arac) {
-            let isim = (arac.marka + ' ' + arac.model).trim();
-            if(arac.yil) isim += ' (' + arac.yil + ')';
-            if(!isim || isim === '()') isim = arac.sasi;
-            
-            let durumBadge = '';
-            let evrakLower = (arac.evrak || '').toLocaleLowerCase('tr');
-            if(evrakLower === 'açık' || evrakLower === 'acik') {
-                durumBadge = '<span style="background:rgba(245,158,11,0.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">AÇIK</span>';
-            } else if(arac.evrak) {
-                durumBadge = '<span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">KAPALI</span>';
-            }
-            
-            listeHTML += '<div onclick="window._secAracHareket(\'' + isim.replace(/'/g, "\\'") + '\')" ' +
-                'style="padding:14px 16px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:10px;cursor:pointer;transition:all 0.2s;display:flex;justify-content:space-between;align-items:center;" ' +
-                'onmouseover="this.style.borderColor=\'var(--primary,#3b82f6)\';this.style.transform=\'translateX(4px)\';this.style.background=\'var(--bg-hover,#2a2a4a)\'" ' +
-                'onmouseout="this.style.borderColor=\'var(--border,#333)\';this.style.transform=\'\';this.style.background=\'var(--bg-elevated,#252540)\'">' +
-                '<div><div style="color:var(--text-primary,#fff);font-weight:600;font-size:14px;">' + isim + '</div>' +
-                '<div style="color:var(--text-muted,#888);font-size:11px;font-family:monospace;margin-top:4px;">' + arac.sasi + '</div></div>' +
-                '<div style="display:flex;align-items:center;gap:8px;">' + durumBadge +
-                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted,#888);"><path d="M9 18l6-6-6-6"/></svg></div></div>';
-        });
-        listeHTML += '</div>';
-    }
+    firmaAraclari.forEach(function(arac) {
+        let isim = (arac.marka + ' ' + arac.model).trim();
+        if(arac.yil) isim += ' (' + arac.yil + ')';
+        if(!isim || isim === '()') isim = arac.sasi;
+        let selected = (editData && editData.aciklama && editData.aciklama.includes(arac.sasi)) ? ' selected' : '';
+        aracSecHTML += '<option value="' + isim.replace(/"/g, '"') + '"' + selected + '>' + isim + ' - ' + arac.sasi + '</option>';
+    });
     
-    listeHTML += '</div>';
+    aracSecHTML += '</select></div>';
     
-    let altKisim = '<div style="padding:16px 24px;border-top:1px solid var(--border,#333);display:flex;gap:8px;">' +
-        '<button onclick="window._manuelHareketAciklama()" style="flex:1;padding:12px;background:var(--bg-elevated,#252540);color:var(--text-primary,#fff);border:1px solid var(--border,#333);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:0.2s;" onmouseover="this.style.borderColor=\'var(--primary,#3b82f6)\'" onmouseout="this.style.borderColor=\'var(--border,#333)\'">✏️ Manuel Açıklama Yaz</button>' +
+    // Manuel açıklama
+    let manuelHTML = '<div style="padding:0 24px 16px;">' +
+        '<label style="display:block;color:var(--text-secondary,#aaa);font-size:12px;margin-bottom:6px;font-weight:600;">✏️ Veya Manuel Açıklama</label>' +
+        '<input id="hareket-manuel-input" type="text" placeholder="Açıklama girin..." value="' + (editData ? editData.aciklama : '') + '" style="width:100%;padding:12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:14px;box-sizing:border-box;"></div>';
+    
+    // Gümrük Hizmeti (€) ve TSE Hizmeti (₺) yan yana
+    let hizmetlerHTML = '<div style="padding:0 24px 16px;">' +
+        '<label style="display:block;color:var(--text-secondary,#aaa);font-size:12px;margin-bottom:10px;font-weight:600;">💰 Hizmet Tutarları</label>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+        
+        // Gümrük Hizmeti
+        '<div style="background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:16px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+        '<span style="font-size:20px;">🛃</span>' +
+        '<span style="color:var(--primary,#3b82f6);font-size:13px;font-weight:700;">Gümrük Hizmeti</span></div>' +
+        '<div style="position:relative;">' +
+        '<input id="hareket-gumruk-input" type="number" step="0.01" placeholder="0.00" value="' + (editData && editData.birim === 'EUR' ? editData.tutar : '') + '" style="width:100%;padding:12px 30px 12px 12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:16px;font-weight:600;box-sizing:border-box;">' +
+        '<span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--primary,#3b82f6);font-size:16px;font-weight:700;">€</span></div></div>' +
+        
+        // TSE Hizmeti
+        '<div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.05));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+        '<span style="font-size:20px;">🔧</span>' +
+        '<span style="color:var(--warning,#f59e0b);font-size:13px;font-weight:700;">TSE Hizmeti</span></div>' +
+        '<div style="position:relative;">' +
+        '<input id="hareket-tse-input" type="number" step="0.01" placeholder="0.00" value="' + (editData && editData.birim === 'TRY' ? editData.tutar : '') + '" style="width:100%;padding:12px 30px 12px 12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:16px;font-weight:600;box-sizing:border-box;">' +
+        '<span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--warning,#f59e0b);font-size:16px;font-weight:700;">₺</span></div></div>' +
+        
+        '</div></div>';
+    
+    // Butonlar
+    let butonlarHTML = '<div style="padding:16px 24px;border-top:1px solid var(--border,#333);display:flex;gap:12px;">' +
+        '<button onclick="document.getElementById(\'hareket-ekle-modal\').remove()" style="flex:1;padding:14px;background:var(--bg-elevated,#252540);color:var(--text-muted,#888);border:1px solid var(--border,#333);border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:0.2s;">İPTAL</button>' +
+        '<button onclick="window._hareketKaydetYeni(' + (isEditMode ? editIdx : '-1') + ')" style="flex:2;padding:14px;background:linear-gradient(135deg,var(--primary,#3b82f6),#7c3aed);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:0.2s;box-shadow:0 4px 15px rgba(59,130,246,0.3);">KAYDET</button>' +
         '</div>';
     
-    icerik.innerHTML = baslik + listeHTML + altKisim;
+    icerik.innerHTML = baslik + aracSecHTML + manuelHTML + hizmetlerHTML + butonlarHTML;
     modal.appendChild(icerik);
+    
+    modal.addEventListener('click', function(e) {
+        if(e.target === modal) modal.remove();
+    });
+    
+    document.body.appendChild(modal);
+    
+    // Araç seçiminde manuel input'u temizle
+    document.getElementById('hareket-arac-select')?.addEventListener('change', function() {
+        if(this.value) {
+            document.getElementById('hareket-manuel-input').value = '';
+        }
+    });
+    
+    // Manuel input'a yazınca araç seçimini sıfırla
+    document.getElementById('hareket-manuel-input')?.addEventListener('input', function() {
+        if(this.value) {
+            document.getElementById('hareket-arac-select').value = '';
+        }
+    });
+};
+
+window._secAracHareket = function(aciklama) {
+    document.getElementById('hareket-sec-modal')?.remove();
+    window._hizmetTuruSec(aciklama);
+};
+
+window._hizmetTuruSec = function(aciklama) {
+    let modal = document.createElement('div');
+    modal.id = 'hizmet-turu-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+    
+    modal.innerHTML = '<div style="background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;padding:24px;width:90%;max-width:450px;box-shadow:0 25px 80px rgba(0,0,0,0.5);">' +
+        '<h3 style="margin:0 0 8px;color:var(--text-primary,#fff);font-size:18px;">📋 Hizmet Türü Seçin</h3>' +
+        '<p style="margin:0 0 20px;color:var(--text-muted,#888);font-size:12px;">' + aciklama + '</p>' +
+        '<div style="display:flex;gap:12px;margin-bottom:16px;">' +
+        '<button onclick="window._hizmetSec(\'gumruk\',\'' + aciklama.replace(/'/g, "\\'") + '\')" style="flex:1;padding:20px;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;border:2px solid transparent;border-radius:12px;cursor:pointer;font-size:15px;font-weight:700;transition:0.2s;display:flex;flex-direction:column;align-items:center;gap:8px;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 25px rgba(59,130,246,0.4)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+        '<span style="font-size:24px;">🛃</span>' +
+        '<span>Gümrük Hizmeti</span>' +
+        '<span style="font-size:12px;opacity:0.8;">€ (Euro)</span>' +
+        '</button>' +
+        '<button onclick="window._hizmetSec(\'tse\',\'' + aciklama.replace(/'/g, "\\'") + '\')" style="flex:1;padding:20px;background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;border:2px solid transparent;border-radius:12px;cursor:pointer;font-size:15px;font-weight:700;transition:0.2s;display:flex;flex-direction:column;align-items:center;gap:8px;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 25px rgba(245,158,11,0.4)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+        '<span style="font-size:24px;">🔧</span>' +
+        '<span>TSE Hizmeti</span>' +
+        '<span style="font-size:12px;opacity:0.8;">₺ (Türk Lirası)</span>' +
+        '</button>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'hizmet-turu-modal\').remove()" style="width:100%;padding:10px;background:var(--bg-elevated,#252540);color:var(--text-muted,#888);border:1px solid var(--border,#333);border-radius:8px;cursor:pointer;font-size:13px;">İptal</button>' +
+        '</div>';
     
     modal.addEventListener('click', function(e) {
         if(e.target === modal) modal.remove();
@@ -2488,9 +2563,12 @@ window.cariHareketEkle = function() {
     document.body.appendChild(modal);
 };
 
-window._secAracHareket = function(aciklama) {
-    document.getElementById('hareket-sec-modal')?.remove();
-    window._hareketTutarSor(aciklama);
+window._hizmetSec = function(tip, aciklama) {
+    document.getElementById('hizmet-turu-modal')?.remove();
+    let birim = tip === 'gumruk' ? 'EUR' : 'TRY';
+    let paraIsareti = tip === 'gumruk' ? '€' : '₺';
+    let hizmetAdi = tip === 'gumruk' ? 'Gümrük Hizmeti' : 'TSE Hizmeti';
+    window._hareketTutarSor(aciklama, birim, paraIsareti, hizmetAdi);
 };
 
 window._manuelHareketAciklama = function() {
@@ -2511,23 +2589,32 @@ window._manuelHareketAciklama = function() {
     setTimeout(()=>document.getElementById('manuel-aciklama-input')?.focus(),100);
 };
 
-window._hareketTutarSor = function(aciklama) {
+window._hareketTutarSor = function(aciklama, birim, paraIsareti, hizmetAdi) {
+    birim = birim || 'EUR';
+    paraIsareti = paraIsareti || '€';
+    hizmetAdi = hizmetAdi || 'Gümrük Hizmeti';
+    
     let modal = document.createElement('div');
     modal.id = 'tutar-sor-modal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
     
+    let hizmetRenk = birim === 'EUR' ? 'var(--primary,#3b82f6)' : 'var(--warning,#f59e0b)';
+    let hizmetIcon = birim === 'EUR' ? '🛃' : '🔧';
+    
+    // Varsayılan tutarlar
+    let varsayilanTutar = birim === 'EUR' ? '1750' : '12000';
+    
     modal.innerHTML = '<div style="background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;padding:24px;width:90%;max-width:400px;box-shadow:0 25px 80px rgba(0,0,0,0.5);">' +
-        '<h3 style="margin:0 0 8px;color:var(--text-primary,#fff);font-size:16px;">💰 Tutar ve Tür</h3>' +
-        '<p style="margin:0 0 16px;color:var(--text-muted,#888);font-size:12px;">' + aciklama + '</p>' +
-        '<div style="margin-bottom:16px;"><label style="display:block;color:var(--text-secondary,#aaa);font-size:12px;margin-bottom:6px;">Tutar (EUR)</label>' +
-        '<input id="hareket-tutar-input" type="number" step="0.01" placeholder="0.00" style="width:100%;padding:12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:16px;font-weight:600;box-sizing:border-box;"></div>' +
-        '<div style="display:flex;gap:8px;margin-bottom:20px;">' +
-        '<button id="hareket-borc-btn" onclick="window._hareketTurSec(\'borc\')" style="flex:1;padding:14px;background:rgba(239,68,68,0.15);color:#ef4444;border:2px solid transparent;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:0.2s;">📉 BORÇ</button>' +
-        '<button id="hareket-alacak-btn" onclick="window._hareketTurSec(\'alacak\')" style="flex:1;padding:14px;background:rgba(16,185,129,0.15);color:#10b981;border:2px solid transparent;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:0.2s;">📈 ALACAK</button>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+        '<span style="font-size:24px;">' + hizmetIcon + '</span>' +
+        '<h3 style="margin:0;color:' + hizmetRenk + ';font-size:16px;">' + hizmetAdi + '</h3>' +
         '</div>' +
+        '<p style="margin:0 0 16px;color:var(--text-muted,#888);font-size:12px;">' + aciklama + '</p>' +
+        '<div style="margin-bottom:16px;"><label style="display:block;color:var(--text-secondary,#aaa);font-size:12px;margin-bottom:6px;">Tutar (' + paraIsareti + ') - ALACAK</label>' +
+        '<input id="hareket-tutar-input" type="number" step="0.01" value="' + varsayilanTutar + '" placeholder="0.00" style="width:100%;padding:12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:#10b981;font-size:16px;font-weight:600;box-sizing:border-box;"></div>' +
         '<div style="display:flex;gap:8px;">' +
         '<button onclick="document.getElementById(\'tutar-sor-modal\').remove()" style="flex:1;padding:12px;background:var(--bg-elevated,#252540);color:var(--text-muted,#888);border:1px solid var(--border,#333);border-radius:8px;cursor:pointer;font-size:13px;">İptal</button>' +
-        '<button onclick="window._hareketKaydet(\'' + aciklama.replace(/'/g, "\\'") + '\')" style="flex:1;padding:12px;background:var(--primary,#3b82f6);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Kaydet</button>' +
+        '<button onclick="window._hareketKaydet(\'' + aciklama.replace(/'/g, "\\'") + '\',\'' + birim + '\')" style="flex:1;padding:12px;background:#10b981;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Kaydet</button>' +
         '</div></div>';
     
     modal.addEventListener('click', function(e) {
@@ -2535,11 +2622,11 @@ window._hareketTutarSor = function(aciklama) {
     });
     
     document.body.appendChild(modal);
-    window._secilenHareketTur = 'borc';
-    document.getElementById('hareket-borc-btn').style.borderColor = '#ef4444';
+    window._secilenHareketTur = 'alacak';
     
     setTimeout(function() {
         document.getElementById('hareket-tutar-input')?.focus();
+        document.getElementById('hareket-tutar-input')?.select();
     }, 100);
 };
 
@@ -2556,7 +2643,8 @@ window._hareketTurSec = function(tur) {
     }
 };
 
-window._hareketKaydet = function(aciklama) {
+window._hareketKaydet = function(aciklama, birim) {
+    birim = birim || 'EUR';
     let tutarStr = document.getElementById('hareket-tutar-input')?.value;
     let tutar = parseFloat(tutarStr);
     if(isNaN(tutar) || tutar <= 0) {
@@ -2575,11 +2663,62 @@ window._hareketKaydet = function(aciklama) {
         tarih: tarih,
         aciklama: aciklama,
         tutar: tutar,
-        birim: 'EUR',
+        birim: birim,
         tur: tur
     });
     
     document.getElementById('tutar-sor-modal')?.remove();
+    saveCariData();
+    window.renderCariTable();
+    window.renderGenelCariOzet();
+};
+
+// YENİ: Çift hizmet girişi ile kayıt (Gümrük € + TSE ₺)
+window._hareketKaydetYeni = function(editIdx) {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) return;
+    
+    let aracSec = document.getElementById('hareket-arac-select')?.value || '';
+    let manuelAciklama = document.getElementById('hareket-manuel-input')?.value?.trim() || '';
+    let gumrukTutar = parseFloat(document.getElementById('hareket-gumruk-input')?.value) || 0;
+    let tseTutar = parseFloat(document.getElementById('hareket-tse-input')?.value) || 0;
+    
+    let aciklama = aracSec || manuelAciklama;
+    if(!aciklama) { alert('Araç seçin veya açıklama girin!'); return; }
+    if(gumrukTutar <= 0 && tseTutar <= 0) { alert('En az bir hizmet tutarı girin!'); return; }
+    
+    let tarih = window.formatTRDate(new Date());
+    
+    if(!window.cariData[firma]) window.cariData[firma] = [];
+    
+    // Düzenleme modu: eski kayıtları sil, yenilerini ekle
+    if(editIdx >= 0 && window.cariData[firma][editIdx]) {
+        window.cariData[firma].splice(editIdx, 1);
+    }
+    
+    // Gümrük Hizmeti (€) varsa ekle - HER ZAMAN ALACAK
+    if(gumrukTutar > 0) {
+        window.cariData[firma].unshift({
+            tarih: tarih,
+            aciklama: aciklama,
+            tutar: gumrukTutar,
+            birim: 'EUR',
+            tur: 'alacak'
+        });
+    }
+    
+    // TSE Hizmeti (₺) varsa ekle - HER ZAMAN ALACAK
+    if(tseTutar > 0) {
+        window.cariData[firma].unshift({
+            tarih: tarih,
+            aciklama: aciklama,
+            tutar: tseTutar,
+            birim: 'TRY',
+            tur: 'alacak'
+        });
+    }
+    
+    document.getElementById('hareket-ekle-modal')?.remove();
     saveCariData();
     window.renderCariTable();
     window.renderGenelCariOzet();
@@ -2704,15 +2843,15 @@ window.cariSeciliPDF = function() {
             <tr style="background:#f1f5f9;">
                 <th style="padding:8px;border:1px solid #ddd;">Tarih</th>
                 <th style="padding:8px;border:1px solid #ddd;">Açıklama/Araç</th>
-                <th style="padding:8px;border:1px solid #ddd;text-align:right;">Gümrük Hizmeti (€)</th>
-                <th style="padding:8px;border:1px solid #ddd;text-align:right;">TSE Hizmeti (₺)</th>
+                <th style="padding:8px;border:1px solid #ddd;text-align:right;color:#10b981;">Gümrük Hizmeti (€)</th>
+                <th style="padding:8px;border:1px solid #ddd;text-align:right;color:#10b981;">TSE Hizmeti (₺)</th>
             </tr>
             ${rows}
         </table>
         
-        <div style="background:linear-gradient(135deg,#1e3a8a,#7c3aed);padding:15px 20px;border-radius:8px;margin-bottom:10px;">
+        <div style="background:linear-gradient(135deg,#10b981,#059669);padding:15px 20px;border-radius:8px;margin-bottom:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="color:#fff;font-size:14px;font-weight:700;">BAKİYE</span>
+                <span style="color:#fff;font-size:14px;font-weight:700;">TOPLAM ALACAK</span>
                 <strong style="color:#fff;font-size:20px;">${bakiyeText}</strong>
             </div>
         </div>
