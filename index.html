@@ -1220,11 +1220,9 @@
                 <thead><tr>
                     <th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="cari-select-all" onclick="window.toggleAllCari(this.checked)"></th>
                     <th>TARİH</th>
-                    <th>AÇIKLAMA</th>
-                    <th>TÜR</th>
-                    <th>TUTAR</th>
-                    <th>BİRİM</th>
-                    <th>KALAN</th>
+                    <th>AÇIKLAMA / ARAÇ</th>
+                    <th style="color:var(--primary);">GÜMRÜK HİZMETİ (€)</th>
+                    <th style="color:var(--warning);">TSE HİZMETİ (₺)</th>
                     <th style="text-align:center;">İŞLEM</th>
                 </tr></thead>
                 <tbody id="cari-tbody"></tbody>
@@ -1963,34 +1961,46 @@ if(!tbody) return;
         return;
     }
     
-    // Birim bazlı kalan hesabı
-    let kalanEUR=0, kalanUSD=0, kalanTRY=0;
+    // Euro ve TL ayrı kümülatif hesaplama
+    let kumEUR = 0;
+    let kumTL = 0;
+    
     tbody.innerHTML = hareketler.map(function(h, i) {
         let t = parseFloat(h.tutar) || 0;
         let b = (h.birim || 'EUR').toUpperCase();
-        let isim = b==='EUR'?'€':b==='USD'?'$':'₺';
         
-        if(h.tur === 'borc') {
-            if(b==='EUR') kalanEUR-=t; else if(b==='USD') kalanUSD-=t; else kalanTRY-=t;
-        } else {
-            if(b==='EUR') kalanEUR+=t; else if(b==='USD') kalanUSD+=t; else kalanTRY+=t;
+        let gumrukDeger = '';
+        let tseDeger = '';
+        
+        if(b === 'EUR') {
+            // Gümrük hizmeti (Euro)
+            if(h.tur === 'borc') kumEUR -= t;
+            else kumEUR += t;
+            let renk = h.tur === 'borc' ? 'var(--danger)' : 'var(--success)';
+            let isaret = h.tur === 'borc' ? '-' : '+';
+            gumrukDeger = '<span style="font-weight:700;color:'+renk+';">'+isaret+window.formatNumber(t,true)+' €</span>';
+        } else if(b === 'TRY' || b === 'TL') {
+            // TSE hizmeti (TL)
+            if(h.tur === 'borc') kumTL -= t;
+            else kumTL += t;
+            let renk = h.tur === 'borc' ? 'var(--danger)' : 'var(--success)';
+            let isaret = h.tur === 'borc' ? '-' : '+';
+            tseDeger = '<span style="font-weight:700;color:'+renk+';">'+isaret+window.formatNumber(t,true)+' ₺</span>';
+        } else if(b === 'USD') {
+            // USD de gümrük hizmeti olarak göster
+            if(h.tur === 'borc') kumEUR -= t;
+            else kumEUR += t;
+            let renk = h.tur === 'borc' ? 'var(--danger)' : 'var(--success)';
+            let isaret = h.tur === 'borc' ? '-' : '+';
+            gumrukDeger = '<span style="font-weight:700;color:'+renk+';">'+isaret+window.formatNumber(t,true)+' $</span>';
         }
-        
-        let kalanDeger = b==='EUR'?kalanEUR:b==='USD'?kalanUSD:kalanTRY;
-        let tutarRenk = h.tur === 'borc' ? 'var(--danger)' : 'var(--success)';
-        let kalanRenk = kalanDeger >= 0 ? 'var(--success)' : 'var(--danger)';
-        let turBadge = h.tur === 'borc' 
-            ? '<span class="badge badge-danger">BORÇ</span>' 
-            : '<span class="badge badge-success">ALACAK</span>';
         
         return '<tr>' +
             '<td style="text-align:center;"><input type="checkbox" class="custom-cb cari-cb" value="' + i + '" onclick="window.toggleCariCb()"></td>' +
             '<td>' + (h.tarih || '-') + '</td>' +
             '<td style="font-weight:600;">' + (h.aciklama || '-') + '</td>' +
-            '<td>' + turBadge + '</td>' +
-            '<td style="color:' + tutarRenk + ';font-weight:700;">' + window.formatNumber(t,true) + ' ' + isim + '</td>' +
-            '<td style="font-weight:600;">' + b + '</td>' +
-            '<td style="color:' + kalanRenk + ';font-weight:700;">' + window.formatNumber(kalanDeger,true) + ' ' + isim + '</td>' +
+            '<td>' + (gumrukDeger || '<span style="color:var(--text-muted);">-</span>') + '</td>' +
+            '<td>' + (tseDeger || '<span style="color:var(--text-muted);">-</span>') + '</td>' +
             '<td style="text-align:center;"><button class="icon-btn text-danger-btn" onclick="window.cariHareketSil(' + i + ')"><i data-lucide="trash-2"></i></button></td>' +
         '</tr>';
     }).join('');
@@ -2150,80 +2160,126 @@ window.renderGelecekTable = function() {
 };
 
 window.gelecekAracEkle = function() {
-    let firma = prompt('Firma:');
-    if(!firma) return;
-    let marka = prompt('Marka:');
-    if(!marka) return;
-    let model = prompt('Model:');
-    let yil = prompt('Yıl:', '2025');
-    let renk = prompt('Renk:');
-    let sasi = prompt('Şasi No (varsa):');
-    let fatura = prompt('Fatura (EUR):');
-    let cikisUlke = prompt('Çıkış Ülkesi:', 'Almanya');
-    let tahminiGelis = prompt('Tahmini Geliş (GG.AA.YYYY):');
-    let not2 = prompt('Not (opsiyonel):');
-    
-    let yeni = {
-        firma: firma.toUpperCase(),
-        marka: marka.toUpperCase(),
-        model: (model||'').toUpperCase(),
-        yil: yil || '',
-        renk: (renk||'').toUpperCase(),
-        sasi: (sasi||'').toUpperCase(),
-        fatura: fatura ? parseFloat(fatura.replace(/\./g,'').replace(',','.')) : 0,
-        cikisUlke: cikisUlke || '',
-        tahminiGelis: tahminiGelis || '',
-        durum: 'YÜKLENDI',
-        not: not2 || '',
-        eklenmeTarihi: window.formatTRDate(new Date())
-    };
-    
-    window.gelecekData.unshift(yeni);
-    window.saveGelecekData();
-    window.renderGelecekTable();
-    
-    // Drive klasörü oluştur
-    if(yeni.sasi) {
-        window.triggerDriveBridge(yeni.firma, yeni.marka, yeni.sasi).then(function(url) {
-            if(url) {
-                yeni.evrakLink = url;
-                window.saveGelecekData();
-            }
-        });
-    }
+    window._gelecekEditIdx = -1;
+    window.openGelecekModal();
 };
 
 window.gelecekAracDuzenle = function(idx) {
-    let d = window.gelecekData[idx];
-    if(!d) return;
+    window._gelecekEditIdx = idx;
+    window.openGelecekModal();
+};
+
+window.openGelecekModal = function() {
+    let modal = document.getElementById('gelecek-modal');
+    if(!modal) {
+        modal = document.createElement('div');
+        modal.id = 'gelecek-modal';
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+        <div class="modal-box" style="max-width:550px;">
+            <div class="modal-header">
+                <h2 id="gelecek-modal-title">Gelecek Araç Ekle</h2>
+                <button class="icon-btn" onclick="window.closeGelecekModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Firma *</label><input type="text" id="gm-firma"></div>
+                    <div class="input-group" style="margin:0;"><label>Marka *</label><input type="text" id="gm-marka"></div>
+                    <div class="input-group" style="margin:0;"><label>Model</label><input type="text" id="gm-model"></div>
+                    <div class="input-group" style="margin:0;"><label>Yıl</label><input type="text" id="gm-yil" value="2025"></div>
+                    <div class="input-group" style="margin:0;"><label>Renk</label><input type="text" id="gm-renk"></div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Şasi No</label><input type="text" id="gm-sasi"></div>
+                    <div class="input-group" style="margin:0;"><label>Fatura (EUR)</label><input type="text" id="gm-fatura"></div>
+                    <div class="input-group" style="margin:0;"><label>Çıkış Ülkesi</label><input type="text" id="gm-cikisUlke" value="Almanya"></div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Tahmini Geliş (GG.AA.YYYY)</label><input type="text" id="gm-tahminiGelis"></div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;">
+                        <label>Durum</label>
+                        <select id="gm-durum">
+                            <option value="YÜKLENDI">Yüklendi</option>
+                            <option value="TIRDA">Tırda</option>
+                            <option value="YOLDA">Yolda</option>
+                            <option value="GÜMRÜKTE">Gümrükte</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Not</label><textarea id="gm-not" rows="2"></textarea></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-sm" onclick="window.closeGelecekModal()">İptal</button>
+                <button class="btn-primary" onclick="window.saveGelecekEntry()"><i data-lucide="save"></i> Kaydet</button>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+    }
     
-    let firma = prompt('Firma:', d.firma);
-    if(firma === null) return;
-    let marka = prompt('Marka:', d.marka);
-    if(marka === null) return;
-    let model = prompt('Model:', d.model);
-    let yil = prompt('Yıl:', d.yil);
-    let renk = prompt('Renk:', d.renk);
-    let sasi = prompt('Şasi No:', d.sasi);
-    let fatura = prompt('Fatura (EUR):', d.fatura);
-    let cikisUlke = prompt('Çıkış Ülkesi:', d.cikisUlke);
-    let tahminiGelis = prompt('Tahmini Geliş (GG.AA.YYYY):', d.tahminiGelis);
-    let durum = prompt('Durum (YÜKLENDI / TIRDA / YOLDA / GÜMRÜKTE):', d.durum);
-    let not2 = prompt('Not:', d.not);
+    let idx = window._gelecekEditIdx;
+    if(idx >= 0 && window.gelecekData[idx]) {
+        let d = window.gelecekData[idx];
+        document.getElementById('gelecek-modal-title').innerText = 'Gelecek Araç Düzenle';
+        document.getElementById('gm-firma').value = d.firma || '';
+        document.getElementById('gm-marka').value = d.marka || '';
+        document.getElementById('gm-model').value = d.model || '';
+        document.getElementById('gm-yil').value = d.yil || '';
+        document.getElementById('gm-renk').value = d.renk || '';
+        document.getElementById('gm-sasi').value = d.sasi || '';
+        document.getElementById('gm-fatura').value = d.fatura || '';
+        document.getElementById('gm-cikisUlke').value = d.cikisUlke || '';
+        document.getElementById('gm-tahminiGelis').value = d.tahminiGelis || '';
+        document.getElementById('gm-durum').value = d.durum || 'YÜKLENDI';
+        document.getElementById('gm-not').value = d.not || '';
+    } else {
+        document.getElementById('gelecek-modal-title').innerText = 'Gelecek Araç Ekle';
+        document.getElementById('gm-firma').value = '';
+        document.getElementById('gm-marka').value = '';
+        document.getElementById('gm-model').value = '';
+        document.getElementById('gm-yil').value = '2025';
+        document.getElementById('gm-renk').value = '';
+        document.getElementById('gm-sasi').value = '';
+        document.getElementById('gm-fatura').value = '';
+        document.getElementById('gm-cikisUlke').value = 'Almanya';
+        document.getElementById('gm-tahminiGelis').value = '';
+        document.getElementById('gm-durum').value = 'YÜKLENDI';
+        document.getElementById('gm-not').value = '';
+    }
     
-    d.firma = (firma||'').toUpperCase();
-    d.marka = (marka||'').toUpperCase();
-    d.model = (model||'').toUpperCase();
-    d.yil = yil || '';
-    d.renk = (renk||'').toUpperCase();
-    d.sasi = (sasi||'').toUpperCase();
-    d.fatura = fatura ? parseFloat(fatura.toString().replace(/\./g,'').replace(',','.')) : 0;
-    d.cikisUlke = cikisUlke || '';
-    d.tahminiGelis = tahminiGelis || '';
-    d.durum = (durum||'YÜKLENDI').toUpperCase();
-    d.not = not2 || '';
+    modal.classList.remove('hidden');
+    if(window.lucide) lucide.createIcons();
+};
+
+window.closeGelecekModal = function() {
+    document.getElementById('gelecek-modal')?.classList.add('hidden');
+};
+
+window.saveGelecekEntry = function() {
+    let val = id => document.getElementById(id)?.value?.trim() || '';
+    let firma = val('gm-firma');
+    let marka = val('gm-marka');
+    if(!firma || !marka) { alert('Firma ve Marka zorunludur!'); return; }
+    
+    let entry = {
+        firma: firma.toUpperCase(),
+        marka: marka.toUpperCase(),
+        model: val('gm-model').toUpperCase(),
+        yil: val('gm-yil'),
+        renk: val('gm-renk').toUpperCase(),
+        sasi: val('gm-sasi').toUpperCase(),
+        fatura: parseFloat(val('gm-fatura').replace(/\./g,'').replace(',','.')) || 0,
+        cikisUlke: val('gm-cikisUlke'),
+        tahminiGelis: val('gm-tahminiGelis'),
+        durum: val('gm-durum'),
+        not: val('gm-not'),
+        eklenmeTarihi: window.formatTRDate(new Date())
+    };
+    
+    let idx = window._gelecekEditIdx;
+    if(idx >= 0 && window.gelecekData[idx]) {
+        Object.assign(window.gelecekData[idx], entry);
+    } else {
+        window.gelecekData.unshift(entry);
+    }
     
     window.saveGelecekData();
+    window.closeGelecekModal();
     window.renderGelecekTable();
 };
 
@@ -2306,39 +2362,227 @@ window.saveGelecekData = function() {
 
 window.cariHareketEkle = function() {
     let firma = document.getElementById('cari-firma-sec')?.value;
-    if(!firma) { alert('Önce firma seçin!'); return; }
+    if(!firma) { alert('Önce bir firma seçin!'); return; }
     
-    let tur = prompt("Tür girin:\n1 = BORÇ (Masraf/Çekim)\n2 = ALACAK (Ödeme/Havale)");
-    if(!tur) return;
-    tur = tur.trim() === '2' ? 'alacak' : 'borc';
+    // Firma VKN/TC'sini bul
+    let meta = window.firmMeta[firma] || {};
+    let vergiNo = (meta.vergiNo || meta.tcNo || '').trim();
     
-    let aciklama = prompt("Açıklama:\n(Örn: BMW X5 WBA123 Çekim Ücreti, TSE Hizmet, Havale)");
-    if(!aciklama) return;
+    // declarationsData'dan bu firmaya ait araçları filtrele
+    let firmaAraclari = [];
+    let eklenenSasiler = [];
     
-    let tutar = prompt("Tutar (Rakam):");
-    if(!tutar) return;
-    tutar = parseFloat(tutar.replace(/\./g,'').replace(',','.')) || 0;
-    if(tutar <= 0) { alert('Geçersiz tutar!'); return; }
+    if(vergiNo) {
+        (window.declarationsData || []).forEach(function(d) {
+            if(!d) return;
+            let dMeta = window.firmMeta[d.firma] || {};
+            let dVergiNo = (dMeta.vergiNo || dMeta.tcNo || '').trim();
+            if(dVergiNo === vergiNo && d.sasi && !eklenenSasiler.includes(d.sasi)) {
+                eklenenSasiler.push(d.sasi);
+                firmaAraclari.push({
+                    marka: d.marka || '',
+                    model: d.model || '',
+                    yil: d.yil || '',
+                    sasi: d.sasi,
+                    tarih: d.tarih || '',
+                    evrak: d.evrak || ''
+                });
+            }
+        });
+    }
     
-    let birim = prompt("Birim:\n1 = EUR\n2 = TRY\n3 = USD", "1");
-    if(!birim) return;
-    if(birim.trim() === '2') birim = 'TRY';
-    else if(birim.trim() === '3') birim = 'USD';
-    else birim = 'EUR';
+    if(firmaAraclari.length === 0) {
+        (window.declarationsData || []).forEach(function(d) {
+            if(!d) return;
+            if(d.firma && d.firma.toUpperCase() === firma.toUpperCase() && d.sasi && !eklenenSasiler.includes(d.sasi)) {
+                eklenenSasiler.push(d.sasi);
+                firmaAraclari.push({
+                    marka: d.marka || '',
+                    model: d.model || '',
+                    yil: d.yil || '',
+                    sasi: d.sasi,
+                    tarih: d.tarih || '',
+                    evrak: d.evrak || ''
+                });
+            }
+        });
+    }
     
+    if(window.firmData[firma]) {
+        window.firmData[firma].forEach(function(d) {
+            if(!d) return;
+            if(d.sasi && !eklenenSasiler.includes(d.sasi)) {
+                eklenenSasiler.push(d.sasi);
+                firmaAraclari.push({
+                    marka: d.marka || '',
+                    model: d.model || '',
+                    yil: d.yil || '',
+                    sasi: d.sasi,
+                    tarih: d.tarih || '',
+                    evrak: d.evrak || ''
+                });
+            }
+        });
+    }
+    
+    // Modal oluştur
+    let modal = document.createElement('div');
+    modal.id = 'hareket-sec-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+    
+    let icerik = document.createElement('div');
+    icerik.style.cssText = 'background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;width:90%;max-width:600px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,0.5);';
+    
+    let baslik = '<div style="padding:20px 24px;border-bottom:1px solid var(--border,#333);display:flex;justify-content:space-between;align-items:center;">' +
+        '<div><h3 style="margin:0;color:var(--text-primary,#fff);font-size:18px;">🚗 Araç Seç</h3>' +
+        '<p style="margin:4px 0 0;color:var(--text-muted,#888);font-size:12px;">' + firma + ' - Tıklayarak seçin</p></div>' +
+        '<button onclick="document.getElementById(\'hareket-sec-modal\').remove()" style="background:var(--danger,#ef4444);color:#fff;border:none;border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button></div>';
+    
+    let listeHTML = '<div style="padding:16px;overflow-y:auto;flex:1;">';
+    
+    if(firmaAraclari.length === 0) {
+        listeHTML += '<div style="text-align:center;padding:40px;color:var(--text-muted,#888);">' +
+            '<div style="font-size:48px;margin-bottom:16px;">📋</div>' +
+            '<p style="font-size:14px;">Bu firmaya ait araç kaydı bulunamadı.</p>' +
+            '<p style="font-size:12px;margin-top:8px;">Önce Ekstreler bölümünden araç ekleyin.</p></div>';
+    } else {
+        listeHTML += '<div style="display:flex;flex-direction:column;gap:8px;">';
+        firmaAraclari.forEach(function(arac) {
+            let isim = (arac.marka + ' ' + arac.model).trim();
+            if(arac.yil) isim += ' (' + arac.yil + ')';
+            if(!isim || isim === '()') isim = arac.sasi;
+            
+            let durumBadge = '';
+            let evrakLower = (arac.evrak || '').toLocaleLowerCase('tr');
+            if(evrakLower === 'açık' || evrakLower === 'acik') {
+                durumBadge = '<span style="background:rgba(245,158,11,0.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">AÇIK</span>';
+            } else if(arac.evrak) {
+                durumBadge = '<span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">KAPALI</span>';
+            }
+            
+            listeHTML += '<div onclick="window._secAracHareket(\'' + isim.replace(/'/g, "\\'") + '\')" ' +
+                'style="padding:14px 16px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:10px;cursor:pointer;transition:all 0.2s;display:flex;justify-content:space-between;align-items:center;" ' +
+                'onmouseover="this.style.borderColor=\'var(--primary,#3b82f6)\';this.style.transform=\'translateX(4px)\';this.style.background=\'var(--bg-hover,#2a2a4a)\'" ' +
+                'onmouseout="this.style.borderColor=\'var(--border,#333)\';this.style.transform=\'\';this.style.background=\'var(--bg-elevated,#252540)\'">' +
+                '<div><div style="color:var(--text-primary,#fff);font-weight:600;font-size:14px;">' + isim + '</div>' +
+                '<div style="color:var(--text-muted,#888);font-size:11px;font-family:monospace;margin-top:4px;">' + arac.sasi + '</div></div>' +
+                '<div style="display:flex;align-items:center;gap:8px;">' + durumBadge +
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted,#888);"><path d="M9 18l6-6-6-6"/></svg></div></div>';
+        });
+        listeHTML += '</div>';
+    }
+    
+    listeHTML += '</div>';
+    
+    let altKisim = '<div style="padding:16px 24px;border-top:1px solid var(--border,#333);display:flex;gap:8px;">' +
+        '<button onclick="window._manuelHareketAciklama()" style="flex:1;padding:12px;background:var(--bg-elevated,#252540);color:var(--text-primary,#fff);border:1px solid var(--border,#333);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:0.2s;" onmouseover="this.style.borderColor=\'var(--primary,#3b82f6)\'" onmouseout="this.style.borderColor=\'var(--border,#333)\'">✏️ Manuel Açıklama Yaz</button>' +
+        '</div>';
+    
+    icerik.innerHTML = baslik + listeHTML + altKisim;
+    modal.appendChild(icerik);
+    
+    modal.addEventListener('click', function(e) {
+        if(e.target === modal) modal.remove();
+    });
+    
+    document.body.appendChild(modal);
+};
+
+window._secAracHareket = function(aciklama) {
+    document.getElementById('hareket-sec-modal')?.remove();
+    window._hareketTutarSor(aciklama);
+};
+
+window._manuelHareketAciklama = function() {
+    document.getElementById('hareket-sec-modal')?.remove();
+    let modal=document.createElement('div');
+    modal.id='manuel-aciklama-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+    modal.innerHTML='<div style="background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;padding:24px;width:90%;max-width:450px;box-shadow:0 25px 80px rgba(0,0,0,0.5);">'+
+        '<h3 style="margin:0 0 16px;color:var(--text-primary,#fff);font-size:16px;">✏️ Manuel Açıklama</h3>'+
+        '<div style="margin-bottom:16px;"><label style="display:block;color:var(--text-secondary,#aaa);font-size:12px;margin-bottom:6px;">Açıklama</label>'+
+        '<input id="manuel-aciklama-input" type="text" placeholder="Açıklama girin..." style="width:100%;padding:12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:14px;box-sizing:border-box;"></div>'+
+        '<div style="display:flex;gap:8px;">'+
+        '<button onclick="document.getElementById(\'manuel-aciklama-modal\').remove()" style="flex:1;padding:12px;background:var(--bg-elevated,#252540);color:var(--text-muted,#888);border:1px solid var(--border,#333);border-radius:8px;cursor:pointer;font-size:13px;">İptal</button>'+
+        '<button onclick="let a=document.getElementById(\'manuel-aciklama-input\').value;if(a){document.getElementById(\'manuel-aciklama-modal\').remove();window._hareketTutarSor(a);}else{alert(\'Açıklama girin!\');}" style="flex:1;padding:12px;background:var(--primary,#3b82f6);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Devam</button>'+
+        '</div></div>';
+    modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
+    document.body.appendChild(modal);
+    setTimeout(()=>document.getElementById('manuel-aciklama-input')?.focus(),100);
+};
+
+window._hareketTutarSor = function(aciklama) {
+    let modal = document.createElement('div');
+    modal.id = 'tutar-sor-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+    
+    modal.innerHTML = '<div style="background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;padding:24px;width:90%;max-width:400px;box-shadow:0 25px 80px rgba(0,0,0,0.5);">' +
+        '<h3 style="margin:0 0 8px;color:var(--text-primary,#fff);font-size:16px;">💰 Tutar ve Tür</h3>' +
+        '<p style="margin:0 0 16px;color:var(--text-muted,#888);font-size:12px;">' + aciklama + '</p>' +
+        '<div style="margin-bottom:16px;"><label style="display:block;color:var(--text-secondary,#aaa);font-size:12px;margin-bottom:6px;">Tutar (EUR)</label>' +
+        '<input id="hareket-tutar-input" type="number" step="0.01" placeholder="0.00" style="width:100%;padding:12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:16px;font-weight:600;box-sizing:border-box;"></div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:20px;">' +
+        '<button id="hareket-borc-btn" onclick="window._hareketTurSec(\'borc\')" style="flex:1;padding:14px;background:rgba(239,68,68,0.15);color:#ef4444;border:2px solid transparent;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:0.2s;">📉 BORÇ</button>' +
+        '<button id="hareket-alacak-btn" onclick="window._hareketTurSec(\'alacak\')" style="flex:1;padding:14px;background:rgba(16,185,129,0.15);color:#10b981;border:2px solid transparent;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:0.2s;">📈 ALACAK</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<button onclick="document.getElementById(\'tutar-sor-modal\').remove()" style="flex:1;padding:12px;background:var(--bg-elevated,#252540);color:var(--text-muted,#888);border:1px solid var(--border,#333);border-radius:8px;cursor:pointer;font-size:13px;">İptal</button>' +
+        '<button onclick="window._hareketKaydet(\'' + aciklama.replace(/'/g, "\\'") + '\')" style="flex:1;padding:12px;background:var(--primary,#3b82f6);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Kaydet</button>' +
+        '</div></div>';
+    
+    modal.addEventListener('click', function(e) {
+        if(e.target === modal) modal.remove();
+    });
+    
+    document.body.appendChild(modal);
+    window._secilenHareketTur = 'borc';
+    document.getElementById('hareket-borc-btn').style.borderColor = '#ef4444';
+    
+    setTimeout(function() {
+        document.getElementById('hareket-tutar-input')?.focus();
+    }, 100);
+};
+
+window._hareketTurSec = function(tur) {
+    window._secilenHareketTur = tur;
+    let borcBtn = document.getElementById('hareket-borc-btn');
+    let alacakBtn = document.getElementById('hareket-alacak-btn');
+    if(tur === 'borc') {
+        borcBtn.style.borderColor = '#ef4444';
+        alacakBtn.style.borderColor = 'transparent';
+    } else {
+        alacakBtn.style.borderColor = '#10b981';
+        borcBtn.style.borderColor = 'transparent';
+    }
+};
+
+window._hareketKaydet = function(aciklama) {
+    let tutarStr = document.getElementById('hareket-tutar-input')?.value;
+    let tutar = parseFloat(tutarStr);
+    if(isNaN(tutar) || tutar <= 0) {
+        alert('Geçerli bir tutar girin!');
+        return;
+    }
+    
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) return;
+    
+    let tur = window._secilenHareketTur || 'borc';
     let tarih = window.formatTRDate(new Date());
     
     if(!window.cariData[firma]) window.cariData[firma] = [];
-    window.cariData[firma].push({
+    window.cariData[firma].unshift({
         tarih: tarih,
-        aciklama: aciklama.toUpperCase(),
-        tur: tur,
+        aciklama: aciklama,
         tutar: tutar,
-        birim: birim
+        birim: 'EUR',
+        tur: tur
     });
     
+    document.getElementById('tutar-sor-modal')?.remove();
     saveCariData();
     window.renderCariTable();
+    window.renderGenelCariOzet();
 };
 
 window.cariHareketSil = function(idx) {
@@ -2429,13 +2673,23 @@ window.cariSeciliPDF = function() {
         let kalanRenk = kalanDeger>=0?'#10b981':'#ef4444';
         let turText = h.tur==='borc'?'BORÇ':'ALACAK';
         
+        // Gümrük Hizmeti (€) ve TSE Hizmeti (₺) sütunları
+        let gumrukDeger = '';
+        let tseDeger = '';
+        
+        if(b === 'EUR') {
+            gumrukDeger = '<span style="font-weight:700;color:'+tutarRenk+';">' + (h.tur==='borc'?'-':'') + window.formatNumber(t,true) + ' €</span>';
+        } else if(b === 'TRY') {
+            tseDeger = '<span style="font-weight:700;color:'+tutarRenk+';">' + (h.tur==='borc'?'-':'') + window.formatNumber(t,true) + ' ₺</span>';
+        } else {
+            gumrukDeger = '<span style="font-weight:700;color:'+tutarRenk+';">' + (h.tur==='borc'?'-':'') + window.formatNumber(t,true) + ' ' + isim + '</span>';
+        }
+        
         rows += '<tr>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;">'+(i+1)+'</td>' +
             '<td style="padding:6px 8px;border:1px solid #ddd;">'+(h.tarih||'-')+'</td>' +
             '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+(h.aciklama||'-')+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;color:'+tutarRenk+';">'+turText+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:700;color:'+tutarRenk+';text-align:right;">'+window.formatNumber(t,true)+' '+isim+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:700;color:'+kalanRenk+';text-align:right;">'+window.formatNumber(kalanDeger,true)+' '+isim+'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+gumrukDeger+'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+tseDeger+'</td>' +
         '</tr>';
     });
     
@@ -2448,12 +2702,10 @@ window.cariSeciliPDF = function() {
         
         <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:11px;">
             <tr style="background:#f1f5f9;">
-                <th style="padding:8px;border:1px solid #ddd;text-align:center;width:30px;">#</th>
-                <th style="padding:8px;border:1px solid #ddd;">TARİH</th>
-                <th style="padding:8px;border:1px solid #ddd;">AÇIKLAMA</th>
-                <th style="padding:8px;border:1px solid #ddd;">TÜR</th>
-                <th style="padding:8px;border:1px solid #ddd;text-align:right;">TUTAR</th>
-                <th style="padding:8px;border:1px solid #ddd;text-align:right;">KALAN</th>
+                <th style="padding:8px;border:1px solid #ddd;">Tarih</th>
+                <th style="padding:8px;border:1px solid #ddd;">Açıklama/Araç</th>
+                <th style="padding:8px;border:1px solid #ddd;text-align:right;">Gümrük Hizmeti (€)</th>
+                <th style="padding:8px;border:1px solid #ddd;text-align:right;">TSE Hizmeti (₺)</th>
             </tr>
             ${rows}
         </table>
@@ -2915,7 +3167,27 @@ if(data.ekGonderici) {
         document.getElementById('import-backup-file').value = "";
     };
 
-    window.addNewFirm=function(){let n=prompt("Firma Adı:");if(n&&n.trim()){let name=n.trim().toUpperCase();if(!window.firmData[name]){window.firmData[name]=[];saveData('firm');window.renderView('firms');}}};
+    window.addNewFirm=function(){
+        let modal=document.createElement('div');
+        modal.className='modal-overlay active';
+        modal.innerHTML=`<div class="modal-box" style="max-width:400px">
+            <div class="modal-header"><h3>🏢 Yeni Firma Ekle</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label>Firma Adı</label><input type="text" id="newFirmNameInput" placeholder="Firma adını girin..." autofocus></div>
+                <div style="display:flex;gap:10px;margin-top:15px">
+                    <button class="btn btn-primary" onclick="window.confirmAddFirm()">✓ Ekle</button>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">İptal</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+        setTimeout(()=>document.getElementById('newFirmNameInput')?.focus(),100);
+    };
+    window.confirmAddFirm=function(){
+        let n=document.getElementById('newFirmNameInput')?.value;
+        if(n&&n.trim()){let name=n.trim().toUpperCase();if(!window.firmData[name]){window.firmData[name]=[];saveData('firm');window.renderView('firms');}}
+        document.querySelector('.modal-overlay.active')?.remove();
+    };
     window.deleteFirm=function(fn,e){e.stopPropagation();let name=fn.replace(/&quot;/g,'"');if(confirm(`'${name}' firmasını SİL?`)){delete window.firmData[name];saveData('firm');window.renderView('firms');}};
     window.deleteDeclaration=function(i){if(confirm('Sil?')){
     let d=window.declarationsData[i];
@@ -3001,17 +3273,33 @@ alert("Şasi: " + (d?d.sasi:'YOK') + "\nFirma sayısı: " + Object.keys(window.f
         return result;
     };
 window.editFirmMeta=function(fn){
-    let name=fn.replace(/&quot;/g,'"').replace(/\\'/g,"'");
+    let name=fn.replace(/"/g,'"').replace(/\\'/g,"'");
     let meta=window.firmMeta[name]||{};
-    let vn=prompt("Vergi No:",meta.vergiNo||"");
-    if(vn===null)return;
-    let tc=prompt("TC No:",meta.tcNo||"");
-    if(tc===null)return;
+    let modal=document.createElement('div');
+    modal.className='modal-overlay active';
+    modal.innerHTML=`<div class="modal-box" style="max-width:450px">
+        <div class="modal-header"><h3>🏢 Firma Bilgileri</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>Vergi No</label><input type="text" id="editFirmVergiNo" value="${meta.vergiNo||''}" placeholder="Vergi numarası..."></div>
+            <div class="form-group"><label>TC No</label><input type="text" id="editFirmTcNo" value="${meta.tcNo||''}" placeholder="TC kimlik numarası..."></div>
+            <div style="display:flex;gap:10px;margin-top:15px">
+                <button class="btn btn-primary" onclick="window.confirmEditFirmMeta('${name.replace(/'/g,"\\'")}')">✓ Kaydet</button>
+                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">İptal</button>
+            </div>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+    setTimeout(()=>document.getElementById('editFirmVergiNo')?.focus(),100);
+};
+window.confirmEditFirmMeta=function(name){
+    let vn=document.getElementById('editFirmVergiNo')?.value?.trim()||'';
+    let tc=document.getElementById('editFirmTcNo')?.value?.trim()||'';
     if(!window.firmMeta[name])window.firmMeta[name]={};
-    window.firmMeta[name].vergiNo=vn.trim();
-    window.firmMeta[name].tcNo=tc.trim();
+    window.firmMeta[name].vergiNo=vn;
+    window.firmMeta[name].tcNo=tc;
     saveData('firm');
     window.renderFirmsList();
+    document.querySelector('.modal-overlay.active')?.remove();
 };
 
     window.declAutoCalc=function(){
@@ -4661,62 +4949,65 @@ if(vn==='gelecekAraclar'){
         document.getElementById('da-firma').value = name;
         document.getElementById('da-firma-list').classList.remove('show');
     };
- window.addGondericiPrompt = function() {
-        let ad = prompt("Yeni Gönderici / İhracatçı Firma Adını Girin:");
-        if (!ad || ad.trim() === "") return;
-        
-        let id = prompt("Firma ID'sini Girin (Örn: 21DE00066...):");
-        if (id === null) id = "";
-        
-        let yeniGonderici = { 
-            id: id.trim().toUpperCase(), 
-            ad: ad.trim().toUpperCase() 
-        };
-        
+window.addGondericiPrompt = function() {
+        let modal=document.createElement('div');
+        modal.className='modal-overlay active';
+        modal.innerHTML=`<div class="modal-box" style="max-width:450px">
+            <div class="modal-header"><h3>📤 Yeni Gönderici / İhracatçı</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label>Firma Adı</label><input type="text" id="newGondericiAd" placeholder="Firma adını girin..." autofocus></div>
+                <div class="form-group"><label>Firma ID (Opsiyonel)</label><input type="text" id="newGondericiId" placeholder="Örn: 21DE00066..."></div>
+                <div style="display:flex;gap:10px;margin-top:15px">
+                    <button class="btn btn-primary" onclick="window.confirmAddGonderici()">✓ Ekle</button>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">İptal</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+        setTimeout(()=>document.getElementById('newGondericiAd')?.focus(),100);
+    };
+    window.confirmAddGonderici=function(){
+        let ad=document.getElementById('newGondericiAd')?.value?.trim()||'';
+        let id=document.getElementById('newGondericiId')?.value?.trim()||'';
+        if(!ad){alert('Firma adı gerekli!');return;}
+        let yeniGonderici={id:id.toUpperCase(),ad:ad.toUpperCase()};
         window.GondericiList.unshift(yeniGonderici);
-        
-        // localStorage'a kaydet
-        let ekler = JSON.parse(localStorage.getItem('gumruk_ek_gonderici') || '[]');
+        let ekler=JSON.parse(localStorage.getItem('gumruk_ek_gonderici')||'[]');
         ekler.unshift(yeniGonderici);
-        localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(ekler));
-        
-        // Firebase'e kaydet
-        if(window._firebaseSave && window._dataLoaded) {
-            window._firebaseSave({
-                decl: window.declarationsData,
-                firm: window.firmData,
-                kiymet: window.kiymetData,
-                firmMeta: window.firmMeta,
-                cariData: window.cariData,
-                gelecekData: window.gelecekData,
-                ekGonderici: ekler
-            });
+        localStorage.setItem('gumruk_ek_gonderici',JSON.stringify(ekler));
+        if(window._firebaseSave&&window._dataLoaded){
+            window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,firmMeta:window.firmMeta,cariData:window.cariData,gelecekData:window.gelecekData,ekGonderici:ekler});
         }
-        
-        let gorunecekMetin = yeniGonderici.id ? `${yeniGonderici.id} - ${yeniGonderici.ad}` : yeniGonderici.ad;
-        document.getElementById('da-gonderici').value = gorunecekMetin;
-        
-        alert("Başarılı! Yeni gönderici firma listeye eklendi.");
+        let gorunecekMetin=yeniGonderici.id?`${yeniGonderici.id} - ${yeniGonderici.ad}`:yeniGonderici.ad;
+        document.getElementById('da-gonderici').value=gorunecekMetin;
+        document.querySelector('.modal-overlay.active')?.remove();
     };
  
        // --- YENİ GTİP EKLEME BUTONU MOTORU ---
-    window.addGTIPPrompt = function() {
-        let kod = prompt("Yeni GTİP Kodunu Girin (Örn: 8703.23.19.12.00):");
-        if (!kod || kod.trim() === "") return; 
-        
-        let desc = prompt("Bu GTİP için açıklama girin (Örn: 1600-2000 cm³ binek otomobil):");
-        if (desc === null) desc = ""; 
-        
-        let yeniGTIP = { 
-            kod: kod.trim(), 
-            desc: desc.trim() 
-        };
-        
-        window.GTIPList.unshift(yeniGTIP);
-        
-        document.getElementById('da-gtip').value = yeniGTIP.kod;
-        
-        alert("Başarılı! Yeni GTİP kodu listeye eklendi ve kutuya yazıldı.");
+window.addGTIPPrompt = function() {
+        let modal=document.createElement('div');
+        modal.className='modal-overlay active';
+        modal.innerHTML=`<div class="modal-box" style="max-width:450px">
+            <div class="modal-header"><h3>📋 Yeni GTİP Kodu</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label>GTİP Kodu</label><input type="text" id="newGTIPKod" placeholder="Örn: 8703.23.19.12.00" autofocus></div>
+                <div class="form-group"><label>Açıklama</label><input type="text" id="newGTIPDesc" placeholder="Örn: 1600-2000 cm³ binek otomobil"></div>
+                <div style="display:flex;gap:10px;margin-top:15px">
+                    <button class="btn btn-primary" onclick="window.confirmAddGTIP()">✓ Ekle</button>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">İptal</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+        setTimeout(()=>document.getElementById('newGTIPKod')?.focus(),100);
+    };
+    window.confirmAddGTIP=function(){
+        let kod=document.getElementById('newGTIPKod')?.value?.trim()||'';
+        let desc=document.getElementById('newGTIPDesc')?.value?.trim()||'';
+        if(!kod){alert('GTİP kodu gerekli!');return;}
+        window.GTIPList.unshift({kod:kod,desc:desc});
+        document.getElementById('da-gtip').value=kod;
+        document.querySelector('.modal-overlay.active')?.remove();
     };
 // --- YENİ KAYIT EKRANI CIF/EXW MOTORU (GÜNCELLENDİ) ---
 window.setTeslimModal = function(tip) {
