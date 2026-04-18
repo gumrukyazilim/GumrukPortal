@@ -4364,7 +4364,45 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
     window.openKiymetModal=function(){document.getElementById('kiymet-modal').classList.remove('hidden');document.getElementById('km-edit-index').value='-1';};
     window.closeKiymetModal=function(){document.getElementById('kiymet-modal').classList.add('hidden');};
     window.editKiymet=function(i){let k=window.kiymetData[i];['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id=>{if(document.getElementById('km-'+id))document.getElementById('km-'+id).value=k[id]||'';});document.getElementById('km-edit-index').value=i;document.getElementById('kiymet-modal').classList.remove('hidden');};
-    window.saveNewKiymet=function(){let i=parseInt(document.getElementById('km-edit-index').value);let r={marka:document.getElementById('km-marka').value.toUpperCase(),model:document.getElementById('km-model').value.toUpperCase(),yil:document.getElementById('km-yil').value,renk:document.getElementById('km-renk').value.toUpperCase(),sasi:document.getElementById('km-sasi').value.toUpperCase(),tarih:document.getElementById('km-tarih').value,fatura:document.getElementById('km-fatura').value,kiymet:document.getElementById('km-kiymet').value,durum:document.getElementById('km-durum').value};if(i===-1)window.kiymetData.unshift(r);else window.kiymetData[i]=r;saveData('kiymet');window.closeKiymetModal();window.renderKiymetTable();};
+    window.saveNewKiymet=function(){
+        let i=parseInt(document.getElementById('km-edit-index').value);
+        let r={
+            marka:document.getElementById('km-marka').value.toUpperCase(),
+            model:document.getElementById('km-model').value.toUpperCase(),
+            yil:document.getElementById('km-yil').value,
+            renk:document.getElementById('km-renk').value.toUpperCase(),
+            sasi:document.getElementById('km-sasi').value.toUpperCase(),
+            tarih:document.getElementById('km-tarih').value,
+            fatura:document.getElementById('km-fatura').value,
+            kiymet:document.getElementById('km-kiymet').value,
+            durum:document.getElementById('km-durum').value
+        };
+        
+        if(i===-1) {
+            window.kiymetData.unshift(r);
+        } else {
+            window.kiymetData[i]=r;
+        }
+        
+        // ===== ÇİFT YÖNLÜ SENKRONİZASYON: Kıymet'ten Gelen Araçlar'a =====
+        if(r.sasi) {
+            // Kıymet değerini Gelen Araçlar'a aktar
+            window.syncKiymetToDecl(r.sasi, r.kiymet);
+            
+            // Durum değiştiyse Gelen Araçlar'da da güncelle
+            let isKapali = (r.durum || '').toLocaleLowerCase('tr') === 'kapalı' || 
+                           (r.durum || '').toLocaleLowerCase('tr') === 'kapali' ||
+                           (r.durum || '').toLocaleLowerCase('tr').includes('tamam');
+            
+            if(isKapali) {
+                window.updateVehicleStatus(r.sasi, 'Kapalı');
+            }
+        }
+        
+        saveData('kiymet');
+        window.closeKiymetModal();
+        window.renderKiymetTable();
+    };
 
     window.openDeclVehicleModal=function(idx=-1,ctx='decl'){
     try {
@@ -4447,6 +4485,113 @@ alert("DRIVE YANIT: " + JSON.stringify(data));
 };
 
 // --- 2. AKILLI KAYIT MOTORU ---
+// ===== TABLO SENKRONİZASYON SİSTEMİ =====
+
+// Durum senkronizasyonu: Gelen Araçlar'daki evrak durumu değiştiğinde Kıymet Listesi'ni güncelle
+window.updateVehicleStatus = function(sasi, newStatus) {
+    if (!sasi) return;
+    
+    let isKapali = (newStatus || '').toLocaleLowerCase('tr') === 'kapalı' || 
+                   (newStatus || '').toLocaleLowerCase('tr') === 'kapali';
+    
+    // Kıymet Listesi'nde ilgili aracı bul ve durumunu güncelle
+    let kiymetIndex = window.kiymetData.findIndex(k => k.sasi === sasi);
+    if (kiymetIndex !== -1) {
+        if (isKapali) {
+            window.kiymetData[kiymetIndex].durum = 'KAPALI - İşlem Tamam';
+        } else {
+            window.kiymetData[kiymetIndex].durum = newStatus || 'Açık';
+        }
+    }
+    
+    // declarationsData'daki tüm eşleşen kayıtları güncelle
+    window.declarationsData.forEach(function(d, idx) {
+        if (d && d.sasi === sasi) {
+            window.declarationsData[idx].evrak = newStatus;
+        }
+    });
+    
+    // firmData'daki tüm eşleşen kayıtları güncelle
+    Object.keys(window.firmData).forEach(function(fn) {
+        window.firmData[fn].forEach(function(d, idx) {
+            if (d && d.sasi === sasi) {
+                window.firmData[fn][idx].evrak = newStatus;
+            }
+        });
+    });
+    
+    // Kaydet ve ekranları yenile
+    if (typeof saveData === 'function') {
+        saveData('decl');
+        saveData('firm');
+        saveData('kiymet');
+    }
+};
+
+// Kıymet verisi senkronizasyonu: Gelen Araçlar'da kıymet yazıldığında Kıymet Listesi'ne aktar
+window.saveValueData = function(sasi, kiymetValue, faturaValue, marka, model, yil, renk, tarih, firma) {
+    if (!sasi) return;
+    
+    let kiymetIndex = window.kiymetData.findIndex(k => k.sasi === sasi);
+    
+    if (kiymetIndex !== -1) {
+        // Mevcut kaydı güncelle
+        if (kiymetValue) window.kiymetData[kiymetIndex].kiymet = kiymetValue;
+        if (faturaValue) window.kiymetData[kiymetIndex].fatura = faturaValue;
+        if (marka) window.kiymetData[kiymetIndex].marka = marka;
+        if (model) window.kiymetData[kiymetIndex].model = model;
+        if (yil) window.kiymetData[kiymetIndex].yil = yil;
+        if (renk) window.kiymetData[kiymetIndex].renk = renk;
+        if (tarih) window.kiymetData[kiymetIndex].tarih = tarih;
+    } else {
+        // Yeni kayıt oluştur
+        let yeniKayit = {
+            marka: marka || '',
+            model: model || '',
+            yil: yil || '',
+            renk: renk || '',
+            sasi: sasi,
+            tarih: tarih || '',
+            fatura: faturaValue || '',
+            kiymet: kiymetValue || '',
+            durum: 'Açık'
+        };
+        window.kiymetData.unshift(yeniKayit);
+    }
+    
+    // Kaydet
+    if (typeof saveData === 'function') {
+        saveData('kiymet');
+    }
+};
+
+// Çift yönlü senkronizasyon: Kıymet Listesi'nden Gelen Araçlar'a güncelleme
+window.syncKiymetToDecl = function(sasi, kiymetValue) {
+    if (!sasi) return;
+    
+    // declarationsData'da güncelle
+    window.declarationsData.forEach(function(d, idx) {
+        if (d && d.sasi === sasi) {
+            window.declarationsData[idx].kiymet = kiymetValue;
+        }
+    });
+    
+    // firmData'da güncelle
+    Object.keys(window.firmData).forEach(function(fn) {
+        window.firmData[fn].forEach(function(d, idx) {
+            if (d && d.sasi === sasi) {
+                window.firmData[fn][idx].kiymet = kiymetValue;
+            }
+        });
+    });
+    
+    if (typeof saveData === 'function') {
+        saveData('decl');
+        saveData('firm');
+    }
+};
+
+// ===== ANA KAYIT MOTORU (GÜNCELLENMİŞ) =====
 window.saveDeclEntry = async function(){ 
     let i=parseInt(document.getElementById('decl-edit-idx').value);
     let val=id=>document.getElementById(id)?.value.trim()||'';
@@ -4480,6 +4625,19 @@ window.saveDeclEntry = async function(){
 
     if(!r.firma || !r.tarih){alert('Zorunlu alanları doldurun!'); return;}
     
+    // Eski durumu ve şasiyi kaydet (senkronizasyon için)
+    let eskiSasi = null;
+    let eskiEvrak = null;
+    if(i !== -1) {
+        if(window.currentModalContext === 'decl') {
+            eskiSasi = window.declarationsData[i]?.sasi;
+            eskiEvrak = window.declarationsData[i]?.evrak;
+        } else {
+            eskiSasi = window.firmData[window.currentFirm]?.[i]?.sasi;
+            eskiEvrak = window.firmData[window.currentFirm]?.[i]?.evrak;
+        }
+    }
+    
     if(!r.evrakLink && i === -1) { 
         let driveUrl = await window.triggerDriveBridge(r.firma, r.marka, r.sasi);
         if(driveUrl) { r.evrakLink = driveUrl; }
@@ -4511,11 +4669,46 @@ window.saveDeclEntry = async function(){
         }
     }
 
+    // ===== SENKRONİZASYON: Kıymet Listesi'ni güncelle =====
     let kiymetIndex = window.kiymetData.findIndex(k => k.sasi === r.sasi);
     if(kiymetIndex !== -1) {
-        window.kiymetData[kiymetIndex] = { ...window.kiymetData[kiymetIndex], marka: r.marka, model: r.model, sasi: r.sasi, tarih: r.tarih };
+        // Mevcut kaydı güncelle
+        window.kiymetData[kiymetIndex] = { 
+            ...window.kiymetData[kiymetIndex], 
+            marka: r.marka, 
+            model: r.model, 
+            sasi: r.sasi, 
+            tarih: r.tarih,
+            yil: r.yil,
+            renk: r.renk,
+            fatura: r.fatura,
+            kiymet: r.kiymet || window.kiymetData[kiymetIndex].kiymet,
+            durum: (r.evrak || '').toLocaleLowerCase('tr') === 'kapalı' || 
+                   (r.evrak || '').toLocaleLowerCase('tr') === 'kapali' 
+                   ? 'KAPALI - İşlem Tamam' 
+                   : (window.kiymetData[kiymetIndex].durum || r.evrak || 'Açık')
+        };
     } else {
-        window.kiymetData.unshift({ marka: r.marka, model: r.model, sasi: r.sasi, tarih: r.tarih, fatura: r.fatura, durum: r.evrak });
+        // Yeni kayıt oluştur
+        window.kiymetData.unshift({ 
+            marka: r.marka, 
+            model: r.model, 
+            sasi: r.sasi, 
+            tarih: r.tarih,
+            yil: r.yil,
+            renk: r.renk,
+            fatura: r.fatura, 
+            kiymet: r.kiymet || '',
+            durum: (r.evrak || '').toLocaleLowerCase('tr') === 'kapalı' || 
+                   (r.evrak || '').toLocaleLowerCase('tr') === 'kapali' 
+                   ? 'KAPALI - İşlem Tamam' 
+                   : r.evrak || 'Açık'
+        });
+    }
+    
+    // Durum değiştiyse tüm tablolarda senkronize et
+    if(r.sasi && eskiEvrak !== r.evrak) {
+        window.updateVehicleStatus(r.sasi, r.evrak);
     }
 
     if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); saveData('kiymet'); }
