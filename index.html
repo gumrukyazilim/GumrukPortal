@@ -9,6 +9,14 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
+        // KRİTİK: gelecekData'yi en başta boş dizi olarak başlat (undefined çökmesini önler)
+        window.gelecekData = [];
+        window.declarationsData = [];
+        window.firmData = {};
+        window.firmMeta = {};
+        window.cariData = {};
+        window.kiymetData = [];
+        
         let savedTheme = localStorage.getItem('gumruk_theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
@@ -3227,7 +3235,23 @@ function loadFromLocal() {
         
         let fm = localStorage.getItem('gumrukFirmMeta');
         if(fm && fm !== "null") window.firmMeta = JSON.parse(fm);
-    } catch(e) {}
+        
+        // gelecekData'yi localStorage'dan yükle (yoksa boş dizi)
+        let gd = localStorage.getItem('gumrukGelecekData');
+        if(gd && gd !== "null") {
+            window.gelecekData = JSON.parse(gd);
+        } else {
+            window.gelecekData = [];
+        }
+    } catch(e) {
+        // Hata durumunda güvenli varsayılanlar
+        if(!window.declarationsData) window.declarationsData = [];
+        if(!window.firmData) window.firmData = {};
+        if(!window.cariData) window.cariData = {};
+        if(!window.kiymetData) window.kiymetData = [];
+        if(!window.firmMeta) window.firmMeta = {};
+        if(!window.gelecekData) window.gelecekData = [];
+    }
 }
 
     
@@ -4243,9 +4267,11 @@ pagebreak: {mode: 'avoid-all'}
 };
 
     window.updateDashboardStats=function(){
-    if(!window.declarationsData)return;
+    // KORUMA: Veri undefined veya boş olsa bile dashboard'ı güvenli şekilde güncelle
+    if(!window.declarationsData) window.declarationsData = [];
+    if(!window.gelecekData) window.gelecekData = [];
     let role = localStorage.getItem('gumruk_role') || 'admin';
-    let data = role === 'admin' ? window.declarationsData : window.declarationsData.filter(d => d.firma === role);
+    let data = role === 'admin' ? (window.declarationsData || []) : (window.declarationsData || []).filter(d => d.firma === role);
     
     let t=data.length;
     let ki=data.filter(d=>d.kiymVv&&!d.kiymGt).length;
