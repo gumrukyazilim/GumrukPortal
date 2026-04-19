@@ -1268,8 +1268,6 @@
         <div class="page-actions">
             <select id="gelecek-filtre" onchange="window.renderGelecekTable()" style="min-width:160px;padding:10px;font-weight:600;">
                 <option value="">Tüm Durumlar</option>
-                <option value="YÜKLENDI">Yüklendi</option>
-                <option value="TIRDA">Tırda</option>
                 <option value="YOLDA">Yolda</option>
                 <option value="GÜMRÜKTE">Gümrükte</option>
             </select>
@@ -2114,9 +2112,9 @@ window.renderGelecekTable = function() {
     data.forEach(function(d) { if(durumlar[d.durum] !== undefined) durumlar[d.durum]++; });
     
     pipeline.innerHTML = [
-        {key:'YÜKLENDI', icon:'package', renk:'#6366f1', label:'Yüklendi'},
-        {key:'TIRDA', icon:'ship', renk:'#3b82f6', label:'Gemide'},
-        {key:'YOLDA', icon:'anchor', renk:'#f59e0b', label:'Limanda'},
+        
+        
+        {key:'YOLDA', icon:'anchor', renk:'#f59e0b', label:'Yolda'},
         {key:'GÜMRÜKTE', icon:'building-2', renk:'#10b981', label:'Gümrükte'}
     ].map(function(s) {
         return '<div class="stat-card" style="cursor:pointer;border-left:4px solid '+s.renk+';" onclick="document.getElementById(\'gelecek-filtre\').value=\''+s.key+'\';window.renderGelecekTable();">' +
@@ -2220,7 +2218,7 @@ window.openGelecekModal = function() {
             </div>
             <div class="modal-body">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Firma *</label><input type="text" id="gm-firma"></div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Firma *</label><input type="text" id="gm-firma" list="gm-firma-liste" autocomplete="off"><datalist id="gm-firma-liste"><option value="ŞAMNU GT"><option value="FF OTOMOTİV"><option value="SANDIKÇI"><option value="KARABAYIR"></datalist></div>
                     <div class="input-group" style="margin:0;"><label>Marka *</label><input type="text" id="gm-marka"></div>
                     <div class="input-group" style="margin:0;"><label>Model</label><input type="text" id="gm-model"></div>
                     <div class="input-group" style="margin:0;"><label>Yıl</label><input type="text" id="gm-yil" value="2025"></div>
@@ -2323,12 +2321,25 @@ window.saveGelecekEntry = function() {
 window.gelecekDurumIlerle = function(idx) {
     let d = window.gelecekData[idx];
     if(!d) return;
-    let sira = {YÜKLENDI:'TIRDA', TIRDA:'YOLDA', YOLDA:'GÜMRÜKTE'};
+    let sira = {YOLDA:'GÜMRÜKTE'};
     if(sira[d.durum]) {
-        d.durum = sira[d.durum];
-        window.saveGelecekData();
-        window.renderGelecekTable();
-        if(typeof showSyncToast === 'function') showSyncToast('Durum güncellendi: ' + d.durum);
+        let yeniDurum = sira[d.durum];
+        if(yeniDurum === 'GÜMRÜKTE') {
+            if(confirm('🛃 Bu araç gümrüğe geldi.\n\nGelen Araçlar\'a aktarılsın ve Drive klasörü oluşturulsun mu?')) {
+                d.durum = yeniDurum;
+                window.saveGelecekData();
+                window.gelecekAracGeldi(idx);
+            } else {
+                d.durum = yeniDurum;
+                window.saveGelecekData();
+                window.renderGelecekTable();
+            }
+        } else {
+            d.durum = yeniDurum;
+            window.saveGelecekData();
+            window.renderGelecekTable();
+            if(typeof showSyncToast === 'function') showSyncToast('Durum güncellendi: ' + d.durum);
+        }
     }
 };
 
