@@ -3296,11 +3296,7 @@ if(data.ekGonderici) {
         if(role !== 'admin'){
             window.renderView('declarations');
         } else {
-            let lv=localStorage.getItem('gumruk_last_view')||'dashboard';
-            if(lv==='firmDetails'){
-                let lf=localStorage.getItem('gumruk_last_firm');
-                if(lf&&window.firmData[lf]){window.currentFirm=lf;window.renderView('firmDetails');}else window.renderView('firms');
-            }else window.renderView(lv);
+            window.renderView('dashboard');
         }
     }
 
