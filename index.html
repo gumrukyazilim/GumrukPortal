@@ -1114,6 +1114,9 @@
 <button class="btn-primary admin-only" style="background-color: var(--success); margin-right: 10px;" onclick="window.baslatRobot()">
     <i data-lucide="folder-sync"></i> Dosya Tara
 </button>
+<button class="btn-primary admin-only" style="background-color: #f59e0b; margin-right: 10px;" onclick="window.eksikKlasorleriOlustur()">
+    <i data-lucide="folder-plus"></i> Eksik Klasör Oluştur
+</button>
             <button class="btn-primary admin-only" onclick="window.openDeclVehicleModal(-1,'decl')"><i data-lucide="plus"></i> Yeni Kayıt</button>
         </div>
     </div> 
@@ -5856,6 +5859,199 @@ window.downloadPDF = function() {
         window.renderDilekceContent();
     });
 };
+
+// ============ EKSİK KLASÖR OLUŞTURUCU ============
+window._KLASOR_GAS_URL = "https://script.google.com/macros/s/AKfycbzMeFacfalO7dPcn0dITuuluvnAeMLsu18X7uh_F6A-FrUHggF4jA2ZzeOT57k0m4ezGA/exec";
+
+window.eksikKlasorleriOlustur = async function() {
+    // 1. ADIM: Her aracın durumunu analiz et
+    let senkronGerekli = []; // Gelen Araçlar'da link var, Firma'da yok/farklı
+    let eksikler = [];       // Hiçbir yerde link yok
+    let toplamSorunsuz = 0;
+    
+    for(let i = 0; i < window.declarationsData.length; i++) {
+        let d = window.declarationsData[i];
+        if(!d.sasi || !d.firma) continue;
+        
+        let gelenLink = (d.evrakLink || "").trim();
+        
+        // Firma'daki eşleşen kayıt
+        let firmaLink = "";
+        let firmaIdx = -1;
+        if(window.firmData[d.firma]) {
+            firmaIdx = window.firmData[d.firma].findIndex(function(x){ return x.sasi === d.sasi; });
+            if(firmaIdx !== -1) {
+                firmaLink = (window.firmData[d.firma][firmaIdx].evrakLink || "").trim();
+            }
+        }
+        
+        if(gelenLink && firmaLink && gelenLink === firmaLink) {
+            // Her şey senkronize, sorun yok
+            toplamSorunsuz++;
+        } else if(gelenLink && gelenLink !== firmaLink) {
+            // Gelen Araçlar'da link var, Firma'daki farklı veya yok → Senkronize et
+            senkronGerekli.push({idx: i, data: d, firmaIdx: firmaIdx, dogruLink: gelenLink});
+        } else if(!gelenLink && firmaLink) {
+            // Firma'da link var, Gelen Araçlar'da yok → Firma'dakini kullan
+            senkronGerekli.push({idx: i, data: d, firmaIdx: firmaIdx, dogruLink: firmaLink});
+        } else {
+            // Her iki tarafta da link yok → Klasör oluştur
+            eksikler.push({idx: i, data: d, firmaIdx: firmaIdx});
+        }
+    }
+    
+    if(eksikler.length === 0 && senkronGerekli.length === 0) {
+        alert("✅ Tüm araçlar sorunsuz! Senkron ve link tam.");
+        return;
+    }
+    
+    // 2. ADIM: Kullanıcıya onay sor
+    let onay = confirm(
+        "🔧 TOPLU LİNK İŞLEMİ\n" +
+        "─────────────────────\n" +
+        "Toplam araç: " + window.declarationsData.length + "\n" +
+        "✅ Sorunsuz: " + toplamSorunsuz + "\n" +
+        "🔄 Senkronize edilecek: " + senkronGerekli.length + " (hızlı, klasör yok)\n" +
+        "📁 Klasör oluşturulacak: " + eksikler.length + " (yavaş, her araç ~1sn)\n\n" +
+        "Tahmini süre: ~" + Math.ceil((eksikler.length * 1.5 + senkronGerekli.length * 0.1) / 60) + " dakika\n\n" +
+        "Devam edilsin mi? (Sayfayı kapatma!)"
+    );
+    if(!onay) return;
+    
+    // 2.5. ADIM: SENKRONİZASYON (çok hızlı, klasör oluşturmaz, sadece veri kopyala)
+    let senkronSayisi = 0;
+    for(let s of senkronGerekli) {
+        window.declarationsData[s.idx].evrakLink = s.dogruLink;
+        if(s.firmaIdx !== -1 && window.firmData[s.data.firma]) {
+            window.firmData[s.data.firma][s.firmaIdx].evrakLink = s.dogruLink;
+        } else if(window.firmData[s.data.firma]) {
+            // Firma'da kayıt yoksa bile, var olan aynı şasideki kayıtlara yazı
+            let fi = window.firmData[s.data.firma].findIndex(function(x){ return x.sasi === s.data.sasi; });
+            if(fi !== -1) window.firmData[s.data.firma][fi].evrakLink = s.dogruLink;
+        }
+        senkronSayisi++;
+    }
+    
+    // Senkron kaydını hemen yap
+    if(senkronSayisi > 0 && typeof saveData === 'function') {
+        saveData('decl');
+        saveData('firm');
+    }
+    
+    // 3. ADIM: Klasör oluşturma kısmı (senkron bitti, sıra bunda)
+    if(eksikler.length === 0) {
+        // Sadece senkronizasyon yapıldı, klasör oluşturulacak yok
+        alert(
+            "🎉 SENKRONİZASYON TAMAMLANDI\n" +
+            "─────────────────────\n" +
+            "🔄 Senkronize edilen: " + senkronSayisi + "\n" +
+            "📁 Klasör oluşturulacak araç yok\n\n" +
+            "Sistemdeki linkler güncellendi ve kaydedildi."
+        );
+        if(window.renderDeclarationsTable) window.renderDeclarationsTable();
+        return;
+    }
+    
+    let statusDiv = document.createElement('div');
+    statusDiv.id = 'klasor-progress';
+    statusDiv.style.cssText = 'position:fixed;top:20px;right:20px;background:var(--bg-elevated);border:2px solid var(--warning);border-radius:12px;padding:20px;z-index:999999;box-shadow:0 10px 40px rgba(0,0,0,0.5);min-width:320px;';
+    statusDiv.innerHTML = 
+        '<div style="font-weight:700;color:var(--warning);margin-bottom:10px;">🔧 Klasör Oluşturuluyor</div>' +
+        '<div id="klasor-progress-text" style="font-size:13px;color:var(--text-primary);margin-bottom:8px;">Başlatılıyor...</div>' +
+        '<div style="background:var(--input-bg);height:8px;border-radius:4px;overflow:hidden;">' +
+            '<div id="klasor-progress-bar" style="background:var(--warning);height:100%;width:0%;transition:width 0.3s;"></div>' +
+        '</div>' +
+        '<div id="klasor-progress-detay" style="font-size:11px;color:var(--text-muted);margin-top:8px;max-height:100px;overflow-y:auto;"></div>';
+    document.body.appendChild(statusDiv);
+    
+    let basarili = 0, hatali = 0;
+    
+    // 4. ADIM: Her araç için klasör oluştur
+    for(let i = 0; i < eksikler.length; i++) {
+        let item = eksikler[i];
+        let d = item.data;
+        
+        // Progress güncelle
+        document.getElementById('klasor-progress-text').innerText = 
+            (i+1) + "/" + eksikler.length + " — " + (d.marka || '') + " " + (d.sasi || '').substring(0, 10) + "...";
+        document.getElementById('klasor-progress-bar').style.width = ((i+1) / eksikler.length * 100) + "%";
+        
+        // GAS'a istek
+        let url = await new Promise(function(resolve) {
+            let callbackName = 'klasorCB_' + Date.now() + '_' + i;
+            let timeout = setTimeout(function() {
+                delete window[callbackName];
+                resolve(null);
+            }, 15000); // 15 saniye timeout
+            
+            window[callbackName] = function(res) {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                let s = document.getElementById(callbackName + '_script');
+                if(s) s.remove();
+                if(res && res.success && res.url) resolve(res.url);
+                else resolve(null);
+            };
+            
+            let script = document.createElement('script');
+            script.id = callbackName + '_script';
+            script.src = window._KLASOR_GAS_URL + 
+                "?action=ensure" +
+                "&firma=" + encodeURIComponent(d.firma || "") +
+                "&marka=" + encodeURIComponent(d.marka || "") +
+                "&sasi=" + encodeURIComponent(d.sasi || "") +
+                "&callback=" + callbackName;
+            script.onerror = function() {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                script.remove();
+                resolve(null);
+            };
+            document.body.appendChild(script);
+        });
+        
+        if(url) {
+            // Başarılı — sistemdeki link'i güncelle
+            window.declarationsData[item.idx].evrakLink = url;
+            if(window.firmData[d.firma]) {
+                let fi = window.firmData[d.firma].findIndex(function(x){ return x.sasi === d.sasi; });
+                if(fi !== -1) window.firmData[d.firma][fi].evrakLink = url;
+            }
+            basarili++;
+            let detayEl = document.getElementById('klasor-progress-detay');
+            if(detayEl) detayEl.innerHTML = '✅ ' + (d.marka||'') + ' — ' + (d.sasi||'') + '<br>' + detayEl.innerHTML;
+        } else {
+            hatali++;
+            let detayEl = document.getElementById('klasor-progress-detay');
+            if(detayEl) detayEl.innerHTML = '❌ ' + (d.marka||'') + ' — ' + (d.sasi||'') + '<br>' + detayEl.innerHTML;
+        }
+        
+        // 1 saniye bekle (Google'ı yormamak için)
+        await new Promise(function(r){ setTimeout(r, 1000); });
+    }
+    
+    // 5. ADIM: Kaydet
+    if(basarili > 0) {
+        if(typeof saveData === 'function') {
+            saveData('decl');
+            saveData('firm');
+        }
+    }
+    
+    // 6. ADIM: Sonuç göster
+    document.body.removeChild(statusDiv);
+    alert(
+        "🎉 İŞLEM TAMAMLANDI\n" +
+        "─────────────────────\n" +
+        "🔄 Senkronize edilen: " + senkronSayisi + "\n" +
+        "✅ Klasör oluşturulan: " + basarili + "\n" +
+        "❌ Klasör oluşturulamayan: " + hatali + "\n\n" +
+        ((basarili + senkronSayisi) > 0 ? "Sistemdeki linkler güncellendi ve kaydedildi." : "")
+    );
+    
+    if(window.renderDeclarationsTable) window.renderDeclarationsTable();
+};
+// ============================================================
 
 window.baslatRobot = async function() {
     if (!confirm("Robot her araçtan sonra yarım saniye mola vererek çalışacak. Bu işlem birkaç dakika sürebilir. Başlatılsın mı?")) return;
