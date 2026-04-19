@@ -5690,7 +5690,19 @@ if(vn==='gelecekAraclar'){
         }
         if(window.lucide)lucide.createIcons();
         window.fetchTCMBKur(true);
-        if(window._firebaseReady)loadAllData();
+        if(window._firebaseReady){
+            loadAllData();
+        } else {
+            // Firebase henüz hazır değilse, local verileri yükle ve varsayılan görünümü aç
+            loadFromLocal();
+            window._dataLoaded = true;
+            let role = localStorage.getItem('gumruk_role') || 'admin';
+            if(role !== 'admin'){
+                window.renderView('declarations');
+            } else {
+                window.renderView('dashboard');
+            }
+        }
     });
     
   // --- FİRMA SEÇME VE FİLTRELEME MOTORU ---
