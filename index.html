@@ -1164,6 +1164,28 @@
             <strong>Kümülatif KDV Hesabı:</strong> KDV oranı <strong>%20</strong> olup, (CIF + Gümrük V. + İGV + ÖTV) matrahının tamamı üzerinden hesaplanır.
         </div>
     </div>
+
+    <div class="card card-pad fade-in" style="margin-top:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div>
+                <div style="font-size:11px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">📡 CANLI KAYNAK</div>
+                <h2 style="font-size:20px;font-weight:700;color:var(--text-primary);margin:0;">Son Resmi Gazete Duyuruları</h2>
+                <div id="rg-son-guncelleme" style="font-size:11px;color:var(--text-muted);margin-top:4px;">Yükleniyor...</div>
+            </div>
+            <button class="btn-sm" onclick="window.resmiGazeteCek(true)" style="border-color:var(--primary);color:var(--primary);">
+                <i data-lucide="refresh-cw"></i> Yenile
+            </button>
+        </div>
+        <div id="rg-duyuru-liste" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="text-align:center;padding:30px;color:var(--text-muted);">
+                <div class="spinner" style="margin:0 auto 10px;"></div>
+                Resmi Gazete kontrol ediliyor...
+            </div>
+        </div>
+        <div style="margin-top:14px;padding:10px 14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-size:11px;color:var(--warning);">
+            ⚠️ Bu liste yalnızca bilgilendirme amaçlıdır. Resmi ve bağlayıcı metinler için mevzuat.gov.tr ve resmigazete.gov.tr adreslerini kullanın.
+        </div>
+    </div>
 </template>
 <template id="tpl-bankaListesi">
     <div class="page-hdr fade-in">
@@ -5212,6 +5234,182 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
 
     window.saveCalcState();
 };
+
+    // ============ RESMİ GAZETE CANLI DUYURU ÇEKİCİ ============
+    window._RESMI_GAZETE_GAS_URL = "https://script.google.com/macros/s/AKfycbydNZ89b-opGeHGeWX4v0z63Zdp4E66msP8lwaW2M3jzRPVZzZjZQ_VomYeOLl_YBcm/exec";
+
+    window.resmiGazeteCek = function(zorla) {
+        let liste = document.getElementById('rg-duyuru-liste');
+        let ustBilgi = document.getElementById('rg-son-guncelleme');
+        if(!liste) return;
+
+        // Cache kontrolü (zorla değilse son 12 saat içinde çekildiyse tekrar çekme)
+        if(!zorla) {
+            let cache = localStorage.getItem('rg_cache');
+            if(cache) {
+                try {
+                    let parsed = JSON.parse(cache);
+                    let yas = (Date.now() - parsed.zaman) / (1000*60*60);
+                    if(yas < 12) {
+                        window.resmiGazeteRender(parsed.veri, parsed.zaman);
+                        return;
+                    }
+                } catch(e){}
+            }
+        }
+
+        liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);"><div class="spinner" style="margin:0 auto 10px;"></div>Resmi Gazete kontrol ediliyor...</div>';
+        ustBilgi.innerText = 'Yükleniyor...';
+
+        let callbackName = 'rgCallback_' + Date.now();
+        window[callbackName] = function(data) {
+            delete window[callbackName];
+            let s = document.getElementById(callbackName + '_script');
+            if(s) s.remove();
+
+            if(!data || !data.success) {
+                liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">⚠️ Veri çekilemedi. Lütfen resmigazete.gov.tr adresinden kontrol edin.</div>';
+                ustBilgi.innerText = 'Bağlantı hatası';
+                return;
+            }
+
+            // Cache'e kaydet
+            localStorage.setItem('rg_cache', JSON.stringify({
+                veri: data,
+                zaman: Date.now()
+            }));
+
+            window.resmiGazeteRender(data, Date.now());
+        };
+
+        let script = document.createElement('script');
+        script.id = callbackName + '_script';
+        script.src = window._RESMI_GAZETE_GAS_URL + '?callback=' + callbackName;
+        script.onerror = function() {
+            delete window[callbackName];
+            script.remove();
+            liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">⚠️ Bağlantı kurulamadı. İnternetinizi kontrol edin.</div>';
+            ustBilgi.innerText = 'Bağlantı yok';
+        };
+        document.body.appendChild(script);
+    };
+
+    window.resmiGazeteRender = function(data, zaman) {
+        let liste = document.getElementById('rg-duyuru-liste');
+        let ustBilgi = document.getElementById('rg-son-guncelleme');
+        if(!liste) return;
+
+        let d = new Date(zaman);
+        let saat = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+        let tarih = String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
+        ustBilgi.innerText = 'Son güncelleme: ' + tarih + ' ' + saat + '  ·  ' + (data.adet || 0) + ' duyuru bulundu';
+
+        if(!data.duyurular || !data.duyurular.length) {
+            liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">📭 Son günlerde otomotivle ilgili yeni duyuru yok.</div>';
+            return;
+        }
+
+        liste.innerHTML = data.duyurular.map(function(duyuru) {
+            return '<div style="padding:14px 16px;background:var(--input-bg);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
+                '<div style="flex:1;min-width:200px;">' +
+                    '<div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:4px;">📅 ' + duyuru.tarih + '</div>' +
+                    '<div style="font-size:13px;color:var(--text-primary);line-height:1.5;">' + duyuru.baslik + '</div>' +
+                '</div>' +
+                '<a href="' + duyuru.link + '" target="_blank" class="btn-sm" style="border-color:var(--primary);color:var(--primary);text-decoration:none;white-space:nowrap;">Oku <i data-lucide="external-link" style="width:12px;height:12px;"></i></a>' +
+            '</div>';
+        }).join('');
+
+        if(window.lucide) lucide.createIcons();
+    };
+    // ============================================================
+
+    // ============ RESMİ GAZETE CANLI DUYURU ÇEKİCİ ============
+    window._RESMI_GAZETE_GAS_URL = "https://script.google.com/macros/s/AKfycbydNZ89b-opGeHGeWX4v0z63Zdp4E66msP8lwaW2M3jzRPVZzZjZQ_VomYeOLl_YBcm/exec";
+
+    window.resmiGazeteCek = function(zorla) {
+        let liste = document.getElementById('rg-duyuru-liste');
+        let ustBilgi = document.getElementById('rg-son-guncelleme');
+        if(!liste) return;
+
+        // Cache kontrolü (zorla değilse son 12 saat içinde çekildiyse tekrar çekme)
+        if(!zorla) {
+            let cache = localStorage.getItem('rg_cache');
+            if(cache) {
+                try {
+                    let parsed = JSON.parse(cache);
+                    let yas = (Date.now() - parsed.zaman) / (1000*60*60);
+                    if(yas < 12) {
+                        window.resmiGazeteRender(parsed.veri, parsed.zaman);
+                        return;
+                    }
+                } catch(e){}
+            }
+        }
+
+        liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);"><div class="spinner" style="margin:0 auto 10px;"></div>Resmi Gazete kontrol ediliyor...</div>';
+        ustBilgi.innerText = 'Yükleniyor...';
+
+        let callbackName = 'rgCallback_' + Date.now();
+        window[callbackName] = function(data) {
+            delete window[callbackName];
+            let s = document.getElementById(callbackName + '_script');
+            if(s) s.remove();
+
+            if(!data || !data.success) {
+                liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">⚠️ Veri çekilemedi. Lütfen resmigazete.gov.tr adresinden kontrol edin.</div>';
+                ustBilgi.innerText = 'Bağlantı hatası';
+                return;
+            }
+
+            // Cache'e kaydet
+            localStorage.setItem('rg_cache', JSON.stringify({
+                veri: data,
+                zaman: Date.now()
+            }));
+
+            window.resmiGazeteRender(data, Date.now());
+        };
+
+        let script = document.createElement('script');
+        script.id = callbackName + '_script';
+        script.src = window._RESMI_GAZETE_GAS_URL + '?callback=' + callbackName;
+        script.onerror = function() {
+            delete window[callbackName];
+            script.remove();
+            liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">⚠️ Bağlantı kurulamadı. İnternetinizi kontrol edin.</div>';
+            ustBilgi.innerText = 'Bağlantı yok';
+        };
+        document.body.appendChild(script);
+    };
+
+    window.resmiGazeteRender = function(data, zaman) {
+        let liste = document.getElementById('rg-duyuru-liste');
+        let ustBilgi = document.getElementById('rg-son-guncelleme');
+        if(!liste) return;
+
+        let d = new Date(zaman);
+        let saat = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+        let tarih = String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
+        ustBilgi.innerText = 'Son güncelleme: ' + tarih + ' ' + saat + '  ·  ' + (data.adet || 0) + ' duyuru bulundu';
+
+        if(!data.duyurular || !data.duyurular.length) {
+            liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">📭 Son günlerde otomotivle ilgili yeni duyuru yok.</div>';
+            return;
+        }
+
+        liste.innerHTML = data.duyurular.map(function(duyuru) {
+            return '<div style="padding:14px 16px;background:var(--input-bg);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
+                '<div style="flex:1;min-width:200px;">' +
+                    '<div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:4px;">📅 ' + duyuru.tarih + '</div>' +
+                    '<div style="font-size:13px;color:var(--text-primary);line-height:1.5;">' + duyuru.baslik + '</div>' +
+                '</div>' +
+                '<a href="' + duyuru.link + '" target="_blank" class="btn-sm" style="border-color:var(--primary);color:var(--primary);text-decoration:none;white-space:nowrap;">Oku <i data-lucide="external-link" style="width:12px;height:12px;"></i></a>' +
+            '</div>';
+        }).join('');
+
+        if(window.lucide) lucide.createIcons();
+    };
+    // ============================================================
 
     window.renderView=function(vn){
         localStorage.setItem('gumruk_last_view',vn);
