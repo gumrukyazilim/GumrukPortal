@@ -3302,7 +3302,24 @@ if(data.ekGonderici) {
 
     window._onFirebaseReady=function(){loadAllData();};
 
-    window.exportBackup=function(){let d={decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData};let a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(d));a.download="gumruk_yedek.json";document.body.appendChild(a);a.click();a.remove();};
+    window.exportBackup=function(){
+        let d={
+            decl:window.declarationsData,
+            firm:window.firmData,
+            kiymet:window.kiymetData,
+            firmMeta:window.firmMeta,
+            cariData:window.cariData,
+            gelecekData:window.gelecekData,
+            yedekTarihi:new Date().toISOString()
+        };
+        let tarih=new Date().toISOString().slice(0,10);
+        let a=document.createElement('a');
+        a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(d,null,2));
+        a.download="gumruk_yedek_"+tarih+".json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    };
     
     window.importBackup = async function(event) {
         let file = event.target.files[0];
@@ -3311,34 +3328,73 @@ if(data.ekGonderici) {
         r.onload = async function(e) {
             try {
                 let d = JSON.parse(e.target.result);
-                if(d.decl) {
-                    window.declarationsData = d.decl;
-                    window.kiymetData = d.kiymet || [];
-                    if(d.firm) window.firmData = d.firm;
+                if(!d.decl) { alert("Yüklenen dosyanın içi boş veya bozuk!"); return; }
+                
+                // Yedek içeriğinin özeti
+                let yedekDecl = d.decl ? (Array.isArray(d.decl) ? d.decl.length : Object.keys(d.decl).length) : 0;
+                let yedekGelecek = d.gelecekData ? (Array.isArray(d.gelecekData) ? d.gelecekData.length : Object.keys(d.gelecekData).length) : 0;
+                let yedekTarihi = d.yedekTarihi ? new Date(d.yedekTarihi).toLocaleString('tr-TR') : 'Bilinmiyor';
+                
+                // Şu anki verilerin özeti
+                let mevcutDecl = window.declarationsData ? window.declarationsData.length : 0;
+                let mevcutGelecek = window.gelecekData ? window.gelecekData.length : 0;
+                
+                // KORUMA: Eğer yedek mevcuttan AZ kayıt içeriyorsa, kullanıcıyı UYAR
+                let uyari = "";
+                if(yedekDecl < mevcutDecl) {
+                    uyari += "\n⚠️ UYARI: Yedekte " + yedekDecl + " Gelen Araç var, mevcutta " + mevcutDecl + " var. " + (mevcutDecl - yedekDecl) + " kayıt SİLİNECEK!";
+                }
+                if(yedekGelecek < mevcutGelecek) {
+                    uyari += "\n⚠️ UYARI: Yedekte " + yedekGelecek + " Gelecek Araç var, mevcutta " + mevcutGelecek + " var. " + (mevcutGelecek - yedekGelecek) + " kayıt SİLİNECEK!";
+                }
+                
+                let soru = "📦 YEDEK İÇERİĞİ:\n" +
+                    "─────────────────────\n" +
+                    "Yedek Tarihi: " + yedekTarihi + "\n" +
+                    "Gelen Araç: " + yedekDecl + " (şu an: " + mevcutDecl + ")\n" +
+                    "Gelecek Araç: " + yedekGelecek + " (şu an: " + mevcutGelecek + ")\n" +
+                    uyari + "\n\n" +
+                    "❓ Bu yedeği geri yüklemek istiyor musunuz?\n" +
+                    "   (Mevcut veriler EZİLECEKTİR!)";
+                
+                if(!confirm(soru)) { alert("İşlem iptal edildi, hiçbir veri değişmedi."); return; }
+                
+                // İKİNCİ ONAY — kritik işlem
+                if(uyari && !confirm("🚨 SON UYARI: Veri kaybı olacak. Yine de devam edelsin mi?")) {
+                    alert("İşlem iptal edildi.");
+                    return;
+                }
+                
+                // Geri yükleme
+                window.declarationsData = d.decl;
+                window.kiymetData = d.kiymet || [];
+                if(d.firm) window.firmData = d.firm;
+                if(d.firmMeta) window.firmMeta = d.firmMeta;
+                if(d.cariData) window.cariData = d.cariData;
+                if(d.gelecekData) window.gelecekData = d.gelecekData;
+                
+                saveToLocal(); 
+                alert("Dosya okundu! Firebase'e yazılıyor... Uyarı gelene kadar BEKLEYİN.");
+                
+                if(window._firebaseSave) {
+                    let ok = await window._firebaseSave({
+                        decl: window.declarationsData, 
+                        firm: window.firmData, 
+                        kiymet: window.kiymetData,
+                        firmMeta: window.firmMeta,
+                        cariData: window.cariData,
+                        gelecekData: window.gelecekData
+                    });
                     
-                    saveToLocal(); 
-                    alert("Dosya okundu! Şimdi Firebase bulutuna yazılıyor... Lütfen 'Tamam'a bastıktan sonra uyarı gelene kadar BEKLEYİN.");
-                    
-                    if(window._firebaseSave) {
-                        let ok = await window._firebaseSave({
-                            decl: window.declarationsData, 
-                            firm: window.firmData, 
-                            kiymet: window.kiymetData,
-                            gelecekData: window.gelecekData
-                        });
-                        
-                        if(ok) {
-                            alert("BÜYÜK BAŞARI! 144 Araç ve tüm veriler Firebase'e işlendi. Sistem yenileniyor.");
-                            location.reload(); 
-                        } else {
-                            alert("HATA: Buluta aktarılamadı.");
-                        }
+                    if(ok) {
+                        alert("✅ BAŞARILI! Tüm veriler Firebase'e işlendi. Sistem yenileniyor.");
+                        location.reload(); 
+                    } else {
+                        alert("❌ HATA: Buluta aktarılamadı.");
                     }
-                } else {
-                    alert("Yüklenen dosyanın içi boş!");
                 }
             } catch(err) {
-                alert("Dosya okunurken hata oluştu!");
+                alert("Dosya okunurken hata oluştu: " + err.message);
             }
         };
         r.readAsText(file);
@@ -6458,6 +6514,9 @@ window.renderDilekceContent = function() {
         veri.imzaYetkilisi = "FATİH İSMAİL ÇEBİ";
     } else if (fUst.includes("KARABAYIR")) {
         veri.imzaYetkilisi = "BEHLÜL TÜREL";
+    } else if (fUst.includes("SANDIKÇI") || fUst.includes("SANDIKCI")) {
+        veri.firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ";
+        veri.imzaYetkilisi = "HARUN SANDIKÇI";
     }
 
     // 2. ORTAK STİLLER (CSS'i ayrı bir blokta tutuyoruz, HTML'i şişirmiyoruz)
