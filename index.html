@@ -4270,8 +4270,10 @@ pagebreak: {mode: 'avoid-all'}
     // KORUMA: Veri undefined veya boş olsa bile dashboard'ı güvenli şekilde güncelle
     if(!window.declarationsData) window.declarationsData = [];
     if(!window.gelecekData) window.gelecekData = [];
+    if(!window.kiymetData) window.kiymetData = [];
+    if(!window.firmData) window.firmData = {};
     let role = localStorage.getItem('gumruk_role') || 'admin';
-    let data = role === 'admin' ? (window.declarationsData || []) : (window.declarationsData || []).filter(d => d.firma === role);
+    let data = role === 'admin' ? (window.declarationsData || []) : (window.declarationsData || []).filter(d => d && d.firma === role);
     
     let t=data.length;
     let ki=data.filter(d=>d.kiymVv&&!d.kiymGt).length;
