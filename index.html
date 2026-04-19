@@ -3358,6 +3358,10 @@ if(data.ekGonderici) {
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
                 saveToLocal();
                 hideSyncToast("Firebase'den çekildi!",true);
+                // Dashboard istatistiklerini otomatik güncelle
+                if(typeof window.updateDashboardStats === 'function') {
+                    window.updateDashboardStats();
+                }
             }else{
                 hideSyncToast("Çevrimdışı mod.",false);
                 loadFromLocal();
@@ -5715,21 +5719,24 @@ if(vn==='gelecekAraclar'){
         if(localStorage.getItem('gumruk_auth')==='true') {
             document.getElementById('login-screen').style.display='none';
             window.applyRoleUI();
-        }
-        if(window.lucide)lucide.createIcons();
-        window.fetchTCMBKur(true);
-        if(window._firebaseReady){
-            loadAllData();
-        } else {
-            // Firebase henüz hazır değilse, local verileri yükle ve varsayılan görünümü aç
-            loadFromLocal();
-            window._dataLoaded = true;
+            
+            // KRİTİK: Firebase'den bağımsız olarak hemen dashboard'u göster
+            // Veriler Firebase'den geldiğinde otomatik güncellenecek
             let role = localStorage.getItem('gumruk_role') || 'admin';
             if(role !== 'admin'){
                 window.renderView('declarations');
             } else {
                 window.renderView('dashboard');
             }
+        }
+        if(window.lucide)lucide.createIcons();
+        window.fetchTCMBKur(true);
+        if(window._firebaseReady){
+            loadAllData();
+        } else {
+            // Firebase henüz hazır değilse, local verileri yükle
+            loadFromLocal();
+            window._dataLoaded = true;
         }
     });
     
