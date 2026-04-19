@@ -1761,7 +1761,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getDatabase, ref, set, get, query, orderByChild, startAt, endAt } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getDatabase, ref, set, get, onValue, query, orderByChild, startAt, endAt } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDxlTVb_JsefQHCE8pFiOiDjMaEVZJNiI0",
@@ -2424,16 +2424,23 @@ window.saveGelecekData = function() {
         return;
     }
     
-    localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData));
+    // localStorage'a kaydet (gelecekData hariç - sadece buluta yazılıyor)
+    // NOT: gelecekData localStorage'a kaydedilmez, sadece Firebase'e yazılıyor
+    
     if(window._firebaseSave) {
-        window._firebaseSave({
-            decl: window.declarationsData,
-            firm: window.firmData,
-            kiymet: window.kiymetData,
-            firmMeta: window.firmMeta,
-            cariData: window.cariData,
-            gelecekData: window.gelecekData
-        });
+        try {
+            window._firebaseSave({
+                decl: window.declarationsData,
+                firm: window.firmData,
+                kiymet: window.kiymetData,
+                firmMeta: window.firmMeta,
+                cariData: window.cariData,
+                gelecekData: window.gelecekData
+            });
+            console.log("✅ Araç verisi buluta başarıyla kaydedildi.");
+        } catch(error) {
+            console.error("❌ Araç verisi buluta kaydedilemedi:", error);
+        }
     }
 };
 
@@ -3200,7 +3207,7 @@ function saveCariData() {
         localStorage.setItem('gumrukFirmMeta', JSON.stringify(window.firmMeta));
         // DIŞARIDA KALAN KODLAR İÇERİ ALINDI:
         localStorage.setItem('gumrukCariData', JSON.stringify(window.cariData));
-        localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData));
+        // NOT: gelecekData artık localStorage'a kaydedilmiyor, sadece buluta yazılıyor
     } catch(e) {}
 }
 
@@ -3214,10 +3221,6 @@ function loadFromLocal() {
         
         let cd = localStorage.getItem('gumrukCariData');
         if(cd && cd !== "null") window.cariData = JSON.parse(cd);
-        
-        // YENİ EKLEDİĞİMİZ KISIM BURASI:
-        let gd = localStorage.getItem('gumrukGelecekData');
-        if(gd && gd !== "null") window.gelecekData = JSON.parse(gd);
         
         let k = localStorage.getItem('gumrukKiymetData');
         if(k && k !== "null") window.kiymetData = JSON.parse(k);
@@ -3253,13 +3256,34 @@ function loadFromLocal() {
                     }
                 }
 
-                let ok=await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,firmMeta:window.firmMeta,cariData:window.cariData});
-                if(ok)hideSyncToast("Firebase'e kaydedildi!",true);else hideSyncToast("Kayıt başarısız!",false);
+                try {
+                    let ok=await window._firebaseSave({
+                        decl:window.declarationsData,
+                        firm:window.firmData,
+                        kiymet:window.kiymetData,
+                        firmMeta:window.firmMeta,
+                        cariData:window.cariData,
+                        gelecekData:window.gelecekData
+                    });
+                    if(ok){
+                        console.log("✅ Araç verisi buluta başarıyla kaydedildi.");
+                        hideSyncToast("Firebase'e kaydedildi!",true);
+                    } else {
+                        console.error("❌ Araç verisi buluta kaydedilemedi: Firebase yazma işlemi başarısız döndü.");
+                        hideSyncToast("Kayıt başarısız!",false);
+                    }
+                } catch(error) {
+                    console.error("❌ Araç verisi buluta kaydedilemedi:", error);
+                    hideSyncToast("Kayıt hatası!",false);
+                }
             }else{hideSyncToast("Firebase henüz hazır değil",false);}
         },1500);
     }
 
     window.forceCloudSync=function(){loadAllData();};
+
+    // Firebase Real-time Listener referansı
+    window._gelecekListener = null;
 
     async function loadAllData(){
         showSyncToast("Firebase'den veriler çekiliyor...");
@@ -3319,6 +3343,52 @@ if(data.ekGonderici) {
             loadFromLocal();
             window._dataLoaded = true; // Local'den de gelse kilidi aç
             hideSyncToast("Firebase bekleniyor...",false);
+        }
+
+        // ===== GERÇEK ZAMANLI SENKRONİZASYON (Real-time Listener) =====
+        // Firebase'deki gelecekData yolunu sürekli dinle
+        if(window._fbRef && window._fbDb && onValue) {
+            // Eski listener varsa temizle
+            if(window._gelecekListener) {
+                window._gelecekListener();
+            }
+
+            const gelecekRef = window._fbRef(window._fbDb, 'portal_data_test/gelecekData');
+            
+            window._gelecekListener = onValue(gelecekRef, function(snapshot) {
+                console.log("📡 Firebase dinleyicisi aktif: Veriler tüm cihazlar arasında anlık senkronize ediliyor.");
+                
+                if(snapshot.exists()) {
+                    let gelenVeri = snapshot.val();
+                    
+                    // Null kontrolü
+                    if(gelenVeri === null) {
+                        window.gelecekData = [];
+                    } else {
+                        // Array veya Object kontrolü
+                        window.gelecekData = Array.isArray(gelenVeri) ? gelenVeri : Object.values(gelenVeri);
+                    }
+                    
+                    // Arayüzü otomatik güncelle
+                    if(typeof window.renderGelecekTable === 'function') {
+                        window.renderGelecekTable();
+                    }
+                    
+                    // Dashboard istatistiklerini güncelle
+                    if(typeof window.updateDashboardStats === 'function') {
+                        window.updateDashboardStats();
+                    }
+                } else {
+                    // Veri null veya silinmiş
+                    window.gelecekData = [];
+                    
+                    if(typeof window.renderGelecekTable === 'function') {
+                        window.renderGelecekTable();
+                    }
+                }
+            }, function(error) {
+                console.error("❌ Firebase dinleyici hatası:", error);
+            });
         }
         
         let role = localStorage.getItem('gumruk_role') || 'admin';
