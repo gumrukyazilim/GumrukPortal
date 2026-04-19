@@ -2395,8 +2395,34 @@ window.gelecekAracSil = function(idx) {
 };
 
 window.saveGelecekData = function() {
+    // KORUMA 1: Array değilse kaydetme
+    if(!Array.isArray(window.gelecekData)) {
+        console.warn("⚠️ gelecekData array değil, kayıt iptal edildi!");
+        return;
+    }
+    
+    // KORUMA 2: Eğer önce dolu idi şimdi boş ise, kullanıcıya SOR
+    let onceki = localStorage.getItem('gumrukGelecekData');
+    if(onceki) {
+        try {
+            let onceDolu = JSON.parse(onceki);
+            if(Array.isArray(onceDolu) && onceDolu.length > 0 && window.gelecekData.length === 0) {
+                if(!confirm("⚠️ UYARI: Gelecek Araçlar listesini tamamen boşaltmak üzeresin (" + onceDolu.length + " kayıt silinecek). Devam?")) {
+                    window.gelecekData = onceDolu; // GERİ YÜKLE
+                    return;
+                }
+            }
+        } catch(e) {}
+    }
+    
+    // KORUMA 3: Veri yüklenmediyse kaydetme
+    if(!window._dataLoaded) {
+        console.warn("⚠️ Veriler henüz yüklenmedi, kayıt iptal edildi!");
+        return;
+    }
+    
     localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData));
-    if(window._firebaseSave && window._dataLoaded) {
+    if(window._firebaseSave) {
         window._firebaseSave({
             decl: window.declarationsData,
             firm: window.firmData,
