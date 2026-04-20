@@ -4546,7 +4546,7 @@ document.addEventListener('click', function(e) {
     window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");let meta=window.firmMeta[fn]||{};return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta('${sn}')"><i data-lucide="edit-3"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div>${meta.vergiNo?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: '+meta.vergiNo+'</div>':''}${meta.tcNo?'<div style="font-size:10px;color:var(--text-muted);">TC: '+meta.tcNo+'</div>':''}</div>`;}).join('');if(window.lucide)lucide.createIcons();};
     window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
     // ===== EVRAK ROZETLERİ MOTORU =====
-    window.EVRAK_TIPLERI = ['ATR', 'COO', 'COC', 'ONAY', 'ART44', 'TSE', 'IMEI', 'EORI', 'N.FATURA'];
+    window.EVRAK_TIPLERI = ['ATR', 'COO', 'COC', 'ONAY', 'ART44', 'TSE', 'IMEI', 'EORI', 'N_FATURA'];
 
     // ===== ARAÇ MENŞEİ TESPİT FONKSİYONU =====
     window.getVehicleOrigin = function(sasi, marka) {
@@ -4574,7 +4574,7 @@ document.addEventListener('click', function(e) {
         return 'EU';
     };
 
-    // Bölge bazlı rozet dizilimleri
+    // Bölge bazlı rozet dizilimleri (Firebase nokta kabul etmez, N_FATURA kullan)
     window.REGION_BADGES = {
         'UK':   ['COO', 'EORI', 'COC', 'ONAY', 'TSE', 'IMEI'],           // ATR ve ART44 gizli
         'USA':  ['ATR', 'COO', 'ART44', 'ONAY', 'TSE', 'IMEI'],          // EORI ve COC gizli
@@ -4609,12 +4609,12 @@ document.addEventListener('click', function(e) {
         teslimDegeri = (teslimDegeri || '').toString().trim().toUpperCase();
         
         if(teslimDegeri === 'EXW') {
-            // Sadece EXW ise N.FATURA ekle
-            if(gosterilecekRozetler.indexOf('N.FATURA') === -1) {
-                gosterilecekRozetler.push('N.FATURA');
+            // Sadece EXW ise N_FATURA ekle (Firebase nokta kabul etmez)
+            if(gosterilecekRozetler.indexOf('N_FATURA') === -1) {
+                gosterilecekRozetler.push('N_FATURA');
             }
         }
-        // CIF, FOB, boş veya başka değerse N.FATURA ASLA eklenmez
+        // CIF, FOB, boş veya başka değerse N_FATURA ASLA eklenmez
         
         // ADIM 5: Sadece gosterilecekRozetler dizisindeki öğeler için HTML oluştur
         let html = '<div class="evrak-badges-container">';
@@ -4622,7 +4622,9 @@ document.addEventListener('click', function(e) {
             // evrakDurumlari objesi sadece renk belirlemek için kullanılır
             let tamam = evrakDurumlari[tip] === true;
             let cls = tamam ? 'tamam' : 'eksik';
-            html += '<span class="evrak-badge ' + cls + '" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="' + tip + ': ' + (tamam ? 'Tamam' : 'Eksik') + ' — Tıkla">' + tip + '</span>';
+            // Ekranda N_FATURA → N.FATURA göster (kullanıcı dostu)
+            let gosterilenMetin = (tip === 'N_FATURA') ? 'N.FATURA' : tip;
+            html += '<span class="evrak-badge ' + cls + '" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="' + gosterilenMetin + ': ' + (tamam ? 'Tamam' : 'Eksik') + ' — Tıkla">' + gosterilenMetin + '</span>';
         });
         html += '</div>';
         return html;
