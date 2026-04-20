@@ -4546,7 +4546,7 @@ document.addEventListener('click', function(e) {
     window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");let meta=window.firmMeta[fn]||{};return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta('${sn}')"><i data-lucide="edit-3"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div>${meta.vergiNo?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: '+meta.vergiNo+'</div>':''}${meta.tcNo?'<div style="font-size:10px;color:var(--text-muted);">TC: '+meta.tcNo+'</div>':''}</div>`;}).join('');if(window.lucide)lucide.createIcons();};
     window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
     // ===== EVRAK ROZETLERİ MOTORU =====
-    window.EVRAK_TIPLERI = ['ATR', 'COO', 'COC', 'ONAY', 'ART44', 'TSE', 'IMEI', 'EORI'];
+    window.EVRAK_TIPLERI = ['ATR', 'COO', 'COC', 'ONAY', 'ART44', 'TSE', 'IMEI', 'EORI', 'N.FATURA'];
 
     // ===== ARAÇ MENŞEİ TESPİT FONKSİYONU =====
     window.getVehicleOrigin = function(sasi, marka) {
@@ -4582,19 +4582,45 @@ document.addEventListener('click', function(e) {
         'EU':   ['ATR', 'COC', 'ONAY', 'TSE', 'IMEI']                    // COO, EORI ve ART44 gizli
     };
 
+    // ===== DİNAMİK ROZET RENDER MOTORU (Hayalet Veri Yok!) =====
     window.renderEvrakBadges = function(d, idx, ctx) {
         if(!d) return '';
-        let evrak = d.evrakler || {};
         
-        // Araç menşeini tespit et
+        // ADIM 1: Veritabanındaki evrak durumlarını al (sadece renk için)
+        let evrakDurumlari = d.evrakler || {};
+        
+        // ADIM 2: SIFIRDAN rozet listesi oluştur (Object.keys ASLA kullanma!)
+        let gosterilecekRozetler = [];
+        
+        // ADIM 3: Bölge bazlı temel rozetleri ekle
         let origin = window.getVehicleOrigin(d.sasi, d.marka);
+        let temelRozetler = window.REGION_BADGES[origin] || window.REGION_BADGES['EU'];
+        temelRozetler.forEach(function(r) {
+            gosterilecekRozetler.push(r);
+        });
         
-        // Bölgeye göre gösterilecek rozetleri al
-        let gosterilecekRozetler = window.REGION_BADGES[origin] || window.REGION_BADGES['EU'];
+        // ADIM 4: CANLI EXW KONTROLÜ (Anlık tepki için katı kontrol)
+        // Hem 'teslim' hem 'teslimSekli' alanlarını kontrol et (eski/yeni veri uyumluluğu)
+        let teslimDegeri = '';
+        if(d.teslim) teslimDegeri = d.teslim;
+        else if(d.teslimSekli) teslimDegeri = d.teslimSekli;
         
+        // Boşlukları temizle ve büyük harfe çevir
+        teslimDegeri = (teslimDegeri || '').toString().trim().toUpperCase();
+        
+        if(teslimDegeri === 'EXW') {
+            // Sadece EXW ise N.FATURA ekle
+            if(gosterilecekRozetler.indexOf('N.FATURA') === -1) {
+                gosterilecekRozetler.push('N.FATURA');
+            }
+        }
+        // CIF, FOB, boş veya başka değerse N.FATURA ASLA eklenmez
+        
+        // ADIM 5: Sadece gosterilecekRozetler dizisindeki öğeler için HTML oluştur
         let html = '<div class="evrak-badges-container">';
         gosterilecekRozetler.forEach(function(tip) {
-            let tamam = evrak[tip] === true;
+            // evrakDurumlari objesi sadece renk belirlemek için kullanılır
+            let tamam = evrakDurumlari[tip] === true;
             let cls = tamam ? 'tamam' : 'eksik';
             html += '<span class="evrak-badge ' + cls + '" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="' + tip + ': ' + (tamam ? 'Tamam' : 'Eksik') + ' — Tıkla">' + tip + '</span>';
         });
@@ -5039,6 +5065,16 @@ window.saveDeclEntry = async function(){
     let val=id=>document.getElementById(id)?.value.trim()||'';
     let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
     
+    // Mevcut aracın evraklar objesini koru (veri kaybını önlemek için)
+    let mevcutEvraklar = {};
+    if(i !== -1) {
+        if(window.currentModalContext === 'decl' && window.declarationsData[i]) {
+            mevcutEvraklar = window.declarationsData[i].evrakler || {};
+        } else if(window.firmData[window.currentFirm]?.[i]) {
+            mevcutEvraklar = window.firmData[window.currentFirm][i].evrakler || {};
+        }
+    }
+    
     let r={
         firma:val('da-firma'),
         marka:val('da-marka').toUpperCase(),
@@ -5062,7 +5098,8 @@ window.saveDeclEntry = async function(){
         gonderici:val('da-gonderici'), 
         gtip:val('da-gtip'), 
         brut:val('da-brut'), 
-        net:val('da-net')
+        net:val('da-net'),
+        evrakler: mevcutEvraklar
     };
 
     if(!r.firma || !r.tarih){alert('Zorunlu alanları doldurun!'); return;}
