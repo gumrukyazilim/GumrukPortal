@@ -741,6 +741,53 @@
     .view-area { padding-bottom: 80px !important; }
 }
 .bottom-nav { display: none; }
+
+/* --- EVRAK ROZETLERİ (BADGE/PILL) --- */
+.evrak-badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin-top: 6px;
+}
+.evrak-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
+    margin-top: 2px;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.15s ease;
+    user-select: none;
+    border: 1px solid transparent;
+}
+.evrak-badge:hover {
+    transform: scale(1.08);
+    filter: brightness(1.2);
+}
+.evrak-badge.tamam {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+.evrak-badge.eksik {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+/* Light mode uyumu */
+[data-theme="light"] .evrak-badge.tamam {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border-color: rgba(16, 185, 129, 0.25);
+}
+[data-theme="light"] .evrak-badge.eksik {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+/* --- EVRAK ROZETLERİ BİTİŞ --- */
  </style>
 </head>
 <body>
@@ -4463,7 +4510,7 @@ document.addEventListener('click', function(e) {
         
         return `<tr class="${finalRowClass}" data-gun="${gunFarki}" onclick="if(!event.target.closest('button, input, a, .inline-date')) window.openDeclVehicleModal(${i}, 'decl')" style="cursor: pointer;" title="Detayları görmek için tıklayın">
             <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
-            <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}</td>
+            <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}${window.renderEvrakBadges(d, i, 'decl')}</td>
             <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
             <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'tarih')"` : ''}>${d.tarih||'-'}</td>
             <td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td>
@@ -4498,6 +4545,103 @@ document.addEventListener('click', function(e) {
 
     window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");let meta=window.firmMeta[fn]||{};return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta('${sn}')"><i data-lucide="edit-3"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div>${meta.vergiNo?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: '+meta.vergiNo+'</div>':''}${meta.tcNo?'<div style="font-size:10px;color:var(--text-muted);">TC: '+meta.tcNo+'</div>':''}</div>`;}).join('');if(window.lucide)lucide.createIcons();};
     window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
+    // ===== EVRAK ROZETLERİ MOTORU =====
+    window.EVRAK_TIPLERI = ['ATR', 'COO', 'COC', 'ONAY', 'ART44', 'TSE', 'IMEI', 'EORI'];
+
+    // ===== ARAÇ MENŞEİ TESPİT FONKSİYONU =====
+    window.getVehicleOrigin = function(sasi, marka) {
+        let s = (sasi || '').toUpperCase().trim();
+        let m = (marka || '').toUpperCase().trim();
+        
+        // BÖLGE 1: İNGİLTERE (UK) - Marka kontrolü
+        let ukBrands = ['LAND ROVER', 'RANGE ROVER', 'BENTLEY', 'ASTON MARTIN', 'JAGUAR', 'ROLLS ROYCE', 'MINI'];
+        let isUKBrand = ukBrands.some(brand => m.includes(brand));
+        
+        // BÖLGE 1: İNGİLTERE (UK) - Şasi kontrolü (SA-SM arası harfler)
+        let ukVinPrefixes = ['SA', 'SB', 'SC', 'SD', 'SE', 'SF', 'SG', 'SH', 'SI', 'SJ', 'SK', 'SL', 'SM'];
+        let isUKVin = ukVinPrefixes.some(prefix => s.startsWith(prefix));
+        
+        if (isUKBrand || isUKVin) return 'UK';
+        
+        // BÖLGE 2: AMERİKA (USA) - Şasi 1,2,3,4,5 ile başlıyorsa
+        if (s.startsWith('1') || s.startsWith('2') || s.startsWith('3') || 
+            s.startsWith('4') || s.startsWith('5')) return 'USA';
+        
+        // BÖLGE 3: ASYA (UZAKDOĞU) - Şasi J, K, L ile başlıyorsa
+        if (s.startsWith('J') || s.startsWith('K') || s.startsWith('L')) return 'ASIA';
+        
+        // BÖLGE 4: AVRUPA (EU) / DİĞER - Varsayılan
+        return 'EU';
+    };
+
+    // Bölge bazlı rozet dizilimleri
+    window.REGION_BADGES = {
+        'UK':   ['COO', 'EORI', 'COC', 'ONAY', 'TSE', 'IMEI'],           // ATR ve ART44 gizli
+        'USA':  ['ATR', 'COO', 'ART44', 'ONAY', 'TSE', 'IMEI'],          // EORI ve COC gizli
+        'ASIA': ['COO', 'COC', 'ART44', 'ONAY', 'TSE', 'IMEI'],          // ATR ve EORI gizli
+        'EU':   ['ATR', 'COC', 'ONAY', 'TSE', 'IMEI']                    // COO, EORI ve ART44 gizli
+    };
+
+    window.renderEvrakBadges = function(d, idx, ctx) {
+        if(!d) return '';
+        let evrak = d.evrakler || {};
+        
+        // Araç menşeini tespit et
+        let origin = window.getVehicleOrigin(d.sasi, d.marka);
+        
+        // Bölgeye göre gösterilecek rozetleri al
+        let gosterilecekRozetler = window.REGION_BADGES[origin] || window.REGION_BADGES['EU'];
+        
+        let html = '<div class="evrak-badges-container">';
+        gosterilecekRozetler.forEach(function(tip) {
+            let tamam = evrak[tip] === true;
+            let cls = tamam ? 'tamam' : 'eksik';
+            html += '<span class="evrak-badge ' + cls + '" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="' + tip + ': ' + (tamam ? 'Tamam' : 'Eksik') + ' — Tıkla">' + tip + '</span>';
+        });
+        html += '</div>';
+        return html;
+    };
+
+    window.toggleEvrakDurum = function(tip, idx, ctx) {
+        let d = null;
+        if(ctx === 'decl') {
+            d = window.declarationsData[idx];
+        } else if(ctx === 'firm') {
+            d = window.firmData[window.currentFirm]?.[idx];
+        }
+        if(!d) return;
+        
+        if(!d.evrakler) d.evrakler = {};
+        d.evrakler[tip] = !d.evrakler[tip];
+        
+        // FirmData'da da güncelle (senkronizasyon)
+        if(ctx === 'decl' && d.sasi) {
+            Object.keys(window.firmData).forEach(function(fn) {
+                (window.firmData[fn]||[]).forEach(function(fd) {
+                    if(fd && fd.sasi === d.sasi) {
+                        if(!fd.evrakler) fd.evrakler = {};
+                        fd.evrakler[tip] = d.evrakler[tip];
+                    }
+                });
+            });
+        } else if(ctx === 'firm' && d.sasi) {
+            (window.declarationsData||[]).forEach(function(dd) {
+                if(dd && dd.sasi === d.sasi) {
+                    if(!dd.evrakler) dd.evrakler = {};
+                    dd.evrakler[tip] = d.evrakler[tip];
+                }
+            });
+        }
+        
+        saveData('decl');
+        saveData('firm');
+        
+        // Tabloyu yeniden render et
+        if(ctx === 'decl') window.renderDeclarationsTable();
+        else if(ctx === 'firm') window.renderFirmVehicles();
+    };
+    // ===== EVRAK ROZETLERİ MOTORU BİTİŞ =====
+
     window.renderFirmVehicles=function(){
     let tbody=document.getElementById('firm-vehicles-tbody');if(!tbody)return;
     let cF=window.currentFirm;if(!cF)return;
@@ -4525,16 +4669,16 @@ document.addEventListener('click', function(e) {
                 kiymetText='<span style="color:var(--success);font-weight:700;">'+window.formatNumber(k.kiymet)+' ₺</span>';
             }
         }
-        return '<tr class="'+rc+'" onclick="if(!event.target.closest(\'button, input, a\')) window.openDeclVehicleModal('+i+',\'firm\')" style="cursor:pointer;" title="Detaylar için tıklayın">'+
-            '<td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb firm-cb" value="'+i+'" onclick="event.stopPropagation();window.toggleFirmCb()"></td>'+
-            '<td><span class="font-bold" style="color:var(--text-primary);">'+(d.marka||'')+' '+(d.model||'')+'</span></td>'+
-            '<td>'+(d.yil||'-')+'</td>'+
-            '<td>'+(d.renk||'-')+'</td>'+
-            '<td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">'+(d.sasi||'-')+'</td>'+
-            '<td>'+(d.tarih||'-')+'</td>'+
-            '<td>'+(d.beyanname||'-')+'</td>'+
-            '<td>'+(d.fatura?window.formatNumber(d.fatura)+' €':'-')+'</td>'+
-            '<td>'+kiymetText+'</td>'+
+        return '<tr class="'+rc+'" onclick="if(!event.target.closest(\'button, input, a, .evrak-badge\')) window.openDeclVehicleModal('+i+',\'firm\')" style="cursor:pointer;" title="Detaylar için tıklayın">'+ 
+            '<td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb firm-cb" value="'+i+'" onclick="event.stopPropagation();window.toggleFirmCb()"></td>'+ 
+            '<td><span class="font-bold" style="color:var(--text-primary);">'+(d.marka||'')+' '+(d.model||'')+'</span>'+window.renderEvrakBadges(d, i, 'firm')+'</td>'+ 
+            '<td>'+(d.yil||'-')+'</td>'+ 
+            '<td>'+(d.renk||'-')+'</td>'+ 
+            '<td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">'+(d.sasi||'-')+'</td>'+ 
+            '<td>'+(d.tarih||'-')+'</td>'+ 
+            '<td>'+(d.beyanname||'-')+'</td>'+ 
+            '<td>'+(d.fatura?window.formatNumber(d.fatura)+' €':'-')+'</td>'+ 
+            '<td>'+kiymetText+'</td>'+ 
         '</tr>';
     }).join('');
     if(window.lucide)lucide.createIcons();
