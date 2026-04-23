@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr" data-theme="dark">
+<html lang="tr">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta charset="UTF-8">
@@ -17,8 +17,10 @@
         window.cariData = {};
         window.kiymetData = [];
         
-        let savedTheme = localStorage.getItem('gumruk_theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
+        let savedTheme = localStorage.getItem('gumruk_theme') || 'light';
+        if(savedTheme === 'light') {
+            document.documentElement.classList.add('light-mode');
+        }
     </script>
     <style>
 /* BUTON TIKLAMA HASSASİYETİ (Tıklamayı Yutan İkonları Pasifize Et) */
@@ -47,7 +49,7 @@
     overflow-y: auto;
     z-index: 9999;
     display: none;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
 }
 .banka-item {
     padding: 10px 15px;
@@ -61,21 +63,21 @@
 }
 .banka-item .b-ad { font-weight: 700; color: var(--primary); font-size: 13px; }
 .banka-item .b-detay { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-            /* Koyu Mod - Premium Professional */
-            --bg-main: #0a0f1a; 
-            --bg-surface: #1a2332;
-            --bg-surface-hover: #243044;
-            --bg-elevated: #1a2332;
-            --bg-hover: #243044;
-            --input-bg: #0d1420;
+            /* Varsayılan Koyu Tema - Default Dark Mode */
+            --bg-main: #0f172a;
+            --bg-surface: #1e293b;
+            --bg-surface-hover: #334155;
+            --bg-elevated: #1e293b;
+            --bg-hover: #334155;
+            --input-bg: #1e293b;
             
-            --border: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.1);
             --border-active: rgba(59, 130, 246, 0.5);
             --primary: #3b82f6;
             --primary-hover: #2563eb;
             --accent: #818cf8;
             
-            --text-primary: #f8fafc;
+            --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
             
@@ -91,6 +93,31 @@
             --r-sm: 7px;
             --sidebar-w: 268px;
             --header-h: 68px;
+        }
+        
+        /* Açık Tema - Light Mode */
+        .light-mode {
+            --bg-main: #F4F7F9;
+            --bg-surface: #FFFFFF;
+            --bg-surface-hover: #F8FAFC;
+            --bg-elevated: #FFFFFF;
+            --bg-hover: #E2E8F0;
+            --input-bg: #F8FAFC;
+            
+            --border: rgba(0, 0, 0, 0.08);
+            --border-active: rgba(59, 130, 246, 0.5);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #818cf8;
+            
+            --text-primary: #1E293B;
+            --text-secondary: #475569;
+            --text-muted: #64748B;
+            
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --kiymet-color: #a855f7;
         }
 /* Beyanname Tarih Alanı Güzelleştirme */
 #tcgb-54-date {
@@ -118,20 +145,28 @@
 }
 
         [data-theme="light"] {
-            /* Açık Mod - Clean & Modern */
-            --bg-main: #f0f4f8;
-            --bg-surface: #ffffff;
-            --bg-surface-hover: #f8fafc;
-            --bg-elevated: #ffffff;
-            --bg-hover: #e2e8f0;
-            --input-bg: #f8fafc;
+            /* Kurumsal Açık Tema - Professional SaaS */
+            --bg-main: #F4F7F9;
+            --bg-surface: #FFFFFF;
+            --bg-surface-hover: #F8FAFC;
+            --bg-elevated: #FFFFFF;
+            --bg-hover: #E2E8F0;
+            --input-bg: #F8FAFC;
             
-            --border: rgba(0,0,0,0.08);
-            --border-active: rgba(59,130,246,0.5);
+            --border: rgba(0, 0, 0, 0.08);
+            --border-active: rgba(59, 130, 246, 0.5);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #818cf8;
             
-            --text-primary: #0f172a;
+            --text-primary: #1E293B;
             --text-secondary: #475569;
-            --text-muted: #94a3b8;
+            --text-muted: #64748B;
+            
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --kiymet-color: #a855f7;
         }
 /* --- AGRESİF SATIR VURGUSU (MAKSİMUM KONTRAST) --- */
 .declaration-row.selected td {
@@ -186,7 +221,7 @@
     transition: none !important; 
 }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:var(--font-family); background:var(--bg-main); color:var(--text-primary); min-height:100vh; overflow-x:hidden; font-size:14px; -webkit-font-smoothing:antialiased; transition: background 0.5s ease, color 0.5s ease; }
+        body { font-family:'Inter', system-ui, -apple-system, sans-serif; background:var(--bg-main); color:var(--text-primary); min-height:100vh; overflow-x:hidden; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; transition: background 0.5s ease, color 0.5s ease; }
 /* TEMA GEÇİŞ ANİMASYONU */
 .theme-transition {
     transition: background-color 0.3s ease, color 0.3s ease !important;
@@ -401,12 +436,12 @@
         .page-sub { font-size:13px; color:var(--text-secondary); margin-top:4px; }
         .page-actions { display:flex; align-items:center; gap:10px; }
         
-        .card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); }
+        .card { background:var(--bg-surface); border:1px solid #E2E8F0; border-radius:var(--r-lg); box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); }
         .card-pad { padding:24px; }
         
         .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:20px; margin-bottom:28px; }
-        .stat-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
-        .stat-card:hover { transform:translateY(-2px); border-color:var(--border-active); box-shadow:0 10px 20px rgba(0,0,0,0.1); }
+        .stat-card { background:var(--bg-surface); border:1px solid #E2E8F0; border-radius:var(--r-lg); padding:24px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); }
+        .stat-card:hover { transform:translateY(-2px); border-color:var(--border-active); box-shadow:0 10px 20px rgba(0,0,0,0.08); }
         .stat-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
         .stat-icon-box { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; }
         .stat-icon-box i { width:20px; height:20px; }
@@ -432,9 +467,9 @@
         .table-wrap::-webkit-scrollbar-thumb { background:rgba(63,63,70,0.8); border-radius:4px; border:2px solid transparent; background-clip:padding-box; }
         .table-wrap::-webkit-scrollbar-thumb:hover { background-color:rgba(113,113,122,1); }
         
-        .data-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12.5px; }
-        .data-table th { padding:11px 14px; text-align:left; font-weight:600; color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px; border-bottom:1px solid var(--border); background:var(--bg-surface); position:sticky; top:0; z-index:10; white-space:nowrap; }
-        .data-table td { padding:12px 14px; border-bottom:1px solid var(--border); color:var(--text-primary); vertical-align:middle; transition:0.2s; white-space:nowrap; }
+        .data-table { width:100%; border-collapse:separate; border-spacing:0; font-size:14px; line-height:1.7; }
+        .data-table th { padding:14px 16px; text-align:left; font-weight:600; color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:0.6px; border-bottom:1px solid var(--border); background:var(--bg-surface); position:sticky; top:0; z-index:10; white-space:nowrap; }
+        .data-table td { padding:16px 16px; border-bottom:1px solid var(--border); color:var(--text-primary); vertical-align:middle; transition:0.2s; white-space:nowrap; }
         .data-table tbody tr { transition:background 0.12s; }
         .data-table tbody tr:hover td { background:var(--bg-hover); }
         /* Durum Bazlı Renk Sınıfları - Dark Mode Uyumlu Soft Tonlar */
@@ -449,12 +484,12 @@
         .row-beklemede td { background:rgba(16,185,129,0.08)!important; border-bottom-color:rgba(16,185,129,0.15)!important; }
         .row-beklemede:hover td { background:rgba(16,185,129,0.14)!important; }
         
-        .badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:5px; font-size:11px; font-weight:600; letter-spacing:0.2px; }
-        .badge-warning { background:#2563EB; color:#FFFFFF !important; border:none; font-weight:700; letter-spacing:0.5px; padding:5px 12px; border-radius:6px; }
-        .badge-success { background:#16A34A; color:#FFFFFF !important; border:none; font-weight:700; letter-spacing:0.5px; padding:5px 12px; border-radius:6px; }
-        .badge-danger { background:#DC2626; color:#FFFFFF !important; border:none; font-weight:700; letter-spacing:0.5px; padding:5px 12px; border-radius:6px; }
-        .badge-dark { background:transparent; color:#6B7280; border:2px solid #6B7280; font-weight:700; letter-spacing:0.5px; padding:5px 12px; border-radius:6px; }
-        .badge-kiymette { background:#DC2626; color:#FFFFFF !important; border:none; font-weight:700; letter-spacing:0.5px; padding:5px 12px; border-radius:6px; }
+        .badge { display:inline-flex; align-items:center; padding:4px 10px; border-radius:6px; font-size:13px; font-weight:600; letter-spacing:0.2px; }
+        .badge-warning { background:#2563EB; color:#FFFFFF !important; border:none; font-weight:700; letter-spacing:0.5px; padding:6px 14px; border-radius:6px; font-size:14px; }
+        .badge-success { background:#16A34A; color:#FFFFFF !important; border:none; font-weight:700; letter-spacing:0.5px; padding:6px 14px; border-radius:6px; font-size:14px; }
+        .badge-danger { background:#DC2626; color:#FFFFFF !important; border:none; font-weight:700; letter-spacing:0.5px; padding:6px 14px; border-radius:6px; font-size:14px; }
+        .badge-dark { background:transparent; color:#6B7280; border:2px solid #6B7280; font-weight:700; letter-spacing:0.5px; padding:6px 14px; border-radius:6px; font-size:14px; }
+        .badge-kiymette { background:#DC2626; color:#FFFFFF !important; border:none; font-weight:700; letter-spacing:0.5px; padding:6px 14px; border-radius:6px; font-size:14px; }
         @keyframes pulse-purple { 0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,0.4)} 50%{box-shadow:0 0 0 5px rgba(168,85,247,0)} }
         
         .urgent-pulse { animation:pulse-alarm 1.5s infinite; border-radius:5px; display:inline-block; padding:2px 8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.35); color:#f87171; font-weight:700; font-size:12px; }
@@ -561,6 +596,31 @@
         .font-bold { font-weight:600; }
         .font-extrabold { font-weight:700; }
         .sortable-th { cursor:pointer; }
+        /* Rakam ve Tarih Belirginliği */
+        .data-table td:nth-child(4),
+        .data-table td:nth-child(5),
+        .data-table td:nth-child(6),
+        .data-table td:nth-child(7),
+        .data-table td:nth-child(8),
+        .data-table td:nth-child(9),
+        .data-table td:nth-child(10),
+        .data-table td:nth-child(11),
+        .data-table td:nth-child(12),
+        .data-table td:nth-child(13),
+        .data-table td:nth-child(14),
+        .data-table td:nth-child(15),
+        .data-table td:nth-child(16) {
+            font-weight: 600;
+        }
+        .data-table td .inline-date {
+            font-weight: 600;
+        }
+        .stat-value {
+            font-weight: 800;
+        }
+        .result-value {
+            font-weight: 600;
+        }
         .sortable-th:hover { color:var(--text-primary); }
         
         .firm-search-wrap { position:relative; }
@@ -637,7 +697,7 @@
     .page-actions { justify-content: center; flex-wrap: wrap; gap: 8px; }
     
     /* Tablolar parmakla sağa sola kaysın, birbirine girmesin */
-    .data-table th, .data-table td { font-size: 12px !important; padding: 8px 6px !important; }
+    .data-table th, .data-table td { font-size: 13px !important; padding: 12px 10px !important; }
     .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     
     /* Dilekçe sayfası mobilde tam ekran olsun */
@@ -3604,8 +3664,7 @@ function saveCariData() {
 
     window.toggleTheme = function() {
     let html = document.documentElement;
-    let current = html.getAttribute('data-theme');
-    let next = current === 'light' ? 'dark' : 'light';
+    let isLight = html.classList.contains('light-mode');
     
     // Geçiş animasyonunu başlat
     document.body.classList.add('theme-transition');
@@ -3615,14 +3674,16 @@ function saveCariData() {
     if(btn) {
         let parent = btn.parentElement;
         parent.classList.add('theme-icon-spin');
-        parent.classList.add(next === 'light' ? 'to-light' : 'to-dark');
+        parent.classList.add(isLight ? 'to-dark' : 'to-light');
         setTimeout(function() {
             parent.classList.remove('theme-icon-spin', 'to-light', 'to-dark');
         }, 600);
     }
     
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('gumruk_theme', next);
+    // light-mode class'ını toggle et
+    html.classList.toggle('light-mode');
+    let newTheme = html.classList.contains('light-mode') ? 'light' : 'dark';
+    localStorage.setItem('gumruk_theme', newTheme);
     
     // Geçiş bittikten sonra class'ı kaldır (performans için)
     setTimeout(function() {
