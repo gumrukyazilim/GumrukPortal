@@ -5010,10 +5010,10 @@ document.addEventListener('click', function(e) {
 
     // Bölge bazlı rozet dizilimleri (Firebase nokta kabul etmez, N_FATURA kullan)
     window.REGION_BADGES = {
-        'UK':   ['COO', 'EORI', 'COC', 'ONAY', 'TSE', 'IMEI'],           // ATR ve ART44 gizli
-        'USA':  ['ATR', 'COO', 'ART44', 'ONAY', 'TSE', 'IMEI'],          // EORI ve COC gizli
-        'ASIA': ['COO', 'COC', 'ART44', 'ONAY', 'TSE', 'IMEI'],          // ATR ve EORI gizli
-        'EU':   ['ATR', 'COC', 'ONAY', 'TSE', 'IMEI']                    // COO, EORI ve ART44 gizli
+        'UK':   ['COO', 'EORI', 'COC', 'ONAY', 'TSE', 'IMEI', 'T_ID'],           // ATR ve ART44 gizli
+        'USA':  ['ATR', 'COO', 'ART44', 'ONAY', 'TSE', 'IMEI', 'T_ID'],          // EORI ve COC gizli
+        'ASIA': ['COO', 'COC', 'ART44', 'ONAY', 'TSE', 'IMEI', 'T_ID'],          // ATR ve EORI gizli
+        'EU':   ['ATR', 'COC', 'ONAY', 'TSE', 'IMEI', 'T_ID']                    // COO, EORI ve ART44 gizli
     };
 
     // ===== DİNAMİK ROZET RENDER MOTORU (Hayalet Veri Yok!) =====
@@ -5051,8 +5051,10 @@ document.addEventListener('click', function(e) {
         }
         // CIF, FOB, boş veya başka değerse N_FATURA ASLA eklenmez
         
-        // ADIM 5: Sadece gosterilecekRozetler dizisindeki öğeler için HTML oluştur
+        // ADIM 5: Tamamlanan rozetleri gizle ve sadece eksik/sarı olanları göster
         let html = '<div class="evrak-badges-container">';
+        let gosterilenBadgeSayisi = 0;
+        
         gosterilecekRozetler.forEach(function(tip) {
             // evrakDurumlari objesi sadece renk belirlemek için kullanılır
             let gosterilenMetin = (tip === 'N_FATURA') ? 'N.FATURA' : tip;
@@ -5065,6 +5067,9 @@ document.addEventListener('click', function(e) {
                 else if(tseDeger === false || tseDeger === undefined || tseDeger === null) tseDeger = 0; // Eski false/undefined → Eksik
                 else tseDeger = parseInt(tseDeger) || 0;   // Sayısal değer
                 
+                // TSE tamamlandıysa (2) gizle, sadece 0 (kırmızı) ve 1 (sarı) göster
+                if(tseDeger === 2) return; // ATLA
+                
                 let cls, durumMetin;
                 if(tseDeger === 0) {
                     cls = 'eksik';
@@ -5074,19 +5079,26 @@ document.addEventListener('click', function(e) {
                     cls = 'badge-sari';
                     durumMetin = 'Başvuru Yapıldı';
                     gosterilenMetin = 'TSE (BŞV)';
-                } else {
-                    cls = 'tamam';
-                    durumMetin = 'Tamamlandı';
-                    gosterilenMetin = 'TSE';
                 }
                 html += '<span class="evrak-badge ' + cls + '" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="TSE: ' + durumMetin + ' — Tıkla">' + gosterilenMetin + '</span>';
+                gosterilenBadgeSayisi++;
             } else {
                 // Diğer rozetler: Boolean mantığı
                 let tamam = evrakDurumlari[tip] === true;
-                let cls = tamam ? 'tamam' : 'eksik';
-                html += '<span class="evrak-badge ' + cls + '" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="' + gosterilenMetin + ': ' + (tamam ? 'Tamam' : 'Eksik') + ' — Tıkla">' + gosterilenMetin + '</span>';
+                
+                // Tamamlanmış rozetleri gizle
+                if(tamam) return; // ATLA
+                
+                html += '<span class="evrak-badge eksik" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="' + gosterilenMetin + ': Eksik — Tıkla">' + gosterilenMetin + '</span>';
+                gosterilenBadgeSayisi++;
             }
         });
+        
+        // Tüm rozetler tamamlandıysa "Kusursuz" mesajı göster
+        if(gosterilenBadgeSayisi === 0) {
+            html += '<span style="font-size:10px;color:var(--success);font-weight:600;opacity:0.7;padding:2px 6px;font-style:italic;">Kusursuz (Tüm Evraklar Tamam)</span>';
+        }
+        
         html += '</div>';
         return html;
     };
