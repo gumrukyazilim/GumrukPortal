@@ -1918,7 +1918,15 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 window._firebaseSave = async function(payload) {
-    try { await set(ref(db, 'portal_data_test'), payload); return true; }
+    try {
+        // ekGonderici payload'a konulmamışsa localStorage'dan al, böylece hiçbir kaydetme işlemi bu listeyi silmez
+        if(!payload.ekGonderici) {
+            try { payload.ekGonderici = JSON.parse(localStorage.getItem('gumruk_ek_gonderici') || '[]'); }
+            catch(e) { payload.ekGonderici = []; }
+        }
+        await set(ref(db, 'portal_data_test'), payload);
+        return true;
+    }
     catch(e) { console.error("Firebase save error:", e); return false; }
 };
 
