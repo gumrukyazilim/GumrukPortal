@@ -2560,7 +2560,21 @@ window.openGelecekModal = function() {
                     <div class="input-group" style="margin:0; grid-column:span 2;"><label>Şasi No</label><input type="text" id="gm-sasi"></div>
                     <div class="input-group" style="margin:0;"><label>Fatura (EUR)</label><input type="text" id="gm-fatura"></div>
                     <div class="input-group" style="margin:0;"><label>Çıkış Ülkesi</label><input type="text" id="gm-cikisUlke" value="Almanya"></div>
-                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Tahmini Geliş (GG.AA.YYYY)</label><input type="text" id="gm-tahminiGelis"></div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;"><label>Tahmini Geliş</label><input type="date" id="gm-tahminiGelis"></div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;">
+                        <label>Gönderici / İhracatçı</label>
+                        <div class="firm-search-wrap">
+                            <input type="text" id="gm-gonderici" oninput="window.filterGondericiGm(this.value)" onblur="setTimeout(function(){let l=document.getElementById('gm-gonderici-list');if(l)l.classList.remove('show');},300)" autocomplete="off">
+                            <div id="gm-gonderici-list" class="autocomplete-list"></div>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;">
+                        <label>GTİP Kodu (opsiyonel)</label>
+                        <div class="firm-search-wrap">
+                            <input type="text" id="gm-gtip" oninput="window.filterGTIPGm(this.value)" onblur="setTimeout(function(){let l=document.getElementById('gm-gtip-list');if(l)l.classList.remove('show');},300)" autocomplete="off">
+                            <div id="gm-gtip-list" class="autocomplete-list"></div>
+                        </div>
+                    </div>
                     <div class="input-group" style="margin:0; grid-column:span 2;">
                         <label>Durum</label>
                         <select id="gm-durum">
@@ -2593,7 +2607,9 @@ window.openGelecekModal = function() {
         document.getElementById('gm-sasi').value = d.sasi || '';
         document.getElementById('gm-fatura').value = d.fatura || '';
         document.getElementById('gm-cikisUlke').value = d.cikisUlke || '';
-        document.getElementById('gm-tahminiGelis').value = d.tahminiGelis || '';
+        document.getElementById('gm-tahminiGelis').value = window.trToIso(d.tahminiGelis) || '';
+        document.getElementById('gm-gonderici').value = d.gonderici || '';
+        document.getElementById('gm-gtip').value = d.gtip || '';
         document.getElementById('gm-durum').value = d.durum || 'YÜKLENDI';
         document.getElementById('gm-not').value = d.not || '';
     } else {
@@ -2607,6 +2623,8 @@ window.openGelecekModal = function() {
         document.getElementById('gm-fatura').value = '';
         document.getElementById('gm-cikisUlke').value = 'Almanya';
         document.getElementById('gm-tahminiGelis').value = '';
+        document.getElementById('gm-gonderici').value = '';
+        document.getElementById('gm-gtip').value = '';
         document.getElementById('gm-durum').value = 'YÜKLENDI';
         document.getElementById('gm-not').value = '';
     }
@@ -2634,7 +2652,9 @@ window.saveGelecekEntry = function() {
         sasi: val('gm-sasi').toUpperCase(),
         fatura: parseFloat(val('gm-fatura').replace(/\./g,'').replace(',','.')) || 0,
         cikisUlke: val('gm-cikisUlke'),
-        tahminiGelis: val('gm-tahminiGelis'),
+        tahminiGelis: window.isoToTr(val('gm-tahminiGelis')),
+        gonderici: val('gm-gonderici'),
+        gtip: val('gm-gtip'),
         durum: val('gm-durum'),
         not: val('gm-not'),
         eklenmeTarihi: window.formatTRDate(new Date())
@@ -2726,6 +2746,51 @@ window.gelecekAracSil = function(idx) {
     window.gelecekData.splice(idx, 1);
     window.saveGelecekData();
     window.renderGelecekTable();
+};
+// Tarih çeviricileri — gelecek modalı için
+window.trToIso = function(tr) {
+    if(!tr) return '';
+    let parts = tr.split('.');
+    if(parts.length !== 3) return '';
+    return parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
+};
+window.isoToTr = function(iso) {
+    if(!iso) return '';
+    let parts = iso.split('-');
+    if(parts.length !== 3) return iso; // kullanıcı elle TR formatı yazmışsa olduğu gibi bırak
+    return parts[2] + '.' + parts[1] + '.' + parts[0];
+};
+
+// Gelecek modalı için Gönderici/GTİP autocomplete (mevcut da- fonksiyonlarının gm- kopyası)
+window.filterGondericiGm = function(val) {
+    let listEl = document.getElementById('gm-gonderici-list');
+    if(!listEl) return;
+    let q = val.toLocaleLowerCase('tr').trim();
+    if(!q) { listEl.classList.remove('show'); return; }
+    let matches = window.GondericiList.filter(g => g.ad.toLocaleLowerCase('tr').includes(q) || g.id.toLocaleLowerCase('tr').includes(q));
+    if(matches.length > 0) {
+        listEl.innerHTML = matches.map(g => `<div class="autocomplete-item" onmousedown="window.selectGondericiGm('${g.id}', '${g.ad.replace(/'/g, "\\'")}')"><span class="ac-title">${g.ad}</span><span class="ac-sub">ID: ${g.id}</span></div>`).join('');
+        listEl.classList.add('show');
+    } else listEl.classList.remove('show');
+};
+window.selectGondericiGm = function(id, ad) {
+    document.getElementById('gm-gonderici').value = id ? `${id} - ${ad}` : ad;
+    document.getElementById('gm-gonderici-list').classList.remove('show');
+};
+window.filterGTIPGm = function(val) {
+    let listEl = document.getElementById('gm-gtip-list');
+    if(!listEl) return;
+    let q = val.toLocaleLowerCase('tr').trim();
+    if(!q) { listEl.classList.remove('show'); return; }
+    let matches = window.GTIPList.filter(g => g.kod.replace(/\./g,'').includes(q.replace(/\./g,'')) || g.desc.toLocaleLowerCase('tr').includes(q));
+    if(matches.length > 0) {
+        listEl.innerHTML = matches.map(g => `<div class="autocomplete-item" onmousedown="window.selectGTIPGm('${g.kod}', '${g.desc.replace(/'/g, "\\'")}')"><span class="ac-title">${g.kod}</span><span class="ac-sub">${g.desc}</span></div>`).join('');
+        listEl.classList.add('show');
+    } else listEl.classList.remove('show');
+};
+window.selectGTIPGm = function(kod, desc) {
+    document.getElementById('gm-gtip').value = `${kod} - ${desc}`;
+    document.getElementById('gm-gtip-list').classList.remove('show');
 };
 
 window.saveGelecekData = function() {
