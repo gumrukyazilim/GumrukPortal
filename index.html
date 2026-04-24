@@ -1902,19 +1902,6 @@ const db = getDatabase(app);
 
 window._firebaseSave = async function(payload) {
     try {
-        // ekGonderici payload'a konulmamışsa localStorage'dan al, böylece hiçbir kaydetme işlemi bu listeyi silmez
-        if(!payload.ekGonderici) {
-            try { payload.ekGonderici = JSON.parse(localStorage.getItem('gumruk_ek_gonderici') || '[]'); }
-            catch(e) { payload.ekGonderici = []; }
-        }
-        await set(ref(db, 'portal_data_test'), payload);
-        return true;
-    }
-    catch(e) { console.error("Firebase save error:", e); return false; }
-};
-
-window._firebaseSave = async function(payload) {
-    try {
         // Eksik alanları otomatik doldur — hiçbir kayıt diğer verileri silmesin
         if(!('decl' in payload))        payload.decl        = window.declarationsData;
         if(!('firm' in payload))        payload.firm        = window.firmData;
@@ -1930,6 +1917,13 @@ window._firebaseSave = async function(payload) {
         return true;
     }
     catch(e) { console.error("Firebase save error:", e); return false; }
+};
+window._firebaseLoad = async function() {
+    try {
+        const snapshot = await get(ref(db, 'portal_data_test'));
+        if(snapshot.exists()) return snapshot.val();
+        return null;
+    } catch(e) { console.error("Firebase load error:", e); return null; }
 };
 window._fbRef = ref;
 window._fbGet = get;
