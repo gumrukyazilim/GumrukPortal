@@ -500,6 +500,10 @@
         .btn-sm { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; background:var(--bg-elevated); color:var(--text-primary); border-radius:var(--r-md); font-size:12.5px; font-weight:500; cursor:pointer; transition:0.18s; border:1px solid var(--border); }
         .btn-sm:hover { background:var(--bg-hover); border-color:var(--border-active); }
         .btn-danger { background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.25)!important; }
+		.btn-secondary { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:var(--r-md); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.18s; }
+        .btn-secondary:hover { background:var(--bg-hover); border-color:var(--border-active); }
+        .modal-close { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:var(--r-sm); background:transparent; border:1px solid transparent; color:var(--text-secondary); cursor:pointer; font-size:16px; transition:0.15s; }
+        .modal-close:hover { background:var(--bg-hover); border-color:var(--border); color:var(--danger); }
         
         .icon-btn { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:var(--r-sm); transition:0.15s; cursor:pointer; border:1px solid transparent; color:var(--text-secondary); background:transparent; }
         .icon-btn:hover { background:var(--bg-hover); border-color:var(--border); color:var(--primary); }
@@ -1909,12 +1913,23 @@ window._firebaseSave = async function(payload) {
     catch(e) { console.error("Firebase save error:", e); return false; }
 };
 
-window._firebaseLoad = async function() {
+window._firebaseSave = async function(payload) {
     try {
-        const snapshot = await get(ref(db, 'portal_data_test'));
-        if(snapshot.exists()) return snapshot.val();
-        return null;
-    } catch(e) { console.error("Firebase load error:", e); return null; }
+        // Eksik alanları otomatik doldur — hiçbir kayıt diğer verileri silmesin
+        if(!('decl' in payload))        payload.decl        = window.declarationsData;
+        if(!('firm' in payload))        payload.firm        = window.firmData;
+        if(!('kiymet' in payload))      payload.kiymet      = window.kiymetData;
+        if(!('firmMeta' in payload))    payload.firmMeta    = window.firmMeta;
+        if(!('cariData' in payload))    payload.cariData    = window.cariData;
+        if(!('gelecekData' in payload)) payload.gelecekData = window.gelecekData || [];
+        if(!('ekGonderici' in payload)) {
+            try { payload.ekGonderici = JSON.parse(localStorage.getItem('gumruk_ek_gonderici') || '[]'); }
+            catch(e) { payload.ekGonderici = []; }
+        }
+        await set(ref(db, 'portal_data_test'), payload);
+        return true;
+    }
+    catch(e) { console.error("Firebase save error:", e); return false; }
 };
 window._fbRef = ref;
 window._fbGet = get;
@@ -6499,7 +6514,7 @@ window.addGondericiPrompt = function() {
             <div class="modal-header"><h3>📤 Yeni Gönderici / İhracatçı</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div>
             <div class="modal-body">
                 <div class="form-group"><label>Firma Adı</label><input type="text" id="newGondericiAd" placeholder="Firma adını girin..." autofocus></div>
-                <div class="form-group"><label>Firma ID (Opsiyonel)</label><input type="text" id="newGondericiId" placeholder="Örn: 21DE00066..."></div>
+                <div class="form-group"><label>Firma ID</label><input type="text" id="newGondericiId" placeholder="Örn: 21DE00066..."></div>
                 <div style="display:flex;gap:10px;margin-top:15px">
                     <button class="btn btn-primary" onclick="window.confirmAddGonderici()">✓ Ekle</button>
                     <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">İptal</button>
