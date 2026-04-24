@@ -461,7 +461,7 @@
         .stat-bar-fill.yellow { background:linear-gradient(90deg, var(--warning), #fcd34d); }
         .stat-bar-fill.purple { background:linear-gradient(90deg, var(--kiymet-color), #c084fc); }
         
-        .table-wrap { overflow:auto; max-height:calc(100vh - var(--header-h) - 200px); }
+        .table-wrap { overflow:auto; max-height:calc(100vh - var(--header-h) - 120px); }
         .table-wrap::-webkit-scrollbar { width:10px; height:10px; }
         .table-wrap::-webkit-scrollbar-track { background:rgba(0,0,0,0.2); border-radius:4px; }
         .table-wrap::-webkit-scrollbar-thumb { background:rgba(63,63,70,0.8); border-radius:4px; border:2px solid transparent; background-clip:padding-box; }
@@ -530,6 +530,9 @@
         .inline-date:hover::after { content:'✎'; position:absolute; right:6px; top:8px; font-size:10px; color:var(--text-muted); }
         
         .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(6px); z-index:9000; display:flex; align-items:center; justify-content:center; }
+		.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(6px); z-index:9998; display:none; align-items:center; justify-content:center; }
+.modal-overlay.active { display:flex; z-index:9999 !important; }
+.modal-overlay .modal-box { position:relative; z-index:10000; }
         .modal-box { background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-xl); padding:0; width:95%; max-width:700px; max-height:92vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 40px 80px rgba(0,0,0,0.7); }
         .modal-header { display:flex; justify-content:space-between; align-items:center; padding:24px 28px; border-bottom:1px solid var(--border); flex-shrink:0; }
         .modal-header h2 { font-size:18px; font-weight:700; letter-spacing:-0.3px; color:var(--text-primary); }
@@ -1236,8 +1239,7 @@
 </template>
 
 <template id="tpl-declarations"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Gümrük Kayıtları</div><h1 class="page-title">Gelen Araçlar</h1></div></div> 
-    <div class="toolbar fade-in">
+        <div class="toolbar fade-in" style="margin-top:0;">
         <div class="toolbar-left">
             <select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="width:220px;padding:8px 12px;">
                 <option value="all">Tüm Araçlar</option>
@@ -1260,7 +1262,7 @@
             <button class="btn-primary admin-only" onclick="window.openDeclVehicleModal(-1,'decl')"><i data-lucide="plus"></i> Yeni Kayıt</button>
         </div>
     </div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr>
+    <div class="fade-in" style="padding:0;overflow:visible;"><div class="table-wrap"><table class="data-table"><thead><tr>
         <th style="width:40px;text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb" id="decl-selectAll" onclick="window.toggleAllDeclarations(this.checked)"></th>
         <th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('decl')">G.TARİHİ ↕</th><th>İLK SÜRE</th><th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th><th>DURUM</th><th>FATURA</th><th>ARDİYE</th>
         <th style="text-align:center;" class="admin-only">VERGİ</th><th style="text-align:center;">İŞLEM</th>
@@ -6519,7 +6521,7 @@ window.addGondericiPrompt = function() {
         document.body.appendChild(modal);
         setTimeout(()=>document.getElementById('newGondericiAd')?.focus(),100);
     };
-    window.confirmAddGonderici=function(){
+    window.confirmAddGonderici=async function(){
         let ad=document.getElementById('newGondericiAd')?.value?.trim()||'';
         let id=document.getElementById('newGondericiId')?.value?.trim()||'';
         if(!ad){alert('Firma adı gerekli!');return;}
@@ -6528,9 +6530,12 @@ window.addGondericiPrompt = function() {
         let ekler=JSON.parse(localStorage.getItem('gumruk_ek_gonderici')||'[]');
         ekler.unshift(yeniGonderici);
         localStorage.setItem('gumruk_ek_gonderici',JSON.stringify(ekler));
-        if(window._firebaseSave&&window._dataLoaded){
-            window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,firmMeta:window.firmMeta,cariData:window.cariData,gelecekData:window.gelecekData,ekGonderici:ekler});
-        }
+        if(window._firebaseSave){
+    const ok = await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,firmMeta:window.firmMeta,cariData:window.cariData,gelecekData:window.gelecekData,ekGonderici:ekler});
+    if(!ok){ alert('⚠️ Firebase kaydı başarısız! Gönderici sadece yerel belleğe eklendi.'); }
+} else {
+    alert('⚠️ Firebase bağlantısı hazır değil. Gönderici sadece yerel belleğe eklendi.');
+}
         let gorunecekMetin=yeniGonderici.id?`${yeniGonderici.id} - ${yeniGonderici.ad}`:yeniGonderici.ad;
         document.getElementById('da-gonderici').value=gorunecekMetin;
         document.querySelector('.modal-overlay.active')?.remove();
