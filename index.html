@@ -1229,17 +1229,23 @@
 </template>
 
 <template id="tpl-firmDetails"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firma Detayı</div><h1 class="page-title" id="current-firm-title">Firma</h1></div><div class="page-actions"><button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button><button class="btn-sm" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button><button id="firm-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"></i> Sil (<span id="firm-selected-count">0</span>)</button><button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button></div></div> 
-    <div class="toolbar fade-in">
+    <div class="toolbar fade-in" style="margin-top:0;">
         <div class="toolbar-left">
+		<span id="current-firm-title" style="font-weight:600; font-size:14px; color:var(--text-primary); margin-right:14px;">Firma</span>
             <select id="firm-status-filter" onchange="window.renderFirmVehicles()" style="width:220px;padding:8px 12px;">
                 <option value="all">Tüm Araçlar</option>
                 <option value="acik">Açık İşlemler</option>
                 <option value="kapali">Kapalı Dosyalar</option>
             </select>
         </div>
+        <div class="toolbar-right" style="display:flex; gap:8px;">
+            <button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button>
+            <button class="btn-sm" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button>
+            <button id="firm-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"></i> Sil (<span id="firm-selected-count">0</span>)</button>
+            <button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button>
+        </div>
     </div>
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ ↕</th><th>BEYANNAME</th><th>FATURA</th><th>KIYMET</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div> 
+    <div class="fade-in" style="padding:0;overflow:visible;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="firm-select-all" onclick="window.toggleAllFirmVehicles(this.checked)"></th><th>MARKA/MODEL</th><th>YIL</th><th>RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('firm')">G.TARİHİ ↕</th><th>BEYANNAME</th><th>FATURA</th><th>KIYMET</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="firm-vehicles-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-declarations"> 
@@ -1276,7 +1282,7 @@
 <template id="tpl-kiymetListesi"> 
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Arşiv</div><h1 class="page-title">Kıymet Listesi</h1></div></div> 
     <div class="toolbar fade-in"><div class="toolbar-left"><button id="kiymet-delete-btn" class="btn-sm btn-danger hidden" onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2"></i> Sil (<span id="kiymet-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-sm" onclick="window.openExcelModal('kiymet')"><i data-lucide="file-spreadsheet"></i> Excel</button><button class="btn-primary" onclick="window.openKiymetModal()"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div> 
-    <div class="card fade-in" style="padding:0;overflow:hidden;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)"></th><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('kiymet')">G.TARİHİ ↕</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div> 
+    <div class="fade-in" style="padding:0;overflow:visible;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)"></th><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('kiymet')">G.TARİHİ ↕</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-mevzuat">
