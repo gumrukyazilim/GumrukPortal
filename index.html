@@ -979,7 +979,7 @@
             <div class="stat-bar"><div class="stat-bar-fill" style="background:linear-gradient(90deg, var(--danger), #f87171); width:0%;"></div></div>
         </div>
 
-        <div class="stat-card" onclick="window.goToFilter('acik')">
+        <div class="stat-card" onclick="window.goToFilter('yaklasan_tescil')">
             <div class="stat-card-top">
                 <div class="stat-icon-box" style="background:rgba(249,115,22,0.12); color:#f97316;"><i data-lucide="clock"></i></div>
                 <div class="stat-trend" style="background:rgba(239,68,68,0.1); color:var(--danger); animation: pulse-alarm 1.5s infinite;">Riskli</div>
@@ -1236,7 +1236,7 @@
                 <option value="all">Tüm Araçlar</option>
                 <option value="acik">Açık İşlemler</option>
                 <option value="kapali">Kapalı Dosyalar</option>
-            </select>
+				</select>
         </div>
         <div class="toolbar-right" style="display:flex; gap:8px;">
             <button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button>
@@ -1256,6 +1256,7 @@
                 <option value="acik">Açık İşlemler</option>
                 <option value="kiymet">Kıymette Bekleyenler</option>
                 <option value="sure_alinmayan">Süresi Alınmayanlar</option>
+				<option value="yaklasan_tescil">Yaklaşan Tescil (Son 60 Gün)</option>
             </select>
             <button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden admin-only" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button>
         </div>
@@ -4297,7 +4298,7 @@ window.confirmEditFirmMeta=function(name){
 
     window.sortState={col:'tarih',asc:false};
     window.sortData=function(ctx){window.sortState.asc=!window.sortState.asc;let mul=window.sortState.asc?1:-1;let pD=s=>{if(!s)return 0;let c=window.fixExcelDate(s);let p=c.split('.');return p.length===3?parseInt(p[2]+p[1]+p[0]):0;};if(ctx==='decl'){window.declarationsData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('decl');window.renderDeclarationsTable();}else if(ctx==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('firm');window.renderFirmVehicles();}else if(ctx==='kiymet'){window.kiymetData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('kiymet');window.renderKiymetTable();}};
-    window.goToFilter=function(f){window.renderView('declarations');let el=document.getElementById('decl-status-filter');if(el){el.value=f;window.renderDeclarationsTable();}};
+    window.goToFilter=function(f){window.renderView('declarations');setTimeout(function(){let el=document.getElementById('decl-status-filter');if(el){el.value=f;window.renderDeclarationsTable();}},50);};
 
     let _searchTimeout=null;
     window.liveSearch=function(query){
@@ -5014,6 +5015,16 @@ document.addEventListener('click', function(e) {
     if(fv==='acik')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';});
     else if(fv==='kiymet')list=list.filter(x=>x.data.kiymVv&&!x.data.kiymGt);
     else if(fv==='sure_alinmayan')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return (e==='açık'||e==='acik') && !x.data.ekSure && !x.data.antTarih;});
+	else if(fv==='yaklasan_tescil')list=list.filter(x=>{
+        let d=x.data;
+        let isAcik=(d.evrak||'').toLocaleLowerCase('tr')==='açık'||(d.evrak||'').toLocaleLowerCase('tr')==='acik';
+        if(!isAcik || (d.beyanname && d.beyanname.trim()!=='')) return false;
+        let pYil=parseInt(String(d.yil).trim());
+        if(isNaN(pYil) || pYil<2020) return false;
+        let deadline=new Date(pYil+1,3,30); // 30 Nisan
+        let gunFarki=Math.ceil((deadline-new Date())/(1000*60*60*24));
+        return gunFarki<=60;
+    });
     
     if(!list.length){tbody.innerHTML=`<tr><td colspan="18" style="text-align:center;padding:48px;color:var(--text-muted);">Kayıt bulunamadı.</td></tr>`;return;}
     
