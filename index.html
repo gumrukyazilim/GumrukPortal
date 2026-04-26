@@ -5735,6 +5735,28 @@ window.saveDeclEntry = async function(){
     };
 
     if(!r.firma || !r.tarih){alert('Zorunlu alanları doldurun!'); return;}
+	// Dosya KAPALI seçildiyse beyanname ve kıymet zorunlu
+    if(r.evrak === 'Kapalı') {
+        let kapaliEksikler = [];
+        if(!r.beyanname) kapaliEksikler.push('Beyanname No');
+        if(!r.kiymet)    kapaliEksikler.push('Kıymet Tutarı');
+        if(kapaliEksikler.length > 0) {
+            let mesaj = '⚠️ Dosya KAPALI olarak işaretlendi ama şu alanlar boş:\n\n• ' + kapaliEksikler.join('\n• ') + '\n\nDosyayı bu haliyle kapatmak istediğinize emin misiniz?';
+            if(!confirm(mesaj)) return;
+        }
+    }
+	// 5 önemli alan kontrolü — eksikse onay iste
+    let bosAlanlar = [];
+    if(!r.gonderici)  bosAlanlar.push('Gönderici / İhracatçı');
+    if(!r.gtip)       bosAlanlar.push('GTİP Kodu');
+    if(!r.ozetBeyan)  bosAlanlar.push('Özet Beyan No');
+    if(!r.brut)       bosAlanlar.push('IMEİ Numarası');
+    if(!r.fatura)     bosAlanlar.push('Fatura Tutarı');
+    
+    if(bosAlanlar.length > 0) {
+        let mesaj = 'Şu alan(lar) boş bırakıldı:\n\n• ' + bosAlanlar.join('\n• ') + '\n\nYine de kaydetmek istediğinize emin misiniz?';
+        if(!confirm(mesaj)) return;
+    }
     
     // Eski durumu ve şasiyi kaydet (senkronizasyon için)
     let eskiSasi = null;
