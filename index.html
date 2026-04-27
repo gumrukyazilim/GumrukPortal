@@ -878,11 +878,44 @@
         <h1 class="login-title">GümrükPortal</h1>
         <p class="login-sub">Kurumsal Müşteri ve Yönetim Paneli</p>
         <div id="auth-alert" class="auth-error"></div>
-        <div class="login-input-wrap"><i data-lucide="user"></i><input type="text" id="log-email" placeholder="Kullanıcı Adı" onkeyup="if(event.key==='Enter')window.doLogin()"></div>
+        <div class="login-input-wrap"><i data-lucide="mail"></i><input type="email" id="log-email" placeholder="Email Adresiniz" onkeyup="if(event.key==='Enter')window.doLogin()"></div>
         <div class="login-input-wrap"><i data-lucide="lock"></i><input type="password" id="log-pass" placeholder="Şifreniz" onkeyup="if(event.key==='Enter')window.doLogin()"></div>
         <button class="login-btn" onclick="window.doLogin()">Sisteme Giriş Yap</button>
+		<div style="display:flex; justify-content:space-between; margin-top:14px; font-size:12.5px;">
+            <a href="javascript:void(0)" onclick="window.showForgotPassword()" style="color:var(--primary); text-decoration:none;">Şifremi Unuttum</a>
+            <a href="javascript:void(0)" onclick="window.showSignup()" style="color:var(--text-muted); text-decoration:none;">Hesabım yok, <strong style="color:var(--primary);">Üye Ol</strong></a>
+        </div>
     </div>
 </div>
+<!-- ÜYE OL EKRANI (gizli, başlangıçta görünmez) -->
+    <div class="login-card" id="signup-card" style="display:none;">
+        <div class="login-logo" style="background:#10b981;"><i data-lucide="user-plus" style="color:#fff;width:28px;height:28px;"></i></div>
+        <h1 class="login-title">Üye Ol</h1>
+        <p class="login-sub">Hesap oluştur — admin onayı bekleyecek</p>
+        <div id="signup-alert" class="auth-error"></div>
+        <div class="login-input-wrap"><i data-lucide="user"></i><input type="text" id="sign-name" placeholder="Ad Soyad"></div>
+        <div class="login-input-wrap"><i data-lucide="building-2"></i><input type="text" id="sign-firm" placeholder="Firma Adı"></div>
+        <div class="login-input-wrap"><i data-lucide="mail"></i><input type="email" id="sign-email" placeholder="Email Adresiniz"></div>
+        <div class="login-input-wrap"><i data-lucide="lock"></i><input type="password" id="sign-pass" placeholder="Şifre (en az 6 karakter)"></div>
+        <div class="login-input-wrap"><i data-lucide="lock"></i><input type="password" id="sign-pass2" placeholder="Şifre (tekrar)"></div>
+        <button class="login-btn" onclick="window.doSignup()">Üyelik Talebi Gönder</button>
+        <div style="margin-top:14px; font-size:12.5px; text-align:center;">
+            <a href="javascript:void(0)" onclick="window.showLogin()" style="color:var(--primary); text-decoration:none;">← Giriş ekranına dön</a>
+        </div>
+    </div>
+
+    <!-- ŞİFREMİ UNUTTUM EKRANI (gizli) -->
+    <div class="login-card" id="forgot-card" style="display:none;">
+        <div class="login-logo" style="background:#f59e0b;"><i data-lucide="key-round" style="color:#fff;width:28px;height:28px;"></i></div>
+        <h1 class="login-title">Şifremi Unuttum</h1>
+        <p class="login-sub">Email adresine sıfırlama linki göndereceğiz</p>
+        <div id="forgot-alert" class="auth-error"></div>
+        <div class="login-input-wrap"><i data-lucide="mail"></i><input type="email" id="forgot-email" placeholder="Email Adresiniz"></div>
+        <button class="login-btn" onclick="window.doForgotPassword()">Sıfırlama Linki Gönder</button>
+        <div style="margin-top:14px; font-size:12.5px; text-align:center;">
+            <a href="javascript:void(0)" onclick="window.showLogin()" style="color:var(--primary); text-decoration:none;">← Giriş ekranına dön</a>
+        </div>
+    </div>
 
 <div id="app-screen" class="app-wrap">
     <aside class="sidebar collapsed">
@@ -1896,6 +1929,31 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, query, orderByChild, startAt, endAt } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+// Auth UI ekran geçişleri (Aşama 1)
+window.showLogin = function() {
+    document.querySelector('#login-screen .login-card').style.display = 'block';
+    document.getElementById('signup-card').style.display = 'none';
+    document.getElementById('forgot-card').style.display = 'none';
+    document.getElementById('auth-alert').innerText = '';
+    document.getElementById('signup-alert').innerText = '';
+    document.getElementById('forgot-alert').innerText = '';
+    if(window.lucide) window.lucide.createIcons();
+};
+window.showSignup = function() {
+    document.querySelector('#login-screen .login-card').style.display = 'none';
+    document.getElementById('signup-card').style.display = 'block';
+    document.getElementById('forgot-card').style.display = 'none';
+    if(window.lucide) window.lucide.createIcons();
+};
+window.showForgotPassword = function() {
+    document.querySelector('#login-screen .login-card').style.display = 'none';
+    document.getElementById('signup-card').style.display = 'none';
+    document.getElementById('forgot-card').style.display = 'block';
+    if(window.lucide) window.lucide.createIcons();
+};
+// Stub fonksiyonlar — Aşama 2'de gerçek Firebase Auth gelecek
+window.doSignup = function() { alert('Üyelik sistemi henüz aktif değil. Aşama 2\'de eklenecek.'); };
+window.doForgotPassword = function() { alert('Şifre sıfırlama henüz aktif değil. Aşama 2\'de eklenecek.'); };
 
 const firebaseConfig = {
     apiKey: "AIzaSyDxlTVb_JsefQHCE8pFiOiDjMaEVZJNiI0",
