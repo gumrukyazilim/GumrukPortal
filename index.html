@@ -4196,58 +4196,57 @@ alert("Şasi: " + (d?d.sasi:'YOK') + "\nFirma sayısı: " + Object.keys(window.f
     if(window.updateDashboardStats)window.updateDashboardStats();
 }};
 window.inlineEditDate = function(el, idx, field) {
+        if(el.querySelector('input')) return;
         let cur = window.declarationsData[idx][field] || '';
         let iso = '';
         if(cur) { let p = cur.split('.'); if(p.length === 3) iso = `${p[2]}-${p[1]}-${p[0]}`; }
         
-        // Eski input varsa kaldır
-        let old = document.getElementById('floating-date-input');
-        if(old) old.remove();
-        
-        // Görünmez bir date input oluştur ve sayfaya ekle
-        let inp = document.createElement('input');
-        inp.type = 'date';
-        inp.id = 'floating-date-input';
-        inp.value = iso;
-        inp.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); opacity:0; pointer-events:none; z-index:99999;';
-        document.body.appendChild(inp);
-        
+        // Hücreyi input'a dönüştür — başka hiçbir şey yapma
+        el.innerHTML = `<input type="date" value="${iso}" style="width:100%;padding:4px;height:28px;font-size:12px;border:2px solid var(--primary);border-radius:4px;">`;
+        let inp = el.querySelector('input');
         let saved = false;
-        let originalValue = iso;
+        let originalIso = iso;
         
-        // Tarih seçilince kaydet
+        // Tarih DEĞİŞTİĞİNDE kaydet (mobilde change event'i sadece gerçek seçimde tetiklenir)
         inp.addEventListener('change', function() {
             saved = true;
             let newIso = inp.value;
-            if(newIso && newIso !== originalValue) {
+            if(newIso === originalIso) {
+                el.innerHTML = cur || '-';
+                return;
+            }
+            if(newIso) {
                 let p = newIso.split('-');
                 let tr = `${p[2]}.${p[1]}.${p[0]}`;
                 window.declarationsData[idx][field] = tr;
                 saveData('decl');
                 window.renderDeclarationsTable();
+            } else {
+                window.declarationsData[idx][field] = '';
+                saveData('decl');
+                window.renderDeclarationsTable();
             }
-            inp.remove();
         });
         
-        // iOS picker iptal edilirse / kapatılırsa kayıt yapma
-        inp.addEventListener('cancel', function() { inp.remove(); });
-        
-        // Pencere blur'u (uygulama arka plana atılırsa) güvenlik için
-        let blurHandler = function() {
-            setTimeout(function() {
-                if(!saved && document.getElementById('floating-date-input')) {
-                    document.getElementById('floating-date-input').remove();
+        // Dışarı tıklarsa iptal (eski değer geri gelsin) — change tetiklenmediyse
+        setTimeout(function() {
+            let outsideHandler = function(ev) {
+                if(!el.contains(ev.target)) {
+                    document.removeEventListener('click', outsideHandler, true);
+                    document.removeEventListener('touchstart', outsideHandler, true);
+                    if(!saved && el.querySelector('input')) {
+                        el.innerHTML = cur || '-';
+                    }
                 }
-            }, 500);
-            window.removeEventListener('blur', blurHandler);
-        };
-        window.addEventListener('blur', blurHandler);
+            };
+            document.addEventListener('click', outsideHandler, true);
+            document.addEventListener('touchstart', outsideHandler, true);
+        }, 300);
         
-        // Picker'ı aç — bu, original click event'i kapsamında olduğu için iOS izin verir
+        // Picker'ı aç — bu hücre tıklamasının parçası olduğu için iOS izin verir
+        inp.focus();
         if(inp.showPicker) {
-            try { inp.showPicker(); } catch(e) { inp.click(); }
-        } else {
-            inp.click();
+            try { inp.showPicker(); } catch(e) {}
         }
     };
     window.saveInlineDate=function(inp,idx,field){let iso=inp.value;let tr='';if(iso){let p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;}if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{inp.parentElement.innerHTML=tr||'-';}};
