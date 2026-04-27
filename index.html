@@ -4195,8 +4195,28 @@ alert("Şasi: " + (d?d.sasi:'YOK') + "\nFirma sayısı: " + Object.keys(window.f
     window.renderFirmVehicles();
     if(window.updateDashboardStats)window.updateDashboardStats();
 }};
-
-    window.inlineEditDate=function(el,idx,field){if(el.querySelector('input'))return;let cur=window.declarationsData[idx][field]||'';let iso='';if(cur){let p=cur.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}el.innerHTML=`<input type="date" value="${iso}" style="padding:4px;height:28px;font-size:12px;" onblur="window.saveInlineDate(this,${idx},'${field}')" onchange="window.saveInlineDate(this,${idx},'${field}')">`;let inp=el.querySelector('input');inp.focus();inp.showPicker&&inp.showPicker();};
+window.inlineEditDate=function(el,idx,field){
+        if(el.querySelector('input'))return;
+        let cur=window.declarationsData[idx][field]||'';
+        let iso='';
+        if(cur){let p=cur.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}
+        el.innerHTML=`<input type="date" value="${iso}" style="padding:4px;height:28px;font-size:12px;" onchange="window.saveInlineDate(this,${idx},'${field}')">`;
+        let inp=el.querySelector('input');
+        inp.focus();
+        inp.showPicker&&inp.showPicker();
+        // Dışarı tıklayınca input'u iptal et (orijinal değere dön)
+        setTimeout(function(){
+            let outsideHandler = function(ev){
+                if(!el.contains(ev.target)){
+                    document.removeEventListener('click', outsideHandler, true);
+                    document.removeEventListener('touchstart', outsideHandler, true);
+                    if(el.querySelector('input')) el.innerHTML = cur || '-';
+                }
+            };
+            document.addEventListener('click', outsideHandler, true);
+            document.addEventListener('touchstart', outsideHandler, true);
+        }, 100);
+    };
     window.saveInlineDate=function(inp,idx,field){let iso=inp.value;let tr='';if(iso){let p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;}if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{inp.parentElement.innerHTML=tr||'-';}};
 
     window.calculateVehicleMetrics=function(data){
