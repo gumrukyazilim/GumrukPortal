@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta charset="UTF-8">
     <title>GümrükPortal Cloud — Enterprise</title>
@@ -4197,63 +4195,60 @@ alert("Şasi: " + (d?d.sasi:'YOK') + "\nFirma sayısı: " + Object.keys(window.f
     window.renderFirmVehicles();
     if(window.updateDashboardStats)window.updateDashboardStats();
 }};
-window.inlineEditDate=function(el,idx,field){
-        // Mevcut TR formatını ISO'ya çevir (input için)
-        let cur=window.declarationsData[idx][field]||'';
-        let iso='';
-        if(cur){let p=cur.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}
+window.inlineEditDate = function(el, idx, field) {
+        let cur = window.declarationsData[idx][field] || '';
+        let iso = '';
+        if(cur) { let p = cur.split('.'); if(p.length === 3) iso = `${p[2]}-${p[1]}-${p[0]}`; }
         
-        // Eski modal varsa kaldır
-        let oldModal=document.getElementById('date-edit-modal');
-        if(oldModal)oldModal.remove();
+        // Eski input varsa kaldır
+        let old = document.getElementById('floating-date-input');
+        if(old) old.remove();
         
-        // Yeni modal oluştur
-        let modal=document.createElement('div');
-        modal.id='date-edit-modal';
-        modal.className='modal-overlay active';
-        modal.innerHTML=`
-            <div class="modal-box" style="max-width:340px; padding:20px;">
-                <h3 style="margin:0 0 14px; font-size:15px; color:var(--text-primary);"><i data-lucide="calendar" style="width:18px;height:18px;display:inline-block;vertical-align:-3px;"></i> Tarih Seç</h3>
-                <input type="date" id="date-edit-input" value="${iso}" style="width:100%; padding:12px; font-size:16px; margin-bottom:14px;">
-                <div style="display:flex; gap:8px; justify-content:flex-end;">
-                    <button class="btn-secondary" onclick="window.cancelInlineDate()">İptal</button>
-                    ${cur?`<button class="btn-secondary btn-danger" onclick="window.clearInlineDate(${idx},'${field}')">Temizle</button>`:''}
-                    <button class="btn-primary" onclick="window.confirmInlineDate(${idx},'${field}')"><i data-lucide="check"></i> Kaydet</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        if(window.lucide)window.lucide.createIcons();
+        // Görünmez bir date input oluştur ve sayfaya ekle
+        let inp = document.createElement('input');
+        inp.type = 'date';
+        inp.id = 'floating-date-input';
+        inp.value = iso;
+        inp.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); opacity:0; pointer-events:none; z-index:99999;';
+        document.body.appendChild(inp);
         
-        // Picker'ı otomatik aç (mobile rahat erişim için)
-        let inp=document.getElementById('date-edit-input');
-        setTimeout(function(){inp.focus();if(inp.showPicker)try{inp.showPicker()}catch(e){}},100);
-    };
-    
-    window.confirmInlineDate=function(idx,field){
-        let inp=document.getElementById('date-edit-input');
-        if(!inp)return;
-        let iso=inp.value;
-        if(!iso){alert('Lütfen bir tarih seçin veya İptal\'e basın.');return;}
-        let p=iso.split('-');
-        let tr=`${p[2]}.${p[1]}.${p[0]}`;
-        window.declarationsData[idx][field]=tr;
-        saveData('decl');
-        document.getElementById('date-edit-modal').remove();
-        window.renderDeclarationsTable();
-    };
-    
-    window.cancelInlineDate=function(){
-        let m=document.getElementById('date-edit-modal');
-        if(m)m.remove();
-    };
-    
-    window.clearInlineDate=function(idx,field){
-        if(!confirm('Bu tarihi silmek istediğinize emin misiniz?'))return;
-        window.declarationsData[idx][field]='';
-        saveData('decl');
-        document.getElementById('date-edit-modal').remove();
-        window.renderDeclarationsTable();
+        let saved = false;
+        let originalValue = iso;
+        
+        // Tarih seçilince kaydet
+        inp.addEventListener('change', function() {
+            saved = true;
+            let newIso = inp.value;
+            if(newIso && newIso !== originalValue) {
+                let p = newIso.split('-');
+                let tr = `${p[2]}.${p[1]}.${p[0]}`;
+                window.declarationsData[idx][field] = tr;
+                saveData('decl');
+                window.renderDeclarationsTable();
+            }
+            inp.remove();
+        });
+        
+        // iOS picker iptal edilirse / kapatılırsa kayıt yapma
+        inp.addEventListener('cancel', function() { inp.remove(); });
+        
+        // Pencere blur'u (uygulama arka plana atılırsa) güvenlik için
+        let blurHandler = function() {
+            setTimeout(function() {
+                if(!saved && document.getElementById('floating-date-input')) {
+                    document.getElementById('floating-date-input').remove();
+                }
+            }, 500);
+            window.removeEventListener('blur', blurHandler);
+        };
+        window.addEventListener('blur', blurHandler);
+        
+        // Picker'ı aç — bu, original click event'i kapsamında olduğu için iOS izin verir
+        if(inp.showPicker) {
+            try { inp.showPicker(); } catch(e) { inp.click(); }
+        } else {
+            inp.click();
+        }
     };
     window.saveInlineDate=function(inp,idx,field){let iso=inp.value;let tr='';if(iso){let p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;}if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{inp.parentElement.innerHTML=tr||'-';}};
 
