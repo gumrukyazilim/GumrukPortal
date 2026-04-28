@@ -886,7 +886,6 @@
             <a href="javascript:void(0)" onclick="window.showSignup()" style="color:var(--text-muted); text-decoration:none;">Hesabım yok, <strong style="color:var(--primary);">Üye Ol</strong></a>
         </div>
     </div>
-</div>
 <!-- ÜYE OL EKRANI (gizli, başlangıçta görünmez) -->
     <div class="login-card" id="signup-card" style="display:none;">
         <div class="login-logo" style="background:#10b981;"><i data-lucide="user-plus" style="color:#fff;width:28px;height:28px;"></i></div>
@@ -916,6 +915,7 @@
             <a href="javascript:void(0)" onclick="window.showLogin()" style="color:var(--primary); text-decoration:none;">← Giriş ekranına dön</a>
         </div>
     </div>
+</div>
 
 <div id="app-screen" class="app-wrap">
     <aside class="sidebar collapsed">
@@ -1929,6 +1929,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, query, orderByChild, startAt, endAt } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 // Auth UI ekran geçişleri (Aşama 1)
 window.showLogin = function() {
     document.querySelector('#login-screen .login-card').style.display = 'block';
@@ -1952,8 +1953,110 @@ window.showForgotPassword = function() {
     if(window.lucide) window.lucide.createIcons();
 };
 // Stub fonksiyonlar — Aşama 2'de gerçek Firebase Auth gelecek
-window.doSignup = function() { alert('Üyelik sistemi henüz aktif değil. Aşama 2\'de eklenecek.'); };
-window.doForgotPassword = function() { alert('Şifre sıfırlama henüz aktif değil. Aşama 2\'de eklenecek.'); };
+window.doSignup = async function() {
+    const ad = document.getElementById('sign-name').value.trim();
+    const firma = document.getElementById('sign-firm').value.trim();
+    const email = document.getElementById('sign-email').value.trim().toLowerCase();
+    const pass = document.getElementById('sign-pass').value;
+    const pass2 = document.getElementById('sign-pass2').value;
+    const alertEl = document.getElementById('signup-alert');
+    const showError = (msg) => { alertEl.innerText = msg; alertEl.style.display = 'block'; };
+    
+    // Doğrulama kontrolleri
+    alertEl.style.display = 'none';
+    if(!ad || !firma || !email || !pass) { showError('Lütfen tüm alanları doldurun.'); return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Geçerli bir email adresi giriniz.'); return; }
+    if(pass.length < 6) { showError('Şifre en az 6 karakter olmalı.'); return; }
+    if(pass !== pass2) { showError('Şifreler eşleşmiyor.'); return; }
+    
+    const ADMIN_EMAIL = 'bmemesil@gmail.com';
+    const isAdminEmail = email === ADMIN_EMAIL;
+    
+    // Buton kilitle
+    const btn = document.querySelector('#signup-card .login-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Hesap oluşturuluyor...';
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+    
+    try {
+        // 1. Firebase Auth'a kullanıcı kaydet
+        const cred = await window._createUser(window._auth, email, pass);
+        const uid = cred.user.uid;
+        
+        // 2. Database'e meta bilgileri yaz
+        await window._dbSet(window._dbRef(window._db, 'users/' + uid), {
+            ad: ad,
+            firma: firma,
+            email: email,
+            role: isAdminEmail ? 'admin' : 'firm',
+            onay: isAdminEmail ? true : false,
+            createdAt: new Date().toISOString()
+        });
+        
+        // 3. Auth'tan çıkış yap (otomatik giriş yapmasın, onay beklesin)
+        await window._signOut(window._auth);
+        
+        // 4. Başarı mesajı
+        if(isAdminEmail) {
+            alert('✅ Admin hesabı oluşturuldu! Şimdi giriş yapabilirsiniz.');
+        } else {
+            alert('✅ Üyelik talebiniz alındı.\n\nAdmin onayı bekleyecektir. Onaylandıktan sonra email/şifrenizle giriş yapabilirsiniz.');
+        }
+        
+        // 5. Formu temizle ve giriş ekranına dön
+        document.getElementById('sign-name').value = '';
+        document.getElementById('sign-firm').value = '';
+        document.getElementById('sign-email').value = '';
+        document.getElementById('sign-pass').value = '';
+        document.getElementById('sign-pass2').value = '';
+        window.showLogin();
+        
+    } catch(err) {
+        let msg = 'Bir hata oluştu: ' + err.message;
+        if(err.code === 'auth/email-already-in-use') msg = 'Bu email zaten kayıtlı. Şifremi unuttum yapabilirsiniz.';
+        else if(err.code === 'auth/invalid-email') msg = 'Geçersiz email adresi.';
+        else if(err.code === 'auth/weak-password') msg = 'Şifre çok zayıf. Daha güçlü bir şifre seçin.';
+        else if(err.code === 'auth/network-request-failed') msg = 'İnternet bağlantısı sorunu. Tekrar deneyin.';
+        showError(msg);
+    } finally {
+        btn.innerText = originalText;
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+    }
+};
+window.doForgotPassword = async function() {
+    const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+    const alertEl = document.getElementById('forgot-alert');
+    const showError = (msg) => { alertEl.innerText = msg; alertEl.style.display = 'block'; };
+    
+    alertEl.style.display = 'none';
+    if(!email) { showError('Email adresinizi girin.'); return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Geçerli bir email adresi giriniz.'); return; }
+    
+    const btn = document.querySelector('#forgot-card .login-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Gönderiliyor...';
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+    
+    try {
+        await window._sendReset(window._auth, email);
+        alert('✅ Sıfırlama linki gönderildi.\n\n' + email + ' adresinin gelen kutusunu kontrol edin.\n\n(Spam klasörüne de bakmayı unutmayın.)');
+        document.getElementById('forgot-email').value = '';
+        window.showLogin();
+    } catch(err) {
+        let msg = 'Bir hata oluştu: ' + err.message;
+        if(err.code === 'auth/user-not-found') msg = 'Bu email adresine kayıtlı kullanıcı bulunamadı.';
+        else if(err.code === 'auth/invalid-email') msg = 'Geçersiz email adresi.';
+        else if(err.code === 'auth/network-request-failed') msg = 'İnternet bağlantısı sorunu.';
+        showError(msg);
+    } finally {
+        btn.innerText = originalText;
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+    }
+};
 
 const firebaseConfig = {
     apiKey: "AIzaSyDxlTVb_JsefQHCE8pFiOiDjMaEVZJNiI0",
@@ -1964,6 +2067,17 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
+window._auth = auth;
+window._signIn = signInWithEmailAndPassword;
+window._createUser = createUserWithEmailAndPassword;
+window._sendReset = sendPasswordResetEmail;
+window._signOut = signOut;
+window._onAuthChanged = onAuthStateChanged;
+window._dbRef = ref;
+window._dbGet = get;
+window._dbSet = set;
+window._db = db;
 
 window._firebaseSave = async function(payload) {
     try {
@@ -3823,35 +3937,99 @@ function saveCariData() {
     function showSyncToast(text,ok=false){const t=document.getElementById('sync-toast'),ic=document.getElementById('sync-icon');document.getElementById('sync-text').innerText=text;if(ok){ic.style.animation='none';ic.style.border='none';ic.innerHTML='<i data-lucide="check-circle" style="color:var(--success);width:16px;height:16px;"></i>';if(window.lucide)lucide.createIcons();}else{ic.innerHTML='';ic.style.border='2px solid rgba(255,255,255,0.1)';ic.style.borderTopColor='var(--primary)';ic.style.animation='spin 1s linear infinite';}t.classList.add('show');}
     function hideSyncToast(text,ok=true){showSyncToast(text,ok);setTimeout(()=>document.getElementById('sync-toast').classList.remove('show'),2500);}
 
-    window.doLogin = function() {
+    window.doLogin = async function() {
         const u = document.getElementById('log-email').value.trim().toLowerCase();
         const p = document.getElementById('log-pass').value;
+        const alertEl = document.getElementById('auth-alert');
+        const showError = (msg) => { alertEl.innerText = msg; alertEl.style.display = 'block'; };
         
+        alertEl.style.display = 'none';
+        if(!u || !p) { showError('Email ve şifre gerekli.'); return; }
+        
+        // 1. ESKİ HARDCODED HESAPLAR (geçiş süreci, Aşama 4'te kaldırılacak)
         const accounts = {
-            'admin': { pass: 'Bayram2026', role: 'admin', name: 'Bayram' },
-            'samnu': { pass: 'samnu2026', role: 'ŞAMNU GT', name: 'Şamnu GT' },
-            'ffoto': { pass: 'ffoto2026', role: 'FF OTOMOTİV', name: 'FF Otomotiv' },
-            'karabayir': { pass: 'karabayir2026', role: 'KARABAYIR', name: 'Karabayır' },
-            'sandikci': { pass: 'sandikci2026', role: 'SANDIKÇI', name: 'Sandıkçı' }
+            'admin':     { pass: 'Bayram2026',     role: 'admin',       name: 'Bayram' },
+            'samnu':     { pass: 'samnu2026',      role: 'ŞAMNU GT',    name: 'Şamnu GT' },
+            'ffoto':     { pass: 'ffoto2026',      role: 'FF OTOMOTİV', name: 'FF Otomotiv' },
+            'karabayir': { pass: 'karabayir2026',  role: 'KARABAYIR',   name: 'Karabayır' },
+            'sandikci':  { pass: 'sandikci2026',   role: 'SANDIKÇI',    name: 'Sandıkçı' }
         };
-
+        
         if(accounts[u] && accounts[u].pass === p) {
             localStorage.setItem('gumruk_auth', 'true');
             localStorage.setItem('gumruk_role', accounts[u].role);
             localStorage.setItem('gumruk_user_name', accounts[u].name);
-            
-            const s = document.getElementById('login-screen');
-            s.style.opacity = '0';
-            s.style.transition = 'all 0.4s';
-            setTimeout(() => {
-                s.style.display = 'none';
-                window.applyRoleUI();
-                window.renderView(accounts[u].role === 'admin' ? 'dashboard' : 'declarations'); 
-            }, 400);
-        } else {
-            document.getElementById('auth-alert').innerText = 'Hatalı giriş bilgisi.';
-            document.getElementById('auth-alert').style.display = 'block';
+            window._loginSuccess(accounts[u].role);
+            return;
         }
+        
+        // 2. FİREBASE AUTH (asıl yeni sistem)
+        // Eski hardcoded'ler email değil — eğer "@" yoksa direkt hatalı say
+        if(!u.includes('@')) { showError('Hatalı giriş bilgisi.'); return; }
+        
+        const btn = document.querySelector('#login-screen .login-card .login-btn');
+        const originalText = btn.innerText;
+        btn.innerText = 'Giriş yapılıyor...';
+        btn.style.opacity = '0.6';
+        btn.style.pointerEvents = 'none';
+        
+        try {
+            // Firebase Auth ile giriş
+            const cred = await window._signIn(window._auth, u, p);
+            const uid = cred.user.uid;
+            
+            // Database'den meta bilgileri çek
+            const snap = await window._dbGet(window._dbRef(window._db, 'users/' + uid));
+            if(!snap.exists()) {
+                await window._signOut(window._auth);
+                showError('Hesap profili bulunamadı. Lütfen yöneticinize başvurun.');
+                return;
+            }
+            
+            const userData = snap.val();
+            
+            // Onay kontrolü
+            if(!userData.onay) {
+                await window._signOut(window._auth);
+                showError('Hesabınız henüz onaylanmadı. Admin onayını bekleyiniz.');
+                return;
+            }
+            
+            // Başarılı: localStorage'a yaz, UI'ı aç
+            localStorage.setItem('gumruk_auth', 'true');
+            localStorage.setItem('gumruk_role', userData.role === 'admin' ? 'admin' : (userData.firma || 'firm'));
+            localStorage.setItem('gumruk_user_name', userData.ad || userData.email);
+            localStorage.setItem('gumruk_user_email', userData.email);
+            localStorage.setItem('gumruk_user_uid', uid);
+            
+            window._loginSuccess(userData.role === 'admin' ? 'admin' : userData.firma);
+            
+        } catch(err) {
+            let msg = 'Hatalı giriş bilgisi.';
+            if(err.code === 'auth/invalid-credential') msg = 'Email veya şifre hatalı.';
+            else if(err.code === 'auth/wrong-password') msg = 'Şifre hatalı.';
+            else if(err.code === 'auth/user-not-found') msg = 'Bu email kayıtlı değil.';
+            else if(err.code === 'auth/too-many-requests') msg = 'Çok fazla başarısız deneme. Lütfen biraz bekleyin.';
+            else if(err.code === 'auth/network-request-failed') msg = 'İnternet bağlantısı sorunu.';
+            else if(err.code === 'auth/invalid-email') msg = 'Geçersiz email adresi.';
+            showError(msg);
+        } finally {
+            btn.innerText = originalText;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        }
+    };
+    
+    // Login başarılı olunca çağrılır (her iki yoldan da)
+    window._loginSuccess = function(role) {
+        const s = document.getElementById('login-screen');
+        s.style.opacity = '0';
+        s.style.transition = 'all 0.4s';
+        setTimeout(() => {
+            s.style.display = 'none';
+            window.applyRoleUI();
+            window.renderView(role === 'admin' ? 'dashboard' : 'declarations');
+        }, 400);
     };
     
     window.applyRoleUI = function() {
