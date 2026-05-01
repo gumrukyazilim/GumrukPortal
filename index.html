@@ -5934,20 +5934,29 @@ document.addEventListener('click', function(e) {
     
     tbody.innerHTML=list.map(item=>{
         let d=item.data,i=item.origIdx;
+        let m=window.calculateVehicleMetrics(d); // Gelen araçlardaki hesaplamayı buraya da çağırıyoruz
         let evrakDurum=(d.evrak||'').toLocaleLowerCase('tr');
         let isAcik=evrakDurum==='açık'||evrakDurum==='acik';
         let isKapali=evrakDurum==='kapalı'||evrakDurum==='kapali';
         let isKiymette=d.kiymVv&&!d.kiymGt;
         let rc=isKiymette?'row-kiymette':(isKapali?'row-kapali':(isAcik?'row-acik':''));
-        // Kıymet bilgisi (kiymetData'dan şasi ile eşleşen kayıt)
+        
+        // Kıymet bilgisi
         let kiymetText='-';
         let sasi=(d.sasi||'').trim();
         if(sasi){
             let k=(window.kiymetData||[]).find(kd=>(kd.sasi||'').trim()===sasi);
             if(k && k.kiymet){
-                kiymetText='<span style="color:var(--success);font-weight:700;">'+window.formatNumber(k.kiymet)+' ₺</span>';
+                kiymetText='<span style="color:var(--success);font-weight:700;">'+window.formatNumber(k.kiymet)+' €</span>';
             }
         }
+        
+        // Kırmızı Kıymette-X Rozeti
+        let kiymetteBadge = '';
+        if(m.sonGun && m.sonGun.toString().includes('Kıymette')) {
+            kiymetteBadge = `<div style="margin-bottom:4px;"><span class="badge badge-kiymette">${m.sonGun}</span></div>`;
+        }
+
         return '<tr class="'+rc+'" onclick="if(!event.target.closest(\'button, input, a, .evrak-badge\')) window.openDeclVehicleModal('+i+',\'firm\')" style="cursor:pointer;" title="Detaylar için tıklayın">'+ 
             '<td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb firm-cb" value="'+i+'" onclick="event.stopPropagation();window.toggleFirmCb()"></td>'+ 
             '<td><span class="font-bold" style="color:var(--text-primary);">'+(d.marka||'')+' '+(d.model||'')+'</span>'+window.renderEvrakBadges(d, i, 'firm')+'</td>'+ 
@@ -5957,7 +5966,7 @@ document.addEventListener('click', function(e) {
             '<td>'+(d.tarih||'-')+'</td>'+ 
             '<td>'+(d.beyanname||'-')+'</td>'+ 
             '<td class="firma-readonly">'+(d.fatura?window.formatNumber(d.fatura)+' €':'-')+'</td>'+ 
-            '<td>'+kiymetText+'</td>'+ 
+            '<td>'+kiymetteBadge+kiymetText+'</td>'+ 
         '</tr>';
     }).join('');
     if(window.lucide)lucide.createIcons();
