@@ -256,6 +256,8 @@
         
         /* MÜŞTERİ YETKİ GİZLEME SINIFI */
         .hidden-role { display: none !important; }
+		body.is-firma-user .firma-readonly { display: none !important; }
+        body.is-firma-user .firma-readonly-disabled { pointer-events: none !important; opacity: 0.4 !important; cursor: default !important; }
         
         #login-screen { position:fixed; inset:0; z-index:99999; background: radial-gradient(ellipse at 30% 20%,rgba(59,130,246,0.18) 0%,transparent 55%),radial-gradient(ellipse at 80% 80%,rgba(168,85,247,0.12) 0%,transparent 50%),var(--bg-main); display:flex; align-items:center; justify-content:center; }
         .login-card { width:440px; padding:40px; background: var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-xl); box-shadow:0 40px 80px rgba(0,0,0,0.3); position:relative; overflow:hidden; }
@@ -866,6 +868,34 @@
     border-color: rgba(245, 158, 11, 0.3);
 }
 /* --- EVRAK ROZETLERİ BİTİŞ --- */
+
+/* SÜPER İZLEYİCİ KALKANI (RESİMDEKİ BUTONLARI VE DEĞİŞİKLİKLERİ GİZLER) */
+        body.is-izleyici [onclick*="save"], 
+        body.is-izleyici [onclick*="Kaydet"], 
+        body.is-izleyici [onclick*="delete"], 
+        body.is-izleyici [onclick*="Sil"], 
+        body.is-izleyici [onclick*="Ekle"], 
+        body.is-izleyici [onclick*="upload"], 
+        body.is-izleyici [onclick*="(-1"],
+        body.is-izleyici [onclick*="baslatRobot"],
+        body.is-izleyici [onclick*="eksikKlasorleriOlustur"],
+        body.is-izleyici [onclick*="prepareSureDilekcesi"],
+        body.is-izleyici [onclick*="sendWhatsApp"],
+        body.is-izleyici [onclick*="openBeyanname"],
+        body.is-izleyici [onclick*="openVehicleCalc"],
+        body.is-izleyici .icon-btn[onclick*="openDeclVehicleModal"],
+        body.is-izleyici .btn-danger, 
+        body.is-izleyici .text-danger-btn, 
+        body.is-izleyici .firm-delete-btn,
+        body.is-izleyici .firm-edit-btn
+        {
+            display: none !important;
+        }
+        /* Checkbox'ları dondur */
+        body.is-izleyici input[type="checkbox"]:not([id^="yetki-"]) { 
+            pointer-events: none !important; 
+            opacity: 0.6; 
+        }
  </style>
 </head>
 <body>
@@ -928,6 +958,7 @@
             <button class="nav-btn" data-view="declarations"><i data-lucide="car"></i><span>Gelen Araçlar</span></button>
             <button class="nav-btn admin-only" data-view="gelecekAraclar"><i data-lucide="ship"></i><span>Gelecek Araçlar</span></button>
             <button class="nav-btn admin-only" data-view="firms"><i data-lucide="building-2"></i><span>Firma Arşivi</span></button>
+			<button class="nav-btn admin-only" data-view="uyelikler" id="nav-uyelikler"><i data-lucide="user-check"></i><span>Üyelikler</span><span id="uyelik-badge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:auto;">0</span></button>
             <button class="nav-btn admin-only" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
             <button class="nav-btn admin-only" data-view="beyanname"><i data-lucide="file-text"></i><span>Beyanname Formu</span></button>
             
@@ -958,7 +989,7 @@
                 <button class="hdr-icon-btn" onclick="window.toggleTheme()" title="Gece/Gündüz Modu"><i data-lucide="moon"></i></button>
                 <button class="hdr-icon-btn admin-only" onclick="window.exportBackup()" title="Yedek İndir"><i data-lucide="download"></i></button>
                 <div class="divider-v"></div>
-                <div class="user-pill" onclick="if(confirm('Sistemden çıkış yapmak istiyor musunuz?')){localStorage.removeItem('gumruk_auth');localStorage.removeItem('gumruk_role');localStorage.removeItem('gumruk_user_name');location.reload();}">
+                <div class="user-pill" onclick="window.doLogout()">
                     <img src="https://ui-avatars.com/api/?name=Bayram&background=1e3a5f&color=60a5fa&rounded=true" class="user-avatar" id="header-avatar">
                     <div class="user-info"><div class="user-name">Bayram</div><div class="user-role">Yönetici</div></div>
                 </div>
@@ -1260,7 +1291,22 @@
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firmalar</div><h1 class="page-title">Firma Arşivi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button></div></div> 
     <div id="firms-dynamic-grid" class="firms-grid fade-in"></div> 
 </template>
-
+<template id="tpl-uyelikler">
+    <div class="toolbar fade-in" style="margin-top:0;">
+        <div class="toolbar-left">
+            <span style="font-weight:600; font-size:14px; color:var(--text-primary); margin-right:14px;">Üyelik Talepleri</span>
+            <span id="uyelik-count-text" style="color:var(--text-muted); font-size:12.5px;">0 bekleyen</span>
+        </div>
+        <div class="toolbar-right" style="display:flex; gap:8px;">
+            <button class="btn-sm" onclick="window.renderUyelikler()"><i data-lucide="refresh-cw"></i> Yenile</button>
+        </div>
+    </div>
+    <div class="fade-in" style="padding:0;overflow:visible;">
+        <div id="uyelikler-list" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="text-align:center; padding:40px; color:var(--text-muted);">Yükleniyor...</div>
+        </div>
+    </div>
+</template>
 <template id="tpl-firmDetails"> 
     <div class="toolbar fade-in" style="margin-top:0;">
         <div class="toolbar-left">
@@ -1273,7 +1319,7 @@
         </div>
         <div class="toolbar-right" style="display:flex; gap:8px;">
             <button class="btn-sm" onclick="window.renderView('firms')"><i data-lucide="arrow-left"></i> Geri</button>
-            <button class="btn-sm" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button>
+            <button class="btn-sm admin-only" onclick="window.openExcelModal('firm')"><i data-lucide="file-spreadsheet"></i> Excel</button>
             <button id="firm-bulk-delete-btn" class="btn-sm btn-danger hidden" onclick="window.bulkDeleteFirmVehicles()"><i data-lucide="trash-2"></i> Sil (<span id="firm-selected-count">0</span>)</button>
             <button class="btn-primary" onclick="window.openDeclVehicleModal(-1,'firm')"><i data-lucide="plus"></i> Yeni Araç</button>
         </div>
@@ -1308,14 +1354,14 @@
     </div> 
     <div class="fade-in" style="padding:0;overflow:visible;"><div class="table-wrap"><table class="data-table"><thead><tr>
         <th style="width:40px;text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb" id="decl-selectAll" onclick="window.toggleAllDeclarations(this.checked)"></th>
-        <th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('decl')">G.TARİHİ ↕</th><th>İLK SÜRE</th><th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th><th>DURUM</th><th>FATURA</th><th>ARDİYE</th>
+        <th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('decl')">G.TARİHİ ↕</th><th>İLK SÜRE</th><th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th><th>DURUM</th><th class="firma-readonly">FATURA</th><th>ARDİYE</th>
         <th style="text-align:center;" class="admin-only">VERGİ</th><th style="text-align:center;">İŞLEM</th>
     </tr></thead><tbody id="declarations-tbody"></tbody></table></div></div> 
 </template>
 
 <template id="tpl-kiymetListesi"> 
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Arşiv</div><h1 class="page-title">Kıymet Listesi</h1></div></div> 
-    <div class="toolbar fade-in"><div class="toolbar-left"><button id="kiymet-delete-btn" class="btn-sm btn-danger hidden" onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2"></i> Sil (<span id="kiymet-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-sm" onclick="window.openExcelModal('kiymet')"><i data-lucide="file-spreadsheet"></i> Excel</button><button class="btn-primary" onclick="window.openKiymetModal()"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div> 
+    <div class="toolbar fade-in"><div class="toolbar-left"><button id="kiymet-delete-btn" class="btn-sm btn-danger hidden" onclick="window.deleteSelectedKiymets()"><i data-lucide="trash-2"></i> Sil (<span id="kiymet-sel-count">0</span>)</button></div><div class="toolbar-right"><button class="btn-sm admin-only" onclick="window.openExcelModal('kiymet')"><i data-lucide="file-spreadsheet"></i> Excel</button><button class="btn-primary admin-only" onclick="window.openKiymetModal()"><i data-lucide="plus"></i> Yeni Kayıt</button></div></div> 
     <div class="fade-in" style="padding:0;overflow:visible;"><div class="table-wrap"><table class="data-table"><thead><tr><th style="width:40px;text-align:center;"><input type="checkbox" class="custom-cb" id="kiymet-selectAll" onclick="window.toggleSelectAllKiymet(this.checked)"></th><th>MARKA/MODEL</th><th>YIL/RENK</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('kiymet')">G.TARİHİ ↕</th><th>FATURA (€)</th><th>KIYMET (€)</th><th>DURUM</th><th style="text-align:center;">İŞLEM</th></tr></thead><tbody id="kiymet-tbody"></tbody></table></div></div> 
 </template>
 
@@ -1642,10 +1688,10 @@
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Gelişmiş Vergi & Maliyet Hesaplama</h1><p class="page-sub">TCMB kurları · GTİP otomatik · ÖTV akıllı öneri</p></div>
         <div class="page-actions" style="display: flex; gap: 10px;">
-    <button class="btn-sm" style="border-color: var(--danger); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcPDF()">
+    <button class="btn-sm admin-only" style="border-color: var(--danger); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcPDF()">
         <i data-lucide="file-text" style="width:16px;height:16px;"></i> PDF Çıktısı
     </button>
-    <button class="btn-sm" style="border-color: var(--success); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcExcel()">
+    <button class="btn-sm admin-only" style="border-color: var(--success); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcExcel()">
         <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Excel Çıktısı
     </button>
 </div>
@@ -3946,23 +3992,7 @@ function saveCariData() {
         alertEl.style.display = 'none';
         if(!u || !p) { showError('Email ve şifre gerekli.'); return; }
         
-        // 1. ESKİ HARDCODED HESAPLAR (geçiş süreci, Aşama 4'te kaldırılacak)
-        const accounts = {
-            'admin':     { pass: 'Bayram2026',     role: 'admin',       name: 'Bayram' },
-            'samnu':     { pass: 'samnu2026',      role: 'ŞAMNU GT',    name: 'Şamnu GT' },
-            'ffoto':     { pass: 'ffoto2026',      role: 'FF OTOMOTİV', name: 'FF Otomotiv' },
-            'karabayir': { pass: 'karabayir2026',  role: 'KARABAYIR',   name: 'Karabayır' },
-            'sandikci':  { pass: 'sandikci2026',   role: 'SANDIKÇI',    name: 'Sandıkçı' }
-        };
-        
-        if(accounts[u] && accounts[u].pass === p) {
-            localStorage.setItem('gumruk_auth', 'true');
-            localStorage.setItem('gumruk_role', accounts[u].role);
-            localStorage.setItem('gumruk_user_name', accounts[u].name);
-            window._loginSuccess(accounts[u].role);
-            return;
-        }
-        
+                
         // 2. FİREBASE AUTH (asıl yeni sistem)
         // Eski hardcoded'ler email değil — eğer "@" yoksa direkt hatalı say
         if(!u.includes('@')) { showError('Hatalı giriş bilgisi.'); return; }
@@ -4001,6 +4031,11 @@ function saveCariData() {
             localStorage.setItem('gumruk_user_name', userData.ad || userData.email);
             localStorage.setItem('gumruk_user_email', userData.email);
             localStorage.setItem('gumruk_user_uid', uid);
+			// Yetkileri localStorage'a yaz (admin için her şey açık)
+            const yetkiler = userData.role === 'admin' 
+                ? { sistemOzeti: true, gelenAraclar: true, kiymetListesi: true, _admin: true }
+                : (userData.yetkiler || { sistemOzeti: false, gelenAraclar: false, kiymetListesi: false });
+            localStorage.setItem('gumruk_yetkiler', JSON.stringify(yetkiler));
             
             window._loginSuccess(userData.role === 'admin' ? 'admin' : userData.firma);
             
@@ -4028,10 +4063,257 @@ function saveCariData() {
         setTimeout(() => {
             s.style.display = 'none';
             window.applyRoleUI();
+			if(window.updateUyelikBadge) window.updateUyelikBadge();
             window.renderView(role === 'admin' ? 'dashboard' : 'declarations');
         }, 400);
     };
+	window.doLogout = async function() {
+        if(!confirm('Sistemden çıkış yapmak istiyor musunuz?')) return;
+        try {
+            // Firebase Auth session'ı kapat (varsa)
+            if(window._auth && window._auth.currentUser) {
+                await window._signOut(window._auth);
+            }
+        } catch(e) {
+            console.warn('SignOut error:', e);
+        }
+        // Eski sistem temizliği
+        localStorage.removeItem('gumruk_auth');
+        localStorage.removeItem('gumruk_role');
+        localStorage.removeItem('gumruk_user_name');
+        localStorage.removeItem('gumruk_user_email');
+        localStorage.removeItem('gumruk_user_uid');
+		localStorage.removeItem('gumruk_yetkiler');
+        location.reload();
+    };
+    // ÜYELİK YÖNETİMİ — Aşama 3
     
+    // Tüm üyelikleri (bekleyen ve aktif) Firebase'den çek
+    window.loadAllUyelikler = async function() {
+        try {
+            const snap = await window._dbGet(window._dbRef(window._db, 'users'));
+            if(!snap.exists()) return {bekleyen:[], aktif:[]};
+            const users = snap.val();
+            let bekleyen = [];
+            let aktif = [];
+            Object.entries(users).forEach(([uid, u]) => {
+                if(!u || u.role === 'admin') return; // Adminleri atla
+                if(u.onay === false) bekleyen.push({ uid, ...u });
+                else aktif.push({ uid, ...u });
+            });
+            return {bekleyen, aktif};
+        } catch(e) {
+            console.error('Üyelik yükleme hatası:', e);
+            return {bekleyen:[], aktif:[]};
+        }
+    };
+    
+    // Sidebar'daki kırmızı badge'i güncelle (Sadece bekleyenler)
+    window.updateUyelikBadge = async function() {
+        const role = localStorage.getItem('gumruk_role');
+        if(role !== 'admin') return;
+        const data = await window.loadAllUyelikler();
+        const badge = document.getElementById('uyelik-badge');
+        if(!badge) return;
+        if(data.bekleyen.length > 0) {
+            badge.innerText = data.bekleyen.length;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    };
+    
+    // Üyelikler sayfasını render et
+    window.renderUyelikler = async function() {
+        const list = document.getElementById('uyelikler-list');
+        const countEl = document.getElementById('uyelik-count-text');
+        if(!list) return;
+        
+        list.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Yükleniyor...</div>';
+        
+        const data = await window.loadAllUyelikler();
+        const pending = data.bekleyen;
+        const aktif = data.aktif;
+        
+        if(countEl) countEl.innerText = pending.length + ' bekleyen / ' + aktif.length + ' aktif';
+        
+        let html = '';
+        
+        // 1. ONAY BEKLEYENLER
+        html += '<div style="font-size:12px; font-weight:700; color:var(--warning); margin:10px 0; text-transform:uppercase; letter-spacing:1px;"><i data-lucide="clock" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> ONAY BEKLEYEN YENİ TALEPLER</div>';
+        
+        if(pending.length === 0) {
+            html += '<div style="background:var(--bg-elevated);padding:15px;border-radius:8px;color:var(--text-muted);font-size:13px;text-align:center;margin-bottom:24px;">Bekleyen yeni üyelik talebi yok.</div>';
+        } else {
+            html += pending.map(u => window.generateUyelikCard(u, false)).join('');
+        }
+        
+        // 2. AKTİF ÜYELER
+        html += '<div style="font-size:12px; font-weight:700; color:var(--success); margin:24px 0 10px 0; text-transform:uppercase; letter-spacing:1px;"><i data-lucide="check-circle" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> AKTİF FİRMA KULLANICILARI</div>';
+        
+        if(aktif.length === 0) {
+            html += '<div style="background:var(--bg-elevated);padding:15px;border-radius:8px;color:var(--text-muted);font-size:13px;text-align:center;margin-bottom:24px;">Henüz onaylanmış aktif firma kullanıcısı yok.</div>';
+        } else {
+            html += aktif.map(u => window.generateUyelikCard(u, true)).join('');
+        }
+        
+        list.innerHTML = html;
+        if(window.lucide) lucide.createIcons();
+    };
+
+    window.generateUyelikCard = function(u, isAktif) {
+        let y = u.yetkiler || {};
+        return `
+        <div class="card card-pad" style="padding:18px 20px; margin-bottom:12px; border-left: 4px solid ${isAktif ? 'var(--success)' : 'var(--warning)'};">
+            <div style="display:flex; align-items:center; gap:16px; margin-bottom:14px;">
+                <div style="width:44px; height:44px; border-radius:50%; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; color:var(--primary); flex-shrink:0;">
+                    <i data-lucide="user" style="width:22px;height:22px;"></i>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:14.5px; font-weight:600; color:var(--text-primary); margin-bottom:3px;">${u.ad || '-'} ${isAktif ? '<span style="font-size:9px;background:var(--success);color:#fff;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;">AKTİF</span>' : ''}</div>
+                    <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:2px;">${u.email || '-'}</div>
+                    <div style="font-size:12px; color:var(--text-secondary);"><i data-lucide="building-2" style="width:12px;height:12px;display:inline-block;vertical-align:-1px;"></i> <b>${u.firma || '-'}</b> · ${window.formatDate ? window.formatDate(u.createdAt) : (u.createdAt || '').split('T')[0]}</div>
+                </div>
+            </div>
+            <div style="background:var(--bg-elevated); border-radius:8px; padding:12px 14px; margin-bottom:12px;">
+                <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.4px;">Erişim Yetkileri</div>
+                <label style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; font-size:13px; color:var(--text-primary);">
+                    <input type="checkbox" id="yetki-sistemOzeti-${u.uid}" ${y.sistemOzeti?'checked':''} style="width:16px; height:16px; cursor:pointer;">
+                    <i data-lucide="layout-dashboard" style="width:15px;height:15px;color:var(--primary);"></i>
+                    Sistem Özeti <span style="color:var(--text-muted); font-size:11.5px;">(kendi firmasının istatistikleri)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; font-size:13px; color:var(--text-primary);">
+                    <input type="checkbox" id="yetki-gelenAraclar-${u.uid}" ${isAktif ? (y.gelenAraclar?'checked':'') : 'checked'} style="width:16px; height:16px; cursor:pointer;">
+                    <i data-lucide="car" style="width:15px;height:15px;color:var(--primary);"></i>
+                    Gelen Araçlar <span style="color:var(--text-muted); font-size:11.5px;">(kendi firmasının araçları)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; font-size:13px; color:var(--text-primary);">
+                    <input type="checkbox" id="yetki-kiymetListesi-${u.uid}" ${y.kiymetListesi?'checked':''} style="width:16px; height:16px; cursor:pointer;">
+                    <i data-lucide="file-search" style="width:15px;height:15px;color:var(--primary);"></i>
+                    Kıymet Listesi <span style="color:var(--text-muted); font-size:11.5px;">(kendi firmasının kayıtları)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; font-size:13px; color:var(--text-primary);">
+                    <input type="checkbox" id="yetki-vergiHesaplama-${u.uid}" ${y.vergiHesaplama?'checked':''} style="width:16px; height:16px; cursor:pointer;">
+                    <i data-lucide="calculator" style="width:15px;height:15px;color:var(--primary);"></i>
+                    Vergi Hesaplama <span style="color:var(--text-muted); font-size:11.5px;">(hesap makinesi)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; font-size:13px; color:var(--text-primary); border-top: 1px dashed var(--border); margin-top: 4px; padding-top: 10px;">
+                    <input type="checkbox" id="yetki-izleyici-${u.uid}" ${y.izleyici?'checked':''} style="width:16px; height:16px; cursor:pointer;">
+                    <i data-lucide="eye" style="width:15px;height:15px;color:var(--danger);"></i>
+                    <span style="color:var(--danger);font-weight:700;">Süper İzleyici</span> <span style="color:var(--text-muted); font-size:11.5px;">(Tüm menüleri "resim gibi" salt okunur görür)</span>
+                </label>
+            </div>
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                ${isAktif ? `
+                    <button class="btn-sm btn-danger" onclick="window.rejectUyelik('${u.uid}', '${(u.email||'').replace(/'/g, "\\'")}')" title="Üyeliği Tamamen Sil"><i data-lucide="trash-2"></i> Sil</button>
+                    <button class="btn-primary" onclick="window.updateAktifYetki('${u.uid}')"><i data-lucide="save"></i> Yetkileri Güncelle</button>
+                ` : `
+                    <button class="btn-sm" onclick="window.editUyelikFirma('${u.uid}', '${(u.firma||'').replace(/'/g, "\\'")}')"><i data-lucide="edit-3"></i> Firma Düzenle</button>
+                    <button class="btn-sm btn-danger" onclick="window.rejectUyelik('${u.uid}', '${(u.email||'').replace(/'/g, "\\'")}')"><i data-lucide="x"></i> Reddet</button>
+                    <button class="btn-primary" onclick="window.approveUyelik('${u.uid}')"><i data-lucide="check"></i> Onayla</button>
+                `}
+            </div>
+        </div>`;
+    };
+
+    window.updateAktifYetki = async function(uid) {
+        const yetkiler = {
+            sistemOzeti:    document.getElementById('yetki-sistemOzeti-' + uid)?.checked || false,
+            gelenAraclar:   document.getElementById('yetki-gelenAraclar-' + uid)?.checked || false,
+            kiymetListesi:  document.getElementById('yetki-kiymetListesi-' + uid)?.checked || false,
+            vergiHesaplama: document.getElementById('yetki-vergiHesaplama-' + uid)?.checked || false,
+            izleyici:       document.getElementById('yetki-izleyici-' + uid)?.checked || false
+        };
+        
+        try {
+            const userRef = window._dbRef(window._db, 'users/' + uid);
+            const snap = await window._dbGet(userRef);
+            if(!snap.exists()) { alert('Kullanıcı bulunamadı.'); return; }
+            const u = snap.val();
+            await window._dbSet(userRef, { ...u, yetkiler: yetkiler });
+            alert('✅ Kullanıcının yetkileri güncellendi.\n\nMüşteri hesabından çıkış yapıp tekrar girdiğinde (veya sayfayı yenilediğinde) yeni sayfalara erişebilecektir.');
+            window.renderUyelikler();
+        } catch(e) {
+            alert('Hata: ' + e.message);
+        }
+    };
+    
+    // Üyelik onayla
+    window.approveUyelik = async function(uid) {
+        // Checkbox'lardan yetkileri oku
+        const yetkiler = {
+            sistemOzeti:    document.getElementById('yetki-sistemOzeti-' + uid)?.checked || false,
+            gelenAraclar:   document.getElementById('yetki-gelenAraclar-' + uid)?.checked || false,
+            kiymetListesi:  document.getElementById('yetki-kiymetListesi-' + uid)?.checked || false,
+            vergiHesaplama: document.getElementById('yetki-vergiHesaplama-' + uid)?.checked || false,
+            izleyici:       document.getElementById('yetki-izleyici-' + uid)?.checked || false
+        };
+        
+        // En az bir yetki seçilmiş olmalı
+        const seciliYetkiSayisi = Object.values(yetkiler).filter(v => v === true).length;
+        if(seciliYetkiSayisi === 0) {
+            alert('⚠️ En az bir erişim yetkisi seçmelisiniz.\n\nKullanıcının hangi sayfalara erişebileceğini belirleyin.');
+            return;
+        }
+        
+        // Onay sorusu — yetki özetiyle
+        const yetkiListesi = [];
+        if(yetkiler.sistemOzeti) yetkiListesi.push('• Sistem Özeti');
+        if(yetkiler.gelenAraclar) yetkiListesi.push('• Gelen Araçlar');
+        if(yetkiler.kiymetListesi) yetkiListesi.push('• Kıymet Listesi');
+		if(yetkiler.vergiHesaplama) yetkiListesi.push('• Vergi Hesaplama');
+        
+        if(!confirm('Bu üyeliği onaylıyor musunuz?\n\nKullanıcının erişebileceği sayfalar:\n' + yetkiListesi.join('\n') + '\n\nKullanıcı sadece kendi firmasının verilerini görebilecek.')) return;
+        
+        try {
+            const userRef = window._dbRef(window._db, 'users/' + uid);
+            const snap = await window._dbGet(userRef);
+            if(!snap.exists()) { alert('Kullanıcı bulunamadı.'); return; }
+            const u = snap.val();
+            await window._dbSet(userRef, {
+                ...u,
+                onay: true,
+                onayTarih: new Date().toISOString(),
+                yetkiler: yetkiler
+            });
+            alert('✅ Üyelik onaylandı.\n\nKullanıcı artık giriş yapabilir ve seçtiğiniz sayfalara erişebilecek.');
+            window.renderUyelikler();
+            window.updateUyelikBadge();
+        } catch(e) {
+            alert('Hata: ' + e.message);
+        }
+    };
+    
+    // Üyelik reddet (kullanıcıyı tamamen sil)
+    window.rejectUyelik = async function(uid, email) {
+        if(!confirm('Bu üyelik talebini REDDEDIP silmek istediğinize emin misiniz?\n\nKullanıcı: ' + email + '\n\nBu işlem geri alınamaz. Kullanıcı tekrar üye olmak isterse yeniden başvurabilir.\n\nNot: Firebase Auth hesabı silinmez, sadece database\'den çıkarılır. Tam silme için Firebase Console kullanılmalı.')) return;
+        try {
+            // Database'den sil (Auth'tan silmek admin SDK gerektirir, manuel)
+            await window._dbSet(window._dbRef(window._db, 'users/' + uid), null);
+            alert('✅ Üyelik reddedildi ve silindi.');
+            window.renderUyelikler();
+            window.updateUyelikBadge();
+        } catch(e) {
+            alert('Hata: ' + e.message);
+        }
+    };
+    
+    // Firma adını düzenle
+    window.editUyelikFirma = async function(uid, currentFirma) {
+        const yeniFirma = prompt('Firma adını düzenle:\n\n(Onaylamadan önce firmayı doğru girdiğinizden emin olun. Bu kullanıcı sadece bu firmanın araçlarını görebilecek.)', currentFirma);
+        if(yeniFirma === null) return; // İptal
+        if(!yeniFirma.trim()) { alert('Firma adı boş olamaz.'); return; }
+        try {
+            const userRef = window._dbRef(window._db, 'users/' + uid);
+            const snap = await window._dbGet(userRef);
+            if(!snap.exists()) { alert('Kullanıcı bulunamadı.'); return; }
+            const u = snap.val();
+            await window._dbSet(userRef, { ...u, firma: yeniFirma.trim() });
+            window.renderUyelikler();
+        } catch(e) {
+            alert('Hata: ' + e.message);
+        }
+    };
     window.applyRoleUI = function() {
     let role = localStorage.getItem('gumruk_role') || 'admin';
     let name = localStorage.getItem('gumruk_user_name') || 'Bayram';
@@ -4044,11 +4326,53 @@ function saveCariData() {
     if(roleEl) roleEl.innerText = role === 'admin' ? 'Yönetici' : 'Müşteri';
     if(avatarEl) avatarEl.src = `https://ui-avatars.com/api/?name=${name}&background=1e3a5f&color=60a5fa&rounded=true`;
     
-    document.querySelectorAll('.admin-only').forEach(el => {
-        if(role !== 'admin') el.classList.add('hidden-role');
-        else el.classList.remove('hidden-role');
+    let yetkiler = {};
+    try { yetkiler = JSON.parse(localStorage.getItem('gumruk_yetkiler') || '{}'); } catch(e) {}
+    
+    // SÜPER İZLEYİCİYİ SİSTEME TANIT
+    window.isSuperViewer = (role !== 'admin' && yetkiler.izleyici === true);
+
+    if(window.isSuperViewer) {
+        document.body.classList.add('is-izleyici');
+        if(roleEl) roleEl.innerText = 'Süper İzleyici';
+    } else {
+        document.body.classList.remove('is-izleyici');
+    }
+
+   // SOL MENÜYÜ VE YASAKLI SAYFALARI YÖNETME MANTIĞI
+    document.querySelectorAll('.admin-only, .nav-btn[data-view]').forEach(el => {
+        const vn = el.dataset?.view;
+        
+        if (role === 'admin') {
+            el.classList.remove('hidden-role');
+        } else if (window.isSuperViewer) {
+            // Süper izleyiciden Üyelikler ve Beyanname sayfalarını GİZLE
+            if (vn === 'uyelikler' || vn === 'beyanname') {
+                el.classList.add('hidden-role');
+            } else {
+                el.classList.remove('hidden-role');
+            }
+        } else {
+            // Normal firma kullanıcısı yetki kontrolü
+            const vn = el.dataset?.view;
+            const sayfaYetki = {
+                'dashboard':      yetkiler.sistemOzeti,
+                'declarations':   yetkiler.gelenAraclar,
+                'kiymetListesi':  yetkiler.kiymetListesi,
+                'calculator':     yetkiler.vergiHesaplama
+            };
+            if (vn && vn in sayfaYetki && sayfaYetki[vn]) {
+                el.classList.remove('hidden-role');
+            } else {
+                el.classList.add('hidden-role');
+            }
+        }
     });
-  if(window.checkBottomNav) window.checkBottomNav();
+    
+    if(role !== 'admin') document.body.classList.add('is-firma-user');
+    else document.body.classList.remove('is-firma-user');
+    
+    if(window.checkBottomNav) window.checkBottomNav();
 };
 
     window.declarationsData=[]; window.firmData={}; window.firmMeta={}; window.cariData={}; window.gelecekData=[]; window.kiymetData=[];
@@ -4404,7 +4728,9 @@ if(data.ekGonderici) {
         document.querySelector('.modal-overlay.active')?.remove();
     };
     window.deleteFirm=function(fn,e){e.stopPropagation();let name=fn.replace(/&quot;/g,'"');if(confirm(`'${name}' firmasını SİL?`)){delete window.firmData[name];saveData('firm');window.renderView('firms');}};
-    window.deleteDeclaration=function(i){if(confirm('Sil?')){
+    window.deleteDeclaration=function(i){
+        const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert('Yetkiniz yok.'); return; }
+        if(confirm('Sil?')){
     let d=window.declarationsData[i];
 alert("Şasi: " + (d?d.sasi:'YOK') + "\nFirma sayısı: " + Object.keys(window.firmData).length + "\nKıymet sayısı: " + window.kiymetData.length);
     if(d && d.sasi){
@@ -4432,6 +4758,9 @@ alert("Şasi: " + (d?d.sasi:'YOK') + "\nFirma sayısı: " + Object.keys(window.f
     if(window.updateDashboardStats)window.updateDashboardStats();
 }};
 window.inlineEditDate = function(el, idx, field) {
+// Read-only guard: Firma kullanıcı tarih düzenleyemez
+        const _r = localStorage.getItem('gumruk_role');
+        if(_r && _r !== 'admin') return;
         if(el.querySelector('input')) return;
         let cur = window.declarationsData[idx][field] || '';
         let iso = '';
@@ -4602,7 +4931,8 @@ window.confirmEditFirmMeta=function(name){
             let items=[];
             
             (window.declarationsData||[]).forEach((d,i)=>{
-                if(role !== 'admin' && d.firma !== role) return; // Firma filtresi
+                let yetkiler = JSON.parse(localStorage.getItem('gumruk_yetkiler') || '{}');
+if(role !== 'admin' && !yetkiler.izleyici && (d.firma || '').toLocaleUpperCase('tr') !== role.toLocaleUpperCase('tr')) return; // Firma filtresi
                 let searchStr = `${d.sasi||''} ${d.marka||''} ${d.model||''} ${d.firma||''} ${d.beyanname||''}`;
                 if(match(searchStr)) items.push({type:'decl',idx:i,title:`<span style="color:var(--text-primary);">${d.marka||''} ${d.model||''}</span>`.trim()||'(Araç)',sub:`${d.firma||''} · ${d.sasi||'-'}${d.beyanname?' · Byn:'+d.beyanname:''}`,badge:'Gelen',color:'59,130,246'});
             });
@@ -4663,7 +4993,8 @@ window.searchGoTo=function(type,idx,firmName){
     let items=[];
     
     (window.declarationsData||[]).forEach((d,i)=>{
-        if(role !== 'admin' && d.firma !== role) return;
+        let yetkiler = JSON.parse(localStorage.getItem('gumruk_yetkiler') || '{}');
+if(role !== 'admin' && !yetkiler.izleyici && (d.firma || '').toLocaleUpperCase('tr') !== role.toLocaleUpperCase('tr')) return;
         let searchStr = `${d.sasi||''} ${d.marka||''} ${d.model||''} ${d.firma||''} ${d.beyanname||''}`;
         if(match(searchStr)) items.push({...d, _idx:i, _type:'decl'});
     });
@@ -5183,7 +5514,8 @@ pagebreak: {mode: 'avoid-all'}
     if(!window.kiymetData) window.kiymetData = [];
     if(!window.firmData) window.firmData = {};
     let role = localStorage.getItem('gumruk_role') || 'admin';
-    let data = role === 'admin' ? (window.declarationsData || []) : (window.declarationsData || []).filter(d => d && d.firma === role);
+    let yetkiler = JSON.parse(localStorage.getItem('gumruk_yetkiler') || '{}');
+    let data = (role === 'admin' || yetkiler.izleyici) ? (window.declarationsData || []) : (window.declarationsData || []).filter(d => d && (d.firma || '').toLocaleUpperCase('tr') === role.toLocaleUpperCase('tr'));
     
     let t=data.length;
     let ki=data.filter(d=>d.kiymVv&&!d.kiymGt).length;
@@ -5294,11 +5626,12 @@ document.addEventListener('click', function(e) {
     window.renderDeclarationsTable=function(){
     let tbody=document.getElementById('declarations-tbody');if(!tbody)return;
     let role = localStorage.getItem('gumruk_role') || 'admin';
-    let isAdmin = role === 'admin';
+    let isAdmin = role === 'admin' || window.isSuperViewer;
     let fv=document.getElementById('decl-status-filter')?.value||'all';
     let list=window.declarationsData.map((d,i)=>({data:d,origIdx:i}));
     
-    if(!isAdmin) list = list.filter(x => x.data.firma === role);
+    let yetkiler = JSON.parse(localStorage.getItem('gumruk_yetkiler') || '{}');
+    if(!isAdmin && !yetkiler.izleyici) list = list.filter(x => (x.data.firma || '').toLocaleUpperCase('tr') === role.toLocaleUpperCase('tr'));
     
     if(fv==='acik')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';});
     else if(fv==='kiymet')list=list.filter(x=>x.data.kiymVv&&!x.data.kiymGt);
@@ -5387,7 +5720,7 @@ document.addEventListener('click', function(e) {
             <td class="font-bold">${kh}</td>
             <td>${sh}</td>
             <td>${evBadge}</td>
-            <td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
+            <td class="firma-readonly">${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
             <td style="text-align:center;"><button class="btn-sm admin-only" style="padding:4px 10px;font-size:11px;color:var(--danger);border-color:rgba(239,68,68,0.3);" onclick="event.stopPropagation(); window.ardiyeUret(${i})" title="Ardiye Excel+PDF üret">${window.formatNumber(m.ardiye)} ₺</button></td>
             <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
             <td style="text-align:center;">
@@ -5623,7 +5956,7 @@ document.addEventListener('click', function(e) {
             '<td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">'+(d.sasi||'-')+'</td>'+ 
             '<td>'+(d.tarih||'-')+'</td>'+ 
             '<td>'+(d.beyanname||'-')+'</td>'+ 
-            '<td>'+(d.fatura?window.formatNumber(d.fatura)+' €':'-')+'</td>'+ 
+            '<td class="firma-readonly">'+(d.fatura?window.formatNumber(d.fatura)+' €':'-')+'</td>'+ 
             '<td>'+kiymetText+'</td>'+ 
         '</tr>';
     }).join('');
@@ -5737,21 +6070,35 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         document.getElementById('firm-selectAll').checked=false;window.toggleFirmCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();
     };
 
-    window.renderKiymetTable=function(){let tb=document.getElementById('kiymet-tbody');if(!tb)return;tb.innerHTML=window.kiymetData.map((k,i)=>{let dc=k.durum&&k.durum.toUpperCase().includes('MAHKEME')?'badge-danger':(k.durum&&k.durum.toUpperCase().includes('YOK')?'badge-dark':'badge-warning');return`<tr onclick="if(!event.target.closest('button, input, a')) window.editKiymet(${i})" style="cursor: pointer;" title="Detayları görmek için tıklayın"><td style="text-align:center;"><input type="checkbox" class="custom-cb kiymet-cb" value="${i}" onclick="window.toggleKiymetCb()"></td><td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td><td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura?window.formatNumber(k.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${k.kiymet?window.formatNumber(k.kiymet)+' €':'-'}</td><td>${k.durum?`<span class="badge ${dc}">${k.durum}</span>`:'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.editKiymet(${i})"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteKiymet(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;}).join('');document.getElementById('kiymet-selectAll').checked=false;window.toggleKiymetCb();if(window.lucide)lucide.createIcons();};
+    window.renderKiymetTable=function(){let tb=document.getElementById('kiymet-tbody');if(!tb)return;
+        // Firma izolasyonu: Firma kullanıcı sadece kendi kıymet kayıtlarını görür
+        const _r = localStorage.getItem('gumruk_role') || 'admin';
+        let _kData = window.kiymetData;
+        let yetkiler = JSON.parse(localStorage.getItem('gumruk_yetkiler') || '{}');
+        if(_r !== 'admin' && !yetkiler.izleyici) {
+            const _firmaSasiSet = new Set(
+                (window.declarationsData || [])
+                    .filter(d => d && (d.firma || '').toLocaleUpperCase('tr') === _r.toLocaleUpperCase('tr'))
+                    .map(d => d.sasi)
+                    .filter(Boolean)
+            );
+            _kData = window.kiymetData.filter(k => k && k.sasi && _firmaSasiSet.has(k.sasi));
+        }
+        tb.innerHTML=_kData.map((k,i)=>{let dc=k.durum&&k.durum.toUpperCase().includes('MAHKEME')?'badge-danger':(k.durum&&k.durum.toUpperCase().includes('YOK')?'badge-dark':'badge-warning');return`<tr onclick="if(!event.target.closest('button, input, a')) window.editKiymet(${i})" style="cursor: pointer;" title="Detayları görmek için tıklayın"><td style="text-align:center;"><input type="checkbox" class="custom-cb kiymet-cb" value="${i}" onclick="window.toggleKiymetCb()"></td><td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td><td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura?window.formatNumber(k.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${k.kiymet?window.formatNumber(k.kiymet)+' €':'-'}</td><td>${k.durum?`<span class="badge ${dc}">${k.durum}</span>`:'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.editKiymet(${i})"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteKiymet(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;}).join('');document.getElementById('kiymet-selectAll').checked=false;window.toggleKiymetCb();if(window.lucide)lucide.createIcons();};
 
     window.toggleDeclCb=function(){let c=document.querySelectorAll('.decl-cb:checked'),b=document.getElementById('decl-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('decl-sel-count').innerText=c.length;}else b.classList.add('hidden');}document.querySelectorAll('.decl-cb').forEach(function(cb){let row=cb.closest('tr');if(row){if(cb.checked)row.classList.add('selected');else row.classList.remove('selected');}});};
     window.toggleAllDeclarations=function(v){document.querySelectorAll('.decl-cb').forEach(c=>c.checked=v);window.toggleDeclCb();};
-    window.bulkDeleteDeclarations=function(){let c=document.querySelectorAll('.decl-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.declarationsData[i];if(d&&d.sasi){let sasi=d.sasi;Object.keys(window.firmData).forEach(function(fn){window.firmData[fn]=window.firmData[fn].filter(function(x){return x.sasi!==sasi;});});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.declarationsData.splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderDeclarationsTable();if(window.updateDashboardStats)window.updateDashboardStats();}};
+    window.bulkDeleteDeclarations=function(){const _r=localStorage.getItem('gumruk_role');if(_r&&_r!=='admin'){alert('Yetkiniz yok.');return;}let c=document.querySelectorAll('.decl-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.declarationsData[i];if(d&&d.sasi){let sasi=d.sasi;Object.keys(window.firmData).forEach(function(fn){window.firmData[fn]=window.firmData[fn].filter(function(x){return x.sasi!==sasi;});});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.declarationsData.splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderDeclarationsTable();if(window.updateDashboardStats)window.updateDashboardStats();}};
     window.toggleAllFirmVehicles=function(v){document.querySelectorAll('.firm-cb').forEach(c=>c.checked=v);window.toggleFirmCb();};
     window.toggleFirmCb=function(){let c=document.querySelectorAll('.firm-cb:checked'),b=document.getElementById('firm-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('firm-selected-count').innerText=c.length;}else b.classList.add('hidden');}document.querySelectorAll('.firm-cb').forEach(function(cb){let row=cb.closest('tr');if(row){if(cb.checked)row.classList.add('selected');else row.classList.remove('selected');}});};
     window.bulkDeleteFirmVehicles=function(){let c=document.querySelectorAll('.firm-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.firmData[window.currentFirm][i];if(d&&d.sasi){let sasi=d.sasi;window.declarationsData=window.declarationsData.filter(function(x){return x.sasi!==sasi;});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.firmData[window.currentFirm].splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderFirmVehicles();if(window.updateDashboardStats)window.updateDashboardStats();}};
     window.toggleSelectAllKiymet=function(v){document.querySelectorAll('.kiymet-cb').forEach(c=>c.checked=v);window.toggleKiymetCb();};
     window.toggleKiymetCb=function(){let c=document.querySelectorAll('.kiymet-cb:checked'),b=document.getElementById('kiymet-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('kiymet-sel-count').innerText=c.length;}else b.classList.add('hidden');}};
     window.deleteSelectedKiymets=function(){let c=document.querySelectorAll('.kiymet-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a).forEach(i=>window.kiymetData.splice(i,1));saveData('kiymet');window.renderKiymetTable();}};
-    window.deleteKiymet=function(i){if(confirm('Sil?')){window.kiymetData.splice(i,1);saveData('kiymet');window.renderKiymetTable();}};
+    window.deleteKiymet=function(i){const _r=localStorage.getItem('gumruk_role');if(_r&&_r!=='admin'){alert('Yetkiniz yok.');return;}if(confirm('Sil?')){window.kiymetData.splice(i,1);saveData('kiymet');window.renderKiymetTable();}};
     window.openKiymetModal=function(){document.getElementById('kiymet-modal').classList.remove('hidden');document.getElementById('km-edit-index').value='-1';};
     window.closeKiymetModal=function(){document.getElementById('kiymet-modal').classList.add('hidden');};
-    window.editKiymet=function(i){let k=window.kiymetData[i];['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id=>{if(document.getElementById('km-'+id))document.getElementById('km-'+id).value=k[id]||'';});document.getElementById('km-edit-index').value=i;document.getElementById('kiymet-modal').classList.remove('hidden');};
+    window.editKiymet=function(i){const _r=localStorage.getItem('gumruk_role');if(_r&&_r!=='admin'){alert('Yetkiniz yok.');return;}let k=window.kiymetData[i];['marka','model','yil','renk','sasi','tarih','fatura','kiymet','durum'].forEach(id=>{if(document.getElementById('km-'+id))document.getElementById('km-'+id).value=k[id]||'';});document.getElementById('km-edit-index').value=i;document.getElementById('kiymet-modal').classList.remove('hidden');};
     window.saveNewKiymet=function(){
         let i=parseInt(document.getElementById('km-edit-index').value);
         let r={
@@ -5793,6 +6140,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
     };
 
     window.openDeclVehicleModal=function(idx=-1,ctx='decl'){
+	const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert('Yetkiniz yok.'); return; }
     try {
         window.currentModalContext=ctx;
         document.getElementById('decl-modal').classList.remove('hidden');
@@ -5980,7 +6328,8 @@ window.syncKiymetToDecl = function(sasi, kiymetValue) {
 };
 
 // ===== ANA KAYIT MOTORU (GÜNCELLENMİŞ) =====
-window.saveDeclEntry = async function(){ 
+window.saveDeclEntry = async function(){
+const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert('Yetkiniz yok.'); return; } 
     let i=parseInt(document.getElementById('decl-edit-idx').value);
     let val=id=>document.getElementById(id)?.value.trim()||'';
     let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
@@ -6801,6 +7150,33 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     // ============================================================
 
     window.renderView=function(vn){
+        // Yetki kontrolü: Firma kullanıcısı veya Süper İzleyici izinsiz sayfa açmaya çalışıyorsa engelle
+        const _role = localStorage.getItem('gumruk_role') || 'admin';
+        let _yetkiler = {};
+        try { _yetkiler = JSON.parse(localStorage.getItem('gumruk_yetkiler') || '{}'); } catch(e) {}
+
+        if(_role !== 'admin') {
+            if (_yetkiler.izleyici) {
+                // SÜPER İZLEYİCİ İÇİN YASAKLI SAYFALAR
+                if (vn === 'uyelikler' || vn === 'beyanname') {
+                    alert('⚠️ Bu sayfaya erişim yetkiniz yok.');
+                    vn = 'declarations';
+                }
+            } else {
+                // NORMAL FİRMA KULLANICISI İÇİN YETKİ KONTROLÜ
+                const _sayfaYetki = {
+                    'dashboard':      'sistemOzeti',
+                    'declarations':   'gelenAraclar',
+                    'kiymetListesi':  'kiymetListesi',
+                    'calculator':     'vergiHesaplama'
+                };
+                if(!(vn in _sayfaYetki) || !_yetkiler[_sayfaYetki[vn]]) {
+                    alert('⚠️ Bu sayfaya erişim yetkiniz yok.');
+                    vn = Object.keys(_sayfaYetki).find(k => _yetkiler[_sayfaYetki[k]]) || 'declarations';
+                }
+            }
+        }
+        
         localStorage.setItem('gumruk_last_view',vn);
         if(vn==='firmDetails'&&window.currentFirm)localStorage.setItem('gumruk_last_firm',window.currentFirm);
         let c=document.getElementById('view-container'),t=document.getElementById('tpl-'+vn);
@@ -6818,6 +7194,7 @@ if(vn==='cariKart'){
     window.renderCariTable();
 }
         if(vn==='firms')window.renderFirmsList();
+		if(vn==='uyelikler')window.renderUyelikler();
         if(vn==='firmDetails'){if(document.getElementById('current-firm-title')&&window.currentFirm)document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();}
         if(vn==='calculator'){
             window._isRestoring = true;
