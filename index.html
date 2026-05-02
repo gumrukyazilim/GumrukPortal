@@ -568,6 +568,10 @@
 .firm-edit-btn:hover { background:rgba(59,130,246,0.1); color:var(--primary); border-color:rgba(59,130,246,0.2); }
         
         .calc-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:32px; }
+        /* Beyanname Kutu 47 — dar ekranlarda alt alta yığ */
+        @media (max-width: 1180px) {
+            .kutu47-grid { grid-template-columns: 1fr !important; }
+        }
         .result-panel { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:28px; position:sticky; top:0; }
         .result-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; }
         .result-row+.result-row { border-top:1px solid var(--border); }
@@ -1951,85 +1955,158 @@
         </div>
     </div>
     
-   <!-- ÖTV'SİZ FİNAL -->
-    <div style="background:var(--input-bg);border:2px solid var(--success);padding:16px;border-radius:12px;">
-        <div style="font-size:11px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">✅ ÖTV'SİZ FİNAL (BEYANNAME KUTU 47 FORMATI)</div>
-        
-        <!-- Tablo Başlıkları -->
-        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:10px;border-bottom:2px solid var(--border);font-weight:700;color:var(--text-muted);">
-            <span style="flex:2;">TÜRÜ</span>
-            <span style="flex:2;text-align:right;">VERGİ MATRAHI</span>
-            <span style="flex:1;text-align:center;">ORAN</span>
-            <span style="flex:2;text-align:right;">TUTAR</span>
+   <!-- ÖTV'SİZ FİNAL (BEYANNAME KUTU 47 FORMATI) -->
+    <div style="background:var(--input-bg);border:2px solid var(--success);padding:14px;border-radius:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;">✅ ÖTV'SİZ FİNAL (BEYANNAME KUTU 47 FORMATI)</div>
+
+        <!-- 2 SÜTUN: SOL = VERGİ KODLARI · SAĞ = HESAP DETAYLARI -->
+        <div class="kutu47-grid" style="display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:10px;align-items:start;">
+
+            <!-- SOL: VERGİ KODLARI TABLOSU -->
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                <!-- Başlık satırı -->
+                <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 36px minmax(0,1fr);gap:4px;padding:5px 6px;background:rgba(16,185,129,0.10);border-bottom:1px solid var(--border);font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.4px;">
+                    <span style="text-align:center;">KOD</span>
+                    <span>MATRAH</span>
+                    <span style="text-align:center;">%</span>
+                    <span style="text-align:right;">TUTAR</span>
+                </div>
+
+                <!-- 10 Gümrük Vergisi -->
+                <div id="row-otvsiz-10" style="display:grid;grid-template-columns:34px minmax(0,1fr) 36px minmax(0,1fr);gap:4px;padding:5px 6px;font-size:10.5px;border-bottom:1px solid var(--border);align-items:center;">
+                    <span style="text-align:center;font-weight:800;color:var(--text-primary);">10</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+                        <span style="font-size:9px;color:var(--text-muted);">Gümrük Vergisi</span>
+                        <span id="res-otvsiz-gv-matrah" style="font-size:10px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">-</span>
+                    </span>
+                    <span id="res-otvsiz-gv-oran" style="text-align:center;color:var(--text-secondary);">-</span>
+                    <span id="res-otvsiz-gv" style="text-align:right;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">0 ₺</span>
+                </div>
+
+                <!-- 59 İlave GV -->
+                <div id="row-otvsiz-ilave" style="display:grid;grid-template-columns:34px minmax(0,1fr) 36px minmax(0,1fr);gap:4px;padding:5px 6px;font-size:10.5px;border-bottom:1px solid var(--border);align-items:center;">
+                    <span style="text-align:center;font-weight:800;color:var(--text-primary);">59</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+                        <span style="font-size:9px;color:var(--text-muted);">İlave G.V</span>
+                        <span id="res-otvsiz-igv-matrah" style="font-size:10px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">-</span>
+                    </span>
+                    <span style="text-align:center;color:var(--text-secondary);">-</span>
+                    <span id="res-otvsiz-igv" style="text-align:right;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">0 ₺</span>
+                </div>
+
+                <!-- 36 EK Mali Yükümlülük (ATR) -->
+                <div id="row-otvsiz-atr-row" style="display:grid;grid-template-columns:34px minmax(0,1fr) 36px minmax(0,1fr);gap:4px;padding:5px 6px;font-size:10.5px;border-bottom:1px solid var(--border);align-items:center;">
+                    <span style="text-align:center;font-weight:800;color:var(--text-primary);">36</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+                        <span style="font-size:9px;color:var(--text-muted);">EK Mali Yük.(ATR)</span>
+                        <span id="res-otvsiz-atr-matrah" style="font-size:10px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">-</span>
+                    </span>
+                    <span style="text-align:center;color:var(--text-secondary);">-</span>
+                    <span id="res-otvsiz-atr" style="text-align:right;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">0 ₺</span>
+                </div>
+
+                <!-- 89 DAMGA -->
+                <div id="row-otvsiz-89" style="display:grid;grid-template-columns:34px minmax(0,1fr) 36px minmax(0,1fr);gap:4px;padding:5px 6px;font-size:10.5px;border-bottom:1px solid var(--border);align-items:center;">
+                    <span style="text-align:center;font-weight:800;color:var(--text-primary);">89</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+                        <span style="font-size:9px;color:var(--text-muted);">Damga Vergisi</span>
+                        <span style="font-size:10px;color:var(--text-secondary);">-</span>
+                    </span>
+                    <span style="text-align:center;color:var(--text-secondary);">-</span>
+                    <span id="res-otvsiz-damga" style="text-align:right;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">0 ₺</span>
+                </div>
+
+                <!-- 991 KKDF -->
+                <div id="row-otvsiz-991" style="display:grid;grid-template-columns:34px minmax(0,1fr) 36px minmax(0,1fr);gap:4px;padding:5px 6px;font-size:10.5px;border-bottom:1px solid var(--border);align-items:center;">
+                    <span style="text-align:center;font-weight:800;color:var(--text-primary);">991</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+                        <span style="font-size:9px;color:var(--text-muted);">KKDF</span>
+                        <span id="res-otvsiz-kkdf-matrah" style="font-size:10px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">-</span>
+                    </span>
+                    <span id="res-otvsiz-kkdf-oran" style="text-align:center;color:var(--text-secondary);">-</span>
+                    <span id="res-otvsiz-kkdf" style="text-align:right;font-weight:700;color:var(--warning);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">0 ₺</span>
+                </div>
+
+                <!-- 60 TRT -->
+                <div id="row-otvsiz-60" style="display:grid;grid-template-columns:34px minmax(0,1fr) 36px minmax(0,1fr);gap:4px;padding:5px 6px;font-size:10.5px;border-bottom:1px solid var(--border);align-items:center;">
+                    <span style="text-align:center;font-weight:800;color:var(--text-primary);">60</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+                        <span style="font-size:9px;color:var(--text-muted);">TRT Payı</span>
+                        <span id="res-otvsiz-trt-matrah" style="font-size:10px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">-</span>
+                    </span>
+                    <span id="res-otvsiz-trt-oran" style="text-align:center;color:var(--text-secondary);">0.8</span>
+                    <span id="res-otvsiz-trt" style="text-align:right;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">0 ₺</span>
+                </div>
+
+                <!-- 40 KDV -->
+                <div id="row-otvsiz-40" style="display:grid;grid-template-columns:34px minmax(0,1fr) 36px minmax(0,1fr);gap:4px;padding:5px 6px;font-size:10.5px;border-bottom:1px solid var(--border);align-items:center;">
+                    <span style="text-align:center;font-weight:800;color:var(--text-primary);">40</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.15;min-width:0;">
+                        <span style="font-size:9px;color:var(--text-muted);">Katma Değer V.</span>
+                        <span id="res-otvsiz-kdv-matrah" style="font-size:10px;color:var(--text-primary);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">-</span>
+                    </span>
+                    <span id="res-otvsiz-kdv-oran" style="text-align:center;color:var(--text-secondary);">-</span>
+                    <span id="res-otvsiz-kdv" style="text-align:right;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">0 ₺</span>
+                </div>
+
+                <!-- VERGİ TOPLAMI -->
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:6px;padding:7px 8px;background:rgba(16,185,129,0.10);font-size:11px;align-items:center;border-top:2px solid var(--success);">
+                    <span style="color:var(--success);font-weight:700;letter-spacing:0.3px;">TOPLAM</span>
+                    <span id="res-otvsiz-toplam-vergi" style="text-align:right;font-weight:800;color:var(--success);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">0 ₺</span>
+                </div>
+            </div>
+
+            <!-- SAĞ: B HESAP DETAYLARI -->
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                <div style="background:rgba(16,185,129,0.10);padding:5px 8px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;">B HESAP DETAYLARI</div>
+
+                <div style="padding:4px 8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;border-bottom:1px dashed var(--border);gap:6px;">
+                        <span style="color:var(--text-secondary);font-weight:600;">FATURA</span>
+                        <span id="res-otvsiz-d-fatura" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;border-bottom:1px dashed var(--border);gap:6px;">
+                        <span style="color:var(--text-secondary);font-weight:600;">NAVLUN</span>
+                        <span id="res-otvsiz-d-navlun" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;border-bottom:1px dashed var(--border);gap:6px;">
+                        <span style="color:var(--text-secondary);font-weight:600;">SİGORTA</span>
+                        <span id="res-otvsiz-d-sigorta" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;border-bottom:1px dashed var(--border);gap:6px;">
+                        <span style="color:var(--text-secondary);font-weight:600;">CIF</span>
+                        <span id="res-otvsiz-d-cif" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;border-bottom:1px dashed var(--border);gap:6px;">
+                        <span style="color:var(--text-secondary);font-weight:600;">YDIŞI</span>
+                        <span id="res-otvsiz-d-ydisi" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;border-bottom:1px dashed var(--border);gap:6px;">
+                        <span style="color:var(--text-secondary);font-weight:600;">YİÇİ</span>
+                        <span id="res-otvsiz-d-yici" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;border-bottom:1px dashed var(--border);gap:6px;">
+                        <span style="color:var(--primary);font-weight:700;">GVM</span>
+                        <span id="res-otvsiz-d-gvm" style="font-weight:700;color:var(--primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;border-bottom:1px dashed var(--border);gap:6px;">
+                        <span style="color:var(--text-secondary);font-weight:600;">GV</span>
+                        <span id="res-otvsiz-d-gv" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:10.5px;gap:6px;">
+                        <span style="color:var(--primary);font-weight:700;">KDVM</span>
+                        <span id="res-otvsiz-d-kdvm" style="font-weight:700;color:var(--primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">0</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- 10 GV -->
-        <div id="row-otvsiz-10" style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border);">
-            <span style="flex:2;font-weight:800;color:var(--text-primary);">10 <span style="font-weight:500;font-size:10px;color:var(--text-muted);margin-left:4px;">(Gümrük Vergisi)</span></span>
-            <span id="res-otvsiz-gv-matrah" style="flex:2;text-align:right;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-gv-oran" style="flex:1;text-align:center;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-gv" style="flex:2;text-align:right;font-weight:600;">0 ₺</span>
-        </div>
-        
-        <!-- İlave GV -->
-        <div id="row-otvsiz-ilave" style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border);">
-            <span style="flex:2;font-weight:800;color:var(--text-primary);">İlave GV</span>
-            <span id="res-otvsiz-igv-matrah" style="flex:2;text-align:right;color:var(--text-secondary);">-</span>
-            <span style="flex:1;text-align:center;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-igv" style="flex:2;text-align:right;font-weight:600;">0 ₺</span>
-        </div>
-
-        <!-- ATR'siz GV -->
-        <div id="row-otvsiz-atr-row" style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border);">
-            <span style="flex:2;font-weight:800;color:var(--text-primary);">ATR GV</span>
-            <span id="res-otvsiz-atr-matrah" style="flex:2;text-align:right;color:var(--text-secondary);">-</span>
-            <span style="flex:1;text-align:center;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-atr" style="flex:2;text-align:right;font-weight:600;">0 ₺</span>
-        </div>
-
-        <!-- 89 DAMGA -->
-        <div id="row-otvsiz-89" style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border);">
-            <span style="flex:2;font-weight:800;color:var(--text-primary);">89 <span style="font-weight:500;font-size:10px;color:var(--text-muted);margin-left:4px;">(Damga Vergisi)</span></span>
-            <span style="flex:2;text-align:right;color:var(--text-secondary);">-</span>
-            <span style="flex:1;text-align:center;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-damga" style="flex:2;text-align:right;font-weight:600;">0 ₺</span>
-        </div>
-
-        <!-- 991 KKDF -->
-        <div id="row-otvsiz-991" style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border);">
-            <span style="flex:2;font-weight:800;color:var(--text-primary);">991 <span style="font-weight:500;font-size:10px;color:var(--text-muted);margin-left:4px;">(KKDF)</span></span>
-            <span id="res-otvsiz-kkdf-matrah" style="flex:2;text-align:right;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-kkdf-oran" style="flex:1;text-align:center;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-kkdf" style="flex:2;text-align:right;font-weight:700;color:var(--warning);">0 ₺</span>
-        </div>
-
-        <!-- 60 TRT -->
-        <div id="row-otvsiz-60" style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border);">
-            <span style="flex:2;font-weight:800;color:var(--text-primary);">60 <span style="font-weight:500;font-size:10px;color:var(--text-muted);margin-left:4px;">(TRT Payı)</span></span>
-            <span id="res-otvsiz-trt-matrah" style="flex:2;text-align:right;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-trt-oran" style="flex:1;text-align:center;color:var(--text-secondary);">0.8</span>
-            <span id="res-otvsiz-trt" style="flex:2;text-align:right;font-weight:600;">0 ₺</span>
-        </div>
-        
-        <!-- 40 KDV -->
-        <div id="row-otvsiz-40" style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border);">
-            <span style="flex:2;font-weight:800;color:var(--text-primary);">40 <span style="font-weight:500;font-size:10px;color:var(--text-muted);margin-left:4px;">(KDV)</span></span>
-            <span id="res-otvsiz-kdv-matrah" style="flex:2;text-align:right;color:var(--text-primary);font-weight:600;">-</span>
-            <span id="res-otvsiz-kdv-oran" style="flex:1;text-align:center;color:var(--text-secondary);">-</span>
-            <span id="res-otvsiz-kdv" style="flex:2;text-align:right;font-weight:700;">0 ₺</span>
-        </div>
-
-        <!-- TOPLAM VERGİ & FİNAL -->
-        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:12px;margin-bottom:8px;margin-top:8px;">
-            <span style="flex:1;color:var(--success);font-weight:700;">TOPLAM</span>
-            <span id="res-otvsiz-toplam-vergi" style="flex:5;text-align:right;font-weight:800;color:var(--success);font-size:14px;">0 ₺</span>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:2px solid var(--success);">
-            <span style="font-size:14px;font-weight:800;color:var(--success);">FİNAL MALİYET</span>
+        <!-- FİNAL MALİYET -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;margin-top:12px;background:rgba(16,185,129,0.10);border:1px solid var(--success);border-radius:10px;">
+            <span style="font-size:14px;font-weight:800;color:var(--success);letter-spacing:0.3px;">FİNAL MALİYET</span>
             <div style="text-align:right;">
                 <div id="res-otvsiz-eur" style="font-size:11px;color:var(--text-muted);">0 €</div>
-                <strong id="res-otvsiz-maliyet" style="font-size:20px;font-weight:800;color:var(--success);">0 ₺</strong>
+                <strong id="res-otvsiz-maliyet" style="font-size:19px;font-weight:800;color:var(--success);letter-spacing:-0.3px;">0 ₺</strong>
             </div>
         </div>
     </div>
@@ -5639,109 +5716,162 @@ window.exportCalcPDF = async function() {
 
         
 
-        <!-- ÖTV'SİZ FİNAL (KUTU 47 FORMATI) PDF'E EKLENDİ -->
+        <!-- ÖTV'SİZ FİNAL (BEYANNAME KUTU 47 FORMATI) PDF -->
 
         <div style="border:2px solid #10b981;border-radius:6px;overflow:hidden;margin-bottom:10px;">
 
-            <div style="background:#d1fae5;padding:6px 15px;font-size:11px;font-weight:700;color:#047857;border-bottom:1px solid #10b981;">✅ ÖTV'SİZ FİNAL </div>
+            <div style="background:#d1fae5;padding:6px 15px;font-size:11px;font-weight:700;color:#047857;border-bottom:1px solid #10b981;">✅ ÖTV'SİZ FİNAL (BEYANNAME KUTU 47 FORMATI)</div>
 
-            <table style="width:100%;border-collapse:collapse;font-size:9px;background:#f0fdf4;">
-
-                <tr style="color:#047857;font-weight:700;border-bottom:1px solid #a7f3d0;">
-
-                    <th style="padding:4px;text-align:left;width:15%;">TÜRÜ</th>
-
-                    <th style="padding:4px;text-align:right;width:35%;">VERGİ MATRAHI</th>
-
-                    <th style="padding:4px;text-align:center;width:15%;">ORAN</th>
-
-                    <th style="padding:4px;text-align:right;width:35%;">TUTAR</th>
-
-                </tr>
+            <!-- 2 SÜTUN: SOL = VERGİ KODLARI · SAĞ = HESAP DETAYLARI -->
+            <table style="width:100%;border-collapse:collapse;font-size:9px;background:#f0fdf4;table-layout:fixed;">
 
                 <tr>
 
-                    <td style="padding:3px 4px;font-weight:700;">10</td>
+                    <!-- SOL: VERGİ KODLARI TABLOSU -->
+                    <td style="vertical-align:top;width:62%;padding:6px;border-right:1px solid #a7f3d0;">
 
-                    <td style="padding:3px 4px;text-align:right;">${getV('res-otvsiz-gv-matrah')}</td>
+                        <table style="width:100%;border-collapse:collapse;font-size:9px;">
 
-                    <td style="padding:3px 4px;text-align:center;">${getV('res-otvsiz-gv-oran')}</td>
+                            <tr style="background:#d1fae5;color:#047857;font-weight:700;">
 
-                    <td style="padding:3px 4px;text-align:right;font-weight:600;">${getV('res-otvsiz-gv')}</td>
+                                <th style="padding:3px 4px;text-align:center;width:32px;border:1px solid #a7f3d0;">KOD</th>
 
-                </tr>
+                                <th style="padding:3px 4px;text-align:left;border:1px solid #a7f3d0;">AÇILIM / MATRAH</th>
 
-                <tr>
+                                <th style="padding:3px 4px;text-align:center;width:34px;border:1px solid #a7f3d0;">%</th>
 
-                    <td style="padding:3px 4px;font-weight:700;">40</td>
+                                <th style="padding:3px 4px;text-align:right;width:75px;border:1px solid #a7f3d0;">TUTAR</th>
 
-                    <td style="padding:3px 4px;text-align:right;font-weight:600;">${getV('res-otvsiz-kdv-matrah')}</td>
+                            </tr>
 
-                    <td style="padding:3px 4px;text-align:center;">${getV('res-otvsiz-kdv-oran')}</td>
+                            <tr>
 
-                    <td style="padding:3px 4px;text-align:right;font-weight:600;">${getV('res-otvsiz-kdv')}</td>
+                                <td style="padding:3px 4px;font-weight:700;text-align:center;border:1px solid #a7f3d0;">10</td>
 
-                </tr>
+                                <td style="padding:3px 4px;border:1px solid #a7f3d0;line-height:1.25;"><div style="font-size:8px;color:#666;">Gümrük Vergisi</div><div>${getV('res-otvsiz-gv-matrah')}</div></td>
 
-                <tr>
+                                <td style="padding:3px 4px;text-align:center;border:1px solid #a7f3d0;">${getV('res-otvsiz-gv-oran')}</td>
 
-                    <td style="padding:3px 4px;font-weight:700;">50</td>
+                                <td style="padding:3px 4px;text-align:right;font-weight:600;border:1px solid #a7f3d0;">${getV('res-otvsiz-gv')}</td>
 
-                    <td style="padding:3px 4px;text-align:right;">${getV('res-otvsiz-otv-matrah')}</td>
+                            </tr>
 
-                    <td style="padding:3px 4px;text-align:center;">0</td>
+                            <tr>
 
-                    <td style="padding:3px 4px;text-align:right;font-weight:600;">0 ₺</td>
+                                <td style="padding:3px 4px;font-weight:700;text-align:center;border:1px solid #a7f3d0;">59</td>
 
-                </tr>
+                                <td style="padding:3px 4px;border:1px solid #a7f3d0;line-height:1.25;"><div style="font-size:8px;color:#666;">İlave Gümrük Vergisi</div><div>${getV('res-otvsiz-igv-matrah')}</div></td>
 
-                <tr>
+                                <td style="padding:3px 4px;text-align:center;border:1px solid #a7f3d0;">-</td>
 
-                    <td style="padding:3px 4px;font-weight:700;">60</td>
+                                <td style="padding:3px 4px;text-align:right;font-weight:600;border:1px solid #a7f3d0;">${getV('res-otvsiz-igv')}</td>
 
-                    <td style="padding:3px 4px;text-align:right;">${getV('res-otvsiz-trt-matrah')}</td>
+                            </tr>
 
-                    <td style="padding:3px 4px;text-align:center;">0.8</td>
+                            <tr>
 
-                    <td style="padding:3px 4px;text-align:right;font-weight:600;">${getV('res-otvsiz-trt')}</td>
+                                <td style="padding:3px 4px;font-weight:700;text-align:center;border:1px solid #a7f3d0;">36</td>
 
-                </tr>
+                                <td style="padding:3px 4px;border:1px solid #a7f3d0;line-height:1.25;"><div style="font-size:8px;color:#666;">EK Mali Yükümlülük (ATR)</div><div>${getV('res-otvsiz-atr-matrah')}</div></td>
 
-                <tr>
+                                <td style="padding:3px 4px;text-align:center;border:1px solid #a7f3d0;">-</td>
 
-                    <td style="padding:3px 4px;font-weight:700;">89</td>
+                                <td style="padding:3px 4px;text-align:right;font-weight:600;border:1px solid #a7f3d0;">${getV('res-otvsiz-atr')}</td>
 
-                    <td style="padding:3px 4px;text-align:right;">-</td>
+                            </tr>
 
-                    <td style="padding:3px 4px;text-align:center;">-</td>
+                            <tr>
 
-                    <td style="padding:3px 4px;text-align:right;font-weight:600;">${getV('res-otvsiz-damga')}</td>
+                                <td style="padding:3px 4px;font-weight:700;text-align:center;border:1px solid #a7f3d0;">89</td>
 
-                </tr>
+                                <td style="padding:3px 4px;border:1px solid #a7f3d0;line-height:1.25;"><div style="font-size:8px;color:#666;">Damga Vergisi</div><div>-</div></td>
 
-                <tr>
+                                <td style="padding:3px 4px;text-align:center;border:1px solid #a7f3d0;">-</td>
 
-                    <td style="padding:3px 4px;font-weight:700;">991</td>
+                                <td style="padding:3px 4px;text-align:right;font-weight:600;border:1px solid #a7f3d0;">${getV('res-otvsiz-damga')}</td>
 
-                    <td style="padding:3px 4px;text-align:right;">${getV('res-otvsiz-kkdf-matrah')}</td>
+                            </tr>
 
-                    <td style="padding:3px 4px;text-align:center;">-</td>
+                            <tr>
 
-                    <td style="padding:3px 4px;text-align:right;font-weight:700;color:#92400e;">${getV('res-otvsiz-kkdf')}</td>
+                                <td style="padding:3px 4px;font-weight:700;text-align:center;border:1px solid #a7f3d0;">991</td>
 
-                </tr>
+                                <td style="padding:3px 4px;border:1px solid #a7f3d0;line-height:1.25;"><div style="font-size:8px;color:#666;">KKDF</div><div>${getV('res-otvsiz-kkdf-matrah')}</div></td>
 
-                <tr style="border-top:1px solid #10b981;">
+                                <td style="padding:3px 4px;text-align:center;border:1px solid #a7f3d0;">-</td>
 
-                    <td colspan="3" style="padding:5px 4px;font-weight:700;color:#047857;">VERGİ TOPLAMI</td>
+                                <td style="padding:3px 4px;text-align:right;font-weight:700;color:#92400e;border:1px solid #a7f3d0;">${getV('res-otvsiz-kkdf')}</td>
 
-                    <td style="padding:5px 4px;text-align:right;font-weight:700;color:#047857;">${getV('res-otvsiz-toplam-vergi')}</td>
+                            </tr>
+
+                            <tr>
+
+                                <td style="padding:3px 4px;font-weight:700;text-align:center;border:1px solid #a7f3d0;">60</td>
+
+                                <td style="padding:3px 4px;border:1px solid #a7f3d0;line-height:1.25;"><div style="font-size:8px;color:#666;">TRT Payı</div><div>${getV('res-otvsiz-trt-matrah')}</div></td>
+
+                                <td style="padding:3px 4px;text-align:center;border:1px solid #a7f3d0;">0.8</td>
+
+                                <td style="padding:3px 4px;text-align:right;font-weight:600;border:1px solid #a7f3d0;">${getV('res-otvsiz-trt')}</td>
+
+                            </tr>
+
+                            <tr>
+
+                                <td style="padding:3px 4px;font-weight:700;text-align:center;border:1px solid #a7f3d0;">40</td>
+
+                                <td style="padding:3px 4px;border:1px solid #a7f3d0;line-height:1.25;"><div style="font-size:8px;color:#666;">Katma Değer Vergisi</div><div style="font-weight:700;">${getV('res-otvsiz-kdv-matrah')}</div></td>
+
+                                <td style="padding:3px 4px;text-align:center;border:1px solid #a7f3d0;">${getV('res-otvsiz-kdv-oran')}</td>
+
+                                <td style="padding:3px 4px;text-align:right;font-weight:700;border:1px solid #a7f3d0;">${getV('res-otvsiz-kdv')}</td>
+
+                            </tr>
+
+                            <tr style="background:#d1fae5;">
+
+                                <td colspan="3" style="padding:5px 4px;font-weight:700;color:#047857;border:1px solid #047857;">TOPLAM</td>
+
+                                <td style="padding:5px 4px;text-align:right;font-weight:800;color:#047857;border:1px solid #047857;">${getV('res-otvsiz-toplam-vergi')}</td>
+
+                            </tr>
+
+                        </table>
+
+                    </td>
+
+                    <!-- SAĞ: B HESAP DETAYLARI -->
+                    <td style="vertical-align:top;width:38%;padding:6px;">
+
+                        <div style="background:#d1fae5;padding:3px 6px;font-size:9px;font-weight:700;color:#047857;border:1px solid #a7f3d0;border-bottom:none;letter-spacing:0.4px;">B HESAP DETAYLARI</div>
+
+                        <table style="width:100%;border-collapse:collapse;font-size:9px;border:1px solid #a7f3d0;">
+
+                            <tr><td style="padding:3px 6px;color:#666;font-weight:600;border-bottom:1px dashed #a7f3d0;">FATURA</td><td style="padding:3px 6px;text-align:right;font-weight:700;border-bottom:1px dashed #a7f3d0;">${getV('res-otvsiz-d-fatura')}</td></tr>
+
+                            <tr><td style="padding:3px 6px;color:#666;font-weight:600;border-bottom:1px dashed #a7f3d0;">NAVLUN</td><td style="padding:3px 6px;text-align:right;font-weight:700;border-bottom:1px dashed #a7f3d0;">${getV('res-otvsiz-d-navlun')}</td></tr>
+
+                            <tr><td style="padding:3px 6px;color:#666;font-weight:600;border-bottom:1px dashed #a7f3d0;">SİGORTA</td><td style="padding:3px 6px;text-align:right;font-weight:700;border-bottom:1px dashed #a7f3d0;">${getV('res-otvsiz-d-sigorta')}</td></tr>
+
+                            <tr><td style="padding:3px 6px;color:#666;font-weight:600;border-bottom:1px dashed #a7f3d0;">CIF</td><td style="padding:3px 6px;text-align:right;font-weight:700;border-bottom:1px dashed #a7f3d0;">${getV('res-otvsiz-d-cif')}</td></tr>
+
+                            <tr><td style="padding:3px 6px;color:#666;font-weight:600;border-bottom:1px dashed #a7f3d0;">YDIŞI</td><td style="padding:3px 6px;text-align:right;font-weight:700;border-bottom:1px dashed #a7f3d0;">${getV('res-otvsiz-d-ydisi')}</td></tr>
+
+                            <tr><td style="padding:3px 6px;color:#666;font-weight:600;border-bottom:1px dashed #a7f3d0;">YİÇİ</td><td style="padding:3px 6px;text-align:right;font-weight:700;border-bottom:1px dashed #a7f3d0;">${getV('res-otvsiz-d-yici')}</td></tr>
+
+                            <tr><td style="padding:3px 6px;color:#1e3a8a;font-weight:700;border-bottom:1px dashed #a7f3d0;">GVM</td><td style="padding:3px 6px;text-align:right;font-weight:700;color:#1e3a8a;border-bottom:1px dashed #a7f3d0;">${getV('res-otvsiz-d-gvm')}</td></tr>
+
+                            <tr><td style="padding:3px 6px;color:#666;font-weight:600;border-bottom:1px dashed #a7f3d0;">GV</td><td style="padding:3px 6px;text-align:right;font-weight:700;border-bottom:1px dashed #a7f3d0;">${getV('res-otvsiz-d-gv')}</td></tr>
+
+                            <tr><td style="padding:3px 6px;color:#1e3a8a;font-weight:700;">KDVM</td><td style="padding:3px 6px;text-align:right;font-weight:700;color:#1e3a8a;">${getV('res-otvsiz-d-kdvm')}</td></tr>
+
+                        </table>
+
+                    </td>
 
                 </tr>
 
             </table>
-
-            
 
             <div style="background:#10b981;padding:8px 15px;display:flex;justify-content:space-between;align-items:center;">
 
@@ -7287,6 +7417,17 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     sH("res-otvsiz-toplam-vergi", topVsiz);
     sH("res-otvsiz-eur", (kur ? (topVsiz / kur) + topD + dEUR : 0), true);
     sH("res-otvsiz-maliyet", ((topVsiz / kur) + topD + dEUR) * kur);
+
+    // --- B HESAP DETAYLARI (sağ panel) ---
+    sH("res-otvsiz-d-fatura", fatTL);
+    sH("res-otvsiz-d-navlun", nTL);
+    sH("res-otvsiz-d-sigorta", sTL);
+    sH("res-otvsiz-d-cif", cif);
+    sH("res-otvsiz-d-ydisi", ydTL);
+    sH("res-otvsiz-d-yici", yi);
+    sH("res-otvsiz-d-gvm", gvM);
+    sH("res-otvsiz-d-gv", gvT);
+    sH("res-otvsiz-d-kdvm", otvSizKdvM);
 
     // MTV Hesabı
     let mtvTurEl = document.getElementById('mtv-tur'), mtvHacimEl = document.getElementById('mtv-hacim');
