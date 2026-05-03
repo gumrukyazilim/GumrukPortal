@@ -9993,6 +9993,80 @@ window.renderView = function(viewName) {
 setTimeout(() => window._f1_validationKur(), 1500);
 
 console.log("[Faz1] Zorunlu alan validation kuruldu");
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. ADMIN BODY SINIFI (mobil alt nav için)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+window._f1_adminBodySinifi = function() {
+    const role = localStorage.getItem('gumruk_role') || '';
+    if (role === 'admin') {
+        document.body.classList.add('is-admin');
+    } else {
+        document.body.classList.remove('is-admin');
+    }
+};
+
+// İlk açılış ve view değişiminde kontrol
+setTimeout(() => window._f1_adminBodySinifi(), 1500);
+
+// Mevcut renderView wrapper'ına da ekle
+const _orig_renderViewForAdmin = window.renderView;
+window.renderView = function(viewName) {
+    let r;
+    if (typeof _orig_renderViewForAdmin === 'function') {
+        r = _orig_renderViewForAdmin.apply(this, arguments);
+    }
+    setTimeout(() => window._f1_adminBodySinifi(), 100);
+    return r;
+};
+
+console.log("[Faz1] Admin body sınıfı kontrolü kuruldu");
+/* ═══════════════════════════════════════════════════════════════════════════
+   8. MOBİL ALT NAV ROLE KONTROLÜ
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const _orig_checkBottomNav = window.checkBottomNav;
+
+window.checkBottomNav = function() {
+    const nav = document.getElementById('bottom-nav');
+    if (!nav) return;
+    
+    // Role kontrolü
+    const role = localStorage.getItem('gumruk_role') || '';
+    const isAuth = localStorage.getItem('gumruk_auth') === 'true';
+    const isAdmin = (role === 'admin');
+    const isSuperViewer = document.body.classList.contains('is-izleyici');
+    
+    // Sadece (giriş yapmış) VE (admin VEYA süper izleyici) ise göster
+    const goster = (isAuth && (isAdmin || isSuperViewer));
+    
+    // Mobilde mi
+    const mobil = window.innerWidth <= 768;
+    
+    if (mobil && goster) {
+        nav.style.display = 'block';
+    } else {
+        nav.style.display = 'none';
+    }
+    
+    if (window.lucide) lucide.createIcons();
+};
+
+// Hemen bir kere çalıştır
+setTimeout(() => window.checkBottomNav(), 500);
+
+// Login/logout sonrası gibi durumlar için ekstra çalıştırma
+const _orig_renderViewForNav = window.renderView;
+window.renderView = function(viewName) {
+    let r;
+    if (typeof _orig_renderViewForNav === 'function') {
+        r = _orig_renderViewForNav.apply(this, arguments);
+    }
+    setTimeout(() => window.checkBottomNav(), 100);
+    return r;
+};
+
+console.log("[Faz1] Mobil alt nav role kontrolü kuruldu");
 </script>
 
 </body>
