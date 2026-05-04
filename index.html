@@ -578,10 +578,54 @@
         .result-label { font-size:12.5px; color:var(--text-secondary); }
         .result-value { font-size:13px; font-weight:600; color:var(--text-primary); }
         
-        .result-total { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,var(--primary) 0%,#7c3aed 100%); padding:20px; border-radius:var(--r-md); margin-top:16px; }
-        .result-total-label { font-size:15px; font-weight:600; color:#fff !important; }
-        .result-total-value { font-size:22px; font-weight:800; color:#fff !important; letter-spacing:-0.5px; }
-        .result-total-sub { font-size:11px; color:rgba(255,255,255,0.8) !important; margin-top:2px; text-align:right; }
+        .result-total {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #7c3aed);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
+
+/* Üst başlık */
+.result-total-label {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.9;
+    color: #fff;
+}
+
+/* Ana fiyat */
+.result-total-value {
+    font-weight: 800;
+    color: #fff;
+
+    font-size: clamp(16px, 6vw, 26px);
+    line-height: 1.2;
+
+    word-break: break-word;
+}
+
+/* Alt açıklama */
+.result-total-sub {
+    font-size: 11px;
+    opacity: 0.8;
+    color: #fff;
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+    .result-total {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .result-total-value {
+        text-align: right;
+    }
+}
         
         .segmented-control { display:flex; background:var(--input-bg); padding:3px; border-radius:var(--r-sm); border:1px solid var(--border); position:relative; }
         .segmented-control input { display:none; }
@@ -634,6 +678,48 @@
         .result-value {
             font-weight: 600;
         }
+		.result-total {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #7c3aed);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
+
+.result-total-label {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.9;
+    color: #fff;
+}
+
+.result-total-value {
+    font-weight: 800;
+    color: #fff;
+    font-size: clamp(16px, 6vw, 26px);
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.result-total-sub {
+    font-size: 11px;
+    opacity: 0.8;
+    color: #fff;
+}
+
+@media (min-width: 768px) {
+    .result-total {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .result-total-value {
+        text-align: right;
+    }
+}
         .sortable-th:hover { color:var(--text-primary); }
         
         .firm-search-wrap { position:relative; }
@@ -1784,13 +1870,14 @@
                 </div>
                 <div class="gtip-display" id="gtip-display">GTİP: 8703.2319.1200</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
-                    <div class="input-group" style="margin:0;"><label>Fatura Tutarı</label><input id="calc-fatura" type="text" value="100.500" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Navlun</label><input id="calc-navlun" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Sigorta</label><input id="calc-sigorta" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>Yurt Dışı Gider</label><input id="calc-yurtdisi" type="text" value="100" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <!-- YENİ KKDF KUTUSU BURAYA EKLENDİ -->
+                    <div class="input-group" style="margin:0;"><label id="lbl-fatura">Fatura Tutarı (€)</label><input id="calc-fatura" type="text" value="100.500" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
+                    <div class="input-group" style="margin:0;"><label id="lbl-navlun">Navlun (€)</label><input id="calc-navlun" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
+                    <div class="input-group" style="margin:0;"><label id="lbl-sigorta">Sigorta (€)</label><input id="calc-sigorta" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
+                    <div class="input-group" style="margin:0;"><label id="lbl-yurtdisi">Yurt Dışı Gider (€)</label><input id="calc-yurtdisi" type="text" value="100" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
+                    
+                    <!-- KKDF KUTUSU (₺ olarak güncellendi) -->
                     <div class="input-group" style="margin:0;">
-                        <label>KKDF (TL)</label>
+                        <label>KKDF (₺)</label>
                         <input id="calc-kkdf-tutar" type="text" value="0" onfocus="window._kkdfLocked = true" oninput="window.formatCurrencyInput(this);window.calculateTaxes()">
                     </div>
                     <div class="input-group" style="margin:0;"><label>Yurt İçi (₺)</label><input id="calc-yurtici" type="text" value="25.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
@@ -2011,9 +2098,9 @@
             <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-weight:600;color:var(--text-secondary);">G.GİRİŞ KDV'Sİ</span><span id="sim-res-matrah-kdvsi" style="font-weight:700;">0 ₺</span></div>
             <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="font-weight:800;color:var(--danger);">TOPLAM VERGİ</span><span id="sim-res-toplam-vergi" style="font-weight:800;color:var(--danger);">0 ₺</span></div>
             
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:14px;background:var(--input-bg);border:2px solid var(--primary);border-radius:8px;box-shadow:0 4px 12px rgba(59,130,246,0.15);">
-                <span style="font-weight:800;color:var(--text-primary);font-size:15px;">TOPLAM KESİLECEK FATURA</span>
-                <strong id="sim-res-fatura" style="font-size:24px;font-weight:800;color:var(--primary);letter-spacing:-0.5px;">0 ₺</strong>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; margin-top:14px; padding:16px; background:var(--input-bg); border:2px solid var(--primary); border-radius:12px; box-shadow:0 4px 12px rgba(59,130,246,0.15);">
+                <span style="font-weight:800; color:var(--text-primary); font-size:15px; flex:1; min-width:150px;">TOPLAM KESİLECEK FATURA</span>
+                <strong id="sim-res-fatura" style="font-size:clamp(18px, 6vw, 26px); font-weight:900; color:var(--primary); letter-spacing:-0.5px; word-break:break-word; text-align:right;">0 ₺</strong>
             </div>
         </div>
     </div>
@@ -2379,6 +2466,7 @@ window._fbQuery = query;
 window._fbOrderByChild = orderByChild;
 window._fbStartAt = startAt;
 window._fbEndAt = endAt;
+window._fbOnValue = onValue;
 window._firebaseReady = true;
 if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 // Banka verisi cache
@@ -4781,7 +4869,7 @@ if(data.ekGonderici) {
 
         // ===== GERÇEK ZAMANLI SENKRONİZASYON (Real-time Listener) =====
         // Firebase'deki gelecekData yolunu sürekli dinle
-        if(window._fbRef && window._fbDb && onValue) {
+        if(window._fbRef && window._fbDb && window._fbOnValue) {
             // Eski listener varsa temizle
             if(window._gelecekListener) {
                 window._gelecekListener();
@@ -4789,7 +4877,7 @@ if(data.ekGonderici) {
 
             const gelecekRef = window._fbRef(window._fbDb, 'portal_data_test/gelecekData');
             
-            window._gelecekListener = onValue(gelecekRef, function(snapshot) {
+            window._gelecekListener = window._fbOnValue(gelecekRef, function(snapshot) {
                 console.log("📡 Firebase dinleyicisi aktif: Veriler tüm cihazlar arasında anlık senkronize ediliyor.");
                 
                 if(snapshot.exists()) {
@@ -5727,7 +5815,7 @@ function useFallback(lastKur, st) {
 
         <!-- 2. TABLO: SATIŞ VE KÂR SİMÜLASYONU -->
         <div style="border:2px solid #3b82f6;border-radius:4px;overflow:hidden;margin-bottom:4px;">
-            <div style="background:#dbeafe;padding:3px 10px;font-size:9px;font-weight:800;color:#1e3a8a;border-bottom:1px solid #3b82f6;text-align:center;">📈 SATIŞ VE FATURA BİLGİSİ)</div>
+            <div style="background:#dbeafe;padding:3px 10px;font-size:9px;font-weight:800;color:#1e3a8a;border-bottom:1px solid #3b82f6;text-align:center;">📈 SATIŞ VE FATURA BİLGİSİ </div>
             <table style="width:100%;border-collapse:collapse;font-size:8px;background:#fff;">
                 <tr><td style="padding:2px 6px;border-bottom:1px solid #cbd5e1;color:#555;font-weight:600;">ÖTV MATRAHI</td><td style="padding:2px 6px;border-bottom:1px solid #cbd5e1;text-align:right;font-weight:700;">${getV('sim-res-otv-matrahi')}</td></tr>
                 <tr style="background:#ecfdf5;"><td style="padding:2px 6px;border-bottom:1px solid #cbd5e1;color:#047857;font-weight:700;">EKLENEN KÂR</td><td style="padding:2px 6px;border-bottom:1px solid #cbd5e1;text-align:right;font-weight:800;color:#047857;">${getV('sim-res-eklenen-kar')}</td></tr>
@@ -10063,7 +10151,31 @@ if(!window._cifDinleyiciAktif) {
     setTimeout(window.uygulaTeslimSekliUI, 500);
     window._cifDinleyiciAktif = true;
 }
-</script>
+// --- DÖVİZ ETİKETLERİ DİNAMİK GÜNCELLEME ---
+window.guncelleDovizEtiketleri = function() {
+    let currencyInput = document.getElementById('calc-currency');
+    if(!currencyInput) return;
+    
+    // Eğer USD seçiliyse ($), Euro seçiliyse (€) yap
+    let isaret = currencyInput.value === 'USD' ? '($)' : '(€)';
+    
+    let lblFatura = document.getElementById('lbl-fatura');
+    let lblNavlun = document.getElementById('lbl-navlun');
+    let lblSigorta = document.getElementById('lbl-sigorta');
+    let lblYurtdisi = document.getElementById('lbl-yurtdisi');
+    
+    if(lblFatura) lblFatura.innerText = 'Fatura Tutarı ' + isaret;
+    if(lblNavlun) lblNavlun.innerText = 'Navlun ' + isaret;
+    if(lblSigorta) lblSigorta.innerText = 'Sigorta ' + isaret;
+    if(lblYurtdisi) lblYurtdisi.innerText = 'Yurt Dışı Gider ' + isaret;
+};
 
+// Sayfada döviz kutusu (calc-currency) her değiştiğinde etiketleri güncelle
+document.addEventListener('change', function(e) {
+    if(e.target && e.target.id === 'calc-currency') {
+        window.guncelleDovizEtiketleri();
+    }
+});
+</script>
 </body>
 </html>
