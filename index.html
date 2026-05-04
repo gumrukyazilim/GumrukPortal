@@ -1965,6 +1965,58 @@
             </div>
         </div>
     </div>
+	<!-- 💰 SATIŞ VE KÂR SİMÜLASYONU 💰 -->
+    <div style="background:var(--bg-surface); border:2px solid var(--primary); padding:16px; border-radius:12px; margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="trending-up" style="width:18px;height:18px;"></i> FATURA DETAYI
+        </div>
+        
+        <!-- Kâr Giriş Alanı -->
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;margin-bottom:14px;align-items:end;">
+            <div class="input-group" style="margin:0;">
+                <label style="color:var(--text-primary);font-weight:700;font-size:11px;">EKLENEN KÂR</label>
+                <input id="sim-kar-input" type="text" value="100.000" oninput="window.formatCurrencyInput(this); window.hesaplaSatisKari();" style="font-size:18px;font-weight:800;color:var(--success);border-color:var(--success);background:rgba(16,185,129,0.05);">
+            </div>
+            <div class="input-group" style="margin:0;">
+                <label style="font-size:11px;">BİRİM</label>
+                <select id="sim-kar-tipi" onchange="window.hesaplaSatisKari();" style="background:var(--input-bg);font-weight:700;font-size:14px;height:46px;">
+                    <option value="TL">₺ TL</option>
+                    <option value="EUR">€ EUR</option>
+                    <option value="YUZDE">% Yüzde</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Ekstra Masraflar -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+            <div class="input-group" style="margin:0;">
+                <label style="font-size:10px;">GELİR VERGİSİ (₺)</label>
+                <input id="sim-gelir-vergisi" type="text" value="25.000" oninput="window.formatCurrencyInput(this); window.hesaplaSatisKari();" style="font-weight:600;">
+            </div>
+            <div class="input-group" style="margin:0;">
+                <label style="font-size:10px;">TESCİL MASRAFI (₺)</label>
+                <input id="sim-tescil-masrafi" type="text" value="15.000" oninput="window.formatCurrencyInput(this); window.hesaplaSatisKari();" style="font-weight:600;">
+            </div>
+        </div>
+
+        <!-- Excel Tablosu Birebir Çıktı -->
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-weight:600;color:var(--text-secondary);">ÖTV MATRAHI</span><span id="sim-res-otv-matrahi" style="font-weight:700;">0 ₺</span></div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-weight:700;color:var(--text-primary);">EKLENEN KÂR</span><span id="sim-res-eklenen-kar" style="font-weight:800;color:var(--success);">0 ₺</span></div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-weight:600;color:var(--text-secondary);">ÖTV %</span><span id="sim-res-otv-oran" style="font-weight:700;">%0</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);background:rgba(59,130,246,0.08);margin:0 -14px;padding-left:14px;padding-right:14px;"><span style="font-weight:800;color:var(--primary);">TOPLAM MATRAH</span><span id="sim-res-toplam-matrah" style="font-weight:800;color:var(--primary);">0 ₺</span></div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-weight:600;color:var(--text-secondary);">HESAPLANAN ÖTV</span><span id="sim-res-hesaplanan-otv" style="font-weight:700;">0 ₺</span></div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-weight:600;color:var(--text-secondary);">KDV %</span><span id="sim-res-kdv-oran" style="font-weight:700;">%20</span></div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-weight:600;color:var(--text-secondary);">ÖTV'NİN KDV'Sİ</span><span id="sim-res-otv-kdvsi" style="font-weight:700;">0 ₺</span></div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="font-weight:600;color:var(--text-secondary);">G.GİRİŞ KDV'Sİ</span><span id="sim-res-matrah-kdvsi" style="font-weight:700;">0 ₺</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="font-weight:800;color:var(--danger);">TOPLAM VERGİ</span><span id="sim-res-toplam-vergi" style="font-weight:800;color:var(--danger);">0 ₺</span></div>
+            
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:14px;background:var(--input-bg);border:2px solid var(--primary);border-radius:8px;box-shadow:0 4px 12px rgba(59,130,246,0.15);">
+                <span style="font-weight:800;color:var(--text-primary);font-size:15px;">TOPLAM KESİLECEK FATURA</span>
+                <strong id="sim-res-fatura" style="font-size:24px;font-weight:800;color:var(--primary);letter-spacing:-0.5px;">0 ₺</strong>
+            </div>
+        </div>
+    </div>
     
    <!-- ÖTV'SİZ FİNAL (BEYANNAME KUTU 47 FORMATI) -->
     <div style="background:var(--input-bg);border:2px solid var(--success);padding:14px;border-radius:12px;">
@@ -10102,6 +10154,172 @@ window.renderView = function(viewName) {
 };
 
 console.log("[Faz1] Mobil alt nav role kontrolü kuruldu");
+window.hesaplaSatisKari = function() {
+    let parseVal = (id) => {
+        let el = document.getElementById(id);
+        if(!el) return 0;
+        let val = (el.tagName === 'INPUT' || el.tagName === 'SELECT') ? el.value : el.innerText;
+        return parseFloat(String(val).replace(/\./g, '').replace(',', '.')) || 0;
+    };
+
+    // Ana sistemden baz ÖTV matrahını çek
+    let bazOtvMatrahi = parseVal('res-otv-matrahi');
+    if(bazOtvMatrahi === 0) return; // Veri yoksa hesaplama
+
+    let otvOran = parseVal('calc-otv-oran') / 100;
+    let kdvOran = parseVal('calc-kdv-oran') / 100;
+    let eurKur = parseVal('calc-kur-eur');
+    
+    let karGirdisi = parseVal('sim-kar-input');
+    let karTipi = document.getElementById('sim-kar-tipi')?.value || 'TL'; 
+    
+    // Kârı TL cinsine çevir
+    let eklenenKarTL = 0;
+    if(karTipi === 'TL') {
+        eklenenKarTL = karGirdisi;
+    } else if(karTipi === 'EUR') {
+        eklenenKarTL = karGirdisi * eurKur;
+    } else if(karTipi === 'YUZDE') {
+        eklenenKarTL = bazOtvMatrahi * (karGirdisi / 100);
+    }
+
+    // --- DOĞRU TİCARİ MATEMATİK (EXCEL BİREBİR) ---
+    let yeniMatrah = bazOtvMatrahi + eklenenKarTL;
+    let hesaplananOtv = yeniMatrah * otvOran;
+    
+    let otvKdvsi = hesaplananOtv * kdvOran;
+    
+    // G.GİRİŞ KDV'sini ÖTV'siz Final (Kutu 47) tablosundan direkt çekiyoruz!
+    let gumrukGirisKdvsi = parseVal('res-otvsiz-kdv'); 
+    
+    // Toplam Vergi = ÖTV + ÖTV'nin KDV'si + Peşin Ödenen Gümrük KDV'si
+    let genelVergiYuku = hesaplananOtv + otvKdvsi + gumrukGirisKdvsi;
+    
+    let gelirVergisi = parseVal('sim-gelir-vergisi');
+    let tescilMasrafi = parseVal('sim-tescil-masrafi');
+    
+    // Fatura = Matrah + Toplam Vergi + Gelir Vergisi + Tescil Masrafı
+    let faturaToplami = yeniMatrah + genelVergiYuku + gelirVergisi + tescilMasrafi;
+
+    // --- EKRANA YAZDIRMA ---
+    const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = window.formatNumber(val, true) + ' ₺'; };
+    
+    setVal('sim-res-otv-matrahi', bazOtvMatrahi);
+    setVal('sim-res-eklenen-kar', eklenenKarTL);
+    setVal('sim-res-toplam-matrah', yeniMatrah);
+    if(document.getElementById('sim-res-otv-oran')) document.getElementById('sim-res-otv-oran').innerText = '%' + Math.round(otvOran * 100);
+    setVal('sim-res-hesaplanan-otv', hesaplananOtv);
+    if(document.getElementById('sim-res-kdv-oran')) document.getElementById('sim-res-kdv-oran').innerText = '%' + Math.round(kdvOran * 100);
+    
+    setVal('sim-res-otv-kdvsi', otvKdvsi);
+    
+    // Düzelttiğimiz Gümrük Giriş KDV'si ekrana yansıyor
+    setVal('sim-res-matrah-kdvsi', gumrukGirisKdvsi);
+    
+    setVal('sim-res-toplam-vergi', genelVergiYuku);
+    
+    if(document.getElementById('sim-res-fatura')) {
+        document.getElementById('sim-res-fatura').innerText = window.formatNumber(faturaToplami, true) + ' ₺';
+    }
+};
+
+// --- ÖLÜMSÜZ GÖZLEMCİ: Sayfa yenilenmesini ve ana kodları dinleyen sistem ---
+if (!window._simDinleyiciAktif) {
+    // Manuel input girişleri için
+    document.addEventListener('input', function() { setTimeout(window.hesaplaSatisKari, 100); });
+    document.addEventListener('change', function() { setTimeout(window.hesaplaSatisKari, 100); });
+    
+    // DOM Gözlemcisi: Ekranda ana hesaplama (Kutu 47 KDV'si veya ÖTV Matrahı) değiştiği an, 
+    // sayfa yeni açılmış bile olsa anında kâr simülasyonunu günceller.
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.target.id === 'res-otvsiz-kdv' || mutation.target.id === 'res-otv-matrahi') {
+                window.hesaplaSatisKari();
+            }
+        });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    
+    // İlk açılış için sigorta tetiklemesi
+    setTimeout(window.hesaplaSatisKari, 1000);
+    window._simDinleyiciAktif = true;
+}
+// --- CIF / EXW BUTON MANTIĞI VE KUTU KİLİTLEME SİSTEMİ ---
+window.setTeslimCalc = function(tip) {
+    let gizli = document.getElementById('calc-teslim');
+    if(gizli) gizli.value = tip;
+    
+    // Değer değiştikten sonra UI (arayüz) kilitlerini uygula
+    window.uygulaTeslimSekliUI(); 
+    
+    // Vergileri yeniden hesapla
+    if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
+};
+
+window.uygulaTeslimSekliUI = function() {
+    let tip = document.getElementById('calc-teslim')?.value || 'CIF';
+    
+    let btnCif = document.getElementById('calc-cif-btn');
+    let btnExw = document.getElementById('calc-exw-btn');
+    let navlunInput = document.getElementById('calc-navlun');
+    let sigortaInput = document.getElementById('calc-sigorta');
+    
+    // Eğer hesaplama sayfasında değilsek (kutular ekranda yoksa) işlem yapma
+    if(!navlunInput || !sigortaInput) return; 
+
+    if (tip === 'CIF') {
+        // CIF Seçili: Navlun ve Sigorta faturaya dahildir, dışarıdan girilmez!
+        if(btnCif) { btnCif.style.background = 'var(--primary)'; btnCif.style.color = '#fff'; }
+        if(btnExw) { btnExw.style.background = 'transparent'; btnExw.style.color = 'var(--text-secondary)'; }
+        
+        // Kutuları kilitle, soluklaştır ve 0 yap
+        navlunInput.readOnly = true;
+        navlunInput.style.opacity = '0.4';
+        navlunInput.style.pointerEvents = 'none';
+        navlunInput.value = '0';
+        
+        sigortaInput.readOnly = true;
+        sigortaInput.style.opacity = '0.4';
+        sigortaInput.style.pointerEvents = 'none';
+        sigortaInput.value = '0';
+        
+    } else {
+        // EXW Seçili: Nakliye ve sigorta alıcıya aittir, kutuları aç!
+        if(btnExw) { btnExw.style.background = 'var(--primary)'; btnExw.style.color = '#fff'; }
+        if(btnCif) { btnCif.style.background = 'transparent'; btnCif.style.color = 'var(--text-secondary)'; }
+        
+        // Kutuların kilidini aç ve normal görünüme getir
+        navlunInput.readOnly = false;
+        navlunInput.style.opacity = '1';
+        navlunInput.style.pointerEvents = 'auto';
+        
+        sigortaInput.readOnly = false;
+        sigortaInput.style.opacity = '1';
+        sigortaInput.style.pointerEvents = 'auto';
+    }
+};
+
+// --- BEKÇİ (OBSERVER) ---
+// Hesaplama şablonu sayfaya her yüklendiğinde (sayfa yenilense bile) kilitleri anında devreye sokar
+if(!window._cifDinleyiciAktif) {
+    const cifObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            // Ekrana yeni bir şeyler eklendiyse
+            if(mutation.addedNodes.length > 0) {
+                // Eklenen şeylerin içinde hesaplama sayfası (calc-teslim) varsa kilitleri çalıştır
+                if(document.getElementById('calc-teslim')) {
+                    window.uygulaTeslimSekliUI();
+                }
+            }
+        });
+    });
+    cifObserver.observe(document.body, { childList: true, subtree: true });
+    
+    // İlk açılış ihtimaline karşı bir kere çalıştır
+    setTimeout(window.uygulaTeslimSekliUI, 500);
+    window._cifDinleyiciAktif = true;
+}
 </script>
 
 </body>
