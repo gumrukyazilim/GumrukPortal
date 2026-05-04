@@ -10151,23 +10151,34 @@ if(!window._cifDinleyiciAktif) {
     setTimeout(window.uygulaTeslimSekliUI, 500);
     window._cifDinleyiciAktif = true;
 }
-// --- DÖVİZ ETİKETLERİ DİNAMİK GÜNCELLEME ---
+// --- DÖVİZ ETİKETLERİ VE KUR TARİHİ DİNAMİK GÜNCELLEME (KUSURSUZ VERSİYON) ---
 window.guncelleDovizEtiketleri = function() {
     let currencyInput = document.getElementById('calc-currency');
     if(!currencyInput) return;
     
-    // Eğer USD seçiliyse ($), Euro seçiliyse (€) yap
     let isaret = currencyInput.value === 'USD' ? '($)' : '(€)';
     
-    let lblFatura = document.getElementById('lbl-fatura');
-    let lblNavlun = document.getElementById('lbl-navlun');
-    let lblSigorta = document.getElementById('lbl-sigorta');
-    let lblYurtdisi = document.getElementById('lbl-yurtdisi');
+    // innerText yerine textContent kullanıyoruz (gizli veya yüklenmekte olan öğelerde patlamasın diye)
+    let etiketGuncelle = (id, metin) => {
+        let el = document.getElementById(id);
+        if(el && el.textContent !== metin) {
+            el.textContent = metin; 
+        }
+    };
+
+    etiketGuncelle('lbl-fatura', 'Fatura Tutarı ' + isaret);
+    etiketGuncelle('lbl-navlun', 'Navlun ' + isaret);
+    etiketGuncelle('lbl-sigorta', 'Sigorta ' + isaret);
+    etiketGuncelle('lbl-yurtdisi', 'Yurt Dışı Gider ' + isaret);
+
+    let kurStatus = document.getElementById('kur-status');
     
-    if(lblFatura) lblFatura.innerText = 'Fatura Tutarı ' + isaret;
-    if(lblNavlun) lblNavlun.innerText = 'Navlun ' + isaret;
-    if(lblSigorta) lblSigorta.innerText = 'Sigorta ' + isaret;
-    if(lblYurtdisi) lblYurtdisi.innerText = 'Yurt Dışı Gider ' + isaret;
+    // KİLİT NOKTASI: data-guncellendi mühürünü kullanıyoruz ki bir daha asla üst üste çalışmasin!
+    if(kurStatus && kurStatus.getAttribute('data-guncellendi') !== 'evet') {
+        let bugun = new Date().toLocaleDateString('tr-TR');
+        kurStatus.innerHTML = `<span style="width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; box-shadow: 0 0 8px var(--success);"></span> TCMB Efektif Satış Kuru (${bugun})`;
+        kurStatus.setAttribute('data-guncellendi', 'evet');
+    }
 };
 
 // Sayfada döviz kutusu (calc-currency) her değiştiğinde etiketleri güncelle
@@ -10176,6 +10187,16 @@ document.addEventListener('change', function(e) {
         window.guncelleDovizEtiketleri();
     }
 });
+
+// Riskli Gözlemci (Observer) YERİNE, saniyede 2 kez sadece kutu var mı diye sessizce bakan güvenli motor:
+if(!window._dovizDinleyiciAktif) {
+    setInterval(function() {
+        if(document.getElementById('calc-currency')) {
+            window.guncelleDovizEtiketleri();
+        }
+    }, 500);
+    window._dovizDinleyiciAktif = true;
+}
 </script>
 </body>
 </html>
