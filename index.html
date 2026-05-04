@@ -1692,7 +1692,7 @@
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Gelişmiş Vergi & Maliyet Hesaplama</h1><p class="page-sub">TCMB kurları · GTİP otomatik · ÖTV akıllı öneri</p></div>
         <div class="page-actions" style="display: flex; gap: 10px;">
-    <button class="btn-sm admin-only" style="border-color: var(--danger); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcPDF()">
+    <button class="btn-sm" style="border-color: var(--danger); color: var(--text-primary); display: flex; align-items: center; gap: 8px; white-space: nowrap;" onclick="window.exportCalcPDF()">
         <i data-lucide="file-text" style="width:16px;height:16px;"></i> PDF Çıktısı
     </button>
     
@@ -2284,7 +2284,7 @@ window._db = db;
 
 window._firebaseSave = async function(payload) {
     try {
-        // Eksik alanları otomatik doldur — hiçbir kayıt diğer verileri silmesin
+        // 1. ÖNCE EKSİK ALANLARI DOLDUR (Paketi son haline getir)
         if(!('decl' in payload))        payload.decl        = window.declarationsData;
         if(!('firm' in payload))        payload.firm        = window.firmData;
         if(!('kiymet' in payload))      payload.kiymet      = window.kiymetData;
@@ -2295,10 +2295,23 @@ window._firebaseSave = async function(payload) {
             try { payload.ekGonderici = JSON.parse(localStorage.getItem('gumruk_ek_gonderici') || '[]'); }
             catch(e) { payload.ekGonderici = []; }
         }
+
+        // 2. ŞİMDİ GÜVENLİK KONTROLÜNÜ YAP (Çünkü gönderilecek paket artık eksiksiz)
+        if ((!payload.decl || payload.decl.length === 0) && window._dataLoaded) {
+            if(!confirm("KRİTİK UYARI: Firebase'e gönderilecek araç listesi BOŞ! Bu işlem tüm bulut arşivinizi silecek. Devam etmek istediğinize emin misiniz?")) {
+                console.warn("Güvenlik duvarı: Boş veriyle bulutu ezme işlemi iptal edildi.");
+                return false;
+            }
+        }
+
+        // 3. HER ŞEY TAMAMSA BULUTA YAZ
         await set(ref(db, 'portal_data_test'), payload);
         return true;
     }
-    catch(e) { console.error("Firebase save error:", e); return false; }
+    catch(e) { 
+        console.error("Firebase save error:", e); 
+        return false; 
+    }
 };
 window._firebaseLoad = async function() {
     try {
@@ -4700,7 +4713,13 @@ if(data.ekGonderici) {
             }else{
                 hideSyncToast("Çevrimdışı mod.",false);
                 loadFromLocal();
-                window._dataLoaded = true; // Local'den de gelse kilidi aç
+                // KİLİT: Eğer lokalden gelen veri de boşsa, sistemi kilitli tut ki bulutu yanlışlıkla sıfırlamasın!
+                if(window.declarationsData.length === 0 && Object.keys(window.firmData).length === 0) {
+                    window._dataLoaded = false;
+                    console.warn("DİKKAT: Bulut çekilemedi ve lokal veri boş! Buluta yazma kilitlendi.");
+                } else {
+                    window._dataLoaded = true;
+                }
             }
         }else{
             loadFromLocal();
@@ -7901,21 +7920,37 @@ window.setTeslimCalc = function(tip) {
     }
 };
     window.setAracTipi = function(tip) {
-    let btnAv = document.getElementById('tip-avrupa-btn');
-    let btnAm = document.getElementById('tip-amerikan-btn');
-    let gizli = document.getElementById('calc-arac-tipi');
-    if(gizli) gizli.value = tip;
-    if(tip === 'AVRUPA') {
-        if(btnAv) { btnAv.style.background = 'var(--primary)'; btnAv.style.color = '#fff'; }
-        if(btnAm) { btnAm.style.background = 'transparent'; btnAm.style.color = 'var(--text-secondary)'; }
+    document.getElementById('calc-arac-tipi').value = tip;
+    
+    let btnEu = document.getElementById('tip-avrupa-btn');
+    let btnUs = document.getElementById('tip-amerikan-btn');
+    let igvSelect = document.getElementById('calc-ilave-gv-oran');
+    
+    if (tip === 'AVRUPA') {
+        // Avrupa butonunu aktif yap
+        btnEu.style.background = 'var(--primary)';
+        btnEu.style.color = '#fff';
+        btnUs.style.background = 'transparent';
+        btnUs.style.color = 'var(--text-secondary)';
+        
+        // AVRUPA seçildiğinde İG.V'yi %0'a çek (Mevzuata uygun olarak)
+        if(igvSelect) igvSelect.value = "0";
+        
     } else {
-        if(btnAm) { btnAm.style.background = 'var(--primary)'; btnAm.style.color = '#fff'; }
-        if(btnAv) { btnAv.style.background = 'transparent'; btnAv.style.color = 'var(--text-secondary)'; }
-        // Amerikan seçilince İlave GV otomatik %25
-        let ilvSel = document.getElementById('calc-ilave-gv-oran');
-        if(ilvSel) ilvSel.value = '25';
+        // Amerikan butonunu aktif yap
+        btnUs.style.background = 'var(--primary)';
+        btnUs.style.color = '#fff';
+        btnEu.style.background = 'transparent';
+        btnEu.style.color = 'var(--text-secondary)';
+        
+        // AMERİKAN seçildiğinde İG.V'yi %25'e çek
+        if(igvSelect) igvSelect.value = "25";
     }
-    if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
+    
+    // Vergi oranları değiştiği için hesaplamayı anında tetikle
+    if (typeof window.calculateTaxes === 'function') {
+        window.calculateTaxes();
+    }
 };
 // ========== YENİ FONKSİYON: MAVİ KUTULARI DÜZ METNE ÇEVİRİR ==========
 window.cleanEditableFieldsForPDF = function() {
