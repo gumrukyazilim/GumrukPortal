@@ -1625,39 +1625,16 @@
             </div>
 
                 <div class="modal-section">
-    <div class="modal-section-title">Gümrük & Tarihler</div>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
-        <div class="input-group" style="margin:0;">
-            <label>Geliş Tarihi</label>
-            <input type="date" id="da-tarih" onclick="this.showPicker()" onblur="window.declAutoCalc()">
-        </div>
-
-        <div class="input-group" style="margin:0;">
-            <label>Ek Süre T.</label>
-            <input type="date" id="da-ekSure" onclick="this.showPicker()" onblur="window.declAutoCalc()">
-        </div>
-
-        <div class="input-group" style="margin:0;">
-            <label>Antrepo T.</label>
-            <input type="date" id="da-antTarih" onclick="this.showPicker()" onblur="window.declAutoCalc()">
-        </div>
-
-        <div class="input-group" style="margin:0;">
-            <label>Beyanname CIF</label>
-            <input type="date" id="da-beynmCif" onclick="this.showPicker()" onblur="window.declAutoCalc()">
-        </div>
-
-        <div class="input-group" style="margin:0;">
-            <label>Kıymet V. T.</label>
-            <input type="date" id="da-kiymVv" onclick="this.showPicker()" onblur="window.declAutoCalc()">
-        </div>
-
-        <div class="input-group" style="margin:0;">
-            <label>Kıymet G. T.</label>
-            <input type="date" id="da-kiymGt" onclick="this.showPicker()" onblur="window.declAutoCalc()">
-        </div>
-    </div>
-</div>
+                <div class="modal-section-title">Gümrük & Tarihler</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                    <div class="input-group" style="margin:0;"><label>Geliş Tarihi</label><input type="date" id="da-tarih" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Ek Süre T.</label><input type="date" id="da-ekSure" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Antrepo T.</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Beyanname CIF</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Kıymet V. T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Kıymet G. T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc()"></div>
+                </div>
+            </div>
 
             <div class="modal-section">
                 <div class="modal-section-title">Beyanname / GTİP Detayları</div>
@@ -6535,30 +6512,16 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
         
         if(idx===-1||!d){
-    ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim']
-    .forEach(id=>{
-        if(document.getElementById('da-'+id))
-            document.getElementById('da-'+id).value='';
-    });
-
-    if(document.getElementById('da-tarih')) 
-        document.getElementById('da-tarih').value='';
-
-    if(document.getElementById('da-evrak')) 
-        document.getElementById('da-evrak').value='Açık';
-
-    let defFirm = ctx==='firm' ? window.currentFirm : (Object.keys(window.firmData)[0]||'');
-
-    if(document.getElementById('da-firma')) 
-        document.getElementById('da-firma').value=defFirm;
-
-    if(document.getElementById('da-firma-search')) 
-        document.getElementById('da-firma-search').value=defFirm;
-
-    // YENİ KAYITTA OTOMATİK CIF IŞIĞINI YAK
-    if(window.setTeslimModal) 
-        window.setTeslimModal('CIF');
-}
+            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
+            if(document.getElementById('da-tarih')) document.getElementById('da-tarih').value=new Date().toISOString().split('T')[0];
+            if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value='Açık';
+            let defFirm=ctx==='firm'?window.currentFirm:(Object.keys(window.firmData)[0]||'');
+            if(document.getElementById('da-firma')) document.getElementById('da-firma').value=defFirm;
+            if(document.getElementById('da-firma-search')) document.getElementById('da-firma-search').value=defFirm;
+            
+            // YENİ KAYITTA OTOMATİK CIF IŞIĞINI YAK
+            if(window.setTeslimModal) window.setTeslimModal('CIF');
+        }
         else{
             if(document.getElementById('da-firma')) document.getElementById('da-firma').value=d.firma||'';
             if(document.getElementById('da-firma-search')) document.getElementById('da-firma-search').value=d.firma||'';
