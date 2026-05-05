@@ -1540,6 +1540,14 @@
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Finans</div><h1 class="page-title">Cari Kart</h1></div>
         <div class="page-actions">
+            
+            <!-- 🔥 İŞTE EKSİK OLAN YENİ FİLTRE MENÜSÜ BURADA 🔥 -->
+            <select id="cari-odeme-filtre" onchange="window.renderCariTable()" style="min-width:160px;padding:10px;font-weight:700;margin-right:8px;background:var(--input-bg);color:var(--text-primary);border-radius:var(--r-md);border:1px solid var(--border);">
+                <option value="bekleyen">⏳ Bekleyenler (Tümü)</option>
+                <option value="cikan_odemesiz" style="color:var(--danger);font-weight:800;">🚨 Çıkan & Ödenmeyenler</option>
+                <option value="tumu">📚 Tüm Geçmiş (Ekstre)</option>
+            </select>
+            
             <button class="btn-sm" id="cari-geri-btn" style="display:none;" onclick="document.getElementById('cari-firma-sec').value='';window.renderCariTable();"><i data-lucide="arrow-left"></i> Geri</button>
             <button id="cari-tablo-pdf-btn" class="btn-sm" style="background:var(--danger);color:#fff;border:none;" onclick="window.cariTabloPDF()"><i data-lucide="printer"></i> PDF İndir</button>
             <button id="cari-pdf-btn" class="btn-sm" style="display:none;background:var(--danger);color:#fff;border:none;" onclick="window.cariSeciliPDF()"><i data-lucide="file-text"></i> Seçililerin PDF'ini İndir</button>
@@ -1550,7 +1558,6 @@
         </div>
     </div>
     
-        
     <div class="card fade-in" style="padding:0;overflow:hidden;">
         <div class="table-wrap">
             <table class="data-table">
@@ -2643,10 +2650,12 @@ window.groupCariData = function(hareketler, firma) {
     });
 };
 
+// --- CARİ TABLO RENDER MOTORU (AKILLI DEDEKTİF VE ÖDEME SİSTEMİ) ---
 window.renderCariTable = function() {
     let firma = document.getElementById('cari-firma-sec')?.value;
     let tbody = document.getElementById('cari-tbody');
     let ozet = document.getElementById('cari-ozet');
+    let filtre = document.getElementById('cari-odeme-filtre')?.value || 'bekleyen'; 
     
     if(!firma) {
         if(ozet) ozet.style.display='none';
@@ -2656,81 +2665,37 @@ window.renderCariTable = function() {
         if(tableHead) tableHead.style.display = 'none';
         if(tbody) {
             let firmalar = Object.keys(window.cariData);
-            if(!firmalar.length) {
-                tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">Henüz hareket yok</td></tr>';
-                return;
-            }
-            let html = '<tr><td colspan="7" style="padding:0;border:none;">';
-            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px;">';
-            firmalar.forEach(function(fn) {
-                let hareketler = window.cariData[fn] || [];
-                if(!hareketler.length) return;
-                
-                // ===== KATI ALGORİTMA: BELLEKTE GRUPLAMA (FİRMA ÖZETİ İÇİN) =====
-                const gruplanmisVeri = {};
-                hareketler.forEach(function(h, idx) {
-                    let tarih = h.tarih || '-';
-                    let sasi = (h.sasi || '').trim().toUpperCase();
-                    let temizAciklama = (h.aciklama || '')
-                        .replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '')
-                        .replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '')
-                        .replace(/\s*H[İI]ZMET[İI]\s*/gi, '')
-                        .trim();
-                    
-                    let anahtar;
-                    if(sasi && sasi.length > 0) {
-                        anahtar = tarih + '|' + sasi;
-                    } else {
-                        anahtar = tarih + '|' + temizAciklama.toUpperCase();
+            if(!firmalar.length) { tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">Henüz hareket yok</td></tr>'; return; }
+            let html = '<tr><td colspan="7" style="padding:0;border:none;"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px;">';
+            firmalar.forEach(fn => {
+                let hList = window.cariData[fn] || [];
+                if(!hList.length) return;
+                let totG=0, totT=0;
+                hList.forEach(h => {
+                    let gb = parseFloat(h.gumrukBedeli)||0; let tb = parseFloat(h.tseBedeli)||0;
+                    if(!gb && !tb && h.tutar) {
+                        let t=parseFloat(h.tutar)||0; if(h.tur==='borc') t=-t;
+                        if((h.birim||'EUR').toUpperCase()==='EUR'||(h.birim||'USD').toUpperCase()==='USD') gb=t; else tb=t;
                     }
-                    
-                    if(!gruplanmisVeri[anahtar]) {
-                        gruplanmisVeri[anahtar] = { gumrukTutari: '-', tseTutari: '-' };
-                    }
-                    
-                    if(h.gumrukBedeli && parseFloat(h.gumrukBedeli) > 0) {
-                        gruplanmisVeri[anahtar].gumrukTutari = parseFloat(h.gumrukBedeli) || 0;
-                    }
-                    if(h.tseBedeli && parseFloat(h.tseBedeli) > 0) {
-                        gruplanmisVeri[anahtar].tseTutari = parseFloat(h.tseBedeli) || 0;
-                    }
-                    if(!h.gumrukBedeli && !h.tseBedeli && h.tutar) {
-                        let t = parseFloat(h.tutar) || 0;
-                        let b = (h.birim || 'EUR').toUpperCase();
-                        if(b === 'EUR' || b === 'USD') {
-                            gruplanmisVeri[anahtar].gumrukTutari = t;
-                        } else {
-                            gruplanmisVeri[anahtar].tseTutari = t;
-                        }
-                    }
+                    totG += gb; totT += tb;
                 });
-                
-                // Gruplanmış veriden toplam hesapla
-                let toplamGumruk=0, toplamTse=0;
-                Object.values(gruplanmisVeri).forEach(function(item) {
-                    if(item.gumrukTutari !== '-' && item.gumrukTutari > 0) toplamGumruk += item.gumrukTutari;
-                    if(item.tseTutari !== '-' && item.tseTutari > 0) toplamTse += item.tseTutari;
-                });
-                
                 let bakiye='';
-                if(toplamGumruk!==0) bakiye+=window.formatNumber(toplamGumruk,true).replace(',00','')+' €';
-                if(toplamTse!==0) bakiye+=(bakiye?' | ':'')+window.formatNumber(toplamTse,true).replace(',00','')+' ₺';
+                if(totG!==0) bakiye+=window.formatNumber(totG,true).replace(',00','')+' €';
+                if(totT!==0) bakiye+=(bakiye?' | ':'')+window.formatNumber(totT,true).replace(',00','')+' ₺';
                 if(!bakiye) bakiye='0';
-                let renk=(toplamGumruk>=0&&toplamTse>=0)?'var(--success)':'var(--danger)';
-                let sonHareket = hareketler[hareketler.length-1];
+                let renk=(totG>=0&&totT>=0)?'var(--success)':'var(--danger)';
+                let sonHareket = hList[hList.length-1];
                 let sonTarih = sonHareket ? sonHareket.tarih : '-';
                 
-                html += '<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;transition:0.2s;border-left:4px solid '+renk+';" onclick="document.getElementById(\'cari-firma-sec\').value=\''+fn+'\';window.renderCariTable();" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(0,0,0,0.2)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
-                html += '<span style="font-weight:700;font-size:15px;color:var(--text-primary);">'+fn+'</span>';
-                html += '<span class="badge" style="background:rgba(59,130,246,0.1);color:var(--primary);">'+hareketler.length+' hareket</span>';
-                html += '</div>';
-                html += '<div style="font-size:22px;font-weight:800;color:'+renk+';margin-bottom:8px;">'+bakiye+'</div>';
-                html += '<div style="font-size:11px;color:var(--text-muted);">Son: '+sonTarih+'</div>';
-                html += '</div>';
+                html += `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;transition:0.2s;border-left:4px solid ${renk};" onclick="document.getElementById('cari-firma-sec').value='${fn}';window.renderCariTable();" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <span style="font-weight:700;font-size:15px;color:var(--text-primary);">${fn}</span>
+                    </div>
+                    <div style="font-size:22px;font-weight:800;color:${renk};margin-bottom:8px;">${bakiye}</div>
+                    <div style="font-size:11px;color:var(--text-muted);">Son: ${sonTarih}</div>
+                </div>`;
             });
-            html += '</div></td></tr>';
-            tbody.innerHTML = html;
+            tbody.innerHTML = html + '</div></td></tr>';
         }
         return;
     }
@@ -2745,136 +2710,123 @@ window.renderCariTable = function() {
     if(ozet) ozet.style.display = 'grid';
     
     if(!hareketler.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait hareket yok</td></tr>';
-        let borcEl = document.getElementById('cari-toplam-borc');
-        let alacakEl = document.getElementById('cari-toplam-alacak');
-        let bakiyeEl = document.getElementById('cari-bakiye');
-        if(borcEl) { borcEl.innerText = '0'; borcEl.style.fontSize = '20px'; }
-        if(alacakEl) { alacakEl.innerText = '0'; alacakEl.style.fontSize = '20px'; }
-        if(bakiyeEl) { bakiyeEl.innerText = '0'; bakiyeEl.style.fontSize = '20px'; }
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait hareket yok</td></tr>';
         return;
     }
+
+    // 🕵️‍♂️ DEDEKTİF MOTORU: Geçmişteki ve güncel tüm arabaların Gümrük Durumunu anlık bul
+    let aracDurumlari = {};
+    (window.declarationsData || []).forEach(d => {
+        if(d.sasi) aracDurumlari[d.sasi.toUpperCase()] = (d.evrak || '').toLocaleLowerCase('tr');
+    });
+    (window.firmData[firma] || []).forEach(d => {
+        if(d.sasi && !aracDurumlari[d.sasi.toUpperCase()]) {
+            aracDurumlari[d.sasi.toUpperCase()] = (d.evrak || '').toLocaleLowerCase('tr');
+        }
+    });
     
-    // ===== KATI ALGORİTMA: BELLEKTE GRUPLAMA =====
-    // ADIM 1: Boş gruplama objesi oluştur
+    let gercekGumruk = 0, gercekTse = 0;
     const gruplanmisVeri = {};
     
-    // ADIM 2: Ham veriyi forEach ile dön
     hareketler.forEach(function(h, idx) {
-        // ADIM 3: Benzersiz anahtar oluştur (Tarih + Şasi veya Tarih + Temizlenmiş Araç Adı)
-        let tarih = h.tarih || '-';
+        let gb = parseFloat(h.gumrukBedeli)||0; let tb = parseFloat(h.tseBedeli)||0;
+        if(!gb && !tb && h.tutar) {
+            let t=parseFloat(h.tutar)||0; if(h.tur==='borc') t=-t;
+            if((h.birim||'EUR').toUpperCase()==='EUR'||(h.birim||'USD').toUpperCase()==='USD') gb=t; else tb=t;
+        }
+        gercekGumruk += gb; gercekTse += tb;
+
         let sasi = (h.sasi || '').trim().toUpperCase();
         
-        // Araç adını temizle (TSE HİZMETİ, GÜMRÜK HİZMETİ gibi ekleri kaldır)
-        let temizAciklama = (h.aciklama || '')
-            .replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '')
-            .replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '')
-            .replace(/\s*H[İI]ZMET[İI]\s*/gi, '')
-            .trim();
-        
-        // Benzersiz anahtar: Tarih + Şasi (veya Tarih + Temizlenmiş Araç Adı)
-        let anahtar;
-        if(sasi && sasi.length > 0) {
-            anahtar = tarih + '|' + sasi;
-        } else {
-            anahtar = tarih + '|' + temizAciklama.toUpperCase();
+        // Aracın ÇIKTI durumunu belirle (Gümrükten kapalıysa otomatik çıktı sayar)
+        let isAracCikti = h.isCikti === true;
+        if(!isAracCikti && sasi && aracDurumlari[sasi]) {
+            isAracCikti = (aracDurumlari[sasi] === 'kapalı' || aracDurumlari[sasi] === 'kapali');
         }
+
+        // FİLTRE MANTIĞI:
+        if(filtre === 'bekleyen' && (h.odendi || h.isTahsilat)) return;
+        if(filtre === 'cikan_odemesiz' && (h.odendi || h.isTahsilat || !isAracCikti)) return; 
         
-        // ADIM 4: Grup oluştur (yoksa)
+        let tarih = h.tarih || '-';
+        let temizAciklama = (h.aciklama || '').replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '').replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '').replace(/\s*H[İI]ZMET[İI]\s*/gi, '').trim();
+        
+        let anahtar = h.isTahsilat ? ('TAHSILAT_' + idx) : (sasi ? (tarih + '|' + sasi) : (tarih + '|' + temizAciklama.toUpperCase()));
+        
         if(!gruplanmisVeri[anahtar]) {
-            gruplanmisVeri[anahtar] = {
-                tarih: tarih,
-                aciklama: temizAciklama || h.aciklama || '-',
-                sasi: sasi,
-                gumrukTutari: '-',
-                tseTutari: '-',
-                orijinalIndexler: [],
-                ids: [] // Firebase ID'leri için dizi
-            };
+            gruplanmisVeri[anahtar] = { tarih: tarih, aciklama: h.aciklama || '-', sasi: sasi, gumrukTutari: 0, tseTutari: 0, orijinalIndexler: [], ids: [], isTahsilat: h.isTahsilat, odendi: h.odendi, isAracCikti: isAracCikti };
         }
         
-        // ADIM 5: Değerleri aynı objede birleştir
-        // Tutar Euro (€) hizmetine aitse
-        if(h.gumrukBedeli && parseFloat(h.gumrukBedeli) > 0) {
-            gruplanmisVeri[anahtar].gumrukTutari = parseFloat(h.gumrukBedeli) || 0;
-        }
-        // Tutar TL (₺) (TSE) hizmetine aitse
-        if(h.tseBedeli && parseFloat(h.tseBedeli) > 0) {
-            gruplanmisVeri[anahtar].tseTutari = parseFloat(h.tseBedeli) || 0;
-        }
-        // Eski veri yapısı uyumluluğu
-        if(!h.gumrukBedeli && !h.tseBedeli && h.tutar) {
-            let t = parseFloat(h.tutar) || 0;
-            let b = (h.birim || 'EUR').toUpperCase();
-            if(b === 'EUR' || b === 'USD') {
-                gruplanmisVeri[anahtar].gumrukTutari = t;
-            } else {
-                gruplanmisVeri[anahtar].tseTutari = t;
-            }
-        }
-        
-        // Orijinal indeksleri ve ID'leri kaydet
+        gruplanmisVeri[anahtar].gumrukTutari += gb;
+        gruplanmisVeri[anahtar].tseTutari += tb;
         gruplanmisVeri[anahtar].orijinalIndexler.push(idx);
         if(h.id) gruplanmisVeri[anahtar].ids.push(h.id);
     });
     
-    // ADIM 5.5: Toplam kartlarını gruplanmış veriden hesapla
-    let toplamGumruk = 0, toplamTse = 0;
-    Object.values(gruplanmisVeri).forEach(function(item) {
-        if(item.gumrukTutari !== '-' && item.gumrukTutari > 0) toplamGumruk += item.gumrukTutari;
-        if(item.tseTutari !== '-' && item.tseTutari > 0) toplamTse += item.tseTutari;
+    let bakiyeText = '';
+    if(gercekGumruk !== 0) bakiyeText += window.formatNumber(gercekGumruk, true) + ' €';
+    if(gercekTse !== 0) bakiyeText += (bakiyeText ? ' | ' : '') + window.formatNumber(gercekTse, true) + ' ₺';
+    if(document.getElementById('cari-bakiye')) {
+        document.getElementById('cari-bakiye').innerText = bakiyeText || '0';
+        document.getElementById('cari-bakiye').style.color = (gercekGumruk>=0 && gercekTse>=0) ? 'var(--success)' : 'var(--danger)';
+    }
+
+    let rows = Object.values(gruplanmisVeri).map(function(item) {
+        let gumrukDeger = '-'; let tseDeger = '-';
+        if(item.gumrukTutari !== 0) {
+            let renk = item.gumrukTutari > 0 ? 'var(--primary)' : 'var(--success)';
+            gumrukDeger = `<span style="font-weight:700;color:${renk};">${item.gumrukTutari > 0 ? '+' : ''}${window.formatNumber(item.gumrukTutari,true)} €</span>`;
+        }
+        if(item.tseTutari !== 0) {
+            let renk = item.tseTutari > 0 ? 'var(--warning)' : 'var(--success)';
+            tseDeger = `<span style="font-weight:700;color:${renk};">${item.tseTutari > 0 ? '+' : ''}${window.formatNumber(item.tseTutari,true)} ₺</span>`;
+        }
+        
+        let ilkIdx = item.orijinalIndexler[0];
+        let aciklamaGosterim = item.aciklama;
+        if(item.sasi && item.sasi.length > 6) aciklamaGosterim += ` <span style="color:var(--text-muted);font-size:11px;font-family:monospace;">(...${item.sasi.slice(-6)})</span>`;
+        
+        let rowStyle = '';
+        let islemButonlari = '';
+
+        if (item.isTahsilat) {
+            // Ödeme alınmış (Tahsilat satırı)
+            rowStyle = 'background: rgba(16, 185, 129, 0.05);';
+            aciklamaGosterim = '✅ ' + aciklamaGosterim;
+        } else if (item.odendi) {
+            // Ödemesi yapılmış eski araç satırı
+            rowStyle = 'opacity: 0.5;';
+            aciklamaGosterim += ' <span class="badge badge-dark" style="font-size:9px;padding:2px 4px;margin-left:4px;">Ödendi</span>';
+        } else {
+            // ÖDENMEMİŞ ARAÇLAR
+            if (item.isAracCikti) {
+                rowStyle = 'background: rgba(239, 68, 68, 0.08); border-left: 4px solid var(--danger);';
+                aciklamaGosterim += ' <br><span style="display:inline-block; margin-top:4px; background:var(--danger);color:#fff;font-size:10px;padding:3px 8px;border-radius:4px;animation:pulse-alarm 1.5s infinite;font-weight:700;letter-spacing:0.5px;">🚨 ÇIKIŞ YAPTI - ÖDEMESİZ</span>';
+            } else {
+                rowStyle = 'background: rgba(245, 158, 11, 0.05); border-left: 3px solid var(--warning);';
+                aciklamaGosterim += ' <span class="badge" style="background:var(--warning);color:#fff;font-size:9px;padding:2px 4px;margin-left:4px;">⏳ Bekliyor</span>';
+            }
+            // Tik butonu (Ödeme Al)
+            islemButonlari += `<button class="btn-sm" style="color:var(--success);border-color:var(--success);padding:4px 8px;margin-right:4px;" onclick="window.cariOdemeyiAl('${item.orijinalIndexler.join(',')}')" title="Tahsilatı Alındı Olarak İşaretle"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Ödendi</button>`;
+        }
+        
+        return `<tr style="${rowStyle}">
+            <td style="text-align:center;"><input type="checkbox" class="custom-cb cari-cb" value="${ilkIdx}" onclick="window.toggleCariCb()"></td>
+            <td>${item.tarih}</td>
+            <td style="font-weight:600;">${aciklamaGosterim}</td>
+            <td>${gumrukDeger}</td>
+            <td>${tseDeger}</td>
+            <td style="text-align:center;">
+                <div style="display:flex;gap:6px;justify-content:center;">
+                    ${islemButonlari}
+                    ${!item.isTahsilat ? `<button class="icon-btn" style="color:var(--primary);" onclick="window.cariHareketEkle(${ilkIdx})" title="Düzenle"><i data-lucide="pencil"></i></button>` : ''}
+                    <button class="icon-btn text-danger-btn" onclick="window.cariHareketSilByGroup('${item.orijinalIndexler.join(',')}')" title="Sil"><i data-lucide="trash-2"></i></button>
+                </div>
+            </td>
+        </tr>`;
     });
     
-    let gumrukText = toplamGumruk > 0 ? window.formatNumber(toplamGumruk, true) + ' €' : '0';
-    let tseText = toplamTse > 0 ? window.formatNumber(toplamTse, true) + ' ₺' : '0';
-    let bakiyeText = '';
-    if(toplamGumruk !== 0) bakiyeText += window.formatNumber(toplamGumruk, true) + ' €';
-    if(toplamTse !== 0) bakiyeText += (bakiyeText ? ' | ' : '') + window.formatNumber(toplamTse, true) + ' ₺';
-    if(!bakiyeText) bakiyeText = '0';
-    
-    let borcEl = document.getElementById('cari-toplam-borc');
-    let alacakEl = document.getElementById('cari-toplam-alacak');
-    let bakiyeEl = document.getElementById('cari-bakiye');
-    if(borcEl) { borcEl.innerText = gumrukText; borcEl.style.fontSize = '20px'; }
-    if(alacakEl) { alacakEl.innerText = tseText; alacakEl.style.fontSize = '20px'; }
-    if(bakiyeEl) { bakiyeEl.innerText = bakiyeText; bakiyeEl.style.fontSize = '20px'; bakiyeEl.style.color = 'var(--success)'; }
-    
-    // ADIM 6: Ekrana çizim (TEK SATIR)
-    tbody.innerHTML = Object.values(gruplanmisVeri).map(function(item, i) {
-        let gumrukDeger = '-';
-        let tseDeger = '-';
-        
-        if(item.gumrukTutari !== '-' && item.gumrukTutari > 0) {
-            gumrukDeger = '<span style="font-weight:700;color:var(--success);">+'+window.formatNumber(item.gumrukTutari,true)+' €</span>';
-        }
-        if(item.tseTutari !== '-' && item.tseTutari > 0) {
-            tseDeger = '<span style="font-weight:700;color:var(--success);">+'+window.formatNumber(item.tseTutari,true)+' ₺</span>';
-        }
-        
-        // İlk orijinal indeksi kullan (düzenleme/silme için)
-        let ilkIdx = item.orijinalIndexler[0];
-        
-        // Açıklama sütunu: araç adı + şasi son 6 hane
-        let aciklamaGosterim = item.aciklama;
-        if(item.sasi && item.sasi.length > 6) {
-            aciklamaGosterim += ' <span style="color:var(--text-muted);font-size:11px;font-family:monospace;">(...' + item.sasi.slice(-6) + ')</span>';
-        }
-        
-        return '<tr>' +
-            '<td style="text-align:center;"><input type="checkbox" class="custom-cb cari-cb" value="' + ilkIdx + '" onclick="window.toggleCariCb()"></td>' +
-            '<td>' + item.tarih + '</td>' +
-            '<td style="font-weight:600;">' + aciklamaGosterim + '</td>' +
-            '<td>' + gumrukDeger + '</td>' +
-            '<td>' + tseDeger + '</td>' +
-            '<td style="text-align:center;">' +
-                '<div style="display:flex;gap:6px;justify-content:center;">' +
-                    '<button class="icon-btn" style="color:var(--primary);" onclick="window.cariHareketEkle(' + ilkIdx + ')" title="Düzenle"><i data-lucide="pencil"></i></button>' +
-                    '<button class="icon-btn text-danger-btn" onclick="window.cariHareketSilByGroup(\'' + item.orijinalIndexler.join(',') + '\',\'' + (item.ids||[]).join(',') + '\')" title="Sil"><i data-lucide="trash-2"></i></button>' +
-                '</div>' +
-            '</td>' +
-        '</tr>';
-    }).join('');
-    
+    tbody.innerHTML = rows.join('');
     if(window.lucide) lucide.createIcons();
 };
 window.renderGenelCariOzet = function() {
@@ -6842,6 +6794,20 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
     if(r.sasi && eskiEvrak !== r.evrak) {
         window.updateVehicleStatus(r.sasi, r.evrak);
     }
+	// Aracı cari karta otomatik yansıt
+    if(typeof window.otomatikCariEkle === 'function') {
+        window.otomatikCariEkle(r.firma, r.marka, r.model, r.sasi);
+    }
+
+    // 🚨 GÜMRÜK & FİNANS KÖPRÜSÜ: Araç "KAPALI" (Çıktı) olursa, Cari Kart'ta otomatik Kırmızı Alarma (Ödemesiz) düşür!
+    if (window.cariData[r.firma]) {
+        let isKapali = (r.evrak || '').toLocaleLowerCase('tr') === 'kapalı' || (r.evrak || '').toLocaleLowerCase('tr') === 'kapali';
+        window.cariData[r.firma].forEach(c => {
+            if (c.sasi === r.sasi) {
+                c.isCikti = isKapali; // Cari Karta "Bu araç çıktı" sinyalini yolla
+            }
+        });
+    }
 
     if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); saveData('kiymet'); }
     if(window.currentModalContext==='decl') { window.renderDeclarationsTable(); } else { window.renderFirmVehicles(); }
@@ -10197,6 +10163,93 @@ if(!window._dovizDinleyiciAktif) {
     }, 500);
     window._dovizDinleyiciAktif = true;
 }
+// --- CARİ: ARACA ÇIKIŞ YAPTIRMA ŞALTERİ ---
+window.cariAracCikisiYap = function(indexlerStr) {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) return;
+    if(!confirm('Bu aracın gümrükten ÇIKIŞ YAPTIĞINI onaylıyor musunuz?\n\nBu işlem Cari Kart üzerinde aracı "Çıktı" olarak işaretleyecek, ödemesi alınmadıysa kırmızı uyarıya düşürecektir.')) return;
+
+    let indexler = indexlerStr.split(',').map(Number);
+    indexler.forEach(idx => {
+        let h = window.cariData[firma][idx];
+        if(h) h.isCikti = true; // Sadece Cari Kart içindeki durumunu güncelliyoruz!
+    });
+
+    saveCariData();
+    window.renderCariTable();
+};
+
+// --- YENİ ARAÇ GELDİĞİNDE OTOMATİK CARİYE KAYDETME MOTORU ---
+window.otomatikCariEkle = function(firma, marka, model, sasi) {
+    if(!firma || !sasi) return;
+    if(!window.cariData[firma]) window.cariData[firma] = [];
+    
+    // Aynı şasi numarasıyla daha önce cari açılmamışsa 0 bakiye ile oluştur
+    let sasiVarMi = window.cariData[firma].some(c => c.sasi === sasi.toUpperCase());
+    if(!sasiVarMi) {
+        window.cariData[firma].unshift({
+            tarih: window.formatTRDate(new Date()),
+            aciklama: (marka + ' ' + model).trim(),
+            sasi: sasi.toUpperCase(),
+            gumrukBedeli: 0,
+            tseBedeli: 0,
+            tur: 'alacak',
+            isCikti: false,
+            odendi: false
+        });
+        saveCariData();
+    }
+};
+// --- AKILLI TAHSİLAT: ÖDEME ALMA FONKSİYONU ---
+window.cariOdemeyiAl = function(indexlerStr) {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) return;
+    if(!confirm('Bu aracın ödemesini tahsil ettiniz mi?\n\nBu işlem satırı "Ödendi" olarak mühürleyecek ve bakiyeden otomatik düşecektir.')) return;
+
+    let indexler = indexlerStr.split(',').map(Number);
+    let toplamGumruk = 0;
+    let toplamTse = 0;
+    let aciklamaBase = "";
+    let sasi = "";
+
+    indexler.forEach(idx => {
+        let h = window.cariData[firma][idx];
+        if(h) {
+            h.odendi = true; // Eski kaydı ödendi olarak işaretle
+            
+            // Tutarı hesapla
+            let gb = parseFloat(h.gumrukBedeli)||0;
+            let tb = parseFloat(h.tseBedeli)||0;
+            if(!gb && !tb && h.tutar) {
+                let t = parseFloat(h.tutar)||0; if(h.tur === 'borc') t = -t;
+                let b = (h.birim||'EUR').toUpperCase();
+                if(b === 'EUR' || b === 'USD') gb = t; else tb = t;
+            }
+            toplamGumruk += gb;
+            toplamTse += tb;
+            
+            if(!aciklamaBase) aciklamaBase = h.aciklama;
+            if(h.sasi) sasi = h.sasi;
+        }
+    });
+
+    // Otomatik "Eksi Bakiye (Tahsilat)" satırı oluştur!
+    window.cariData[firma].unshift({
+        tarih: window.formatTRDate(new Date()),
+        aciklama: 'Tahsilat - ' + aciklamaBase,
+        sasi: sasi,
+        gumrukBedeli: toplamGumruk > 0 ? -toplamGumruk : 0,
+        tseBedeli: toplamTse > 0 ? -toplamTse : 0,
+        tur: 'borc',
+        isTahsilat: true
+    });
+
+    saveCariData();
+    window.renderCariTable();
+    if(window.renderGenelCariOzet) window.renderGenelCariOzet();
+    if(typeof showSyncToast === 'function') showSyncToast("Ödeme alındı ve bakiye sıfırlandı!", true);
+};
+
 </script>
 </body>
 </html>
