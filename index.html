@@ -6084,92 +6084,85 @@ document.addEventListener('click', function(e) {
         'EU':   ['ATR', 'COC', 'ONAY', 'TSE', 'IMEI', 'T_ID']                    // COO, EORI ve ART44 gizli
     };
 
-    // ===== DİNAMİK ROZET RENDER MOTORU (Hayalet Veri Yok!) =====
-    // TSE 3 Durumlu Sistem: 0=Eksik, 1=Başvuru Yapıldı, 2=Tamamlandı
-    window.renderEvrakBadges = function(d, idx, ctx) {
-        if(!d) return '';
-        
-        // ADIM 1: Veritabanındaki evrak durumlarını al (sadece renk için)
-        let evrakDurumlari = d.evrakler || {};
-        
-        // ADIM 2: SIFIRDAN rozet listesi oluştur (Object.keys ASLA kullanma!)
-        let gosterilecekRozetler = [];
-        
-        // ADIM 3: Bölge bazlı temel rozetleri ekle
-        let origin = window.getVehicleOrigin(d.sasi, d.marka);
-        let temelRozetler = window.REGION_BADGES[origin] || window.REGION_BADGES['EU'];
-        temelRozetler.forEach(function(r) {
-            gosterilecekRozetler.push(r);
-        });
-        
-        // ADIM 4: CANLI EXW KONTROLÜ (Anlık tepki için katı kontrol)
-        // Hem 'teslim' hem 'teslimSekli' alanlarını kontrol et (eski/yeni veri uyumluluğu)
-        let teslimDegeri = '';
-        if(d.teslim) teslimDegeri = d.teslim;
-        else if(d.teslimSekli) teslimDegeri = d.teslimSekli;
-        
-        // Boşlukları temizle ve büyük harfe çevir
-        teslimDegeri = (teslimDegeri || '').toString().trim().toUpperCase();
-        
-        if(teslimDegeri === 'EXW') {
-            // Sadece EXW ise N_FATURA ekle (Firebase nokta kabul etmez)
-            if(gosterilecekRozetler.indexOf('N_FATURA') === -1) {
-                gosterilecekRozetler.push('N_FATURA');
-            }
+    // ===== DİNAMİK ROZET RENDER MOTORU (KAPALI DOSYA GİZLEME EKLENDİ) =====
+window.renderEvrakBadges = function(d, idx, ctx) {
+    if(!d) return '';
+
+    // 🔥 YENİ KURAL: Dosya "Kapalı" ise hiçbir evrak rozeti gösterme!
+    let evrakDurum = (d.evrak || '').toLocaleLowerCase('tr');
+    if (evrakDurum === 'kapalı' || evrakDurum === 'kapali') {
+        return ''; 
+    }
+
+    // ADIM 1: Veritabanındaki evrak durumlarını al (sadece renk için)
+    let evrakDurumlari = d.evrakler || {};
+    
+    // ADIM 2: SIFIRDAN rozet listesi oluştur (Object.keys ASLA kullanma!)
+    let gosterilecekRozetler = [];
+    
+    // ADIM 3: Bölge bazlı temel rozetleri ekle
+    let origin = window.getVehicleOrigin(d.sasi, d.marka);
+    let temelRozetler = window.REGION_BADGES[origin] || window.REGION_BADGES['EU'];
+    temelRozetler.forEach(function(r) {
+        gosterilecekRozetler.push(r);
+    });
+
+    // ADIM 4: CANLI EXW KONTROLÜ (Anlık tepki için katı kontrol)
+    let teslimDegeri = '';
+    if(d.teslim) teslimDegeri = d.teslim;
+    else if(d.teslimSekli) teslimDegeri = d.teslimSekli;
+    
+    teslimDegeri = (teslimDegeri || '').toString().trim().toUpperCase();
+    if(teslimDegeri === 'EXW') {
+        // Sadece EXW ise N_FATURA ekle
+        if(gosterilecekRozetler.indexOf('N_FATURA') === -1) {
+            gosterilecekRozetler.push('N_FATURA');
         }
-        // CIF, FOB, boş veya başka değerse N_FATURA ASLA eklenmez
+    }
+
+    // ADIM 5: Tamamlanan rozetleri gizle ve sadece eksik/sarı olanları göster
+    let html = '<div class="evrak-badges-container">';
+    let gosterilenBadgeSayisi = 0;
+    
+    gosterilecekRozetler.forEach(function(tip) {
+        let gosterilenMetin = (tip === 'N_FATURA') ? 'N.FATURA' : tip;
         
-        // ADIM 5: Tamamlanan rozetleri gizle ve sadece eksik/sarı olanları göster
-        let html = '<div class="evrak-badges-container">';
-        let gosterilenBadgeSayisi = 0;
-        
-        gosterilecekRozetler.forEach(function(tip) {
-            // evrakDurumlari objesi sadece renk belirlemek için kullanılır
-            let gosterilenMetin = (tip === 'N_FATURA') ? 'N.FATURA' : tip;
+        if(tip === 'TSE') {
+            // ===== TSE 3 DURUMLU SİSTEM =====
+            let tseDeger = evrakDurumlari['TSE'];
+            if(tseDeger === true) tseDeger = 2; 
+            else if(tseDeger === false || tseDeger === undefined || tseDeger === null) tseDeger = 0; 
+            else tseDeger = parseInt(tseDeger) || 0; 
             
-            if(tip === 'TSE') {
-                // ===== TSE 3 DURUMLU SİSTEM =====
-                // Defensive coding: Eski boolean değerleri integer'a dönüştür
-                let tseDeger = evrakDurumlari['TSE'];
-                if(tseDeger === true) tseDeger = 2;        // Eski true → Tamamlandı
-                else if(tseDeger === false || tseDeger === undefined || tseDeger === null) tseDeger = 0; // Eski false/undefined → Eksik
-                else tseDeger = parseInt(tseDeger) || 0;   // Sayısal değer
-                
-                // TSE tamamlandıysa (2) gizle, sadece 0 (kırmızı) ve 1 (sarı) göster
-                if(tseDeger === 2) return; // ATLA
-                
-                let cls, durumMetin;
-                if(tseDeger === 0) {
-                    cls = 'eksik';
-                    durumMetin = 'Eksik';
-                    gosterilenMetin = 'TSE';
-                } else if(tseDeger === 1) {
-                    cls = 'badge-sari';
-                    durumMetin = 'Başvuru Yapıldı';
-                    gosterilenMetin = 'TSE (BŞV)';
-                }
-                html += '<span class="evrak-badge ' + cls + '" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="TSE: ' + durumMetin + ' — Tıkla">' + gosterilenMetin + '</span>';
-                gosterilenBadgeSayisi++;
-            } else {
-                // Diğer rozetler: Boolean mantığı
-                let tamam = evrakDurumlari[tip] === true;
-                
-                // Tamamlanmış rozetleri gizle
-                if(tamam) return; // ATLA
-                
-                html += '<span class="evrak-badge eksik" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="' + gosterilenMetin + ': Eksik — Tıkla">' + gosterilenMetin + '</span>';
-                gosterilenBadgeSayisi++;
+            if(tseDeger === 2) return; // Tamamlanan TSE'yi gizle
+            
+            let cls, durumMetin;
+            if(tseDeger === 0) {
+                cls = 'eksik'; durumMetin = 'Eksik'; gosterilenMetin = 'TSE';
+            } else if(tseDeger === 1) {
+                cls = 'badge-sari'; durumMetin = 'Başvuru Yapıldı'; gosterilenMetin = 'TSE (BŞV)';
             }
-        });
-        
-        // Tüm rozetler tamamlandıysa "Kusursuz" mesajı göster
-        if(gosterilenBadgeSayisi === 0) {
-            html += '<span style="font-size:10px;color:var(--success);font-weight:600;opacity:0.7;padding:2px 6px;font-style:italic;">Kusursuz (Tüm Evraklar Tamam)</span>';
+            
+            html += '<span class="evrak-badge ' + cls + '" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="TSE: ' + durumMetin + ' — Tıkla">' + gosterilenMetin + '</span>';
+            gosterilenBadgeSayisi++;
+        } else {
+            // Diğer rozetler: Boolean mantığı
+            let tamam = evrakDurumlari[tip] === true;
+            if(tamam) return; // Tamamlananları gizle
+            
+            html += '<span class="evrak-badge eksik" onclick="event.stopPropagation(); window.toggleEvrakDurum(\'' + tip + '\', ' + idx + ', \'' + ctx + '\')" title="' + gosterilenMetin + ': Eksik — Tıkla">' + gosterilenMetin + '</span>';
+            gosterilenBadgeSayisi++;
         }
-        
-        html += '</div>';
-        return html;
-    };
+    });
+
+    // Tüm rozetler tamamlandıysa (Açık araçlar için) "Kusursuz" mesajı göster
+    if(gosterilenBadgeSayisi === 0) {
+        html += '<span style="font-size:10px;color:var(--success);font-weight:600;opacity:0.7;padding:2px 6px;font-style:italic;">Kusursuz (Tüm Evraklar Tamam)</span>';
+    }
+    
+    html += '</div>';
+    return html;
+};
 
     window.toggleEvrakDurum = function(tip, idx, ctx) {
         let d = null;
