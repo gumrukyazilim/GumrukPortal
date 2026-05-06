@@ -8886,17 +8886,15 @@ window.renderDilekceContent = function() {
         }
 
         icerik = `
-            <div class="belge-kapsayici">
+            <div class="belge-kapsayici" style="margin-top: 110px;">
                 <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE</div>
                 <p class="belge-paragraf">
                     Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
                 </p>
                 <p class="belge-paragraf">Gereğini emir ve müsaadelerinize arz ederiz.</p>
-                
                 <div class="arac-listesi">
                     ${aracListesiHTML}
                 </div>
-
                 <div class="belge-imza-alani">
                     <p style="margin-bottom: 15px;">Saygılarımızla</p>
                     <p class="imza-isim">${veri.firmaAdi}</p>
@@ -8908,18 +8906,25 @@ window.renderDilekceContent = function() {
     } 
     else if (tip === "GMC") {
         icerik = `
-            <div class="belge-kapsayici">
-                <div class="belge-alt-baslik">TUTANAK</div>
-                <p class="belge-paragraf">
-                    Gümrük Müdürlüğümüzce <b>${veri.firmaAdi}</b> firması adına tescilli <b>${veri.tescilTarihi}</b> tarihli <b>${veri.beyanname}</b> sayılı serbest dolaşıma giriş beyannamesi muhteviyatı <b>${veri.yil}</b> Model <b>${veri.marka}</b> Marka <b>${veri.model}</b> ticari tanımlı <b>${veri.sasiListesi}</b> şase numaralı <b>${veri.gtip}</b> GTİP'inde beyan edilen Bakırköy Tasfiye İşletme Müdürlüğü Geçici depolama alanında bulunan aracın oluşturulan heyetle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">3999</span> mm ve azami dahili taban uzunluğunun <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">2015</span> mm olduğu tespit edilmiş olup benzer araç ithalatlarına ilişkin 30.12.2021 tarihli 65887593 sayılı ile kayıtlı görüş neticesinde aracın GTİP'ini tespit edilmesini temin etmek üzere 28.07.2021 tarihli 65870084 sayılı yazımız ile TMMOB ne yönlendirildiği ve alınan rapor sonucu da dikkate alınarak GTİP yönünde beyanın doğru olduğu, heyette görevli Muayene Memurlarınca da aracın serbest dolaşıma giriş beyannamesinde belirtilen GTİP yönünde beyanın doğru olduğu, ancak söz yurt dışı araştırmasının ayrıca söz konusu belgelerin yurt dışı doğruluğunun ve aracın yurt dışında herhangi bir tadilat veya tescil işlemi görüp görmediği hususunun yurt dışı makamlarından araştırılması hususunu olurlarınıza arz ederiz.
-                </p>
-                
-                <div class="heyet-alani">
-                    <div class="heyet-uye">Muayene Memuru</div>
-                    <div class="heyet-uye">Muayene Memuru</div>
-                    <div class="heyet-uye">Muayene Memuru</div>
-                </div>
-            </div>
+            <div class="belge-kapsayici" style="margin-top: 130px;">
+    <div style="text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px;">
+        MÜDÜRLÜK MAKAMINA
+    </div>
+
+    <p class="belge-paragraf" style="text-align: justify;">
+        Gümrük Müdürlüğümüzce <b>${veri.firmaAdi}</b> adına tescilli <b>${veri.beyanname}</b> sayılı <b>${veri.tescilTarihi}</b> tarihli serbest dolaşıma giriş beyannamesi muhteviyatı <b>${veri.yil}</b> Model <b>${veri.marka}</b> Marka <b>${veri.model}</b> ticari tanımlı <b>${veri.sasiListesi}</b> şase numaralı <b>${veri.gtip}</b> GTİP'inde beyan edilen aracın heyet marifetiyle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">3990</span> mm ve azami dahili taban uzunluğunun <span contenteditable="true" class="editable-field" title="Değiştirmek için tıklayın">2015</span> mm olduğu tespit edilmiş olup - GTİP yönünden beyanın doğru olduğu tespit edilmiştir. İşlem tesis için uygun görüşle arz ederim.
+    </p>
+    
+    <div class="belge-tarihi" style="text-align: right; margin-top: 20px; margin-bottom: 30px;">
+        06.05.2026
+    </div>
+
+    <div class="heyet-alani" style="display: flex; justify-content: space-between; margin-top: 40px;">
+        <div class="heyet-uye" style="text-align: center;">Muayene Memuru</div>
+        <div class="heyet-uye" style="text-align: center;">Muayene Memuru</div>
+        <div class="heyet-uye" style="text-align: center;">Muayene Memuru</div>
+    </div>
+</div>
         `;
     }
     
