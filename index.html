@@ -6061,7 +6061,7 @@ document.addEventListener('click', function(e) {
     document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();window.renderSutunMenu();window.applySutunGizle();
 };
 
-    // --- FİRMA ARŞİVİ RENDER VE SIRALAMA MOTORU (YENİ VE KORUMALI) ---
+// --- FİRMA ARŞİVİ RENDER VE SIRALAMA MOTORU (YENİ VE KORUMALI) ---
 window.renderFirmsList = function() {
     let container = document.getElementById('firms-dynamic-grid');
     if(!container) return;
@@ -6112,7 +6112,8 @@ window.renderFirmsList = function() {
     }).join('');
     
     if(window.lucide) lucide.createIcons();
-};
+};    
+window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
     // ===== EVRAK ROZETLERİ MOTORU =====
     window.EVRAK_TIPLERI = ['ATR', 'COO', 'COC', 'ONAY', 'ART44', 'TSE', 'IMEI', 'EORI', 'N_FATURA'];
 
