@@ -6061,7 +6061,7 @@ document.addEventListener('click', function(e) {
     document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();window.renderSutunMenu();window.applySutunGizle();
 };
 
-// --- FİRMA ARŞİVİ RENDER VE SIRALAMA MOTORU (YENİ VE KORUMALI) ---
+// --- FİRMA ARŞİVİ RENDER VE SIRALAMA MOTORU (HAFIZALI VE KORUMALI) ---
 window.renderFirmsList = function() {
     let container = document.getElementById('firms-dynamic-grid');
     if(!container) return;
@@ -6072,8 +6072,19 @@ window.renderFirmsList = function() {
         return;
     }
 
-    // Seçilen sıralama türünü al (Varsayılan: A-Z)
-    let sortType = document.getElementById('firms-sort-select')?.value || 'name_asc';
+    let selectEl = document.getElementById('firms-sort-select');
+    // 🧠 SİSTEM HAFIZASI: Tarayıcının belleğinden son seçimi al, yoksa 'name_asc' (A-Z) yap
+    let savedSort = localStorage.getItem('gumruk_firms_sort') || 'name_asc';
+
+    // Sayfa ilk yüklendiğinde, menüyü senin hafızadaki seçimine göre ayarla
+    if(selectEl && selectEl.getAttribute('data-loaded') !== 'true') {
+        selectEl.value = savedSort;
+        selectEl.setAttribute('data-loaded', 'true');
+    }
+
+    // Güncel sıralama tipini al ve anında hafızaya kaydet
+    let sortType = selectEl ? selectEl.value : savedSort;
+    localStorage.setItem('gumruk_firms_sort', sortType);
 
     // Firmaları, araç sayılarını ve meta verilerini bir listeye çevir
     let firmList = firmalar.map(function(fn) {
