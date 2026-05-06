@@ -1377,9 +1377,25 @@
     
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in"></div>
 </template>
-<template id="tpl-firms"> 
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Firmalar</div><h1 class="page-title">Firma Arşivi</h1></div><div class="page-actions"><button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button></div></div> 
-    <div id="firms-dynamic-grid" class="firms-grid fade-in"></div> 
+<template id="tpl-firms">
+    <div class="page-hdr fade-in">
+        <div>
+            <div class="page-eyebrow">Firmalar</div>
+            <h1 class="page-title">Firma Arşivi</h1>
+        </div>
+        <div class="page-actions" style="display:flex; gap:10px; align-items:center;">
+            
+            <select id="firms-sort-select" onchange="window.renderFirmsList()" style="padding:10px 14px; border-radius:var(--r-md); background:var(--input-bg); border:1px solid var(--border); color:var(--text-primary); font-weight:600; cursor:pointer; outline:none;">
+                <option value="name_asc">İsim (A-Z)</option>
+                <option value="name_desc">İsim (Z-A)</option>
+                <option value="count_desc">Araç Sayısı (Çoktan Aza)</option>
+                <option value="count_asc">Araç Sayısı (Azdan Çoğa)</option>
+            </select>
+            
+            <button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button>
+        </div>
+    </div>
+    <div id="firms-dynamic-grid" class="firms-grid fade-in"></div>
 </template>
 <template id="tpl-uyelikler">
     <div class="toolbar fade-in" style="margin-top:0;">
@@ -6045,8 +6061,58 @@ document.addEventListener('click', function(e) {
     document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();window.renderSutunMenu();window.applySutunGizle();
 };
 
-    window.renderFirmsList=function(){let g=document.getElementById('firms-dynamic-grid');if(!g)return;let f=Object.keys(window.firmData);if(!f.length){g.innerHTML='<div style="text-align:center;padding:48px;color:var(--text-muted);">Firma yok.</div>';return;}g.innerHTML=f.map(fn=>{let sn=fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");let meta=window.firmMeta[fn]||{};return`<div class="firm-card" onclick="window.renderFirmDetails('${sn}')"><div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div><div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta('${sn}')"><i data-lucide="edit-3"></i></div><div class="firm-card-icon"><i data-lucide="building-2"></i></div><div class="firm-card-name">${fn}</div><div class="firm-card-count">${window.firmData[fn].length} Araç</div>${meta.vergiNo?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: '+meta.vergiNo+'</div>':''}${meta.tcNo?'<div style="font-size:10px;color:var(--text-muted);">TC: '+meta.tcNo+'</div>':''}</div>`;}).join('');if(window.lucide)lucide.createIcons();};
-    window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
+    // --- FİRMA ARŞİVİ RENDER VE SIRALAMA MOTORU (YENİ VE KORUMALI) ---
+window.renderFirmsList = function() {
+    let container = document.getElementById('firms-dynamic-grid');
+    if(!container) return;
+    
+    let firmalar = Object.keys(window.firmData);
+    if(!firmalar.length) {
+        container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">Henüz firma kaydı yok.</div>';
+        return;
+    }
+
+    // Seçilen sıralama türünü al (Varsayılan: A-Z)
+    let sortType = document.getElementById('firms-sort-select')?.value || 'name_asc';
+
+    // Firmaları, araç sayılarını ve meta verilerini bir listeye çevir
+    let firmList = firmalar.map(function(fn) {
+        return {
+            name: fn,
+            count: (window.firmData[fn] || []).length
+        };
+    });
+
+    // SIRALAMA ALGORİTMALARI
+    if(sortType === 'name_asc') {
+        firmList.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    } else if(sortType === 'name_desc') {
+        firmList.sort((a, b) => b.name.localeCompare(a.name, 'tr'));
+    } else if(sortType === 'count_desc') {
+        firmList.sort((a, b) => b.count - a.count);
+    } else if(sortType === 'count_asc') {
+        firmList.sort((a, b) => a.count - b.count);
+    }
+
+    // Sıralanmış listeyi ekrana çiz
+    container.innerHTML = firmList.map(function(f) {
+        let fn = f.name;
+        let sn = fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");
+        let meta = window.firmMeta[fn] || {};
+        
+        return `<div class="firm-card" onclick="window.renderFirmDetails('${sn}')">
+            <div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div>
+            <div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta('${sn}')"><i data-lucide="edit-3"></i></div>
+            <div class="firm-card-icon"><i data-lucide="building-2"></i></div>
+            <div class="firm-card-name">${fn}</div>
+            <div class="firm-card-count">${f.count} Araç</div>
+            ${meta.vergiNo ? '<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: ' + meta.vergiNo + '</div>' : ''}
+            ${meta.tcNo ? '<div style="font-size:10px;color:var(--text-muted);">TC: ' + meta.tcNo + '</div>' : ''}
+        </div>`;
+    }).join('');
+    
+    if(window.lucide) lucide.createIcons();
+};
     // ===== EVRAK ROZETLERİ MOTORU =====
     window.EVRAK_TIPLERI = ['ATR', 'COO', 'COC', 'ONAY', 'ART44', 'TSE', 'IMEI', 'EORI', 'N_FATURA'];
 
