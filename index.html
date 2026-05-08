@@ -1324,39 +1324,11 @@
             border-bottom: none !important;
             color: #000000 !important;
             background: transparent !important;
-            padding: 0 2px !important;              /* ← Çakışmayı önleyen 2px nefes payı */
+            padding: 0 !important;
             margin: 0 !important;
-            display: inline-block !important;       /* ← inline yerine inline-block: ÇAKIŞMA YOK */
+            display: inline !important; 
             min-width: auto !important;
-            max-width: none !important;
-            width: auto !important;
             font-weight: 700 !important;
-            white-space: nowrap !important;         /* ← İçeride satır kırılma yok */
-            vertical-align: baseline !important;    /* ← Yatay çizgide hizala */
-        }
-        .pdf-export-mode *,
-        .pdf-export-mode .belge-paragraf,
-        .pdf-export-mode p,
-        .pdf-export-mode div {
-            color: #000000 !important;
-            font-weight: 700 !important;
-            text-align: left !important;            /* ← Tüm paragraflar sol hizalı */
-            text-shadow: 
-                0 0 0 #000000,
-                0.3px 0 0 #000000,
-                -0.3px 0 0 #000000 !important;      /* Çift yönlü gölge = daha kalın siyah */
-            -webkit-text-stroke: 0.4px #000000 !important;  /* ← KRİTİK: Yazı kenar çizgisi (siyahlığı keskinleştirir) */
-            -webkit-font-smoothing: antialiased !important;
-            -moz-osx-font-smoothing: grayscale !important;
-            text-rendering: geometricPrecision !important;
-        }
-        /* Başlık ve imza bloğu hariç tut (onlar zaten ortalı/sağa yaslı kalsın) */
-        .pdf-export-mode .belge-baslik {
-            text-align: center !important;
-        }
-        .pdf-export-mode .belge-imza-alani,
-        .pdf-export-mode .belge-imza-alani * {
-            text-align: center !important;
         }
 
         /* YAZICI İÇİN İZOLASYON */
@@ -1395,8 +1367,8 @@
         </button>
 
         <button class="btn-primary" onclick="window.printDilekce()" style="min-height:48px; min-width:110px; font-size:15px; display:flex; align-items:center; justify-content:center;">
-    <i data-lucide="printer" style="width:18px; margin-right:5px;"></i> Yazdır
-</button>
+            <i data-lucide="printer" style="width:18px; margin-right:5px;"></i> Yazdır
+        </button>
         
         <button class="btn-sm" style="background:#ef4444; color:#fff; min-height:48px; min-width:120px; font-size:15px; display:flex; align-items:center; justify-content:center; border:none;" onclick="window.downloadPDF()">
             <i data-lucide="file-text" style="width:18px; margin-right:5px;"></i> PDF İndir
@@ -8003,28 +7975,27 @@ window.downloadPDF = function() {
                 ? (window.currentDilekceItems[0].sasi || "EVRAK")
                 : "EVRAK";
 
+    // === ÖNEMLİ: PDF öncesi temizlik ===
     element.classList.add('pdf-export-mode');
     window.cleanEditableFieldsForPDF(); // ← Bu satır tüm mavi+çizgi+boşluk sorununu çözer
     
     if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
     
     const opt = {
-        margin: 0,                          // ← Padding artık CSS'te (pdf-export-mode'da)
+        margin: [10, 12, 10, 12],           // biraz daralttık (boş sayfa sorununu çözer)
         filename: `${tip}_${sasi}.pdf`,
-        image: { type: 'png', quality: 1.0 },   // ← PNG = solgunluk yok (JPEG sıkıştırma yok)
+        image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-            scale: 2,
+            scale: 3,                       // iPhone ve Chrome için en dengeli değer
             useCORS: true,
+            letterRendering: true,
             allowTaint: true,
-            backgroundColor: '#ffffff',
-            windowWidth: 794,                       // ← KRİTİK: Mobil tarayıcıyı PC gibi davranmaya zorla
-            windowHeight: 1123,                     // ← A4 yüksekliği (297mm @ 96dpi)
+            dpi: 300,
             logging: false,
-            scrollY: 0,
-            scrollX: 0
+            scrollY: 0
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-        pagebreak: { mode: ['avoid-all'] }   // ← Sayfa bölmesini önle
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        compress: true
     };
     
     html2pdf().set(opt).from(element).save().then(() => {
