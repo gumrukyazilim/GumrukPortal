@@ -8949,6 +8949,7 @@ window.renderDilekceContent = function() {
         kiymet: formatPara(kiymetBedeli),
         fark: formatPara(farkBedeli),
         distributor: distributor,
+        distFound: found, // Distribütör listede bulundu mu?
         kiymetTarihi: ilkArac.kiymGt || "................", // KIYMETTEN GELİŞ TARİHİ
         tescilTarihi: ilkArac.tarih || "................",
         gtip: ilkArac.gtip || "8704.21.31.00.00",
@@ -8962,7 +8963,7 @@ window.renderDilekceContent = function() {
     else if (fUst.includes("KARABAYIR")) { veri.imzaYetkilisi = "BEHLÜL TÜREL"; }
     else if (fUst.includes("SANDIKÇI")) { veri.firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; veri.imzaYetkilisi = "HARUN SANDIKÇI"; }
 
-    // 2. PROFESYONEL STİLLER (Alt bilgiyi gizleyen @media print eklendi)
+    // 2. PROFESYONEL STİLLER (Yazdırmada editable alanların altçizgileri kaldırıldı)
     let stilAlani = `
         <style>
             .belge-kapsayici { font-family: 'Times New Roman', Times, serif; font-size: 16px; color: #000; line-height: 1.3; }
@@ -8973,6 +8974,17 @@ window.renderDilekceContent = function() {
             .imza-yetkili { font-weight: bold; display: inline-block; }
             .heyet-alani { margin-top: 40px; display: flex; justify-content: space-between; text-align: center; font-weight: bold; }
 
+            /* === EDITABLE ALANLARIN METNİ HER YERDE AYNI RENK/PUNTO/KALINLIK === */
+            #dilekce-print-area .editable-field,
+            #dilekce-print-area [contenteditable="true"],
+            #dilekce-print-area [contenteditable] {
+                color: #000 !important;
+                font-family: 'Times New Roman', Times, serif !important;
+                font-size: 16px !important;
+                font-weight: bold !important;
+                font-style: normal !important;
+            }
+
             /* MOBİL YAZDIRMA AYARLARI - ALT BİLGİLERİ GİZLER */
             @media print { 
                 @page { size: A4 portrait; margin: 0 !important; } 
@@ -8982,6 +8994,38 @@ window.renderDilekceContent = function() {
                     padding: 20mm 15mm !important; 
                     width: 210mm;
                     height: 297mm;
+                }
+
+                /* === EDITABLE ALANLARIN ALTINDAKİ ÇİZGİLERİ KALDIR + AYNI STİL === */
+                #dilekce-print-area .editable-field,
+                #dilekce-print-area [contenteditable="true"],
+                #dilekce-print-area [contenteditable] {
+                    border: none !important;
+                    border-bottom: none !important;
+                    border-top: none !important;
+                    outline: none !important;
+                    text-decoration: none !important;
+                    background: transparent !important;
+                    background-color: transparent !important;
+                    box-shadow: none !important;
+                    -webkit-box-shadow: none !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    color: #000 !important;
+                    font-family: 'Times New Roman', Times, serif !important;
+                    font-size: 16px !important;
+                    font-weight: bold !important;
+                    font-style: normal !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                #dilekce-print-area .editable-field::before,
+                #dilekce-print-area .editable-field::after,
+                #dilekce-print-area [contenteditable]::before,
+                #dilekce-print-area [contenteditable]::after {
+                    display: none !important;
+                    content: none !important;
+                    border: none !important;
                 }
             }
         </style>
@@ -9000,7 +9044,7 @@ window.renderDilekceContent = function() {
                     Gümrük Müdürlüğünüzde işlem gören <b>${veri.beyanname}</b> tescil numaralı beyanname kapsamındaki <b>${veri.sasi}</b> şasi numaralı <b>${veri.marka} ${veri.model}</b> model aracın gümrük kıymeti, tarafımızca <b>${veri.fatura} €</b> olarak beyan edilmiştir.
                 </p>
                 <p class="belge-paragraf">
-                    Ancak, üretici firma <b>${veri.marka}</b> Türkiye distribütörü <span contenteditable="true" class="editable-field">${veri.distributor}</span> tarafından düzenlenen <b>${veri.kiymetTarihi}</b> tarihli ve Dosya No: E-<span contenteditable="true" class="editable-field">........................</span> sayılı yazıya istinaden; aracın toplam kıymetinin <b>${veri.kiymet} €</b> olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
+                    Ancak, üretici firma <b>${veri.marka}</b> Türkiye distribütörü ${veri.distFound ? `<b>${veri.distributor}</b>` : `<span contenteditable="true" class="editable-field">${veri.distributor}</span>`} tarafından düzenlenen <b>${veri.kiymetTarihi}</b> tarihli ve Dosya No: <span contenteditable="true" class="editable-field">E-........................</span> sayılı yazıya istinaden; aracın toplam kıymetinin <b>${veri.kiymet} €</b> olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
                 </p>
                 <p class="belge-paragraf">
                     İlk beyanımız ile güncel kıymet arasındaki <b>${veri.fark} €</b> tutarındaki fark nedeniyle doğacak ek gümrük vergilerini ve 4458 sayılı Gümrük Kanunu’nun 234. maddesi uyarınca uygulanacak idari para cezasını peşinen kabul ettiğimizi bildiririz.
