@@ -1330,14 +1330,32 @@
             min-width: auto !important;
             font-weight: 700 !important;
         }
-		/* PDF ÇIKTISI BOŞ 2. SAYFA SORUNUNU ÇÖZER */
+		/* PDF ÇIKTISI: ORTALI, KESILMEMİŞ, BOŞ SAYFASIZ */
         .pdf-export-mode {
+            width: 210mm !important;
+            max-width: 210mm !important;
             min-height: auto !important;
             height: auto !important;
+            margin: 0 auto !important;
+            padding: 20mm 18mm !important;
+            box-sizing: border-box !important;
             box-shadow: none !important;
-            margin: 0 !important;
+            background: #ffffff !important;
+            position: relative !important;
+            left: 0 !important;
+            top: 0 !important;
+            transform: none !important;
+            overflow: hidden !important;
             page-break-after: avoid !important;
             page-break-inside: avoid !important;
+        }
+        .pdf-export-mode * {
+            color: #000000 !important;
+            font-weight: 700 !important;
+            text-shadow: 0 0 0 #000000 !important;  /* Yazıyı kalınlaştırır */
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+            text-rendering: geometricPrecision !important;
         }
 
         /* YAZICI İÇİN İZOLASYON */
@@ -7990,22 +8008,23 @@ window.downloadPDF = function() {
     if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
     
     const opt = {
-        margin: [10, 12, 10, 12],           // biraz daralttık (boş sayfa sorununu çözer)
+        margin: 0,                          // ← Padding artık CSS'te (pdf-export-mode'da)
         filename: `${tip}_${sasi}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'png', quality: 1.0 },   // ← PNG = solgunluk yok (JPEG sıkıştırma yok)
         html2canvas: { 
-            scale: 2,
-            width: 794,                     // A4 genişliği (210mm @ 96dpi)
-            windowWidth: 794,               // Tarayıcı viewport'unu zorla
+            scale: 3,                       // ← 2'den 3'e çıkar (daha yüksek çözünürlük = keskin yazı)
             useCORS: true,
             letterRendering: true,
             allowTaint: true,
+            backgroundColor: '#ffffff',
             logging: false,
             scrollY: 0,
-            scrollX: 0
+            scrollX: 0,
+            imageTimeout: 0,
+            removeContainer: true
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        compress: true
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+        pagebreak: { mode: ['avoid-all'] }   // ← Sayfa bölmesini önle
     };
     
     html2pdf().set(opt).from(element).save().then(() => {
