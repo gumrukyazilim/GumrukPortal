@@ -4024,9 +4024,17 @@ window.cariSeciliPDF = function() {
             }
         }
         
+        // 🔥 ŞASİ NUMARASINI AÇIKLAMAYA EKLEME MOTORU (SON 6 HANE) 🔥
+        let aciklamaGosterim = h.aciklama || '-';
+        if(h.sasi && h.sasi.length > 6) {
+            aciklamaGosterim += ' (...'+ h.sasi.slice(-6) +')';
+        } else if (h.sasi) {
+            aciklamaGosterim += ' ('+ h.sasi +')'; // Eğer şasi çok kısaysa tamamını yaz
+        }
+        
         rows += '<tr>' +
             '<td style="padding:6px 8px;border:1px solid #ddd;">'+(h.tarih||'-')+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+(h.aciklama||'-')+'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+aciklamaGosterim+'</td>' +
             '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+gumrukDeger+'</td>' +
             '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+tseDeger+'</td>' +
         '</tr>';
@@ -4051,7 +4059,7 @@ window.cariSeciliPDF = function() {
         
         <div style="background:linear-gradient(135deg,#10b981,#059669);padding:15px 20px;border-radius:8px;margin-bottom:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="color:#fff;font-size:14px;font-weight:700;">TOPLAM ALACAK</span>
+                <span style="color:#fff;font-size:14px;font-weight:700;">TOPLAM</span>
                 <strong style="color:#fff;font-size:20px;">${bakiyeText}</strong>
             </div>
         </div>
