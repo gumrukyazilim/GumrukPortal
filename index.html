@@ -1330,6 +1330,15 @@
             min-width: auto !important;
             font-weight: 700 !important;
         }
+		/* PDF ÇIKTISI BOŞ 2. SAYFA SORUNUNU ÇÖZER */
+        .pdf-export-mode {
+            min-height: auto !important;
+            height: auto !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            page-break-after: avoid !important;
+            page-break-inside: avoid !important;
+        }
 
         /* YAZICI İÇİN İZOLASYON */
         @media print {
@@ -1367,8 +1376,8 @@
         </button>
 
         <button class="btn-primary" onclick="window.printDilekce()" style="min-height:48px; min-width:110px; font-size:15px; display:flex; align-items:center; justify-content:center;">
-            <i data-lucide="printer" style="width:18px; margin-right:5px;"></i> Yazdır
-        </button>
+    <i data-lucide="printer" style="width:18px; margin-right:5px;"></i> Yazdır
+</button>
         
         <button class="btn-sm" style="background:#ef4444; color:#fff; min-height:48px; min-width:120px; font-size:15px; display:flex; align-items:center; justify-content:center; border:none;" onclick="window.downloadPDF()">
             <i data-lucide="file-text" style="width:18px; margin-right:5px;"></i> PDF İndir
@@ -7975,7 +7984,6 @@ window.downloadPDF = function() {
                 ? (window.currentDilekceItems[0].sasi || "EVRAK")
                 : "EVRAK";
 
-    // === ÖNEMLİ: PDF öncesi temizlik ===
     element.classList.add('pdf-export-mode');
     window.cleanEditableFieldsForPDF(); // ← Bu satır tüm mavi+çizgi+boşluk sorununu çözer
     
@@ -7986,13 +7994,15 @@ window.downloadPDF = function() {
         filename: `${tip}_${sasi}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-            scale: 3,                       // iPhone ve Chrome için en dengeli değer
+            scale: 2,
+            width: 794,                     // A4 genişliği (210mm @ 96dpi)
+            windowWidth: 794,               // Tarayıcı viewport'unu zorla
             useCORS: true,
             letterRendering: true,
             allowTaint: true,
-            dpi: 300,
             logging: false,
-            scrollY: 0
+            scrollY: 0,
+            scrollX: 0
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         compress: true
