@@ -1319,25 +1319,20 @@
         }
 
         /* PDF ÇIKTISI İÇİN GİZLİ MOD (Alanları Temizler) */
-        /* PDF ÇIKTISI: ORTALI, KESİLMESİZ, BOŞ SAYFASIZ */
-        .pdf-export-mode {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            min-height: auto !important;
-            height: auto !important;
+        .pdf-export-mode .editable-field,
+        .pdf-export-mode .editable-field * {
+            border-bottom: none !important;
+            color: #000000 !important;
+            background: transparent !important;
+            padding: 0 2px !important;              /* ← Çakışmayı önleyen 2px nefes payı */
             margin: 0 !important;
-            padding: 20mm 22mm !important;          /* Sol-sağ 22mm = daha dar metin alanı = daha sıkışık metin */
-            box-sizing: border-box !important;
-            box-shadow: none !important;
-            background: #ffffff !important;
-            position: relative !important;
-            left: 0 !important;
-            top: 0 !important;
-            transform: none !important;
-            overflow: hidden !important;
-            text-align: left !important;            /* ← KRİTİK: Justify kaldırıldı */
-            page-break-after: avoid !important;
-            page-break-inside: avoid !important;
+            display: inline-block !important;       /* ← inline yerine inline-block: ÇAKIŞMA YOK */
+            min-width: auto !important;
+            max-width: none !important;
+            width: auto !important;
+            font-weight: 700 !important;
+            white-space: nowrap !important;         /* ← İçeride satır kırılma yok */
+            vertical-align: baseline !important;    /* ← Yatay çizgide hizala */
         }
         .pdf-export-mode *,
         .pdf-export-mode .belge-paragraf,
@@ -8018,16 +8013,15 @@ window.downloadPDF = function() {
         filename: `${tip}_${sasi}.pdf`,
         image: { type: 'png', quality: 1.0 },   // ← PNG = solgunluk yok (JPEG sıkıştırma yok)
         html2canvas: { 
-            scale: 3,                       // ← 2'den 3'e çıkar (daha yüksek çözünürlük = keskin yazı)
+            scale: 2,
             useCORS: true,
-            letterRendering: true,
             allowTaint: true,
             backgroundColor: '#ffffff',
+            windowWidth: 794,                       // ← KRİTİK: Mobil tarayıcıyı PC gibi davranmaya zorla
+            windowHeight: 1123,                     // ← A4 yüksekliği (297mm @ 96dpi)
             logging: false,
             scrollY: 0,
-            scrollX: 0,
-            imageTimeout: 0,
-            removeContainer: true
+            scrollX: 0
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
         pagebreak: { mode: ['avoid-all'] }   // ← Sayfa bölmesini önle
