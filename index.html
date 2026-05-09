@@ -7961,56 +7961,449 @@ window.printDilekce = function() {
     }, 500);
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// DİLEKÇE GAS URL - Süre dilekçesi için
+// ═══════════════════════════════════════════════════════════════════
+window.DILEKCE_GAS_URL = "https://script.google.com/macros/s/AKfycbzNKu7s-MBKwNHD-1GR51sL0foDE6BAatnXGu1qOCyAV5T698uRDlohLgWPfs2nDR38/exec";
+
+// ═══════════════════════════════════════════════════════════════════
+// SÜRE DİLEKÇESİ - GAS üzerinden PDF üretici
+// Mobil/PC fark etmez, jet siyah yazı, Google Docs şablonu kullanır
+// ═══════════════════════════════════════════════════════════════════
+window.dilekceSureViaGAS = async function() {
+    const items = window.currentDilekceItems || [];
+    if (items.length === 0) {
+        alert("Dilekçe verisi bulunamadı!");
+        return;
+    }
+
+    const ilkArac = items[0];
+
+    // Firma & imza yetkilisi mantığı (mevcut renderDilekceContent ile aynı)
+    let firmaAdi = ilkArac.firma || "........................";
+    let imzaYetkilisi = "........................";
+    let fUst = firmaAdi.toUpperCase();
+    
+    if (fUst.includes("ŞAMNU")) { 
+        firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; 
+        imzaYetkilisi = "FEVZİ ALPER TAVMAN"; 
+    }
+    else if (fUst.includes("FF OTOMOTİV")) { 
+        firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; 
+        imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; 
+    }
+    else if (fUst.includes("KARABAYIR")) { 
+        imzaYetkilisi = "BEHLÜL TÜREL"; 
+    }
+    else if (fUst.includes("SANDIKÇI")) { 
+        firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; 
+        imzaYetkilisi = "HARUN SANDIKÇI"; 
+    }
+
+    // Payload hazırla
+    const payload = {
+        tip: "SURE",
+        firmaAdi: firmaAdi,
+        imzaYetkilisi: imzaYetkilisi,
+        items: items.map(it => ({
+            ozetBeyan: it.ozetBeyan || it.beyanname || "",
+            beyanname: it.beyanname || "",
+            sasi: it.sasi || ""
+        }))
+    };
+
+    if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor (GAS)...");
+
+    try {
+        const resp = await fetch(window.DILEKCE_GAS_URL, {
+            method: 'POST',
+            mode: 'cors',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await resp.json();
+        
+        if (!result.ok) {
+            throw new Error(result.error || "GAS bilinmeyen hata döndü");
+        }
+
+        // Base64 PDF'i blob'a çevir ve indir
+        const byteChars = atob(result.pdfBase64);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+            byteNumbers[i] = byteChars.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+        // İndirme tetikle
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = result.filename || "SURE_DILEKCE.pdf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
+    } catch (err) {
+        console.error("Süre dilekçesi GAS hatası:", err);
+        alert("PDF üretilemedi: " + (err.message || "Bilinmeyen hata"));
+        if (typeof hideSyncToast === 'function') hideSyncToast("Hata!", false);
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// GMC TUTANAĞI - GAS üzerinden PDF üretici
+// Ekrandaki düzenlenebilir DINGILER_ARASI ve TABAN_UZUNLUK alanlarını okur
+// ═══════════════════════════════════════════════════════════════════
+window.dilekceGMCViaGAS = async function() {
+    const items = window.currentDilekceItems || [];
+    if (items.length === 0) {
+        alert("Dilekçe verisi bulunamadı!");
+        return;
+    }
+
+    const ilkArac = items[0];
+
+    let firmaAdi = ilkArac.firma || "........................";
+    let fUst = firmaAdi.toUpperCase();
+    if (fUst.includes("ŞAMNU")) firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ";
+    else if (fUst.includes("FF OTOMOTİV")) firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş";
+    else if (fUst.includes("SANDIKÇI")) firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ";
+
+    // Ekrandaki düzenlenebilir alanlardan dingiller ve taban değerlerini OKU
+    const editables = document.querySelectorAll('#dilekce-print-area .editable-field');
+    const dingilerArasi = editables[0] ? editables[0].textContent.trim() : '3990';
+    const tabanUzunluk = editables[1] ? editables[1].textContent.trim() : '2015';
+
+    const payload = {
+        tip: "GMC",
+        firmaAdi: firmaAdi,
+        beyanname: ilkArac.beyanname || "",
+        tescilTarihi: ilkArac.tarih || "",
+        yil: ilkArac.yil || "",
+        marka: ilkArac.marka || "",
+        model: ilkArac.model || "",
+        gtip: ilkArac.gtip || "8704.21.31.00.00",
+        dingilerArasi: dingilerArasi,
+        tabanUzunluk: tabanUzunluk,
+        items: items.map(it => ({ sasi: it.sasi || "" }))
+    };
+
+    if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor (GAS)...");
+
+    try {
+        const resp = await fetch(window.DILEKCE_GAS_URL, {
+            method: 'POST',
+            mode: 'cors',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+        const result = await resp.json();
+        if (!result.ok) throw new Error(result.error || "GAS hatası");
+
+        const byteChars = atob(result.pdfBase64);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = result.filename || "GMC_TUTANAK.pdf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
+    } catch (err) {
+        console.error("GMC GAS hatası:", err);
+        alert("PDF üretilemedi: " + (err.message || "Bilinmeyen hata"));
+        if (typeof hideSyncToast === 'function') hideSyncToast("Hata!", false);
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// KIYMET DİLEKÇESİ - GAS üzerinden PDF üretici
+// Distribütör otomatik bulunur (bulunamazsa ekrandan okunur)
+// Dosya No her zaman ekrandaki düzenlenebilir alandan okunur
+// ═══════════════════════════════════════════════════════════════════
+window.dilekceKIYMETViaGAS = async function() {
+    const items = window.currentDilekceItems || [];
+    if (items.length === 0) {
+        alert("Dilekçe verisi bulunamadı!");
+        return;
+    }
+
+    const ilkArac = items[0];
+
+    // Firma & imza yetkilisi
+    let firmaAdi = ilkArac.firma || "........................";
+    let imzaYetkilisi = "........................";
+    let fUst = firmaAdi.toUpperCase();
+    if (fUst.includes("ŞAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
+    else if (fUst.includes("FF OTOMOTİV")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; }
+    else if (fUst.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
+    else if (fUst.includes("SANDIKÇI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+
+    // Distribütör otomatik bulucu (renderDilekceContent ile aynı liste)
+    const distribList = [
+        { markalar: ["APRILIA", "MG", "MOTO GUZZI", "PIAGGIO", "SILENCE", "VESPA", "KYMCO"], dist: "DOĞAN TREND OTOMOTİV TİC. HİZMET VE TEKNOLOJİ A.Ş." },
+        { markalar: ["ASTON MARTIN"], dist: "D ve D MOTORLU ARAÇLAR A.Ş." },
+        { markalar: ["AUDİ", "BENTLEY", "CUPRA", "LAMBORGHİNİ", "PORSCHE", "SEAT", "VOLKSWAGEN"], dist: "DOĞUŞ OTOMOTİV SERVİS VE TİC. A.Ş." },
+        { markalar: ["BMW", "MİNİ"], dist: "BORUSAN OTOMOTİV İTHALAT VE DAĞITIM A.Ş." },
+        { markalar: ["JAGUAR", "LAND ROVER", "RANGE ROVER"], dist: "BORUSAN OTOMOTİV PAZARLAMA VE TİCARET A.Ş." },
+        { markalar: ["BYD"], dist: "ALJ Pazarlama ve Satış A.Ş. / BYD TURKEY OTOMOTİV LTD. ŞTİ." },
+        { markalar: ["CHERY"], dist: "CHERY OTOMOBİL SANAYİ VE TİCARET A.Ş." },
+        { markalar: ["CITROEN", "DS", "FIAT", "TOFAŞ", "OPEL", "PEUGEOT"], dist: "TOFAŞ TÜRK OTOMOBİL FABRİKASI A.Ş." },
+        { markalar: ["DACIA", "RENAULT"], dist: "MAIS MOTORLU ARAÇLAR İMAL VE SATIŞ A.Ş." },
+        { markalar: ["EVPOWER"], dist: "Evpower Elektrikli Araçlar A.Ş." },
+        { markalar: ["FERRARİ", "MASERATİ"], dist: "FER MAS OTO TİCARET A.Ş." },
+        { markalar: ["FORD"], dist: "FORD OTOMOTİV SAN. A.Ş." },
+        { markalar: ["HONDA"], dist: "HONDA TÜRKİYE A.Ş." },
+        { markalar: ["HYUNDAI"], dist: "Hyundai Motor Türkiye Otomotiv A.Ş." },
+        { markalar: ["IVECO"], dist: "IVECO ARAÇ SANAYİ VE TİC. A.Ş." },
+        { markalar: ["KIA"], dist: "ÇELİK MOTOR TİC. A.Ş." },
+        { markalar: ["LEXUS", "TOYOTA"], dist: "TOYOTA TÜRKİYE PAZARLAMA VE SATIŞ A.Ş." },
+        { markalar: ["MERCEDES", "SMART"], dist: "MERCEDES-BENZ OTOMOTİV TİCARET VE HİZMETLERİ A.Ş." },
+        { markalar: ["MITSUBISHI"], dist: "TEMSA MOTORLU ARAÇLAR PAZARLAMA ve DAĞITIM A.Ş." },
+        { markalar: ["NISSAN"], dist: "NISSAN OTOMOTİV A.Ş." },
+        { markalar: ["OTOKAR"], dist: "OTOKAR OTOMOTİV VE SAVUNMA SANAYİ A.Ş." },
+        { markalar: ["SKODA"], dist: "YÜCE AUTO MOTORLU ARAÇLAR TİC. A.Ş." },
+        { markalar: ["SSANGYONG"], dist: "ŞAHSUVAROĞLU İTHALAT İHRACAT OTOMOTİV SAN. A.Ş." },
+        { markalar: ["SUBARU"], dist: "BAYTUR MOTORLU VASITALAR TİC. A.Ş." },
+        { markalar: ["SUZUKI"], dist: "SUZUKİ MOTORLU ARAÇLAR PAZARLAMA A.Ş." },
+        { markalar: ["TENAX"], dist: "MARMARA NOVA OTOMOTİV SAN. VE TİC. A.Ş." },
+        { markalar: ["VOLVO"], dist: "VOLVO CAR TURKEY OTOMOBİL LTD. ŞTİ." },
+        { markalar: ["GMC"], dist: "Tur Oto Pazarlama Ticaret A.Ş." }
+    ];
+    let distributor = "";
+    let distFound = false;
+    const markaUpper = (ilkArac.marka || "").toUpperCase();
+    for (let i = 0; i < distribList.length; i++) {
+        if (distribList[i].markalar.some(m => markaUpper.includes(m))) {
+            distributor = distribList[i].dist;
+            distFound = true;
+            break;
+        }
+    }
+
+    // Ekrandaki düzenlenebilir alanları oku (imza-yetkili'yi hariç tutuyoruz)
+    // Sıralama:
+    //   - Distribütör bulunmadıysa: editables[0] = distributor (manuel), editables[1] = dosya no
+    //   - Distribütör bulunduysa:   editables[0] = dosya no
+    const editables = document.querySelectorAll('#dilekce-print-area .editable-field:not(.imza-yetkili)');
+    let dosyaNo = "E-........................";
+    if (distFound) {
+        if (editables[0]) dosyaNo = editables[0].textContent.trim();
+    } else {
+        if (editables[0]) {
+            const t = editables[0].textContent.trim();
+            if (t && !t.includes("..........")) distributor = t;
+        }
+        if (editables[1]) dosyaNo = editables[1].textContent.trim();
+    }
+    if (!distributor) distributor = ".......................................................";
+
+    // İmza yetkilisi ekrandan da okunabilir (kullanıcı manuel değiştirmiş olabilir)
+    const imzaEl = document.querySelector('#dilekce-print-area .imza-yetkili.editable-field');
+    if (imzaEl) {
+        const t = imzaEl.textContent.trim();
+        if (t && !t.includes("..........")) imzaYetkilisi = t;
+    }
+
+    // Para formatı (renderDilekceContent ile aynı)
+    const fatura = parseFloat(String(ilkArac.fatura || 0).replace(/\./g, '').replace(',', '.')) || 0;
+    const kiymet = parseFloat(String(ilkArac.kiymet || 0).replace(/\./g, '').replace(',', '.')) || 0;
+    const fark = Math.abs(kiymet - fatura);
+    const formatPara = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const payload = {
+        tip: "KIYMET",
+        firmaAdi: firmaAdi,
+        imzaYetkilisi: imzaYetkilisi,
+        beyanname: ilkArac.beyanname || ilkArac.ozetBeyan || "...................",
+        sasi: ilkArac.sasi || "...................",
+        marka: ilkArac.marka || "........",
+        model: ilkArac.model || "................",
+        fatura: formatPara(fatura),
+        kiymet: formatPara(kiymet),
+        fark: formatPara(fark),
+        distributor: distributor,
+        kiymetTarihi: ilkArac.kiymGt || "................",
+        dosyaNo: dosyaNo
+    };
+
+    if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor (GAS)...");
+
+    try {
+        const resp = await fetch(window.DILEKCE_GAS_URL, {
+            method: 'POST',
+            mode: 'cors',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+        const result = await resp.json();
+        if (!result.ok) throw new Error(result.error || "GAS hatası");
+
+        const byteChars = atob(result.pdfBase64);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = result.filename || "KIYMET_DILEKCE.pdf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
+    } catch (err) {
+        console.error("KIYMET GAS hatası:", err);
+        alert("PDF üretilemedi: " + (err.message || "Bilinmeyen hata"));
+        if (typeof hideSyncToast === 'function') hideSyncToast("Hata!", false);
+    }
+};
+
 window.downloadPDF = function() {
+    const tipEl = document.getElementById('dilekce-tipi');
+    const tip = tipEl ? tipEl.value : 'BELGE';
+    
+    // ★ Tüm dilekçe tipleri → GAS üzerinden (mobil/PC sorun yok)
+    if (tip === "SURE") {
+        return window.dilekceSureViaGAS();
+    }
+    if (tip === "GMC") {
+        return window.dilekceGMCViaGAS();
+    }
+    if (tip === "KIYMET") {
+        return window.dilekceKIYMETViaGAS();
+    }
+    
+    // Bilinmeyen tip için fallback (html2pdf)
     if (typeof html2pdf === 'undefined') {
         alert("PDF kütüphanesi yüklenemedi.");
         return;
     }
-    const element = document.getElementById('dilekce-print-area');
-    if (!element) return;
+    const original = document.getElementById('dilekce-print-area');
+    if (!original) { alert("Dilekçe alanı bulunamadı!"); return; }
     
-    const tipEl = document.getElementById('dilekce-tipi');
-    const tip = tipEl ? tipEl.value : 'BELGE';
     let sasi = window.currentDilekceItems && window.currentDilekceItems[0]
                 ? (window.currentDilekceItems[0].sasi || "EVRAK")
                 : "EVRAK";
 
-    // === ÖNEMLİ: PDF öncesi temizlik ===
-    element.classList.add('pdf-export-mode');
-    window.cleanEditableFieldsForPDF(); // ← Bu satır tüm mavi+çizgi+boşluk sorununu çözer
-    
     if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor...");
-    
+
+    // ============================================================
+    // YENİ YAKLAŞIM: KLONLAMA + SABİT BOYUT
+    // Mobil ve PC'de aynı çıktıyı garantiler.
+    // ============================================================
+
+    // 1) Orijinal dilekçeyi klonla (ekrandaki sayfaya hiç dokunmuyoruz)
+    const clone = original.cloneNode(true);
+    clone.id = 'dilekce-pdf-clone';
+
+    // 2) Klondaki editable-field'ları tamamen normal metne çevir
+    //    (mavi çizgi yok, contenteditable yok, çakışma yok)
+    clone.querySelectorAll('.editable-field, [contenteditable]').forEach(field => {
+        field.removeAttribute('contenteditable');
+        field.style.cssText = `
+            border: none !important;
+            border-bottom: none !important;
+            background: transparent !important;
+            color: #000000 !important;
+            font-weight: 700 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: inline !important;
+            min-width: 0 !important;
+            outline: none !important;
+            text-decoration: none !important;
+            box-shadow: none !important;
+        `;
+    });
+
+    // 3) Klona sabit A4 boyutu ver - bu mobil/PC farkını sıfırlar
+    clone.classList.add('pdf-export-mode');
+    clone.style.cssText = `
+        width: 794px !important;
+        max-width: 794px !important;
+        min-width: 794px !important;
+        min-height: auto !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 60px 75px !important;
+        box-sizing: border-box !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-family: 'Times New Roman', Times, serif !important;
+        font-size: 15px !important;
+        line-height: 1.55 !important;
+        font-weight: 700 !important;
+        text-align: justify !important;
+        display: block !important;
+        position: relative !important;
+        overflow: visible !important;
+        transform: none !important;
+    `;
+
+    // 4) Klonu görünmez bir konteynere koy (sayfanın sol dışına)
+    const wrapper = document.createElement('div');
+    wrapper.id = 'pdf-clone-wrapper';
+    wrapper.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: -99999px !important;
+        width: 794px !important;
+        height: auto !important;
+        background: #ffffff !important;
+        z-index: -9999 !important;
+        overflow: visible !important;
+        pointer-events: none !important;
+    `;
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    // 5) PDF üret - artık mobil/PC eşit
     const opt = {
-        margin: [10, 12, 10, 12],           // biraz daralttık (boş sayfa sorununu çözer)
+        margin: 0,
         filename: `${tip}_${sasi}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-            scale: 3,                       // iPhone ve Chrome için en dengeli değer
+        html2canvas: {
+            scale: 2,
             useCORS: true,
-            letterRendering: true,
             allowTaint: true,
-            dpi: 300,
+            backgroundColor: '#ffffff',
             logging: false,
-            scrollY: 0
+            scrollY: 0,
+            scrollX: 0,
+            width: 794,
+            windowWidth: 794
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        compress: true
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait',
+            compress: true
+        }
     };
-    
-    html2pdf().set(opt).from(element).save().then(() => {
-        element.classList.remove('pdf-export-mode');
+
+    html2pdf().set(opt).from(clone).save().then(() => {
+        if (wrapper.parentNode) document.body.removeChild(wrapper);
         if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
-        
-        // PDF bittikten sonra dilekçeyi tekrar render et (ekran eski haline dönsün)
-        setTimeout(() => {
-            window.renderDilekceContent();
-        }, 300);
     }).catch(err => {
-        console.error(err);
-        alert("PDF hatası: " + err.message);
-        element.classList.remove('pdf-export-mode');
-        window.renderDilekceContent();
+        console.error("PDF hatası:", err);
+        if (wrapper.parentNode) document.body.removeChild(wrapper);
+        alert("PDF hatası: " + (err.message || "Bilinmeyen hata"));
     });
 };
 
