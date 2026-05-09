@@ -7966,6 +7966,39 @@ window.printDilekce = function() {
 // ═══════════════════════════════════════════════════════════════════
 window.DILEKCE_GAS_URL = "https://script.google.com/macros/s/AKfycbzNKu7s-MBKwNHD-1GR51sL0foDE6BAatnXGu1qOCyAV5T698uRDlohLgWPfs2nDR38/exec";
 
+// Otomatik retry'lı fetch (zayıf bağlantı için)
+window.fetchGASWithRetry = async function(payload, maxRetry = 2) {
+    let lastErr;
+    for (let attempt = 0; attempt <= maxRetry; attempt++) {
+        try {
+            const resp = await fetch(window.DILEKCE_GAS_URL, {
+                method: 'POST',
+                mode: 'cors',
+                redirect: 'follow',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            return await resp.json();
+        } catch (err) {
+            lastErr = err;
+            console.warn('GAS denemesi ' + (attempt + 1) + ' başarısız:', err.message);
+            if (attempt < maxRetry) {
+                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            }
+        }
+    }
+    throw lastErr;
+};
+
+// GAS sunucusunu önceden uyandır (warmup)
+window.warmupGAS = function() {
+    if (window._gasWarmedUp) return;
+    window._gasWarmedUp = true;
+    fetch(window.DILEKCE_GAS_URL, { method: 'GET', mode: 'cors' })
+        .then(() => console.log("GAS warmup tamam"))
+        .catch(() => { window._gasWarmedUp = false; });
+};
+
 // ═══════════════════════════════════════════════════════════════════
 // SÜRE DİLEKÇESİ - GAS üzerinden PDF üretici
 // Mobil/PC fark etmez, jet siyah yazı, Google Docs şablonu kullanır
@@ -8015,15 +8048,7 @@ window.dilekceSureViaGAS = async function() {
     if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor (GAS)...");
 
     try {
-        const resp = await fetch(window.DILEKCE_GAS_URL, {
-            method: 'POST',
-            mode: 'cors',
-            redirect: 'follow',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload)
-        });
-        
-        const result = await resp.json();
+        const result = await window.fetchGASWithRetry(payload);
         
         if (!result.ok) {
             throw new Error(result.error || "GAS bilinmeyen hata döndü");
@@ -8097,14 +8122,7 @@ window.dilekceGMCViaGAS = async function() {
     if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor (GAS)...");
 
     try {
-        const resp = await fetch(window.DILEKCE_GAS_URL, {
-            method: 'POST',
-            mode: 'cors',
-            redirect: 'follow',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload)
-        });
-        const result = await resp.json();
+        const result = await window.fetchGASWithRetry(payload);
         if (!result.ok) throw new Error(result.error || "GAS hatası");
 
         const byteChars = atob(result.pdfBase64);
@@ -8242,14 +8260,7 @@ window.dilekceKIYMETViaGAS = async function() {
     if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor (GAS)...");
 
     try {
-        const resp = await fetch(window.DILEKCE_GAS_URL, {
-            method: 'POST',
-            mode: 'cors',
-            redirect: 'follow',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload)
-        });
-        const result = await resp.json();
+        const result = await window.fetchGASWithRetry(payload);
         if (!result.ok) throw new Error(result.error || "GAS hatası");
 
         const byteChars = atob(result.pdfBase64);
@@ -9273,6 +9284,7 @@ window.autoSaveArdiyeToDrive = function(r) {
 
 // ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (KUSURSUZ VERSİYON) =================
 window.renderDilekceContent = function() {
+    if (window.warmupGAS) window.warmupGAS();   // GAS'ı önceden uyandır
     let tipEl = document.getElementById('dilekce-tipi');
     let container = document.getElementById('dilekce-print-area');
     let items = window.currentDilekceItems;
