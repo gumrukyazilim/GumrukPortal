@@ -872,10 +872,13 @@
     .header-right { display: flex !important; gap: 4px !important; flex-shrink: 0 !important; }
     .header-right .hdr-icon-btn { width: 32px !important; height: 32px !important; }
     .header-right .divider-v { display: none !important; }
-    .header-right .user-pill { display: none !important; }
+    .header-right .user-pill { display: flex !important; padding: 4px 8px !important; }
     .toolbar { flex-direction: column; gap: 10px; padding: 10px !important; }
     .toolbar-left, .toolbar-right { width: 100%; justify-content: center; flex-wrap: wrap; }
     .modal-footer { padding-bottom: 80px !important; }
+
+    /* GİRİŞ YAPILMADAN ALT NAV KESİNLİKLE GİZLE */
+    body:not(.gp-logged-in) #bottom-nav { display: none !important; }
 
     /* MOBİL BOTTOM NAVİGASYON */
     .bottom-nav {
@@ -4374,9 +4377,10 @@ function saveCariData() {
         s.style.transition = 'all 0.4s';
         setTimeout(() => {
             s.style.display = 'none';
+            document.body.classList.add('gp-logged-in'); // ★ Alt nav için class
             window.applyRoleUI();
 			if(window.updateUyelikBadge) window.updateUyelikBadge();
-            if(window.checkBottomNav) window.checkBottomNav(); // Alt bar login sonrası göster
+            if(window.checkBottomNav) window.checkBottomNav();
             window.renderView(role === 'admin' ? 'dashboard' : 'declarations');
         }, 400);
     };
@@ -7690,6 +7694,7 @@ if(vn==='gelecekAraclar'){
     document.addEventListener('DOMContentLoaded',()=>{
         if(localStorage.getItem('gumruk_auth')==='true') {
             document.getElementById('login-screen').style.display='none';
+            document.body.classList.add('gp-logged-in'); // ★ Alt nav için class
             window.applyRoleUI();
             
             // KRİTİK: Firebase'den bağımsız olarak hemen dashboard'u göster
