@@ -10626,6 +10626,13 @@ window.checkBottomNav = function() {
     const nav = document.getElementById('bottom-nav');
     if (!nav) return;
     
+    // ★ Login/Üye Ol ekranı açıksa GIZLE
+    const loginScreen = document.getElementById('login-screen');
+    if (loginScreen && loginScreen.style.display !== 'none') {
+        nav.style.display = 'none';
+        return;
+    }
+    
     // Role kontrolü
     const role = localStorage.getItem('gumruk_role') || '';
     const isAuth = localStorage.getItem('gumruk_auth') === 'true';
