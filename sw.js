@@ -1,6 +1,6 @@
 // GümrükPortal Service Worker
 // Versiyon değiştirince eski cache temizlenir
-const CACHE_NAME = 'gumrukportal-v1';
+const CACHE_NAME = 'gumrukportal-v3';
 
 // Install: yüklendiğinde
 self.addEventListener('install', event => {
