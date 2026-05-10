@@ -10625,32 +10625,27 @@ const _orig_checkBottomNav = window.checkBottomNav;
 window.checkBottomNav = function() {
     const nav = document.getElementById('bottom-nav');
     if (!nav) return;
-    
-    // ★ Login/Üye Ol ekranı açıksa GIZLE
-    const loginScreen = document.getElementById('login-screen');
-    if (loginScreen && loginScreen.style.display !== 'none') {
+
+    // ★ GİRİŞ YAPILMAMIŞSA KESİNLİKLE GİZLE
+    const isAuth = localStorage.getItem('gumruk_auth') === 'true';
+    const role   = localStorage.getItem('gumruk_role') || '';
+    if (!isAuth || !role) {
         nav.style.display = 'none';
         return;
     }
-    
-    // Role kontrolü
-    const role = localStorage.getItem('gumruk_role') || '';
-    const isAuth = localStorage.getItem('gumruk_auth') === 'true';
-    const isAdmin = (role === 'admin');
+
+    // Giriş yapılmış — role kontrolü
+    const isAdmin      = (role === 'admin');
     const isSuperViewer = document.body.classList.contains('is-izleyici');
-    
-    // Sadece (giriş yapmış) VE (admin VEYA süper izleyici) ise göster
-    const goster = (isAuth && (isAdmin || isSuperViewer));
-    
-    // Mobilde mi
-    const mobil = window.innerWidth <= 768;
-    
+    const goster = (isAdmin || isSuperViewer);
+    const mobil  = window.innerWidth <= 768;
+
     if (mobil && goster) {
         nav.style.display = 'block';
     } else {
         nav.style.display = 'none';
     }
-    
+
     if (window.lucide) lucide.createIcons();
 };
 
