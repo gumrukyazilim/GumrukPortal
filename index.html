@@ -4782,6 +4782,11 @@ function loadFromLocal() {
                     if(ok){
                         console.log("✅ Araç verisi buluta başarıyla kaydedildi.");
                         hideSyncToast("Firebase'e kaydedildi!",true);
+                        
+                        // ★ ARKA PLANDA SHEETS'E DE YAZ (Firebase'i etkilemez, sessiz çalışır)
+                        if (typeof window.sheetseSenkronArkaPlanda === 'function') {
+                            window.sheetseSenkronArkaPlanda();
+                        }
                     } else {
                         console.error("❌ Araç verisi buluta kaydedilemedi: Firebase yazma işlemi başarısız döndü.");
                         hideSyncToast("Kayıt başarısız!",false);
@@ -8022,6 +8027,98 @@ window.warmupGAS = function() {
     fetch(window.DILEKCE_GAS_URL, { method: 'GET', mode: 'cors' })
         .then(() => console.log("GAS warmup tamam"))
         .catch(() => { window._gasWarmedUp = false; });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// SHEETS SYNC MOTORU - GümrükPortal verisini Google Sheets'e gönderir
+// ═══════════════════════════════════════════════════════════════════
+window.SHEETS_GAS_URL = "https://script.google.com/macros/s/AKfycbxwhzxqivEyPn_aKFW2gsKtxkzGjL_k8N90bL22p1nGyrZcCsJWK4KmzBmRXuRXWn37Vw/exec";
+
+// Manuel toplu sync (kullanıcı butona basar - 158 araç tek seferde)
+window.sheetseTopluAktar = async function() {
+    if (!window._dataLoaded) {
+        alert("Veriler henüz yüklenmedi, biraz bekleyin.");
+        return;
+    }
+
+    const aracSayisi = window.declarationsData ? window.declarationsData.length : 0;
+    const onay = confirm(
+        "📊 SHEETS'E TOPLU AKTARMA\n" +
+        "─────────────────────\n" +
+        "Toplam araç: " + aracSayisi + "\n" +
+        "Tahmini süre: 30-60 saniye\n\n" +
+        "GümrükPortal'daki TÜM veriler Google Sheets'e yazılacak.\n" +
+        "(Firebase verisi etkilenmez, sadece Sheets güncellenir)\n\n" +
+        "Devam edilsin mi?"
+    );
+    if (!onay) return;
+
+    if (typeof showSyncToast === 'function') showSyncToast("Sheets'e aktarılıyor (" + aracSayisi + " araç)...");
+
+    const payload = {
+        decl: window.declarationsData || [],
+        firm: window.firmData || {},
+        kiymet: window.kiymetData || []
+    };
+
+    try {
+        // GAS POST isteği - mode: cors ama text/plain ile (CORS preflight'sız)
+        const resp = await fetch(window.SHEETS_GAS_URL, {
+            method: 'POST',
+            mode: 'cors',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+        const result = await resp.json();
+        
+        if (result.status === 'success') {
+            if (typeof hideSyncToast === 'function') hideSyncToast("✅ Sheets'e aktarıldı! (" + aracSayisi + " araç)", true);
+            console.log("✅ Sheets sync başarılı:", result);
+            alert("✅ BAŞARILI!\n\n" + aracSayisi + " araç Google Sheets'e aktarıldı.\nSpreadsheet'i kontrol edebilirsin.");
+        } else {
+            throw new Error(result.message || "Bilinmeyen GAS hatası");
+        }
+    } catch (err) {
+        console.error("❌ Sheets sync hatası:", err);
+        if (typeof hideSyncToast === 'function') hideSyncToast("Sheets sync hatası!", false);
+        alert("❌ HATA\n\nSheets'e aktarılamadı: " + err.message + "\n\nFirebase verisi güvende, Sheets güncellenmedi.");
+    }
+};
+
+// Otomatik arka plan sync (her saveData başarısı sonrası çağrılır)
+// Sessiz çalışır, kullanıcı fark etmez, hata olursa Firebase etkilenmez
+window.sheetseSenkronArkaPlanda = function() {
+    // Debounce: çok hızlı arka arkaya çağrılırsa son çağrıdan 5 sn sonra çalış
+    if (window._sheetsSyncTimeout) clearTimeout(window._sheetsSyncTimeout);
+    window._sheetsSyncTimeout = setTimeout(async () => {
+        if (!window._dataLoaded) return;
+
+        const payload = {
+            decl: window.declarationsData || [],
+            firm: window.firmData || {},
+            kiymet: window.kiymetData || []
+        };
+
+        try {
+            const resp = await fetch(window.SHEETS_GAS_URL, {
+                method: 'POST',
+                mode: 'cors',
+                redirect: 'follow',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            const result = await resp.json();
+            if (result.status === 'success') {
+                console.log("📊 Sheets arka plan sync OK");
+            } else {
+                console.warn("📊 Sheets arka plan sync uyarı:", result.message);
+            }
+        } catch (err) {
+            // Hata sessizce log'lanır, kullanıcıyı rahatsız etmez
+            console.warn("📊 Sheets arka plan sync hatası (önemsiz):", err.message);
+        }
+    }, 5000); // 5 sn debounce
 };
 
 // ═══════════════════════════════════════════════════════════════════
