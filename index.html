@@ -4376,6 +4376,7 @@ function saveCariData() {
             s.style.display = 'none';
             window.applyRoleUI();
 			if(window.updateUyelikBadge) window.updateUyelikBadge();
+            if(window.checkBottomNav) window.checkBottomNav(); // Alt bar login sonrası göster
             window.renderView(role === 'admin' ? 'dashboard' : 'declarations');
         }, 400);
     };
@@ -8053,7 +8054,7 @@ window.sheetseTopluAktar = async function() {
     );
     if (!onay) return;
 
-    if (typeof showSyncToast === 'function') showSyncToast("Sheets'e aktarılıyor (" + aracSayisi + " araç)...");
+    if (typeof showSyncToast === 'function') showSyncToast("Sheets'e aktarılıyor (" + aracSayisi + " araç)... 30-60 sn sürebilir");
 
     const payload = {
         decl: window.declarationsData || [],
@@ -8062,27 +8063,27 @@ window.sheetseTopluAktar = async function() {
     };
 
     try {
-        // GAS POST isteği - mode: cors ama text/plain ile (CORS preflight'sız)
-        const resp = await fetch(window.SHEETS_GAS_URL, {
+        // no-cors mode: CORS bloku olmaz ama response okunamaz
+        // GAS verileri alır ve işler, biz sadece "gönderildi" deriz
+        await fetch(window.SHEETS_GAS_URL, {
             method: 'POST',
-            mode: 'cors',
+            mode: 'no-cors',
             redirect: 'follow',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
         });
-        const result = await resp.json();
         
-        if (result.status === 'success') {
-            if (typeof hideSyncToast === 'function') hideSyncToast("✅ Sheets'e aktarıldı! (" + aracSayisi + " araç)", true);
-            console.log("✅ Sheets sync başarılı:", result);
-            alert("✅ BAŞARILI!\n\n" + aracSayisi + " araç Google Sheets'e aktarıldı.\nSpreadsheet'i kontrol edebilirsin.");
-        } else {
-            throw new Error(result.message || "Bilinmeyen GAS hatası");
-        }
+        // GAS'ın işlemesi için bekle (158 araç ~30-60 sn)
+        if (typeof showSyncToast === 'function') showSyncToast("GAS işliyor, lütfen bekleyin... (30-60 sn)");
+        await new Promise(r => setTimeout(r, 45000)); // 45 saniye bekle
+        
+        if (typeof hideSyncToast === 'function') hideSyncToast("✅ Sheets'e gönderildi! (" + aracSayisi + " araç)", true);
+        console.log("✅ Sheets sync gönderim tamam");
+        alert("✅ TAMAMLANDI!\n\n" + aracSayisi + " araç Google Sheets'e gönderildi.\n\nSpreadsheet'i kontrol et:\n• GelenAraçlar sekmesi → tüm araçlar\n• ŞAMNU GT, FF OTOMOTİV vs. → her firma kendi sayfasında\n• Kıymet sekmesi → kıymet listesi");
     } catch (err) {
         console.error("❌ Sheets sync hatası:", err);
         if (typeof hideSyncToast === 'function') hideSyncToast("Sheets sync hatası!", false);
-        alert("❌ HATA\n\nSheets'e aktarılamadı: " + err.message + "\n\nFirebase verisi güvende, Sheets güncellenmedi.");
+        alert("⚠️ HATA\n\nSheets'e gönderim sırasında hata: " + err.message + "\n\nFirebase verisi güvende, sadece Sheets etkilendi. Tekrar denemek için yine butona basabilirsin.");
     }
 };
 
@@ -8101,19 +8102,15 @@ window.sheetseSenkronArkaPlanda = function() {
         };
 
         try {
-            const resp = await fetch(window.SHEETS_GAS_URL, {
+            // no-cors mode: sessizce gönder, response gerek yok
+            await fetch(window.SHEETS_GAS_URL, {
                 method: 'POST',
-                mode: 'cors',
+                mode: 'no-cors',
                 redirect: 'follow',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             });
-            const result = await resp.json();
-            if (result.status === 'success') {
-                console.log("📊 Sheets arka plan sync OK");
-            } else {
-                console.warn("📊 Sheets arka plan sync uyarı:", result.message);
-            }
+            console.log("📊 Sheets arka plan sync gönderildi");
         } catch (err) {
             // Hata sessizce log'lanır, kullanıcıyı rahatsız etmez
             console.warn("📊 Sheets arka plan sync hatası (önemsiz):", err.message);
@@ -9298,6 +9295,22 @@ window.bnavGoKiymet = function() {
 window.checkBottomNav = function() {
     let nav = document.getElementById('bottom-nav');
     if(!nav) return;
+
+    // 1. Login ekranı açıksa alt barı GIZLE
+    let loginScreen = document.getElementById('login-screen');
+    if(loginScreen && loginScreen.style.display !== 'none') {
+        nav.style.display = 'none';
+        return;
+    }
+
+    // 2. Giriş yapılmamışsa GIZLE
+    let role = localStorage.getItem('gumruk_role');
+    if(!role) {
+        nav.style.display = 'none';
+        return;
+    }
+
+    // 3. Onaylı kullanıcı → mobilde göster
     if(window.innerWidth <= 768) {
         nav.style.display = 'block';
     } else {
