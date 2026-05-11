@@ -4754,6 +4754,12 @@ function loadFromLocal() {
 
     let cloudSaveTimeout=null;
     function saveData(type){
+        // GÜVENLİK KİLİDİ 0: SADECE ADMIN KAYDEDEBİLİR!
+        const _saveRole = localStorage.getItem('gumruk_role') || '';
+        if (_saveRole !== 'admin') {
+            console.warn("KORUMA: Admin olmayan kullanıcı Firebase'e yazamaz, engellendi.");
+            return; // Müşteri/firma kullanıcıları hiçbir zaman Firebase'e yazamaz
+        }
         // GÜVENLİK KİLİDİ 1: Veriler buluttan inmediyse ASLA kaydetme!
         if (!window._dataLoaded) {
             console.warn("KORUMA AKTİF: Veriler tam yüklenmeden üzerine yazma engellendi!");
@@ -7625,9 +7631,8 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
 
         if(_role !== 'admin') {
             if (_yetkiler.izleyici) {
-                // SÜPER İZLEYİCİ İÇİN YASAKLI SAYFALAR
+                // SÜPER İZLEYİCİ İÇİN YASAKLI SAYFALAR (sessizce yönlendir)
                 if (vn === 'uyelikler' || vn === 'beyanname') {
-                    alert('⚠️ Bu sayfaya erişim yetkiniz yok.');
                     vn = 'declarations';
                 }
             } else {
@@ -7639,7 +7644,7 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
                     'calculator':     'vergiHesaplama'
                 };
                 if(!(vn in _sayfaYetki) || !_yetkiler[_sayfaYetki[vn]]) {
-                    alert('⚠️ Bu sayfaya erişim yetkiniz yok.');
+                    // Sessizce yetkili ilk sayfaya yönlendir (uyarı gösterme)
                     vn = Object.keys(_sayfaYetki).find(k => _yetkiler[_sayfaYetki[k]]) || 'declarations';
                 }
             }
