@@ -877,8 +877,8 @@
     .toolbar-left, .toolbar-right { width: 100%; justify-content: center; flex-wrap: wrap; }
     .modal-footer { padding-bottom: 80px !important; }
 
-    /* GİRİŞ YAPILMADAN ALT NAV KESİNLİKLE GİZLE */
-    body:not(.gp-logged-in) #bottom-nav { display: none !important; }
+    /* ALT NAV: SADECE ADMIN VE SÜPER İZLEYİCİ GÖRÜR - CSS ile kesin gizle */
+    body:not(.gp-admin-nav) #bottom-nav { display: none !important; }
 
     /* MOBİL BOTTOM NAVİGASYON */
     .bottom-nav {
@@ -4377,7 +4377,10 @@ function saveCariData() {
         s.style.transition = 'all 0.4s';
         setTimeout(() => {
             s.style.display = 'none';
-            document.body.classList.add('gp-logged-in'); // ★ Alt nav için class
+            // ★ Sadece admin ve süper izleyici alt bar görebilir
+            if (role === 'admin') {
+                document.body.classList.add('gp-admin-nav');
+            }
             window.applyRoleUI();
 			if(window.updateUyelikBadge) window.updateUyelikBadge();
             if(window.checkBottomNav) window.checkBottomNav();
@@ -4651,9 +4654,13 @@ function saveCariData() {
 
     if(window.isSuperViewer) {
         document.body.classList.add('is-izleyici');
+        document.body.classList.add('gp-admin-nav'); // ★ Süper izleyici alt bar görebilir
         if(roleEl) roleEl.innerText = 'Süper İzleyici';
     } else {
         document.body.classList.remove('is-izleyici');
+        if(role !== 'admin') {
+            document.body.classList.remove('gp-admin-nav'); // ★ Normal üye alt bar göremez
+        }
     }
 
    // SOL MENÜYÜ VE YASAKLI SAYFALARI YÖNETME MANTIĞI
@@ -7699,7 +7706,13 @@ if(vn==='gelecekAraclar'){
     document.addEventListener('DOMContentLoaded',()=>{
         if(localStorage.getItem('gumruk_auth')==='true') {
             document.getElementById('login-screen').style.display='none';
-            document.body.classList.add('gp-logged-in'); // ★ Alt nav için class
+            // ★ Sadece admin ve süper izleyici alt bar görebilir
+            const _cachedRole = localStorage.getItem('gumruk_role') || '';
+            if (_cachedRole === 'admin') {
+                document.body.classList.add('gp-admin-nav');
+            } else {
+                // Süper izleyici kontrolü applyRoleUI'de yapılıyor
+            }
             window.applyRoleUI();
             
             // KRİTİK: Firebase'den bağımsız olarak hemen dashboard'u göster
