@@ -281,6 +281,8 @@
         
         /* MÜŞTERİ YETKİ GİZLEME SINIFI */
         .hidden-role { display: none !important; }
+.admin-or-viewer-footer { display: none; }
+body.gp-admin-nav .admin-or-viewer-footer { display: block; }
 		body.is-firma-user .firma-readonly { display: none !important; }
         body.is-firma-user .firma-readonly-disabled { pointer-events: none !important; opacity: 0.4 !important; cursor: default !important; }
         
@@ -1086,7 +1088,7 @@
 <button class="nav-btn admin-only" data-view="cariKart"><i data-lucide="wallet"></i><span>Cari Kart</span></button>
 <button class="nav-btn admin-only" data-view="mevzuat"><i data-lucide="book-open"></i><span style="color:var(--primary); font-weight:600;">2026 Mevzuat Rehberi</span></button>
         </nav>
-        <div class="sidebar-footer admin-only">
+        <div class="sidebar-footer admin-or-viewer-footer">
             <button class="footer-btn primary-subtle" onclick="window.forceCloudSync()"><i data-lucide="refresh-cw"></i> Firebase Eşitle</button>
             <button class="footer-btn" onclick="document.getElementById('import-backup-file').click()"><i data-lucide="upload"></i> Yedek İçe Aktar</button>
             <input type="file" id="import-backup-file" accept=".json" style="display:none;" onchange="window.importBackup(event)">
@@ -4711,11 +4713,11 @@ function saveCariData() {
         if (role === 'admin') {
             el.classList.remove('hidden-role');
         } else if (window.isSuperViewer) {
-            // Süper izleyiciden Üyelikler ve Beyanname sayfalarını GİZLE
+            // Süper izleyici - Üyelikler ve Beyanname dışında HERŞEYİ GÖSTER
             if (vn === 'uyelikler' || vn === 'beyanname') {
                 el.classList.add('hidden-role');
             } else {
-                el.classList.remove('hidden-role');
+                el.classList.remove('hidden-role'); // Admin-only dahil her şey görünür
             }
         } else {
             // Normal firma kullanıcısı yetki kontrolü
