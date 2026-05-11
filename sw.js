@@ -1,16 +1,13 @@
-// GümrükPortal Service Worker
-// Versiyon değiştirince eski cache temizlenir
-const CACHE_NAME = 'gumrukportal-v3';
+// GümrükPortal Service Worker v4
+const CACHE_NAME = 'gumrukportal-v4';
 
-// Install: yüklendiğinde
 self.addEventListener('install', event => {
-  console.log('[SW] Yüklendi');
+  console.log('[SW] v4 Yüklendi');
   self.skipWaiting();
 });
 
-// Activate: aktif olunca eski cache'leri temizle
 self.addEventListener('activate', event => {
-  console.log('[SW] Aktif');
+  console.log('[SW] v4 Aktif');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -23,11 +20,21 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: ağ önce, başarısız olursa cache'ten getir
 self.addEventListener('fetch', event => {
-  // GAS isteklerini cache'leme (her zaman fresh olmalı)
-  if (event.request.url.includes('script.google.com')) {
-    return;
+  const url = event.request.url;
+  
+  // Bu URL'leri ASLA cache'leme - her zaman ağdan al
+  if (
+    url.includes('script.google.com') ||
+    url.includes('firebase') ||
+    url.includes('firebaseio.com') ||
+    url.includes('googleapis.com') ||
+    url.includes('tcmb.gov.tr') ||
+    url.includes('codetabs.com') ||
+    url.includes('corsproxy.io') ||
+    url.includes('ui-avatars.com')
+  ) {
+    return; // Cache bypass
   }
 
   // POST isteklerini cache'leme
@@ -38,7 +45,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Başarılı GET cevabını cache'e koy
         if (response && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
@@ -48,7 +54,6 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // Ağ yoksa cache'ten getir
         return caches.match(event.request);
       })
   );

@@ -2487,8 +2487,15 @@ window._firebaseSave = async function(payload) {
             catch(e) { payload.ekGonderici = []; }
         }
 
-        // 2. ŞİMDİ GÜVENLİK KONTROLÜNÜ YAP (Çünkü gönderilecek paket artık eksiksiz)
+        // 2. GÜVENLİK KONTROLÜ - SADECE ADMIN GÖRÜR
+        const _fbSaveRole = localStorage.getItem('gumruk_role') || '';
+        if (_fbSaveRole !== 'admin') {
+            // Non-admin kullanıcılar Firebase'e yazamaz
+            console.warn("Güvenlik: Admin olmayan kullanıcı Firebase'e yazamaz.");
+            return false;
+        }
         if ((!payload.decl || payload.decl.length === 0) && window._dataLoaded) {
+            // Sadece admin bu uyarıyı görür
             if(!confirm("KRİTİK UYARI: Firebase'e gönderilecek araç listesi BOŞ! Bu işlem tüm bulut arşivinizi silecek. Devam etmek istediğinize emin misiniz?")) {
                 console.warn("Güvenlik duvarı: Boş veriyle bulutu ezme işlemi iptal edildi.");
                 return false;
@@ -3326,13 +3333,20 @@ window.selectGTIPGm = function(kod, desc) {
 };
 
 window.saveGelecekData = function() {
+    // KORUMA 0: SADECE ADMIN KAYDEDEBİLİR
+    const _gelecekRole = localStorage.getItem('gumruk_role') || '';
+    if (_gelecekRole !== 'admin') {
+        console.warn("Güvenlik: Admin olmayan kullanıcı gelecek araçları kaydedemez.");
+        return;
+    }
+    
     // KORUMA 1: Array değilse kaydetme
     if(!Array.isArray(window.gelecekData)) {
         console.warn("⚠️ gelecekData array değil, kayıt iptal edildi!");
         return;
     }
     
-    // KORUMA 2: Eğer önce dolu idi şimdi boş ise, kullanıcıya SOR
+    // KORUMA 2: Eğer önce dolu idi şimdi boş ise, kullanıcıya SOR (sadece admin görür)
     let onceki = localStorage.getItem('gumrukGelecekData');
     if(onceki) {
         try {
@@ -6991,6 +7005,12 @@ window.sendWhatsApp = function(index, type) {
     window._isRestoring = false;
     window._otvManuel = false;
 
+    // Kullanıcıya özel localStorage key - her üyenin hesaplaması ayrı kalır
+    window._getCalcKey = function() {
+        const email = localStorage.getItem('gumruk_user_email') || 'default';
+        return 'gumruk_calc_state_v15_' + email.replace(/[@.]/g,'_');
+    };
+
     window.saveCalcState=function(){
         if(window._isRestoring) return;
         const state={};
@@ -6999,14 +7019,14 @@ window.sendWhatsApp = function(index, type) {
 if(tipEl)state['calc-arac-tipi']=tipEl.value;
         let mtvOtoDeger = document.getElementById('mtv-oto-deger');
         if(mtvOtoDeger) state['mtv-oto-deger'] = mtvOtoDeger.checked;
-        localStorage.setItem('gumruk_calc_state_v15',JSON.stringify(state));
+        localStorage.setItem(window._getCalcKey(), JSON.stringify(state));
         if(window._firebaseSave && window._dataLoaded) {
     window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,calcState:state,firmMeta:window.firmMeta,cariData:window.cariData});
 }
     };
 
     window.loadCalcState=function(){
-        let saved=localStorage.getItem('gumruk_calc_state_v15');
+        let saved=localStorage.getItem(window._getCalcKey && window._getCalcKey() || 'gumruk_calc_state_v15');
         if(!saved) return false;
         try{
             let state=JSON.parse(saved);
