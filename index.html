@@ -426,12 +426,21 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
 
 /* MOBİL İÇİN ÖZEL AYAR */
 @media (max-width: 768px) {
-    /* iPhone notch/status bar için üst boşluk */
+    /* iPhone notch/status bar için üst boşluk - PWA fullscreen */
+    @supports (padding-top: env(safe-area-inset-top)) {
+        body {
+            padding-top: env(safe-area-inset-top) !important;
+        }
+        .top-header {
+            padding-top: 8px !important;
+        }
+    }
     .top-header { 
-        padding: 8px 12px !important; 
-        padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        padding-bottom: 8px !important;
         gap: 10px;
-        min-height: calc(56px + env(safe-area-inset-top, 0px));
+        min-height: 56px;
     }
     .search-container { gap: 5px; }
     .search-container input { font-size: 16px !important; }
@@ -1182,7 +1191,7 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
 <template id="tpl-dashboard">
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Genel Bakış</div><h1 class="page-title">Sistem Özeti</h1></div>
-        <div class="page-actions"><button class="btn-primary admin-only" onclick="window.renderView('calculator')"><i data-lucide="calculator"></i> Maliyet Hesapla</button></div>
+        <div class="page-actions"></div>
     </div>
     
     <div class="stats-grid fade-in">
