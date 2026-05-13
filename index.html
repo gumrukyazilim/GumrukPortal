@@ -8204,23 +8204,26 @@ window.sheetseTopluAktar = async function() {
     };
 
     try {
-        // no-cors mode: CORS bloku olmaz ama response okunamaz
-        // GAS verileri alır ve işler, biz sadece "gönderildi" deriz
-        await fetch(window.SHEETS_GAS_URL, {
+        // CORS mode: yanıtı görelim ki gerçekte ne yazıldığını anlayalım
+        const resp = await fetch(window.SHEETS_GAS_URL, {
             method: 'POST',
-            mode: 'no-cors',
+            mode: 'cors',
             redirect: 'follow',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
         });
+        const result = await resp.json();
         
-        // GAS'ın işlemesi için bekle (158 araç ~30-60 sn)
-        if (typeof showSyncToast === 'function') showSyncToast("GAS işliyor, lütfen bekleyin... (30-60 sn)");
-        await new Promise(r => setTimeout(r, 45000)); // 45 saniye bekle
+        if (typeof hideSyncToast === 'function') hideSyncToast("✅ Sync tamam", true);
+        console.log("✅ Sheets sync sonuç:", result);
         
-        if (typeof hideSyncToast === 'function') hideSyncToast("✅ Sheets'e gönderildi! (" + aracSayisi + " araç)", true);
-        console.log("✅ Sheets sync gönderim tamam");
-        alert("✅ TAMAMLANDI!\n\n" + aracSayisi + " araç Google Sheets'e gönderildi.\n\nSpreadsheet'i kontrol et:\n• GelenAraçlar sekmesi → tüm araçlar\n• ŞAMNU GT, FF OTOMOTİV vs. → her firma kendi sayfasında\n• Kıymet sekmesi → kıymet listesi");
+        // Loglar varsa firma detaylarını göster
+        if (result && result.loglar && Array.isArray(result.loglar)) {
+            console.log("=== DETAYLI LOG ===");
+            result.loglar.forEach(function(l, i) { console.log((i+1) + ". " + l); });
+        }
+        
+        alert("✅ TAMAMLANDI!\n\n" + aracSayisi + " araç gönderildi.\nKonsola detaylı log yazıldı (F12 → Console).");
     } catch (err) {
         console.error("❌ Sheets sync hatası:", err);
         if (typeof hideSyncToast === 'function') hideSyncToast("Sheets sync hatası!", false);
