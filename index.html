@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta charset="UTF-8">
     <title>GümrükPortal Cloud — Enterprise</title>
     
@@ -428,9 +428,52 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
 @media (max-width: 768px) {
     .top-header { padding: 8px 12px; gap: 10px; }
     .search-container { gap: 5px; }
-    .search-container input { font-size: 14px; }
-    /* Menü açıldığında her şeyin üstünde kalması için */
-    .sidebar { z-index: 10002; } 
+    .search-container input { font-size: 16px !important; }
+    .sidebar { z-index: 10002; }
+
+    /* ========== MOBİL YAZI BÜYÜTME ========== */
+    body { font-size: 16px !important; line-height: 1.55 !important; }
+    .view-area { padding: 16px 14px !important; }
+    .page-title { font-size: 22px !important; }
+    .page-sub { font-size: 13.5px !important; }
+    .page-eyebrow { font-size: 12px !important; }
+    .card-pad { padding: 16px !important; }
+    
+    /* Form elemanları */
+    input, select, textarea { font-size: 16px !important; padding: 10px 12px !important; }
+    button { font-size: 14px !important; }
+    label { font-size: 13.5px !important; }
+    
+    /* Tablo */
+    table { font-size: 13px !important; }
+    table th, table td { padding: 8px 6px !important; }
+    
+    /* Genel başlıklar */
+    h1 { font-size: 22px !important; }
+    h2 { font-size: 19px !important; }
+    h3 { font-size: 17px !important; }
+    h4 { font-size: 15px !important; }
+    
+    /* Dashboard kartları */
+    .dashboard-card { padding: 14px !important; }
+    .dashboard-card .card-title { font-size: 13px !important; }
+    .dashboard-card .card-value { font-size: 24px !important; }
+    
+    /* Etiketler */
+    .badge, .tag, .chip { font-size: 11.5px !important; padding: 3px 8px !important; }
+    
+    /* Modaller */
+    .modal-title { font-size: 18px !important; }
+    .modal-body { font-size: 14px !important; }
+    
+    /* Navigasyon butonları */
+    .nav-btn { font-size: 14px !important; padding: 10px 12px !important; }
+    .footer-btn { font-size: 13px !important; }
+    
+    /* Alt nav buton */
+    .bottom-nav-btn { font-size: 11px !important; }
+    .bottom-nav-btn i { width: 24px !important; height: 24px !important; }
+    /* ========== /MOBİL YAZI BÜYÜTME ========== */
 }
         
         .search-wrap { position:relative; display:flex; align-items:center; background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:6px 16px; width:100%; max-width:550px; height:48px; transition:0.3s; box-shadow:0 4px 20px rgba(0,0,0,0.05); }
@@ -8681,11 +8724,7 @@ window.eksikKlasorleriOlustur = async function() {
         senkronSayisi++;
     }
     
-    // Senkron kaydını hemen yap
-    if(senkronSayisi > 0 && typeof saveData === 'function') {
-        saveData('decl');
-        saveData('firm');
-    }
+    // NOT: saveData en sonda toplu çağrılacak (verileri kaybetmemek için)
     
     // 3. ADIM: Klasör oluşturma kısmı (senkron bitti, sıra bunda)
     if(eksikler.length === 0) {
