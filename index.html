@@ -426,10 +426,27 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
 
 /* MOBİL İÇİN ÖZEL AYAR */
 @media (max-width: 768px) {
-    .top-header { padding: 8px 12px; gap: 10px; }
+    /* iPhone notch/status bar için üst boşluk */
+    .top-header { 
+        padding: 8px 12px !important; 
+        padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+        gap: 10px;
+        min-height: calc(56px + env(safe-area-inset-top, 0px));
+    }
     .search-container { gap: 5px; }
     .search-container input { font-size: 16px !important; }
-    .sidebar { z-index: 10002; }
+    .sidebar { 
+        z-index: 10002;
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+    
+    /* PWA standalone modunda da düzgün dursun */
+    body {
+        padding-top: 0;
+    }
+    .main-content {
+        padding-top: 0;
+    }
 
     /* ========== MOBİL YAZI BÜYÜTME ========== */
     body { font-size: 16px !important; line-height: 1.55 !important; }
