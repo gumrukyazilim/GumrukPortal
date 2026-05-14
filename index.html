@@ -1153,6 +1153,7 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
             
             <div class="sidebar-section-label admin-only" style="margin-top:8px;">Araçlar & Bilgi</div>
             <button class="nav-btn admin-only" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
+            <button class="nav-btn admin-only" data-view="kiymetCeza"><i data-lucide="alert-triangle"></i><span>Kıymet Ceza Hesaplama</span></button>
             <button class="nav-btn admin-only" data-view="bankaListesi"><i data-lucide="landmark"></i><span>Banka Listesi</span></button>
 <button class="nav-btn admin-only" data-view="cariKart"><i data-lucide="wallet"></i><span>Cari Kart</span></button>
 <button class="nav-btn admin-only" data-view="mevzuat"><i data-lucide="book-open"></i><span style="color:var(--primary); font-weight:600;">2026 Mevzuat Rehberi</span></button>
@@ -2384,7 +2385,163 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
         </div>
     </div>
 </div>
+
+
+
         </template>
+
+<template id="tpl-kiymetCeza">
+    <div class="page-hdr fade-in">
+        <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Kıymet Ceza Hesaplama</h1><p class="page-sub">4458 Sayılı Gümrük Kanunu · 234/1-b · Eksik beyan ceza hesabı</p></div>
+        <div class="page-actions" style="display:flex;gap:10px;">
+            <button class="btn-sm" style="border-color:var(--danger);color:var(--text-primary);display:flex;align-items:center;gap:8px;white-space:nowrap;" onclick="window.kcExportPDF()">
+                <i data-lucide="file-text" style="width:16px;height:16px;"></i> PDF Çıktısı
+            </button>
+        </div>
+    </div>
+
+    <!-- KART: HESAPLAMA -->
+    <div class="card fade-in">
+        <div class="card-pad">
+            <!-- HEADER -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+                <i data-lucide="alert-triangle" style="width:22px;height:22px;color:var(--danger);"></i>
+                <div>
+                    <h3 style="font-size:18px;font-weight:700;color:var(--text-primary);margin:0;">Kıymet ceza hesaplama</h3>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="kc-dosya-no">4458/234-1b</div>
+                </div>
+            </div>
+
+            <!-- DOSYA NO -->
+            <div style="margin-bottom:18px;">
+                <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">DOSYA NO / BEYANNAME (opsiyonel)</label>
+                <input type="text" id="kc-dosya" placeholder="Örn: 25342400IM00001234" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+            </div>
+
+            <!-- GİRİŞ ALANI -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:18px;">
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">EKSİK BEYAN (EUR)</label>
+                    <input type="text" inputmode="decimal" id="kc-eksik" placeholder="12.686" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">DÖVİZ KURU (TL/EUR)</label>
+                    <input type="text" inputmode="decimal" id="kc-kur" placeholder="52,79620" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">TRT BANDROLÜ (%)</label>
+                    <input type="text" inputmode="decimal" id="kc-trt" value="0,8" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">KDV ORANI (%)</label>
+                    <select id="kc-kdv" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                        <option value="20" selected>%20</option>
+                        <option value="10">%10</option>
+                        <option value="8">%8</option>
+                        <option value="1">%1</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">CEZA KATSAYISI</label>
+                    <select id="kc-katsayi" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                        <option value="3" selected>3 kat</option>
+                        <option value="2">2 kat</option>
+                        <option value="1">1 kat</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ERKEN ÖDEME TOGGLE -->
+            <div id="kc-erken-row" style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;cursor:pointer;" onclick="window.kcErkenToggle()">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div id="kc-erken-switch" style="width:36px;height:20px;background:var(--success);border-radius:20px;position:relative;transition:0.2s;">
+                        <div style="position:absolute;top:2px;left:18px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s;"></div>
+                    </div>
+                    <span style="font-size:13px;font-weight:600;color:var(--text-primary);">Erken ödeme indirimi (1/4)</span>
+                </div>
+                <span style="font-size:11px;color:var(--success);font-weight:600;">Kabahatler K. 17/6 — tebliğden itibaren 15 gün</span>
+            </div>
+
+            <!-- HESAPLAMA ADIMLARI -->
+            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+                <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">①</span> Eksik beyan TL karşılığı</div>
+                        <div id="kc-adim1-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">— EUR × —</div>
+                    </div>
+                    <strong id="kc-adim1" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
+                </div>
+
+                <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">②</span> TRT bandrolü (<span id="kc-trt-disp">%0,8</span>)</div>
+                        <div id="kc-adim2-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">— × 0.008</div>
+                    </div>
+                    <strong id="kc-adim2" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
+                </div>
+
+                <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">③</span> KDV matrahı</div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">① + ②</div>
+                    </div>
+                    <strong id="kc-adim3" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
+                </div>
+
+                <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">④</span> KDV (<span id="kc-kdv-disp">%20</span>)</div>
+                        <div id="kc-adim4-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">— TL × 0.2</div>
+                    </div>
+                    <strong id="kc-adim4" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
+                </div>
+
+                <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:700;color:var(--danger);"><span>⑤</span> Ceza (<span id="kc-katsayi-disp">3 kat</span>)</div>
+                        <div id="kc-adim5-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">④ × 3</div>
+                    </div>
+                    <strong id="kc-adim5" style="font-size:15px;font-weight:700;color:var(--danger);">0,00 TL</strong>
+                </div>
+
+                <div id="kc-indirim-row" class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:700;color:var(--success);"><span>⑥</span> 1/4 indirim (erken ödeme)</div>
+                        <div id="kc-adim6-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">— TL ÷ 4</div>
+                    </div>
+                    <strong id="kc-adim6" style="font-size:15px;font-weight:700;color:var(--success);">- 0,00 TL</strong>
+                </div>
+            </div>
+
+            <!-- TOPLAM SONUÇLAR -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--danger);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">TOPLAM CEZA</div>
+                    <strong id="kc-toplam" style="font-size:22px;font-weight:800;color:var(--danger);letter-spacing:-0.3px;">0,00 TL</strong>
+                    <div id="kc-toplam-detay" style="font-size:11px;color:var(--text-muted);margin-top:4px;">3 kat × KDV</div>
+                </div>
+                <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:14px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">ERKEN ÖDEME TUTARI</div>
+                    <strong id="kc-erken-tutar" style="font-size:22px;font-weight:800;color:var(--success);letter-spacing:-0.3px;">0,00 TL</strong>
+                    <div id="kc-tasarruf" style="font-size:11px;color:var(--text-muted);margin-top:4px;">0,00 TL tasarruf</div>
+                </div>
+            </div>
+
+            <!-- BUTONLAR -->
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button onclick="window.kcTemizle()" class="btn-sm" style="display:flex;align-items:center;gap:6px;padding:9px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer;">
+                    <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i> Temizle
+                </button>
+                <button onclick="window.kcKopyala('tam')" class="btn-sm" style="display:flex;align-items:center;gap:6px;padding:9px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer;">
+                    <i data-lucide="copy" style="width:14px;height:14px;"></i> Tam ceza kopyala
+                </button>
+                <button onclick="window.kcKopyala('erken')" class="btn-primary" style="display:flex;align-items:center;gap:6px;padding:9px 14px;font-size:13px;font-weight:600;">
+                    <i data-lucide="copy" style="width:14px;height:14px;"></i> Erken ödeme kopyala
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
 
 <template id="tpl-searchResults">
     <div class="page-hdr fade-in"><div><div class="page-eyebrow">Arama</div><h1 class="page-title">Sonuçlar: "<span id="search-query-display" style="color:var(--primary);"></span>"</h1></div></div>
@@ -5057,6 +5214,10 @@ if(data.ekGonderici) {
             window.renderView('dashboard');
         }
     }
+
+
+
+
 
     window._onFirebaseReady=function(){loadAllData();};
 
@@ -7808,6 +7969,7 @@ if(vn==='cariKart'){
 window.applyRoleUI();
 document.querySelectorAll('.bnav-btn').forEach(function(btn){btn.style.color='var(--text-muted)';});
 let bnavBtn=document.getElementById('bnav-'+vn);if(bnavBtn)bnavBtn.style.color='var(--primary)';
+if(vn === 'kiymetCeza' && window._kcInit) setTimeout(window._kcInit, 100);
         if(window.lucide)lucide.createIcons();
         if(window.lucide)lucide.createIcons();
 if(vn==='cariKart'){
@@ -11102,6 +11264,236 @@ window.cariOdemeyiAl = function(indexlerStr) {
     if(window.renderGenelCariOzet) window.renderGenelCariOzet();
     if(typeof showSyncToast === 'function') showSyncToast("Ödeme alındı ve bakiye sıfırlandı!", true);
 };
+
+// ============================================
+// KIYMET CEZA HESAPLAMA SAYFASI
+// ============================================
+window._kcErken = true;
+
+window.kcSayiOku = function(id) {
+    let el = document.getElementById(id);
+    if (!el) return 0;
+    let v = String(el.value || '').replace(/\./g, '').replace(',', '.');
+    let n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+};
+
+window.kcFormat = function(n) {
+    return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+window.kcErkenToggle = function() {
+    window._kcErken = !window._kcErken;
+    let sw = document.getElementById('kc-erken-switch');
+    let row = document.getElementById('kc-indirim-row');
+    if (!sw) return;
+    if (window._kcErken) {
+        sw.style.background = 'var(--success)';
+        sw.children[0].style.left = '18px';
+        if(row) row.style.display = 'flex';
+    } else {
+        sw.style.background = 'var(--text-muted)';
+        sw.children[0].style.left = '2px';
+        if(row) row.style.display = 'none';
+    }
+    window.kcHesapla();
+};
+
+window.kcHesapla = function() {
+    if (!document.getElementById('kc-eksik')) return;
+    
+    let eksik = window.kcSayiOku('kc-eksik');
+    let kur = window.kcSayiOku('kc-kur');
+    let trt = window.kcSayiOku('kc-trt');
+    let kdv = parseFloat(document.getElementById('kc-kdv').value || 20);
+    let katsayi = parseFloat(document.getElementById('kc-katsayi').value || 3);
+
+    let adim1 = eksik * kur;
+    document.getElementById('kc-adim1').innerText = window.kcFormat(adim1) + ' TL';
+    document.getElementById('kc-adim1-detay').innerText = 
+        eksik.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' EUR x ' + kur.toFixed(4).replace('.', ',');
+
+    let adim2 = adim1 * (trt / 100);
+    document.getElementById('kc-adim2').innerText = window.kcFormat(adim2) + ' TL';
+    document.getElementById('kc-adim2-detay').innerText = 
+        window.kcFormat(adim1) + ' TL x ' + (trt/100).toFixed(3);
+    document.getElementById('kc-trt-disp').innerText = '%' + String(trt).replace('.', ',');
+
+    let adim3 = adim1 + adim2;
+    document.getElementById('kc-adim3').innerText = window.kcFormat(adim3) + ' TL';
+
+    let adim4 = adim3 * (kdv / 100);
+    document.getElementById('kc-adim4').innerText = window.kcFormat(adim4) + ' TL';
+    document.getElementById('kc-adim4-detay').innerText = 
+        window.kcFormat(adim3) + ' TL x ' + (kdv/100).toFixed(2);
+    document.getElementById('kc-kdv-disp').innerText = '%' + kdv;
+
+    let adim5 = adim4 * katsayi;
+    document.getElementById('kc-adim5').innerText = window.kcFormat(adim5) + ' TL';
+    document.getElementById('kc-adim5-detay').innerText = 
+        window.kcFormat(adim4) + ' x ' + katsayi;
+    document.getElementById('kc-katsayi-disp').innerText = katsayi + ' kat';
+
+    let indirim = adim5 / 4;
+    document.getElementById('kc-adim6').innerText = '- ' + window.kcFormat(indirim) + ' TL';
+    document.getElementById('kc-adim6-detay').innerText = 
+        window.kcFormat(adim5) + ' TL / 4';
+
+    document.getElementById('kc-toplam').innerText = window.kcFormat(adim5) + ' TL';
+    document.getElementById('kc-toplam-detay').innerText = katsayi + ' kat x KDV';
+
+    let erkenTutar = window._kcErken ? (adim5 - indirim) : adim5;
+    document.getElementById('kc-erken-tutar').innerText = window.kcFormat(erkenTutar) + ' TL';
+    document.getElementById('kc-tasarruf').innerText = 
+        window._kcErken ? (window.kcFormat(indirim) + ' TL tasarruf') : 'Indirim kapali';
+
+    let dosya = document.getElementById('kc-dosya');
+    let dosyaHdr = document.getElementById('kc-dosya-no');
+    if (dosya && dosyaHdr) {
+        dosyaHdr.innerText = dosya.value || '4458/234-1b';
+    }
+};
+
+window.kcTemizle = function() {
+    document.getElementById('kc-eksik').value = '';
+    document.getElementById('kc-kur').value = '';
+    document.getElementById('kc-dosya').value = '';
+    document.getElementById('kc-trt').value = '0,8';
+    document.getElementById('kc-kdv').value = '20';
+    document.getElementById('kc-katsayi').value = '3';
+    window.kcHesapla();
+};
+
+window.kcKopyala = function(tip) {
+    let el = tip === 'erken' ? 
+        document.getElementById('kc-erken-tutar') : 
+        document.getElementById('kc-toplam');
+    let metin = el.innerText;
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(metin).then(function() {
+            if (typeof showSyncToast === 'function') showSyncToast('Panoya kopyalandi: ' + metin, true);
+        });
+    } else {
+        let ta = document.createElement('textarea');
+        ta.value = metin;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        if (typeof showSyncToast === 'function') showSyncToast('Panoya kopyalandi: ' + metin, true);
+    }
+};
+
+window.kcExportPDF = function() {
+    if (!document.getElementById('kc-eksik')) {
+        alert('Once Kiymet Ceza Hesaplama sayfasini acin.');
+        return;
+    }
+    
+    let eksik = document.getElementById('kc-eksik').value || '-';
+    let kur = document.getElementById('kc-kur').value || '-';
+    let trt = document.getElementById('kc-trt').value || '0,8';
+    let kdv = document.getElementById('kc-kdv').value;
+    let katsayi = document.getElementById('kc-katsayi').value;
+    let dosya = document.getElementById('kc-dosya').value || '-';
+    
+    let adim1 = document.getElementById('kc-adim1').innerText;
+    let adim2 = document.getElementById('kc-adim2').innerText;
+    let adim3 = document.getElementById('kc-adim3').innerText;
+    let adim4 = document.getElementById('kc-adim4').innerText;
+    let adim5 = document.getElementById('kc-adim5').innerText;
+    let adim6 = document.getElementById('kc-adim6').innerText;
+    let toplam = document.getElementById('kc-toplam').innerText;
+    let erken = document.getElementById('kc-erken-tutar').innerText;
+    let tasarruf = document.getElementById('kc-tasarruf').innerText;
+    
+    let tarih = new Date().toLocaleDateString('tr-TR');
+    let erkenSatir = window._kcErken ? 
+        '<tr class="indirim-row"><td>6. Erken odeme indirimi (5 / 4)</td><td class="num">' + adim6 + '</td></tr>' : '';
+    
+    let pdfHTML = '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">' +
+        '<title>Kiymet Ceza Hesaplama - ' + dosya + '</title>' +
+        '<style>' +
+        '@page { size: A4; margin: 18mm; }' +
+        'body { font-family: Arial, sans-serif; color: #000; font-size: 12px; line-height: 1.4; margin: 0; }' +
+        '.hdr { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 18px; }' +
+        '.hdr h1 { font-size: 20px; margin: 0 0 4px; font-weight: 700; }' +
+        '.hdr .sub { font-size: 11px; color: #444; }' +
+        '.meta { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 18px; padding: 8px 12px; background: #f5f5f5; }' +
+        'table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }' +
+        'table th, table td { padding: 8px 10px; border: 1px solid #ccc; text-align: left; font-size: 12px; }' +
+        'table th { background: #f0f0f0; font-weight: 700; font-size: 11px; text-transform: uppercase; }' +
+        'table .num { text-align: right; font-weight: 600; }' +
+        '.ceza-row td { background: #ffe5e5 !important; color: #991b1b; font-weight: 700; }' +
+        '.indirim-row td { background: #e6f4ea !important; color: #166534; font-weight: 700; }' +
+        '.toplam-box { display: flex; gap: 12px; margin-top: 18px; }' +
+        '.toplam-card { flex: 1; padding: 14px; border: 2px solid; border-radius: 6px; }' +
+        '.toplam-card.red { border-color: #dc2626; background: #fef2f2; }' +
+        '.toplam-card.green { border-color: #16a34a; background: #f0fdf4; }' +
+        '.toplam-card .label { font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; }' +
+        '.toplam-card.red .label { color: #dc2626; }' +
+        '.toplam-card.green .label { color: #16a34a; }' +
+        '.toplam-card .val { font-size: 20px; font-weight: 800; }' +
+        '.toplam-card.red .val { color: #991b1b; }' +
+        '.toplam-card.green .val { color: #166534; }' +
+        '.toplam-card .det { font-size: 10px; color: #666; margin-top: 4px; }' +
+        '.footer { margin-top: 28px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 10px; color: #666; text-align: center; }' +
+        '.note { margin-top: 14px; padding: 10px 14px; background: #fffbeb; border-left: 3px solid #f59e0b; font-size: 11px; color: #92400e; }' +
+        '</style></head><body>' +
+        '<div class="hdr"><h1>Kiymet Ceza Hesaplama</h1>' +
+        '<div class="sub">4458 Sayili Gumruk Kanunu - Madde 234/1-b - Eksik beyan ceza hesabi</div></div>' +
+        '<div class="meta"><span><strong>Dosya:</strong> ' + dosya + '</span>' +
+        '<span><strong>Tarih:</strong> ' + tarih + '</span></div>' +
+        '<table><tr><th colspan="2">Girdi Degerleri</th></tr>' +
+        '<tr><td>Eksik Beyan (EUR)</td><td class="num">' + eksik + ' EUR</td></tr>' +
+        '<tr><td>Doviz Kuru (TL/EUR)</td><td class="num">' + kur + '</td></tr>' +
+        '<tr><td>TRT Bandrolu</td><td class="num">% ' + trt + '</td></tr>' +
+        '<tr><td>KDV Orani</td><td class="num">% ' + kdv + '</td></tr>' +
+        '<tr><td>Ceza Katsayisi</td><td class="num">' + katsayi + ' kat</td></tr></table>' +
+        '<table><tr><th colspan="2">Hesaplama Adimlari</th></tr>' +
+        '<tr><td>1. Eksik beyan TL karsiligi (EUR x Kur)</td><td class="num">' + adim1 + '</td></tr>' +
+        '<tr><td>2. TRT bandrolu (1 x % ' + trt + ')</td><td class="num">' + adim2 + '</td></tr>' +
+        '<tr><td>3. KDV matrahi (1 + 2)</td><td class="num">' + adim3 + '</td></tr>' +
+        '<tr><td>4. KDV (3 x % ' + kdv + ')</td><td class="num">' + adim4 + '</td></tr>' +
+        '<tr class="ceza-row"><td>5. Ceza (4 x ' + katsayi + ' kat)</td><td class="num">' + adim5 + '</td></tr>' +
+        erkenSatir + '</table>' +
+        '<div class="toplam-box">' +
+        '<div class="toplam-card red"><div class="label">Toplam Ceza</div>' +
+        '<div class="val">' + toplam + '</div>' +
+        '<div class="det">' + katsayi + ' kat x KDV matrahi</div></div>' +
+        '<div class="toplam-card green"><div class="label">Erken Odeme Tutari</div>' +
+        '<div class="val">' + erken + '</div>' +
+        '<div class="det">' + tasarruf + '</div></div></div>' +
+        '<div class="note"><strong>Yasal Dayanak:</strong> Kabahatler Kanunu Madde 17/6 - ' +
+        'Idari para cezasi, tebligden itibaren 15 gun icinde odenirse %25 indirim uygulanir (1/4 indirim).</div>' +
+        '<div class="footer">Bu belge GumrukPortal sistemi tarafindan otomatik uretilmistir - ' + tarih + '</div>' +
+        '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print();setTimeout(function(){window.close();},800);},400);};</scr' + 'ipt>' +
+        '</body></html>';
+    
+    let win = window.open('', '_blank', 'width=900,height=700');
+    if (!win) {
+        alert('Pop-up engellendi! Lutfen tarayicida pop-up izni verin.');
+        return;
+    }
+    win.document.write(pdfHTML);
+    win.document.close();
+};
+
+window._kcInit = function() {
+    setTimeout(function() {
+        if (document.getElementById('kc-eksik')) {
+            window.kcHesapla();
+            let eurKur = document.getElementById('calc-kur-eur');
+            if (eurKur && eurKur.value && !document.getElementById('kc-kur').value) {
+                document.getElementById('kc-kur').value = eurKur.value;
+                window.kcHesapla();
+            }
+        }
+    }, 200);
+};
+// ============================================
+
 
 </script>
 </body>
