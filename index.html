@@ -2790,6 +2790,7 @@ window._firebaseSave = async function(payload) {
         }
 
         // 3. HER ŞEY TAMAMSA BULUTA YAZ
+        window._kendiYazma = true; // Listener'a "bu benim yazdım, geri yükleme" de
         await set(ref(db, 'portal_data_test'), payload);
         return true;
     }
@@ -5175,6 +5176,68 @@ if(data.ekGonderici) {
                 console.error("❌ Firebase dinleyici hatası:", error);
             });
         }
+        
+        // ★★★ TÜM ANA VERİLER İÇİN REAL-TIME LISTENER ★★★
+        // Admin'in yaptığı değişiklikler diğer cihazlarda anında görünsün
+        if(window._fbRef && window._fbDb && window._fbOnValue) {
+            // Eski listener varsa temizle
+            if(window._mainDataListener) {
+                window._mainDataListener();
+            }
+            
+            const mainRef = window._fbRef(window._fbDb, 'portal_data_test');
+            
+            window._mainDataListener = window._fbOnValue(mainRef, function(snapshot) {
+                if(!snapshot.exists()) return;
+                
+                // Kendi yaptığım değişikliği tekrar yükleme (sonsuz döngü olmasın)
+                if(window._kendiYazma) {
+                    window._kendiYazma = false;
+                    return;
+                }
+                
+                let v = snapshot.val();
+                if(!v) return;
+                
+                console.log("📡 Diğer cihazdan veri geldi, güncelleniyor...");
+                
+                let degisti = false;
+                
+                if(v.decl && Array.isArray(v.decl)) {
+                    window.declarationsData = v.decl;
+                    degisti = true;
+                }
+                if(v.firm && typeof v.firm === 'object') {
+                    window.firmData = v.firm;
+                    degisti = true;
+                }
+                if(v.kiymet && Array.isArray(v.kiymet)) {
+                    window.kiymetData = v.kiymet;
+                    degisti = true;
+                }
+                if(v.cariData && typeof v.cariData === 'object') {
+                    window.cariData = v.cariData;
+                    degisti = true;
+                }
+                if(v.firmMeta && typeof v.firmMeta === 'object') {
+                    window.firmMeta = v.firmMeta;
+                    degisti = true;
+                }
+                
+                if(degisti) {
+                    // Açık olan sayfayı yeniden çiz
+                    if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+                    if(typeof window.renderFirmList === 'function') window.renderFirmList();
+                    if(typeof window.renderKiymetTable === 'function') window.renderKiymetTable();
+                    if(typeof window.renderCariTable === 'function') window.renderCariTable();
+                    if(typeof window.updateDashboardStats === 'function') window.updateDashboardStats();
+                    if(typeof showSyncToast === 'function') showSyncToast("📡 Veriler güncellendi", true);
+                }
+            }, function(error) {
+                console.error("❌ Ana veri dinleyici hatası:", error);
+            });
+        }
+        // ★★★ /TÜM VERİLER LISTENER ★★★
         
         let role = localStorage.getItem('gumruk_role') || 'admin';
         if(role !== 'admin'){
