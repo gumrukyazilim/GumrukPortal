@@ -3172,100 +3172,6 @@ window.renderCariTable = function() {
     tbody.innerHTML = rows.join('');
     if(window.lucide) lucide.createIcons();
 };
-window.renderGenelCariOzet = function() {
-    let container = document.getElementById('cari-genel-icerik');
-    let wrapper = document.getElementById('cari-genel-ozet');
-    if(!container || !wrapper) return;
-    
-    let firmalar = Object.keys(window.cariData);
-    if(!firmalar.length) { wrapper.style.display='none'; return; }
-    wrapper.style.display='block';
-    
-    let genelGumruk=0, genelTse=0;
-    let html = '';
-    
-    firmalar.forEach(function(fn) {
-        let hareketler = window.cariData[fn] || [];
-        if(!hareketler.length) return;
-        
-        // ===== GRUPLAMA: Aynı şasiye ait mükerrer kayıtları tekilleştir =====
-        // ★ SADECE BEKLEYEN (Ödenmemiş ve Tahsilat olmayan) hareketleri al
-        const gruplanmisVeri = {};
-        hareketler.forEach(function(h, idx) {
-            // ★ ÖDENMİŞ veya TAHSİLAT satırlarını ATLA - bakiye yalnızca bekleyenleri toplar
-            if (h.odendi || h.isTahsilat) return;
-            
-            let tarih = h.tarih || '-';
-            let sasi = (h.sasi || '').trim().toUpperCase();
-            let temizAciklama = (h.aciklama || '')
-                .replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '')
-                .replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '')
-                .replace(/\s*H[İI]ZMET[İI]\s*/gi, '')
-                .trim();
-            
-            let anahtar;
-            if(sasi && sasi.length > 0) {
-                anahtar = tarih + '|' + sasi;
-            } else {
-                anahtar = tarih + '|' + temizAciklama.toUpperCase();
-            }
-            
-            if(!gruplanmisVeri[anahtar]) {
-                gruplanmisVeri[anahtar] = { gumrukTutari: '-', tseTutari: '-' };
-            }
-            
-            if(h.gumrukBedeli && parseFloat(h.gumrukBedeli) > 0) {
-                gruplanmisVeri[anahtar].gumrukTutari = parseFloat(h.gumrukBedeli) || 0;
-            }
-            if(h.tseBedeli && parseFloat(h.tseBedeli) > 0) {
-                gruplanmisVeri[anahtar].tseTutari = parseFloat(h.tseBedeli) || 0;
-            }
-            if(!h.gumrukBedeli && !h.tseBedeli && h.tutar) {
-                let t = parseFloat(h.tutar) || 0;
-                let b = (h.birim || 'EUR').toUpperCase();
-                if(b === 'EUR' || b === 'USD') {
-                    gruplanmisVeri[anahtar].gumrukTutari = t;
-                } else {
-                    gruplanmisVeri[anahtar].tseTutari = t;
-                }
-            }
-        });
-        
-        // Gruplanmış veriden toplam hesapla
-        let toplamGumruk=0, toplamTse=0;
-        Object.values(gruplanmisVeri).forEach(function(item) {
-            if(item.gumrukTutari !== '-' && item.gumrukTutari > 0) toplamGumruk += item.gumrukTutari;
-            if(item.tseTutari !== '-' && item.tseTutari > 0) toplamTse += item.tseTutari;
-        });
-        
-        genelGumruk+=toplamGumruk;
-        genelTse+=toplamTse;
-        
-        let bakiye = '';
-        if(toplamGumruk!==0) bakiye+=window.formatNumber(toplamGumruk,true)+' €';
-        if(toplamTse!==0) bakiye+=(bakiye?' | ':'')+window.formatNumber(toplamTse,true)+' ₺';
-        if(!bakiye) bakiye='0';
-        let renk = (toplamGumruk>=0&&toplamTse>=0)?'var(--success)':'var(--danger)';
-        
-        html += '<div style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;min-width:200px;">' +
-            '<div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:4px;">' + fn + '</div>' +
-            '<div style="font-size:18px;font-weight:800;color:' + renk + ';">' + bakiye + '</div>' +
-        '</div>';
-    });
-    
-    // Genel toplam
-    let genelBakiye = '';
-    if(genelGumruk!==0) genelBakiye+=window.formatNumber(genelGumruk,true)+' €';
-    if(genelTse!==0) genelBakiye+=(genelBakiye?' | ':'')+window.formatNumber(genelTse,true)+' ₺';
-    if(!genelBakiye) genelBakiye='0';
-    
-    html += '<div style="background:linear-gradient(135deg,var(--primary),#7c3aed);border-radius:8px;padding:12px 16px;min-width:200px;">' +
-        '<div style="font-weight:700;font-size:13px;color:rgba(255,255,255,0.8);margin-bottom:4px;">GENEL TOPLAM</div>' +
-        '<div style="font-size:20px;font-weight:800;color:#fff;">' + genelBakiye + '</div>' +
-    '</div>';
-    
-    container.innerHTML = html;
-};
 // ============ GELECEK ARAÇLAR SİSTEMİ ============
 window.renderGelecekTable = function() {
     let pipeline = document.getElementById('gelecek-pipeline');
@@ -4007,7 +3913,6 @@ window._hareketKaydet = function(aciklama, birim) {
     document.getElementById('tutar-sor-modal')?.remove();
     saveCariData();
     window.renderCariTable();
-    window.renderGenelCariOzet();
 };
 
 // YENİ: Çift hizmet girişi ile kayıt (Gümrük € + TSE ₺) — ŞASİ BAZLI
@@ -4058,7 +3963,6 @@ window._hareketKaydetYeni = function(editIdx) {
     document.getElementById('hareket-ekle-modal')?.remove();
     saveCariData();
     window.renderCariTable();
-    window.renderGenelCariOzet();
 };
 
 window.cariHareketSilByGroup = function(indexlerStr, idsStr) {
@@ -4097,7 +4001,6 @@ window.cariHareketSilByGroup = function(indexlerStr, idsStr) {
     
     saveCariData();
     window.renderCariTable();
-    window.renderGenelCariOzet();
 };
 
 window.cariHareketSil = function(idx) {
@@ -4108,8 +4011,7 @@ window.cariHareketSil = function(idx) {
         window.cariData[firma].splice(idx, 1);
         saveCariData();
         window.renderCariTable();
-        window.renderGenelCariOzet();
-    }
+        }
 };
 
 // ====== CARİ TABLOSU: HEPSİNİ SEÇ / SEÇİLİ PDF ======
@@ -8048,7 +7950,6 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
 if(vn==='cariKart'){
     let sel=document.getElementById('cari-firma-sec');
     if(sel){sel.innerHTML='<option value="">Tüm Firmalar</option>';Object.keys(window.firmData).forEach(fn=>{sel.innerHTML+='<option value="'+fn+'">'+fn+'</option>';});}
-    window.renderGenelCariOzet();
     window.renderCariTable();
 }
         if(vn==='firms')window.renderFirmsList();
@@ -8075,7 +7976,6 @@ if(vn === 'gtipArama' && window._gtipInit) setTimeout(window._gtipInit, 100);
 if(vn==='cariKart'){
     let sel=document.getElementById('cari-firma-sec');
     if(sel){sel.innerHTML='<option value="">Firma Seçin...</option>';Object.keys(window.firmData).forEach(fn=>{sel.innerHTML+='<option value="'+fn+'">'+fn+'</option>';});}
-    window.renderGenelCariOzet();
 }
 if(vn==='gelecekAraclar'){
     window.renderGelecekTable();
@@ -11361,7 +11261,6 @@ window.cariOdemeyiAl = function(indexlerStr) {
 
     saveCariData();
     window.renderCariTable();
-    if(window.renderGenelCariOzet) window.renderGenelCariOzet();
     if(typeof showSyncToast === 'function') showSyncToast("Ödeme alındı ve bakiye sıfırlandı!", true);
 };
 
