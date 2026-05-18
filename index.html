@@ -3011,12 +3011,16 @@ window.renderCariTable = function() {
                 if(!hList.length) return;
                 let totG=0, totT=0;
                 hList.forEach(h => {
+                    // ★ ÖDENMİŞ veya TAHSİLAT satırlarını ATLA
+                    if (h.odendi || h.isTahsilat) return;
                     let gb = parseFloat(h.gumrukBedeli)||0; let tb = parseFloat(h.tseBedeli)||0;
                     if(!gb && !tb && h.tutar) {
                         let t=parseFloat(h.tutar)||0; if(h.tur==='borc') t=-t;
                         if((h.birim||'EUR').toUpperCase()==='EUR'||(h.birim||'USD').toUpperCase()==='USD') gb=t; else tb=t;
                     }
-                    totG += gb; totT += tb;
+                    // Sadece pozitif tutarları say (negatif tahsilat zaten filtrelendi)
+                    if (gb > 0) totG += gb;
+                    if (tb > 0) totT += tb;
                 });
                 let bakiye='';
                 if(totG!==0) bakiye+=window.formatNumber(totG,true).replace(',00','')+' €';
