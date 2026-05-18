@@ -6440,6 +6440,10 @@ document.addEventListener('click', function(e) {
             <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
             <td style="text-align:center;">
                 <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
+				<button type="button" class="icon-btn" style="background:#10b981; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" 
+        onclick="event.stopImmediatePropagation(); window.TSE.baslat('${d.sasi}', '${d.firma || ''}', '${d.tarih || ''}', '${d.ozetBeyan || d.beyanname || ''}')">
+    🚗 TSE
+</button>
                     <button type="button" class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'decl')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
                     
                     ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent); display:inline-flex;" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : `<span style="color:var(--text-muted); opacity:0.3; display:inline-flex;"><i data-lucide="minus"></i></span>`}
@@ -11700,7 +11704,7 @@ window._gtipInit = function() {
 };
 // ============================================
 
-
 </script>
+<script src="tse-baglanti.js"></script>
 </body>
 </html>
