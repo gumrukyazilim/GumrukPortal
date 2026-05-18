@@ -3185,8 +3185,12 @@ window.renderGenelCariOzet = function() {
         if(!hareketler.length) return;
         
         // ===== GRUPLAMA: Aynı şasiye ait mükerrer kayıtları tekilleştir =====
+        // ★ SADECE BEKLEYEN (Ödenmemiş ve Tahsilat olmayan) hareketleri al
         const gruplanmisVeri = {};
         hareketler.forEach(function(h, idx) {
+            // ★ ÖDENMİŞ veya TAHSİLAT satırlarını ATLA - bakiye yalnızca bekleyenleri toplar
+            if (h.odendi || h.isTahsilat) return;
+            
             let tarih = h.tarih || '-';
             let sasi = (h.sasi || '').trim().toUpperCase();
             let temizAciklama = (h.aciklama || '')
