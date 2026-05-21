@@ -3675,22 +3675,34 @@ window.cariHareketEkle = function(editIdx) {
         '<p style="margin:4px 0 0;color:var(--text-muted,#888);font-size:12px;">' + firma + '</p></div>' +
         '<button onclick="document.getElementById(\'hareket-ekle-modal\').remove()" style="background:var(--danger,#ef4444);color:#fff;border:none;border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button></div>';
     
-    // Araç seçimi dropdown
+    // ★ ÇOKLU ARAÇ SEÇİMİ (Checkbox) - Her araç için ayrı satır, aynı tutar paralel uygulanır
     let aracSecHTML = '<div style="padding:16px 24px;">' +
-        '<label style="display:block;color:var(--text-secondary,#aaa);font-size:12px;margin-bottom:6px;font-weight:600;">🚗 Araç Seçin</label>' +
-        '<select id="hareket-arac-select" style="width:100%;padding:12px;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:14px;box-sizing:border-box;">' +
-        '<option value="">-- Araç Seçin --</option>';
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+            '<label style="color:var(--text-secondary,#aaa);font-size:12px;font-weight:600;margin:0;">🚗 Araç(ları) Seçin <small style="color:var(--text-muted);display:block;margin-top:2px;">Birden çok seçilebilir — her birine aynı tutar uygulanır</small></label>' +
+            '<button type="button" onclick="document.querySelectorAll(\'.cari-arac-cb\').forEach(function(c){c.checked=!c.checked;});" style="background:transparent;border:1px solid var(--border,#333);color:var(--primary,#3b82f6);padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">Tümünü Seç/Bırak</button>' +
+        '</div>' +
+        '<div style="max-height:220px;overflow-y:auto;background:var(--bg-elevated,#252540);border:1px solid var(--border,#333);border-radius:8px;padding:6px;">';
     
-    firmaAraclari.forEach(function(arac) {
-        let isim = (arac.marka + ' ' + arac.model).trim();
-        if(arac.yil) isim += ' (' + arac.yil + ')';
-        if(!isim || isim === '()') isim = arac.sasi;
-        let selected = (editData && editData.aciklama && editData.aciklama.includes(arac.sasi)) ? ' selected' : '';
-        // KRİTİK: Value'ya şasi numarasını da ekle (pipe ile ayır)
-        aracSecHTML += '<option value="' + isim.replace(/"/g, '"') + '|' + (arac.sasi || '') + '"' + selected + '>' + isim + ' - ' + arac.sasi + '</option>';
-    });
+    if(!firmaAraclari.length) {
+        aracSecHTML += '<div style="text-align:center;padding:20px;color:var(--text-muted,#888);font-size:13px;">Bu firmaya ait araç bulunamadı</div>';
+    } else {
+        firmaAraclari.forEach(function(arac) {
+            let isim = (arac.marka + ' ' + arac.model).trim();
+            if(arac.yil) isim += ' (' + arac.yil + ')';
+            if(!isim || isim === '()') isim = arac.sasi;
+            let editSecili = (editData && editData.sasi && arac.sasi === editData.sasi) ? ' checked' : '';
+            let valueStr = (isim + '|' + (arac.sasi || '')).replace(/"/g, '&quot;');
+            aracSecHTML += '<label style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;transition:0.15s;" onmouseover="this.style.background=\'rgba(59,130,246,0.08)\'" onmouseout="this.style.background=\'transparent\'">' +
+                '<input type="checkbox" class="cari-arac-cb" value="' + valueStr + '"' + editSecili + ' style="width:18px;height:18px;cursor:pointer;accent-color:var(--primary,#3b82f6);flex-shrink:0;">' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:13px;font-weight:600;color:var(--text-primary,#fff);">' + isim + '</div>' +
+                    '<div style="font-size:11px;color:var(--text-muted,#888);font-family:monospace;">' + (arac.sasi || '—') + '</div>' +
+                '</div>' +
+            '</label>';
+        });
+    }
     
-    aracSecHTML += '</select></div>';
+    aracSecHTML += '</div></div>';
     
     // Manuel açıklama
     let manuelHTML = '<div style="padding:0 24px 16px;">' +
@@ -3737,17 +3749,21 @@ window.cariHareketEkle = function(editIdx) {
     
     document.body.appendChild(modal);
     
-    // Araç seçiminde manuel input'u temizle
-    document.getElementById('hareket-arac-select')?.addEventListener('change', function() {
-        if(this.value) {
-            document.getElementById('hareket-manuel-input').value = '';
-        }
+    // ★ Checkbox işaretlenince manuel input'u temizle
+    document.querySelectorAll('.cari-arac-cb').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            let secili = document.querySelectorAll('.cari-arac-cb:checked').length;
+            if(secili > 0) {
+                let mi = document.getElementById('hareket-manuel-input');
+                if(mi) mi.value = '';
+            }
+        });
     });
     
-    // Manuel input'a yazınca araç seçimini sıfırla
+    // Manuel input'a yazınca tüm checkbox'ları sıfırla
     document.getElementById('hareket-manuel-input')?.addEventListener('input', function() {
         if(this.value) {
-            document.getElementById('hareket-arac-select').value = '';
+            document.querySelectorAll('.cari-arac-cb').forEach(function(cb){ cb.checked = false; });
         }
     });
 };
@@ -3921,49 +3937,58 @@ window._hareketKaydetYeni = function(editIdx) {
     let firma = document.getElementById('cari-firma-sec')?.value;
     if(!firma) return;
     
-    let aracSec = document.getElementById('hareket-arac-select')?.value || '';
+    // ★ Çoklu seçim: tüm işaretli checkbox'ları topla
+    let secilenAraclar = [];
+    document.querySelectorAll('.cari-arac-cb:checked').forEach(function(cb) {
+        let parts = cb.value.split('|');
+        if(parts.length >= 1) {
+            secilenAraclar.push({
+                aciklama: parts[0].trim(),
+                sasi: (parts.length >= 2 ? parts[parts.length - 1] : '').trim().toUpperCase()
+            });
+        }
+    });
+    
     let manuelAciklama = document.getElementById('hareket-manuel-input')?.value?.trim() || '';
     let gumrukTutar = parseFloat(document.getElementById('hareket-gumruk-input')?.value) || 0;
     let tseTutar = parseFloat(document.getElementById('hareket-tse-input')?.value) || 0;
     
-    // ===== KRİTİK: Dropdown value formatı "MARKA MODEL (YIL)|ŞASİNO" =====
-    // aciklama'ya SADECE araç adını yaz, şasi'yi ayrı al
-    let aciklama = '';
-    let sasi = '';
-    if(aracSec) {
-        let parts = aracSec.split('|');
-        aciklama = parts[0].trim(); // SADECE araç adı (şasi yok!)
-        if(parts.length >= 2) {
-            sasi = parts[parts.length - 1].trim().toUpperCase(); // Şasi ayrı
-        }
-    } else {
-        aciklama = manuelAciklama; // Manuel girişte şasi yok
+    // Hiç araç seçilmediyse manuel açıklamayı kullan (şasi yok)
+    if(!secilenAraclar.length && manuelAciklama) {
+        secilenAraclar.push({ aciklama: manuelAciklama, sasi: '' });
     }
-    if(!aciklama) { alert('Araç seçin veya açıklama girin!'); return; }
+    
+    if(!secilenAraclar.length) { alert('En az bir araç seçin veya manuel açıklama girin!'); return; }
     if(gumrukTutar <= 0 && tseTutar <= 0) { alert('En az bir hizmet tutarı girin!'); return; }
     
     let tarih = window.formatTRDate(new Date());
     
     if(!window.cariData[firma]) window.cariData[firma] = [];
     
-    // Düzenleme modu: eski kayıtları sil
+    // Düzenleme modu: eski kaydı sil (sadece tek satır düzenlemede)
     if(editIdx >= 0 && window.cariData[firma][editIdx]) {
         window.cariData[firma].splice(editIdx, 1);
     }
     
-    // TEK SATIR KAYIT: Gümrük ve TSE birlikte + ŞASİ
-    window.cariData[firma].unshift({
-        tarih: tarih,
-        aciklama: aciklama,
-        sasi: sasi,  // ← ŞASİ KAYDEDİLİYOR!
-        gumrukBedeli: gumrukTutar > 0 ? gumrukTutar : 0,
-        tseBedeli: tseTutar > 0 ? tseTutar : 0,
-        tur: 'alacak'
+    // ★ HER ARAÇ İÇİN AYRI SATIR — aynı tutar paralel uygulanır
+    secilenAraclar.forEach(function(arac) {
+        window.cariData[firma].unshift({
+            tarih: tarih,
+            aciklama: arac.aciklama,
+            sasi: arac.sasi,
+            gumrukBedeli: gumrukTutar > 0 ? gumrukTutar : 0,
+            tseBedeli: tseTutar > 0 ? tseTutar : 0,
+            tur: 'alacak'
+        });
     });
     
     document.getElementById('hareket-ekle-modal')?.remove();
     saveCariData();
     window.renderCariTable();
+    
+    if(typeof showSyncToast === 'function') {
+        showSyncToast(secilenAraclar.length + ' araç için hareket eklendi', true);
+    }
 };
 
 window.cariHareketSilByGroup = function(indexlerStr, idsStr) {
