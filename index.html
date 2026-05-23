@@ -7125,7 +7125,7 @@ window.tseSablonKaydet = function() {
         if (st) {
             st.style.display = 'block';
             st.style.color = 'var(--danger, #dc2626)';
-            st.innerHTML = '⚠️ Araç Tanıtım No (Şasi) zorunludur — dosya bu numaranın Drive klasörüne kaydedilir.';
+            st.innerHTML = '⚠️ Araç Tanıtım No (Şasi) zorunludur.';
         }
         return;
     }
@@ -7142,7 +7142,7 @@ window.tseSablonKaydet = function() {
             if (ws[_h]) ws[_h].s = { font: { name:'Calibri', sz:13, bold:true } };
             if (ws[_d]) ws[_d].s = { font: { name:'Calibri', sz:11, bold:false } };
         }
-		// GTIP No sutunu: baslik sari dolgu, alttaki numara kalin
+        // GTIP No sutunu: baslik sari dolgu, alttaki numara kalin
         var gtipH = XLSX.utils.encode_cell({r:0, c:15});
         var gtipD = XLSX.utils.encode_cell({r:1, c:15});
         if (ws[gtipH]) ws[gtipH].s = {
@@ -7155,9 +7155,8 @@ window.tseSablonKaydet = function() {
 
         XLSX.utils.book_append_sheet(wb, ws, 'FORM');
 
-        var sasi  = v('tse-aracTanitimNo');
-        var firma = (document.getElementById('da-firma')||{}).value || '';
-        var marka = v('tse-marka');
+        var sasi      = (document.getElementById('da-sase')||{}).value || v('tse-aracTanitimNo');
+        var folderUrl = (document.getElementById('da-evrakLink')||{}).value || '';
 
         if (st) {
             st.style.display = 'block';
@@ -7165,8 +7164,16 @@ window.tseSablonKaydet = function() {
             st.innerHTML = '⏳ APMGumrukSablon.xlsx oluşturuldu, Drive klasörüne yükleniyor...';
         }
 
+        if (!folderUrl) {
+            if (st) {
+                st.style.color = 'var(--danger, #dc2626)';
+                st.innerHTML = '❌ Bu aracın Drive klasör linki yok. Önce "Klasörü Aç" satırına link ekleyin.';
+            }
+            return;
+        }
+
         var b64 = XLSX.write(wb, {bookType: 'xlsx', type: 'base64'});
-        var scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
+        var scriptURL = "https://script.google.com/macros/s/AKfycbxAyWI0UtlPKvFIteq_sugH2P6kLecSypwqFZzwY41286KQM2l6abGopUZtG9JHyTOnkw/exec";
         fetch(scriptURL, {
             method: "POST",
             mode: 'no-cors',
@@ -7174,7 +7181,8 @@ window.tseSablonKaydet = function() {
                 action: "uploadFile",
                 fileData: b64,
                 fileName: "APMGumrukSablon.xlsx",
-                sasi: sasi, firma: firma, marka: marka
+                folderUrl: folderUrl,
+                sasi: sasi
             })
         }).then(function(){
             if (st) {
