@@ -1727,7 +1727,7 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
             </div>
 
             <div class="modal-section">
-                <div class="modal-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span>Temel Bilgiler</span><button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);white-space:nowrap;" onclick="window.openTseSablonModal()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button></div>
+                <div class="modal-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span>Temel Bilgiler</span><button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);white-space:nowrap;" onclick="window.openTseSablonModalOrMulti()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button><button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);white-space:nowrap;" onclick="window.tseSendMailModal()"><i data-lucide="mail"></i> TSE Mail Gönder</button></div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="input-group" style="margin:0;">
                         <label>Firma</label>
@@ -7073,6 +7073,276 @@ window.openTseSablonModal = function() {
 
     document.getElementById('tse-sablon-modal').classList.remove('hidden');
     if (window.lucide) lucide.createIcons();
+};
+
+// ═══════════════════════════════════════════════════════════════
+// YENİ: TSE Şablonu - ÇOKLU ARAÇ MODU
+// ═══════════════════════════════════════════════════════════════
+window.openTseSablonModalOrMulti = function() {
+    // Şamnu adında seçilen araçları bul
+    const firmName = (document.getElementById('da-firma') || {}).value || '';
+    
+    if (firmName.toLowerCase().includes('samnu') || firmName.toLowerCase().includes('şamnu')) {
+        // Beyanname tablosundan seçili araçları bul
+        const selectedRows = document.querySelectorAll('table tbody tr.selected');
+        
+        if (selectedRows.length > 1) {
+            // ÇOKLU ARAÇ MODU
+            window.openTseMultiVehicleModal(selectedRows);
+            return;
+        }
+    }
+    
+    // Tekli araç → Normal modal
+    window.openTseSablonModal();
+};
+// ═══════════════════════════════════════════════════════════════
+// TSE MAIL GÖNDER MODAL
+// ═══════════════════════════════════════════════════════════════
+window.tseSendMailModal = function() {
+    const selectedRows = document.querySelectorAll('table tbody tr.selected');
+    
+    if (selectedRows.length === 0) {
+        alert('Lütfen araç seçin');
+        return;
+    }
+    
+    let html = `
+    <div id="tse-mail-modal" style="
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 9999; font-family: Inter, sans-serif;
+    ">
+        <div style="
+            background: var(--bg-surface, #1e293b);
+            border-radius: 12px; padding: 24px; max-width: 600px;
+            width: 90%; box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        ">
+            <h2 style="margin: 0 0 16px 0; color: var(--text, #fff);">
+                📧 TSE Mail Gönder
+            </h2>
+            <p style="color: var(--text-muted, #999); margin: 0 0 16px 0; font-size: 13px;">
+                Seçili ${selectedRows.length} araç için başvuru numaraları Excel'e doldurulup mail gönderilecek...
+            </p>
+            
+            <div id="tse-mail-status" style="
+                background: var(--bg-elevated, #0f172a);
+                border: 1px solid var(--border, rgba(255,255,255,0.1));
+                border-radius: 8px; padding: 12px;
+                margin-bottom: 16px; font-size: 12px;
+                max-height: 200px; overflow-y: auto; color: var(--text, #fff);
+            "></div>
+            
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button onclick="document.getElementById('tse-mail-modal').remove()" style="
+                    padding: 8px 16px; border: 1px solid var(--border);
+                    background: transparent; color: var(--text);
+                    border-radius: 6px; cursor: pointer; font-size: 13px;
+                ">İptal</button>
+                <button onclick="window.processTseMail()" style="
+                    padding: 8px 16px; background: var(--primary, #3b82f6);
+                    color: white; border: none; border-radius: 6px;
+                    cursor: pointer; font-size: 13px; font-weight: 600;
+                ">📧 Gönder</button>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    window.tseMailSelectedRows = selectedRows;
+};
+
+window.processTseMail = async function() {
+    const rows = window.tseMailSelectedRows;
+    const statusDiv = document.getElementById('tse-mail-status');
+    
+    if (!rows || rows.length === 0) return;
+    
+    const vehicles = [];
+    
+    if (rowData) {
+    // Form'daki input'lardan veri çek
+    const saseInput = document.getElementById('da-sase');
+    const firmaInput = document.getElementById('da-firma');
+    
+    if (saseInput && saseInput.value) {
+        vehicles.push({
+            sasi: saseInput.value.trim(),
+            firma: firmaInput ? firmaInput.value.trim() : 'Bilinmeyen',
+            folderId: document.getElementById('da-evrakLink')?.value || '',
+            tarih: new Date().toISOString().split('T')[0]
+        });
+        
+        statusDiv.innerHTML += `<div style="padding: 4px 0; color: #3b82f6;">
+            ✓ ${saseInput.value.trim()} eklendi
+        </div>`;
+    }
+
+        }
+    
+    
+    if (vehicles.length === 0) {
+        statusDiv.innerHTML += `<div style="color: var(--error, #ef4444);">❌ Araç bilgisi alınamadı</div>`;
+        return;
+    }
+    
+    try {
+        statusDiv.innerHTML += `<div style="padding: 4px 0; color: #f59e0b;">⏳ İşleniyor...</div>`;
+        
+        const response = await fetch(
+            'https://script.google.com/macros/s/AKfycbxAyWI0UtlPKvFIteq_sugH2P6kLecSypwqFZzwY41286KQM2l6abGopUZtG9JHyTOnkw/exec',
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'sendTseMail',
+                    vehicles: vehicles,
+                    firmName: (document.getElementById('da-firma') || {}).value || ''
+                })
+            }
+        );
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            statusDiv.innerHTML += `<div style="color: #10b981; font-weight: 600; padding: 8px 0;">
+                ✅ Mail başarıyla gönderildi!
+            </div>`;
+        } else {
+            statusDiv.innerHTML += `<div style="color: var(--error, #ef4444);">❌ ${result.message}</div>`;
+        }
+        
+    } catch (err) {
+        statusDiv.innerHTML += `<div style="color: var(--error, #ef4444);">❌ Hata: ${err.message}</div>`;
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ÇOKLU ARAÇ MODAL: Başvuru Numaralarını Otomatik Doldur
+// ═══════════════════════════════════════════════════════════════
+window.openTseMultiVehicleModal = function(selectedRows) {
+    // Modal oluştur (basit HTML)
+    let html = `
+    <div id="tse-multi-modal" style="
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 9999; font-family: Inter, sans-serif;
+    ">
+        <div style="
+            background: var(--bg-surface, #1e293b);
+            border-radius: 12px; padding: 24px; max-width: 600px;
+            width: 90%; max-height: 80vh; overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        ">
+            <h2 style="margin: 0 0 16px 0; color: var(--text, #fff);">
+                📋 Çoklu Araç - Başvuru Numarası Doldurma
+            </h2>
+            <p style="color: var(--text-muted, #999); margin: 0 0 16px 0; font-size: 13px;">
+                Seçili ${selectedRows.length} araç için başvuru numaraları Drive klasörlerinden otomatik çekilecek...
+            </p>
+            
+            <div id="tse-multi-status" style="
+                background: var(--bg-elevated, #0f172a);
+                border: 1px solid var(--border, rgba(255,255,255,0.1));
+                border-radius: 8px; padding: 12px;
+                margin-bottom: 16px; font-size: 12px;
+                max-height: 200px; overflow-y: auto; color: var(--text, #fff);
+            "></div>
+            
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button onclick="document.getElementById('tse-multi-modal').remove()" style="
+                    padding: 8px 16px; border: 1px solid var(--border);
+                    background: transparent; color: var(--text);
+                    border-radius: 6px; cursor: pointer; font-size: 13px;
+                ">İptal</button>
+                <button onclick="window.processTseMultiVehicles()" style="
+                    padding: 8px 16px; background: var(--primary, #3b82f6);
+                    color: white; border: none; border-radius: 6px;
+                    cursor: pointer; font-size: 13px; font-weight: 600;
+                ">🚀 Başla</button>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    // Global referans
+    window.tseMultiSelectedRows = selectedRows;
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ÇOKLU ARAÇ İŞLEMCİ: Apps Script'i çağır
+// ═══════════════════════════════════════════════════════════════
+window.processTseMultiVehicles = async function() {
+    const rows = window.tseMultiSelectedRows;
+    const statusDiv = document.getElementById('tse-multi-status');
+    
+    if (!rows || rows.length === 0) return;
+    
+    // Her satırdan araç bilgilerini çıkar
+    const vehicles = [];
+    
+    // Form'daki input'lardan veri çek (tablo satırından değil)
+const saseInput = document.getElementById('da-sase');
+const firmaInput = document.getElementById('da-firma');
+
+if (saseInput && saseInput.value) {
+    const vehicle = {
+        sasi: saseInput.value.trim(),
+        firma: firmaInput ? firmaInput.value.trim() : 'Bilinmeyen',
+        folderId: document.getElementById('da-evrakLink')?.value || '',
+        tarih: new Date().toISOString().split('T')[0]
+    };
+    
+    vehicles.push(vehicle);
+    
+    statusDiv.innerHTML += `<div style="padding: 4px 0; color: #3b82f6;">
+        ✓ ${vehicle.sasi} eklenip işleniyor...
+    </div>`;
+}
+    
+    if (vehicles.length === 0) {
+        statusDiv.innerHTML += `<div style="color: var(--error, #ef4444);">❌ Araç bilgisi alınamadı</div>`;
+        return;
+    }
+    
+    // Apps Script'i çağır
+    try {
+        statusDiv.innerHTML += `<div style="padding: 4px 0; color: #f59e0b;">⏳ Apps Script çalışıyor...</div>`;
+        
+        const response = await fetch(
+            'https://script.google.com/macros/s/AKfycbxAyWI0UtlPKvFIteq_sugH2P6kLecSypwqFZzwY41286KQM2l6abGopUZtG9JHyTOnkw/exec',
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'fillMultipleTseVehicles',
+                    vehicles: vehicles,
+                    firmName: (document.getElementById('da-firma') || {}).value || ''
+                })
+            }
+        );
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            statusDiv.innerHTML += `<div style="color: #10b981; font-weight: 600; padding: 8px 0;">
+                ✅ ${result.results.length} araç başarıyla işlendi!
+            </div>`;
+            
+            result.results.forEach(r => {
+                const color = r.status === 'OK' ? '#10b981' : '#f59e0b';
+                statusDiv.innerHTML += `<div style="color: ${color}; font-size: 12px; padding: 2px 0;">
+                    • ${r.vehicle}: ${r.invoiceNumber || r.status}
+                </div>`;
+            });
+        } else {
+            statusDiv.innerHTML += `<div style="color: var(--error, #ef4444);">❌ ${result.message}</div>`;
+        }
+        
+    } catch (err) {
+        statusDiv.innerHTML += `<div style="color: var(--error, #ef4444);">❌ Hata: ${err.message}</div>`;
+    }
 };
 
 // TSE Şablonu modalini kapat
