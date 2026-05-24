@@ -7161,7 +7161,7 @@ window.tseSablonKaydet = function() {
         if (st) {
             st.style.display = 'block';
             st.style.color = 'var(--warning)';
-            st.innerHTML = '⏳ APMGumrukSablon.xls oluşturuldu, Drive klasörüne yükleniyor...';
+            st.innerHTML = '⏳ APMGumrukSablon.xlsx oluşturuldu, Drive klasörüne yükleniyor...';
         }
 
         if (!folderUrl) {
@@ -7172,7 +7172,7 @@ window.tseSablonKaydet = function() {
             return;
         }
 
-        var b64 = XLS.write(wb, {bookType: 'xls', type: 'base64'});
+        var b64 = XLSX.write(wb, {bookType: 'xlsx', type: 'base64'});
         var scriptURL = "https://script.google.com/macros/s/AKfycbxAyWI0UtlPKvFIteq_sugH2P6kLecSypwqFZzwY41286KQM2l6abGopUZtG9JHyTOnkw/exec";
         fetch(scriptURL, {
             method: "POST",
@@ -7180,14 +7180,14 @@ window.tseSablonKaydet = function() {
             body: JSON.stringify({
                 action: "uploadFile",
                 fileData: b64,
-                fileName: "APMGumrukSablon.xls",
+                fileName: "APMGumrukSablon.xlsx",
                 folderUrl: folderUrl,
                 sasi: sasi
             })
         }).then(function(){
             if (st) {
                 st.style.color = 'var(--success)';
-                st.innerHTML = '✅ APMGumrukSablon.xls aracın Drive klasörüne yüklendi.';
+                st.innerHTML = '✅ APMGumrukSablon.xlsx aracın Drive klasörüne yüklendi.';
             }
             setTimeout(function(){ window.closeTseSablonModal(); }, 3000);
         }).catch(function(){
