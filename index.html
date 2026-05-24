@@ -7089,13 +7089,72 @@ window.tseTarihFormatla = function(deger) {
     return deger;
 };
 
-// Kaydet & XLS Oluştur
+// Kaydet & XLS Oluştur (Hata Korumalı & Tarih Kontrollü - Düzeltilmiş Sürüm)
 window.tseSablonKaydet = function() {
     var v = function(id) {
         var el = document.getElementById(id);
         return el ? (el.value || '').trim() : '';
     };
 
+    var st = document.getElementById('tse-sablon-status');
+    if (st) { st.style.display = 'none'; st.innerHTML = ''; }
+
+    // 1. KONTROL: HERHANGİ BİR BÖLÜMÜN BOŞ KALMA KONTROLÜ
+    var alanlar = [
+        { id: 'tse-aracCinsi', ad: 'Araç Cinsi' },
+        { id: 'tse-marka', ad: 'Marka' },
+        { id: 'tse-tip', ad: 'Tip' },
+        { id: 'tse-varyant', ad: 'Varyant' },
+        { id: 'tse-versiyon', ad: 'Versiyon' },
+        { id: 'tse-kategori', ad: 'Kategori' },
+        { id: 'tse-imalTarihi', ad: 'İmal Tarihi' },
+        { id: 'tse-ticariAd', ad: 'Ticari Ad' },
+        { id: 'tse-aracTanitimNo', ad: 'Araç Tanıtım No (Şasi)' },
+        { id: 'tse-yakitTuru', ad: 'Yakıt Türü' },
+        { id: 'tse-tipOnayNo', ad: 'Tip Onay No' },
+        { id: 'tse-tipOnayTarihi', ad: 'Tip Onay Tarihi' },
+        { id: 'tse-antrepoAdi', ad: 'Antrepo Adı' },
+        { id: 'tse-uretildigiUlke', ad: 'Üretildiği Ülke' },
+        { id: 'tse-ithalatUlkesi', ad: 'İthalatın Yapıldığı Ülke' },
+        { id: 'tse-gtipNo', ad: 'GTIP No' }
+    ];
+
+    var eksikAlanlar = [];
+    alanlar.forEach(function(alan) {
+        if (!v(alan.id)) {
+            eksikAlanlar.push(alan.ad);
+        }
+    });
+
+    if (eksikAlanlar.length > 0) {
+        if (st) {
+            st.style.display = 'block';
+            st.style.color = 'var(--danger, #dc2626)';
+            st.innerHTML = '⚠️ Lütfen eksik alanları doldurun:<br>• ' + eksikAlanlar.join('<br>• ');
+        }
+        return; // İşlemi durdur
+    }
+
+    // 2. KONTROL: TİP ONAY TARİHİ, ÜRETİM TARİHİNDEN YENİ OLAMAZ (DÜZELTİLDİ)
+    var imalTarihiRaw = v('tse-imalTarihi');    // YYYY-MM-DD
+    var tipOnayTarihiRaw = v('tse-tipOnayTarihi'); // YYYY-MM-DD
+
+    if (imalTarihiRaw && tipOnayTarihiRaw) {
+        var imalDate = new Date(imalTarihiRaw);
+        var tipOnayDate = new Date(tipOnayTarihiRaw);
+
+        // Eğer Tip Onayı, Üretimden daha sonraki bir tarihse hata ver!
+        if (tipOnayDate > imalDate) {
+            if (st) {
+                st.style.display = 'block';
+                st.style.color = 'var(--danger, #dc2626)';
+                st.innerHTML = '❌ <b>Tarih Mantık Hatası:</b> Tip Onay Tarihi, İmal (Üretim) Tarihinden daha yeni olamaz!';
+            }
+            return; // İşlemi durdur
+        }
+    }
+
+    // Başlıklar ve Satır yapısı (.xls uyumlu)
     var basliklar = ['Araç Cinsi','Marka','Tip','Varyant','Versiyon','Kategori',
         'İmal Tarihi','Ticari Ad','Araç Tanıtım No','Yakıt Türü','Tip Onay No',
         'Tip Onay Tarihi','Antrepo Adı','Üretildiği Ülke','İthalatın Yapıldığı Ülke','GTIP No'];
@@ -7119,17 +7178,6 @@ window.tseSablonKaydet = function() {
         v('tse-gtipNo')
     ];
 
-    var st = document.getElementById('tse-sablon-status');
-
-    if (!satir[8]) {
-        if (st) {
-            st.style.display = 'block';
-            st.style.color = 'var(--danger, #dc2626)';
-            st.innerHTML = '⚠️ Araç Tanıtım No (Şasi) zorunludur.';
-        }
-        return;
-    }
-
     try {
         var wb = XLSX.utils.book_new();
         var ws = XLSX.utils.aoa_to_sheet([basliklar, satir]);
@@ -7142,16 +7190,14 @@ window.tseSablonKaydet = function() {
             if (ws[_h]) ws[_h].s = { font: { name:'Calibri', sz:13, bold:true } };
             if (ws[_d]) ws[_d].s = { font: { name:'Calibri', sz:11, bold:false } };
         }
-        // GTIP No sutunu: baslik sari dolgu, alttaki numara kalin
+        
         var gtipH = XLSX.utils.encode_cell({r:0, c:15});
         var gtipD = XLSX.utils.encode_cell({r:1, c:15});
         if (ws[gtipH]) ws[gtipH].s = {
             font: { name:'Calibri', sz:13, bold:true },
             fill: { patternType:'solid', fgColor:{ rgb:'FFFF00' } }
         };
-        if (ws[gtipD]) ws[gtipD].s = {
-            font: { name:'Calibri', sz:11, bold:true }
-        };
+        if (ws[gtipD]) ws[gtipD].s = { font: { name:'Calibri', sz:11, bold:true } };
 
         XLSX.utils.book_append_sheet(wb, ws, 'FORM');
 
@@ -7161,7 +7207,7 @@ window.tseSablonKaydet = function() {
         if (st) {
             st.style.display = 'block';
             st.style.color = 'var(--warning)';
-            st.innerHTML = '⏳ APMGumrukSablon.xlsx oluşturuldu, Drive klasörüne yükleniyor...';
+            st.innerHTML = '⏳ APMGumrukSablon.xls oluşturuldu, Drive klasörüne yükleniyor...';
         }
 
         if (!folderUrl) {
@@ -7171,8 +7217,10 @@ window.tseSablonKaydet = function() {
             }
             return;
         }
-var b64 = XLSX.write(wb, {bookType: 'xls', type: 'base64'});
+
+        var b64 = XLSX.write(wb, {bookType: 'xls', type: 'base64'});
         var scriptURL = "https://script.google.com/macros/s/AKfycbxAyWI0UtlPKvFIteq_sugH2P6kLecSypwqFZzwY41286KQM2l6abGopUZtG9JHyTOnkw/exec";
+        
         fetch(scriptURL, {
             method: "POST",
             mode: 'no-cors',
