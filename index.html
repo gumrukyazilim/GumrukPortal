@@ -7169,7 +7169,7 @@ window.processTseMail = async function() {
         vehicles.push({
             sasi: saseInput.value.trim(),
             firma: firmaInput ? firmaInput.value.trim() : 'Bilinmeyen',
-            folderId: document.getElementById('da-evrakLink')?.value || '',
+            folderId: saseInput.value.trim(),
             tarih: new Date().toISOString().split('T')[0]
         });
         
