@@ -7161,7 +7161,7 @@ window.tseSablonKaydet = function() {
         if (st) {
             st.style.display = 'block';
             st.style.color = 'var(--warning)';
-            st.innerHTML = '⏳ APMGumrukSablon.xlsx oluşturuldu, Drive klasörüne yükleniyor...';
+            st.innerHTML = '⏳ APMGumrukSablon.xls oluşturuldu, Drive klasörüne yükleniyor...';
         }
 
         if (!folderUrl) {
@@ -7180,7 +7180,7 @@ window.tseSablonKaydet = function() {
             body: JSON.stringify({
                 action: "uploadFile",
                 fileData: b64,
-                fileName: "APMGumrukSablon.xlsx",
+                fileName: "APMGumrukSablon.xls",
                 folderUrl: folderUrl,
                 sasi: sasi
             })
