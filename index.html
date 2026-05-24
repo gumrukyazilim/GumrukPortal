@@ -7161,7 +7161,6 @@ window.processTseMail = async function() {
     
     const vehicles = [];
     
-    if (rowData) {
     // Form'daki input'lardan veri çek
     const saseInput = document.getElementById('da-sase');
     const firmaInput = document.getElementById('da-firma');
@@ -7179,8 +7178,6 @@ window.processTseMail = async function() {
         </div>`;
     }
 
-        }
-    
     
     if (vehicles.length === 0) {
         statusDiv.innerHTML += `<div style="color: var(--error, #ef4444);">❌ Araç bilgisi alınamadı</div>`;
