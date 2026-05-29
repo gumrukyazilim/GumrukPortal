@@ -1733,7 +1733,7 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
                     <div class="input-group" style="margin:0;">
                         <label>Firma</label>
                         <div class="firm-search-wrap">
-                            <input type="text" id="da-firma-search" class="firm-search-input" oninput="window.filterFirmDropdown(this.value)" onfocus="window.filterFirmDropdown('')" autocomplete="off">
+                            <input type="text" id="da-firma-search" class="firm-search-input" oninput="window.filterFirmDropdown(this.value)" onfocus="window.filterFirmDropdown('')" onblur="setTimeout(function(){ document.getElementById('da-firma-list').style.display='none'; }, 200)" autocomplete="off">
                             <input type="hidden" id="da-firma">
                             <div id="da-firma-list" class="firm-dropdown-list"></div>
                         </div>
