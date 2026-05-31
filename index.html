@@ -9109,16 +9109,109 @@ window.sendWhatsApp = function(index, type) {
         return;
     }
 
-    // Kurumsal Mesaj Taslağı
-    let mesaj = "*SAYIN İLGİLİ (" + firmaAdi + ")*%0A%0A" +
-                "Sisteme kayıtlı olan aşağıdaki aracınızın gümrük süreçleri ile ilgili güncel durum bilgilendirmesidir:%0A%0A" +
-                "*Araç:* " + (item.marka || "") + " " + (item.model || "") + " (" + (item.yil || "") + ")%0A" +
-                "*Şasi No:* " + (item.sasi || "-") + "%0A" +
-                "*Geliş Tarihi:* " + (item.tarih || "-") + "%0A" +
-                "*Beyanname:* " + (item.beyanname || "Hazırlık Aşamasında") + "%0A" +
-                "*Evrak Durumu:* " + (item.evrak || "İşlemde") + "%0A%0A" +
-                "İşlemleriniz tarafımızca titizlikle takip edilmektedir. Konuyla ilgili detaylı bilgi almak isterseniz lütfen iletişime geçiniz.%0A%0A" +
-                "_İyi çalışmalar dileriz._";
+    // ── EVRAK DURUM ANALİZİ ────────────────────────────────────────────
+    let evrakler   = item.evrakler || {};
+    let origin     = window.getVehicleOrigin ? window.getVehicleOrigin(item.sasi, item.marka) : 'EU';
+    let rozetListesi = (window.REGION_BADGES && window.REGION_BADGES[origin]) || ['ATR','COC','ONAY','TSE','IMEI','T_ID'];
+
+    // TSE ayrıntılı durum (0=yok, 1=başvuru yapıldı, 2=onaylandı)
+    let tseDeger = evrakler['TSE'];
+    if(tseDeger === true)  tseDeger = 2;
+    else if(!tseDeger)     tseDeger = 0;
+    else                   tseDeger = parseInt(tseDeger) || 0;
+
+    // İnsan okunabilir evrak isimleri
+    const evrakAdlari = {
+        'ATR'     : 'ATR Belgesi',
+        'COC'     : 'COC Belgesi',
+        'COO'     : 'COO (Menşe Belgesi)',
+        'EORI'    : 'EORI Numarası',
+        'ART44'   : 'ART.44 Belgesi',
+        'ONAY'    : 'Tasdikli Evraklar',
+        'TSE'     : 'TSE',
+        'IMEI'    : 'IMEI / Teknik Belge',
+        'T_ID'    : 'Transfer ID',
+        'N_FATURA': 'Navlun Faturası'
+    };
+
+    let tamamlananlar = [];
+    let bekleyenler   = [];
+
+    rozetListesi.forEach(function(tip) {
+        if(tip === 'TSE') return; // TSE ayrı işleniyor
+        if(evrakler[tip] === true) {
+            tamamlananlar.push(evrakAdlari[tip] || tip);
+        } else {
+            bekleyenler.push(evrakAdlari[tip] || tip);
+        }
+    });
+
+    // ── MESAJ BLOKLARI ─────────────────────────────────────────────────
+    let nl = '%0A';   // satır sonu
+    let mesaj = '';
+
+    // Başlık
+    mesaj += '*SAYIN İLGİLİ (' + firmaAdi + ')*' + nl + nl;
+    mesaj += 'Sisteme kayıtlı olan aşağıdaki aracınızın gümrük süreçlerine ilişkin güncel durum bilgilendirmesidir:' + nl + nl;
+
+    // Araç bilgileri
+    mesaj += '🚗 *ARAÇ BİLGİLERİ*' + nl;
+    mesaj += '━━━━━━━━━━━━━━━━━━━━━━━━' + nl;
+    mesaj += '*Araç:* ' + (item.marka||'') + ' ' + (item.model||'') + ' (' + (item.yil||'') + ')' + nl;
+    mesaj += '*Şasi No:* ' + (item.sasi||'-') + nl;
+    mesaj += '*Geliş Tarihi:* ' + (item.tarih||'-') + nl;
+    mesaj += '*Beyanname:* ' + (item.beyanname||'Hazırlık Aşamasında') + nl;
+    mesaj += '*Dosya Durumu:* ' + (item.evrak||'Açık') + nl + nl;
+
+    // TSE Durumu
+    mesaj += '📋 *TSE DURUMU*' + nl;
+    mesaj += '━━━━━━━━━━━━━━━━━━━━━━━━' + nl;
+    if(tseDeger === 0) {
+        mesaj += '⬜ TSE başvurusu henüz yapılmamıştır.' + nl + nl;
+    } else if(tseDeger === 1) {
+        mesaj += '🟡 TSE başvurusu yapılmıştır — sonuç beklenmektedir.' + nl + nl;
+    } else if(tseDeger === 2) {
+        mesaj += '✅ TSE onaylanmıştır.' + nl + nl;
+    }
+
+    // Tamamlanan evraklar
+    if(tamamlananlar.length > 0) {
+        mesaj += '✅ *TAMAMLANAN EVRAKLAR*' + nl;
+        mesaj += '━━━━━━━━━━━━━━━━━━━━━━━━' + nl;
+        tamamlananlar.forEach(function(e) {
+            mesaj += '• ' + e + ' ✓' + nl;
+        });
+        mesaj += nl;
+    }
+
+    // Bekleyen / eksik evraklar
+    if(bekleyenler.length > 0) {
+        mesaj += '⚠️ *BEKLENİLEN EVRAKLAR*' + nl;
+        mesaj += '━━━━━━━━━━━━━━━━━━━━━━━━' + nl;
+        bekleyenler.forEach(function(e) {
+            let aciklama = '';
+            if(e === 'Tasdikli Evraklar') aciklama = ' → Tasdikli/onaylı evrakların tarafımıza iletilmesi gerekmektedir.';
+            if(e === 'Transfer ID')       aciklama = ' → Ödemeye ait Transfer ID numarasının bildirilmesi gerekmektedir.';
+            if(e === 'ATR Belgesi')       aciklama = ' → ATR dolaşım belgesinin iletilmesi beklenmektedir.';
+            if(e === 'COC Belgesi')       aciklama = ' → COC uygunluk belgesinin iletilmesi beklenmektedir.';
+            if(e === 'IMEI / Teknik Belge') aciklama = ' → IMEI/teknik belgenin iletilmesi beklenmektedir.';
+            mesaj += '• ' + e + aciklama + nl;
+        });
+        mesaj += nl;
+    }
+
+    // Tüm evraklar tamamsa
+    if(bekleyenler.length === 0 && tseDeger === 2) {
+        mesaj += '🎉 *Tüm evraklar tamamdır.* İşlemleriniz sonuçlandırma aşamasındadır.' + nl + nl;
+    }
+
+    // Kapanış
+    mesaj += '━━━━━━━━━━━━━━━━━━━━━━━━' + nl;
+    mesaj += 'İşlemleriniz tarafımızca titizlikle takip edilmektedir.' + nl;
+    mesaj += 'Detaylı bilgi için lütfen iletişime geçiniz.' + nl + nl;
+    mesaj += '_İyi çalışmalar dileriz._ 🙏';
+
+    mesaj = mesaj.replace(/ /g, '%20').replace(/\n/g, '%0A');
 
     let wpUrl = "https://wa.me/" + phone + "?text=" + mesaj;
     window.open(wpUrl, '_blank');
