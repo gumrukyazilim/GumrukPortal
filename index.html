@@ -466,7 +466,9 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
     .card-pad { padding: 16px !important; }
     
     /* Form elemanları */
-    input, select, textarea { font-size: 16px !important; padding: 10px 12px !important; }
+    input, select, textarea { font-size: 16px !important; }
+    /* İkon boşluklu inputlarda padding'e dokunma — sadece padding-inline-start kullan */
+    .input-group input, .input-group select, .input-group textarea { padding: 10px 12px !important; }
     button { font-size: 14px !important; }
     label { font-size: 13.5px !important; }
     
@@ -1589,14 +1591,30 @@ input[type="email"], select, textarea {
   background: var(--input-bg) !important;
   color: var(--text-primary) !important;
   font-size: 13.5px !important;
-  padding: 10px 14px !important;
   transition: all .2s !important;
+  /* padding override yok — inline style'lar (özellikle ikon boşluklu inputlar) korunuyor */
 }
 input[type="text"]:focus, input[type="date"]:focus,
 input[type="email"]:focus, select:focus, textarea:focus {
   border-color: var(--primary) !important;
   box-shadow: 0 0 0 3px rgba(59,130,246,.12) !important;
   background: var(--bg-surface) !important;
+}
+/* İkon boşluğu olmayan standart input'lara padding uygula */
+.input-group input[type="text"],
+.input-group input[type="password"],
+.input-group input[type="date"],
+.input-group input[type="email"],
+.input-group select,
+.input-group textarea,
+.modal-body > input[type="text"],
+.modal-section input[type="text"] {
+  padding: 10px 14px !important;
+}
+/* İkon içeren wrapper'lardaki input padding'e dokunma */
+div[style*="position:relative"] > input,
+div[style*="position: relative"] > input {
+  /* inline style korunuyor */
 }
 
 /* ── LOGIN EKRANI — Premium ────────────────────────────────────────── */
