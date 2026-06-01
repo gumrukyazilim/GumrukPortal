@@ -2255,6 +2255,25 @@ div[style*="position: relative"] > input {
   }
 }
 
+/* ── ŞASİ NUMARASI — Okunakli, Büyük, Monospace ────────────────────── */
+.sasi-no {
+  font-family: 'Courier New', 'Consolas', 'SF Mono', monospace !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  letter-spacing: 2px !important;
+  color: var(--text-primary) !important;
+}
+@media (max-width: 768px) {
+  .sasi-no { font-size: 15px !important; letter-spacing: 1.2px !important; }
+}
+
+/* ── İKONLU ARAMA KUTULARI — padding korunuyor ─────────────────────── */
+#banka-arama-input,
+#byn-banka-arama,
+#gtip-search {
+  padding-left: 44px !important;
+}
+
 /* ── 14. SCROLLBAR GELİŞTİRME ──────────────────────────────────────── */
 .view-area::-webkit-scrollbar { width: 5px !important; }
 .view-area::-webkit-scrollbar-thumb {
@@ -2344,7 +2363,7 @@ div[style*="position: relative"] > input {
             <button class="nav-btn admin-only" data-view="firms"><i data-lucide="building-2"></i><span>Firma Arşivi</span></button>
 			<button class="nav-btn admin-only" data-view="uyelikler" id="nav-uyelikler"><i data-lucide="user-check"></i><span>Üyelikler</span><span id="uyelik-badge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:auto;">0</span></button>
             <button class="nav-btn admin-only" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
-            <button class="nav-btn admin-only" data-view="beyanname"><i data-lucide="file-text"></i><span>Beyanname Formu</span></button>
+            <button class="nav-btn admin-only" data-view="beyanname"><i data-lucide="file-text"></i><span>Beyanname Özet</span></button>
             
             <div class="sidebar-section-label admin-only" style="margin-top:8px;">Araçlar & Bilgi</div>
             <button class="nav-btn admin-only" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
@@ -2444,136 +2463,556 @@ div[style*="position: relative"] > input {
 </template>
 <template id="tpl-beyanname">
     <div class="page-hdr fade-in">
-        <div><div class="page-eyebrow">Resmi Evraklar</div><h1 class="page-title">Gümrük Beyannamesi (TCGB)</h1></div>
+        <div>
+            <div class="page-eyebrow">BEYANNAME</div>
+            <h1 class="page-title">Beyanname Özet</h1>
+            <p class="page-sub" id="byn-arac-baslik" style="margin-top:4px;">— Araç seçilmedi —</p>
+        </div>
         <div class="page-actions">
-            <button class="btn-sm" onclick="window.renderView('declarations')" style="margin-right: 8px;">
+            <button class="btn-sm" onclick="window.renderView('declarations')">
                 <i data-lucide="arrow-left"></i> Geri Dön
             </button>
-            
-            <button class="btn-primary" onclick="window.print()">
-                <i data-lucide="printer"></i> Formu Yazdır
+            <button class="btn-sm" onclick="window.bynKopyala()" style="color:#10b981;border-color:#10b981;">
+                <i data-lucide="copy"></i> Panoya Kopyala
+            </button>
+            <button class="btn-primary" onclick="window.bynPdfOlustur()">
+                <i data-lucide="file-down"></i> PDF Oluştur
             </button>
         </div>
     </div>
-    
-    <div class="fade-in" style="padding-bottom:40px;">
-        <div id="tcgb-print-area" class="tcgb-container">
-            <h2 style="text-align:center; color:#2f5d34; padding:15px 0 10px; margin:0;">T.C. GÜMRÜK BEYANNAMESİ</h2>
-            
-            <div class="tcgb-grid">
-                <div class="tcgb-box" style="grid-column:span 1;">
-                    <span class="tcgb-label">1 BEYAN</span>
-                    <input id="tcgb-1" class="tcgb-input" value="IM  4">
-                </div>
-                <div class="tcgb-box" style="grid-column:span 3;">
-                    <span class="tcgb-label">2 Gönderici / İhracatçı</span>
-                    <textarea id="tcgb-2" class="tcgb-input" rows="3"></textarea>
-                </div>
-                <div class="tcgb-box" style="grid-column:span 4;">
-                    <div style="display:flex; justify-content:space-between;">
-                        <div style="flex:1; border-right:1px solid #2f5d34; padding-right:4px;"><span class="tcgb-label">3 Formlar</span><input class="tcgb-input"></div>
-                        <div style="flex:1; border-right:1px solid #2f5d34; padding:0 4px;"><span class="tcgb-label">4 Yükl. List.</span><input class="tcgb-input"></div>
-                        <div style="flex:1; padding-left:4px;"><span class="tcgb-label">5 Kalem Sayısı</span><input class="tcgb-input" value="1"></div>
-                    </div>
-                </div>
 
-                <div class="tcgb-box" style="grid-column:span 4;">
-                    <span class="tcgb-label">8 Alıcı</span>
-                    <textarea id="tcgb-8" class="tcgb-input" rows="3"></textarea>
-                </div>
-                <div class="tcgb-box" style="grid-column:span 4;">
-                    <span class="tcgb-label">14 Beyan Sahibi / Temsilcisi</span>
-                    <textarea id="tcgb-14" class="tcgb-input" rows="3"></textarea>
-                </div>
+    <div class="fade-in" style="padding-bottom:60px;">
 
-                <div class="tcgb-box" style="grid-column:span 2;">
-                    <span class="tcgb-label">15 Sevk / İhracat Ülkesi</span>
-                    <input id="tcgb-15" class="tcgb-input">
-                </div>
-                <div class="tcgb-box" style="grid-column:span 2;">
-                    <span class="tcgb-label">17 Varış Ülkesi</span>
-                    <input id="tcgb-17" class="tcgb-input" value="TÜRKİYE">
-                </div>
-                <div class="tcgb-box" style="grid-column:span 2;">
-                    <span class="tcgb-label">20 Teslim Şekli</span>
-                    <input id="tcgb-20" class="tcgb-input">
-                </div>
-                <div class="tcgb-box" style="grid-column:span 2;">
-                    <span class="tcgb-label">22 Döviz ve Toplam Fatura Bedeli</span>
-                    <input id="tcgb-22" class="tcgb-input">
-                </div>
+    <!-- ═══════════ BÖLÜM 1 — GENEL GİRİŞ BİLGİLERİ ═══════════ -->
+    <div class="form-section-card">
+        <div class="form-section-title"><i data-lucide="settings-2"></i> 1. Genel Giriş Bilgileri</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
 
-                <div class="tcgb-box" style="grid-column:span 4;">
-                    <span class="tcgb-label">31 Kaplar ve Eşyanın Tanımı (Marka, Numaralar, Şasi)</span>
-                    <textarea id="tcgb-31" class="tcgb-input" rows="7"></textarea>
-                </div>
-                <div class="tcgb-box" style="grid-column:span 1;">
-                    <span class="tcgb-label">33 Eşya Kodu</span>
-                    <input id="tcgb-33" class="tcgb-input" style="margin-bottom:8px;">
-                    <span class="tcgb-label">34 Menşe Ülke</span>
-                    <input id="tcgb-34" class="tcgb-input">
-                </div>
-                <div class="tcgb-box" style="grid-column:span 1;">
-                    <span class="tcgb-label">35 IMEİ NUMARASI</span>
-                    <input id="tcgb-35" class="tcgb-input" style="margin-bottom:8px;">
-                    <span class="tcgb-label">36 Tercih</span>
-                    <input id="tcgb-36" class="tcgb-input">
-                </div>
-                <div class="tcgb-box" style="grid-column:span 1;">
-                    <span class="tcgb-label">37 Rejim</span>
-                    <input id="tcgb-37" class="tcgb-input" value="4000" style="margin-bottom:8px;">
-                </div>
-                <div class="tcgb-box" style="grid-column:span 1;">
-                    <span class="tcgb-label">38 Net Ağırlık (kg)</span>
-                    <input id="tcgb-38" class="tcgb-input" style="margin-bottom:8px;">
-                    <span class="tcgb-label">39 Kota</span>
-                    <input id="tcgb-39" class="tcgb-input">
-                </div>
-
-                <div class="tcgb-box" style="grid-column:span 8;">
-                    <span class="tcgb-label">44 Ek Bilgi / Sunulan Belgeler / İzinler</span>
-                    <textarea id="tcgb-44" class="tcgb-input" rows="2"></textarea>
-                </div>
-
-                <div class="tcgb-box" style="grid-column:span 8;">
-                    <span class="tcgb-label">47 Vergilerin Hesaplanması</span>
-                    <table class="tcgb-table">
-                        <tr><th>TÜR</th><th>VERGİ MATRAHI</th><th>ORAN</th><th>TUTAR</th></tr>
-                        <tr>
-                            <td><input class="tcgb-input" value="GV"></td>
-                            <td><input class="tcgb-input"></td>
-                            <td><input class="tcgb-input"></td>
-                            <td><input class="tcgb-input"></td>
-                        </tr>
-                        <tr>
-                            <td><input class="tcgb-input" value="ÖTV"></td>
-                            <td><input class="tcgb-input"></td>
-                            <td><input class="tcgb-input"></td>
-                            <td><input class="tcgb-input"></td>
-                        </tr>
-                        <tr>
-                            <td><input class="tcgb-input" value="KDV"></td>
-                            <td><input class="tcgb-input"></td>
-                            <td><input class="tcgb-input"></td>
-                            <td><input class="tcgb-input"></td>
-                        </tr>
-                    </table>
-                </div>
-                
-                <div class="tcgb-box" style="grid-column:span 4; height:70px;">
-                    <span class="tcgb-label">54 Yer ve Tarih</span>
-                    <div style="margin-top:10px;">
-                        <input id="tcgb-54-date" type="date">
-                    </div>
-                </div>
-                <div class="tcgb-box" style="grid-column:span 4; height:70px;">
-                    <span class="tcgb-label">Beyan Sahibi / Temsilcinin İmzası ve Adı</span>
-                    <input id="tcgb-54-name" class="tcgb-input" style="margin-top:10px;" value="GÜMRÜK MÜŞAVİRLİĞİ">
-                </div>
+            <div class="input-group" style="margin:0;">
+                <label>Firma</label>
+                <select id="byn-firma-sec" onchange="window.bynFirmaChange(this.value)" style="font-weight:600;">
+                    <option value="">— Firma Seçin —</option>
+                    <option value="ŞAMNU GT">ŞAMNU GT</option>
+                    <option value="FF OTOMOTİV">FF OTOMOTİV</option>
+                </select>
             </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Kullanıcı Adı (Sistem)</label>
+                <input type="text" id="byn-kullanici" placeholder="Sistem kullanıcı adı">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Şifre</label>
+                <input type="password" id="byn-sifre" placeholder="••••••••">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>ÖTV Muhafiyet Numarası</label>
+                <input type="text" id="byn-otv-muhaf" placeholder="25243160111096067013069/1">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>37. Rejim</label>
+                <input type="text" id="byn-37" value="4000">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Alıcı / Satıcı İlişkisi</label>
+                <input type="text" id="byn-alici-satici" value="6">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Kap Adedi</label>
+                <input type="number" id="byn-kap" value="1" min="1">
+            </div>
+
+        </div>
+
+        <!-- Ülke bilgileri -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;">
+
+            <div class="input-group" style="margin:0;">
+                <label>11. Ticaret Yapılan Ülke <span style="font-size:10px;color:var(--primary);">(TSE'den)</span></label>
+                <input type="text" id="byn-11" placeholder="Otomatik / Manuel">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>15. Çıkış Ülkesi</label>
+                <select id="byn-15">
+                    <option value="">— Seçiniz —</option>
+                    <optgroup label="Serbest Bölgeler">
+                    <option value="F01">F01 — ANTALYA SERBEST BÖLGE</option>
+                    <option value="F02">F02 — AHL SERBEST BÖLGE</option>
+                    <option value="F03">F03 — İSTANBUL DERİ / ENDÜSTRİ SERBEST BÖLGE</option>
+                    <option value="F04">F04 — EGE SERBEST BÖLGE</option>
+                    <option value="F05">F05 — MERSİN SERBEST BÖLGE</option>
+                    <option value="F06">F06 — TRAKYA SERBEST BÖLGE</option>
+                    <option value="F07">F07 — TRABZON SERBEST BÖLGE</option>
+                    <option value="F08">F08 — DOĞU ANADOLU SERBEST BÖLGE</option>
+                    <option value="F09">F09 — MARDİN SERBEST BÖLGE</option>
+                    <option value="F10">F10 — RİZE SERBEST BÖLGE</option>
+                    <option value="F11">F11 — SAMSUN SERBEST BÖLGE</option>
+                    <option value="F12">F12 — KAYSERİ SERBEST BÖLGE</option>
+                    <option value="F13">F13 — AVRUPA SERBEST BÖLGE</option>
+                    <option value="F14">F14 — GAZİANTEP SERBEST BÖLGE</option>
+                    <option value="F15">F15 — MENEMEN DERİ / İZMİR SERBEST BÖLGE</option>
+                    <option value="F16">F16 — BURSA SERBEST BÖLGE</option>
+                    <option value="F17">F17 — ADANA YUMURTALIK SERBEST BÖLGE</option>
+                    <option value="F18">F18 — TÜBİTAK MAM TEKNOLOJİ SERBEST BÖLGESİ</option>
+                    <option value="F19">F19 — KOCAELİ SERBEST BÖLGE</option>
+                    <option value="F20">F20 — DENİZLİ SERBEST BÖLGE</option>
+                    </optgroup>
+                    <optgroup label="STM">
+                    <option value="S11">S11 — ESENDERE STM</option>
+                    <option value="S12">S12 — KAPIKÖY STM</option>
+                    <option value="S13">S13 — SARISU STM</option>
+                    <option value="S41">S41 — DİLUCU STM</option>
+                    </optgroup>
+                    <optgroup label="Avrupa">
+                    <option value="001">001 — FRANSA</option>
+                    <option value="003">003 — HOLLANDA</option>
+                    <option value="004" selected>004 — ALMANYA</option>
+                    <option value="005">005 — İTALYA</option>
+                    <option value="006">006 — BİRLEŞİK KRALLIK</option>
+                    <option value="007">007 — İRLANDA</option>
+                    <option value="008">008 — DANİMARKA</option>
+                    <option value="009">009 — YUNANİSTAN</option>
+                    <option value="010">010 — PORTEKİZ</option>
+                    <option value="011">011 — İSPANYA</option>
+                    <option value="013">013 — ABD MINOR OUTLYING ADALARI</option>
+                    <option value="017">017 — BELÇİKA</option>
+                    <option value="018">018 — LÜKSEMBURG</option>
+                    <option value="021">021 — Septe (Ceuta)</option>
+                    <option value="023">023 — MELİLLA</option>
+                    <option value="024">024 — İZLANDA</option>
+                    <option value="026">026 — ST.KITTS NEVİ</option>
+                    <option value="028">028 — NORVEÇ</option>
+                    <option value="029">029 — GÜNEY FRANSIZ TOPRAKLARI</option>
+                    <option value="030">030 — İSVEÇ</option>
+                    <option value="032">032 — FİNLANDİYA</option>
+                    <option value="037">037 — LİHTENŞTAYN</option>
+                    <option value="038">038 — AVUSTURYA</option>
+                    <option value="039">039 — İSVİÇRE</option>
+                    <option value="041">041 — FAROE ADALARI</option>
+                    <option value="043">043 — ANDORRA</option>
+                    <option value="044">044 — CEBELİ TARIK</option>
+                    <option value="045">045 — VATİKAN</option>
+                    <option value="046">046 — MALTA</option>
+                    <option value="047">047 — SAN MARİNO</option>
+                    <option value="052">052 — TÜRKİYE</option>
+                    <option value="053">053 — ESTONYA</option>
+                    <option value="054">054 — LETONYA</option>
+                    <option value="055">055 — LİTVANYA</option>
+                    <option value="060">060 — POLONYA</option>
+                    <option value="061">061 — ÇEK CUMHURİYETİ</option>
+                    <option value="063">063 — SLOVAKYA</option>
+                    <option value="064">064 — MACARİSTAN</option>
+                    <option value="066">066 — ROMANYA</option>
+                    <option value="068">068 — BULGARİSTAN</option>
+                    <option value="070">070 — ARNAVUTLUK</option>
+                    <option value="072">072 — UKRAYNA</option>
+                    <option value="073">073 — BEYAZ RUSYA</option>
+                    <option value="074">074 — MOLDOVA</option>
+                    <option value="075">075 — RUSYA FEDERASYONU</option>
+                    <option value="076">076 — GÜRCİSTAN</option>
+                    <option value="077">077 — ERMENİSTAN</option>
+                    <option value="078">078 — AZERBEYCAN-NAHÇIVAN</option>
+                    <option value="079">079 — KAZAKİSTAN</option>
+                    <option value="080">080 — TÜRKMENİSTAN</option>
+                    <option value="081">081 — ÖZBEKİSTAN</option>
+                    <option value="082">082 — TACİKİSTAN</option>
+                    <option value="083">083 — KIRGIZİSTAN</option>
+                    <option value="084">084 — ÇEÇEN CUMHURİYETİ</option>
+                    <option value="085">085 — DAĞISTAN CUMHURİYETİ</option>
+                    <option value="086">086 — TATARİSTAN</option>
+                    <option value="087">087 — YAKUTİSTAN</option>
+                    <option value="091">091 — SLOVENYA</option>
+                    <option value="092">092 — HIRVATİSTAN</option>
+                    <option value="093">093 — BOSNA-HERSEK</option>
+                    <option value="094">094 — YUGOSLAVYA (SIRBİSTAN VE KARADAĞ)</option>
+                    <option value="095">095 — KOSOVA</option>
+                    <option value="096">096 — KUZEY MAKEDONYA CUMHURİYETİ</option>
+                    <option value="097">097 — KARADAĞ</option>
+                    <option value="098">098 — SIRBİSTAN</option>
+                    </optgroup>
+                    <optgroup label="Afrika">
+                    <option value="104">104 — MYANMAR</option>
+                    <option value="204">204 — FAS</option>
+                    <option value="208">208 — CEZAYİR</option>
+                    <option value="212">212 — TUNUS</option>
+                    <option value="216">216 — LİBYA</option>
+                    <option value="220">220 — MISIR</option>
+                    <option value="224">224 — SUDAN</option>
+                    <option value="225">225 — Güney Sudan</option>
+                    <option value="228">228 — MORİTANYA</option>
+                    <option value="232">232 — MALİ</option>
+                    <option value="236">236 — BURKİNA FASO</option>
+                    <option value="240">240 — NİJER</option>
+                    <option value="244">244 — ÇAD</option>
+                    <option value="247">247 — CAPE VERDE</option>
+                    <option value="248">248 — SENEGAL</option>
+                    <option value="252">252 — GAMBİYA</option>
+                    <option value="257">257 — GİNE-BİSSAU</option>
+                    <option value="260">260 — GİNE</option>
+                    <option value="264">264 — SIERRA LEONE</option>
+                    <option value="268">268 — LİBERYA</option>
+                    <option value="272">272 — FİLDİŞİ SAHİLİ</option>
+                    <option value="276">276 — GANA</option>
+                    <option value="280">280 — TOGO</option>
+                    <option value="284">284 — BENİN</option>
+                    <option value="288">288 — NİJERYA</option>
+                    <option value="302">302 — KAMERUN</option>
+                    <option value="306">306 — ORTA AFRİKA CUMHURİYETİ</option>
+                    <option value="310">310 — EKVATOR GİNESİ</option>
+                    <option value="311">311 — SAO TOME AND PRINCIPE</option>
+                    <option value="314">314 — GABON</option>
+                    <option value="318">318 — KONGO</option>
+                    <option value="322">322 — Kongo (Demokratik Cum.) Eski Zaire</option>
+                    <option value="324">324 — RUANDA</option>
+                    <option value="328">328 — BURUNDİ</option>
+                    <option value="329">329 — ST. HELENA VE BAĞLANTILARI</option>
+                    <option value="330">330 — ANGOLA</option>
+                    <option value="334">334 — ETİYOPYA</option>
+                    <option value="336">336 — ERİTRE</option>
+                    <option value="338">338 — CİBUTİ</option>
+                    <option value="342">342 — SOMALİ</option>
+                    <option value="346">346 — KENYA</option>
+                    <option value="350">350 — UGANDA</option>
+                    <option value="352">352 — Tanzanya (Birleşik Cum.)</option>
+                    <option value="355">355 — SEYŞEL ADALARI VE BAĞLANTILARI</option>
+                    <option value="357">357 — İNGİLİZ HİNT OKY.TOPRAKLARI</option>
+                    <option value="366">366 — MOZAMBİK</option>
+                    <option value="370">370 — MADAGASKAR</option>
+                    <option value="372">372 — REUNİON</option>
+                    <option value="373">373 — MAURİTİUS</option>
+                    <option value="375">375 — KOMORO ADALARI</option>
+                    <option value="377">377 — MAYOTTE</option>
+                    <option value="378">378 — ZAMBİA</option>
+                    <option value="382">382 — ZİMBABVE</option>
+                    <option value="386">386 — MALAVİ</option>
+                    <option value="388">388 — GÜNEY AFRİKA CUMHURİYETİ</option>
+                    <option value="389">389 — NAMİBYA</option>
+                    <option value="391">391 — BOSTVANA</option>
+                    <option value="393">393 — SVAZİLAND</option>
+                    <option value="395">395 — LESOTHO</option>
+                    </optgroup>
+                    <optgroup label="Amerika">
+                    <option value="400">400 — Birleşik Devletler (ABD)</option>
+                    <option value="404">404 — KANADA</option>
+                    <option value="406">406 — GRÖNLAND</option>
+                    <option value="408">408 — ST. PİERRE VE MİQUELON</option>
+                    <option value="412">412 — MEKSİKA</option>
+                    <option value="413">413 — BERMUDA</option>
+                    <option value="416">416 — GUATEMALA</option>
+                    <option value="421">421 — BELİZE</option>
+                    <option value="424">424 — HONDURAS</option>
+                    <option value="428">428 — EL SALVADOR</option>
+                    <option value="432">432 — NİKARAGUA</option>
+                    <option value="436">436 — KOSTA RİKA</option>
+                    <option value="442">442 — PANAMA</option>
+                    <option value="446">446 — ANGUILLA</option>
+                    <option value="448">448 — KÜBA</option>
+                    <option value="449">449 — ST. KİTTS ve NEVİS</option>
+                    <option value="452">452 — HAİTİ</option>
+                    <option value="453">453 — BAHAMALAR</option>
+                    <option value="454">454 — TURKS VE CAİCOS ADASI</option>
+                    <option value="456">456 — DOMİNİK CUMHURİYETİ</option>
+                    <option value="457">457 — ABD VİRJİN ADALARI</option>
+                    <option value="458">458 — GUADELUP</option>
+                    <option value="459">459 — ANTIGUA VE BERMUDA</option>
+                    <option value="460">460 — DOMİNİKA</option>
+                    <option value="462">462 — MARTİNİK</option>
+                    <option value="463">463 — CAYMAN ADALARI</option>
+                    <option value="464">464 — JAMAİKA</option>
+                    <option value="465">465 — ST. LUCİA</option>
+                    <option value="467">467 — ST VİNCENT VE GRENADİNLER</option>
+                    <option value="468">468 — İNGİLİZ VİRGİN ADALARI</option>
+                    <option value="469">469 — BARBADOS</option>
+                    <option value="470">470 — MONTSERRAT</option>
+                    <option value="472">472 — TRİNİDAD VE TOBAGO</option>
+                    <option value="473">473 — GRENADA</option>
+                    <option value="474">474 — ARUBA</option>
+                    <option value="478">478 — HOLLANDA ANTİLLERİ</option>
+                    <option value="480">480 — KOLOMBİYA</option>
+                    <option value="484">484 — VENEZUELLA</option>
+                    <option value="488">488 — GUYANA</option>
+                    <option value="492">492 — SURİNAM</option>
+                    <option value="493">493 — MONACO</option>
+                    <option value="496">496 — FRANSIZ GUYANASI</option>
+                    <option value="500">500 — EKVATOR</option>
+                    <option value="504">504 — PERU</option>
+                    <option value="508">508 — BREZİLYA</option>
+                    <option value="512">512 — ŞİLİ</option>
+                    <option value="516">516 — BOLİVYA</option>
+                    <option value="520">520 — PARAGUAY</option>
+                    <option value="524">524 — URUGUAY</option>
+                    <option value="528">528 — ARJANTİN</option>
+                    <option value="529">529 — FALKLAND ADALARI</option>
+                    </optgroup>
+                    <optgroup label="Orta Doğu">
+                    <option value="600">600 — KIBRIS</option>
+                    <option value="600_1">600_1 — KIBRIS RUM KESİMİ</option>
+                    <option value="601">601 — KUZEY KIBRIS TÜRK CUMHURİYETİ</option>
+                    <option value="604">604 — LÜBNAN</option>
+                    <option value="608">608 — Suriye Arap Cum.</option>
+                    <option value="612">612 — IRAK</option>
+                    <option value="616">616 — İran (İslam Cumhuriyeti)</option>
+                    <option value="624">624 — İSRAİL</option>
+                    <option value="625">625 — İŞGAL ALTINDAKİ FİLİSTİN TOPRAĞI</option>
+                    <option value="626">626 — DOĞU TİMOR</option>
+                    <option value="628">628 — ÜRDÜN</option>
+                    <option value="632">632 — SUUDİ ARABİSTAN</option>
+                    <option value="636">636 — KUVEYT</option>
+                    <option value="640">640 — BAHREYN</option>
+                    <option value="644">644 — KATAR</option>
+                    <option value="647">647 — BİRLEŞİK ARAP EMİRLİKLERİ</option>
+                    <option value="648">648 — DUBAİ</option>
+                    <option value="649">649 — UMMAN</option>
+                    <option value="653">653 — YEMEN</option>
+                    </optgroup>
+                    <optgroup label="Asya">
+                    <option value="660">660 — AFGANİSTAN</option>
+                    <option value="662">662 — PAKİSTAN</option>
+                    <option value="664">664 — HİNDİSTAN</option>
+                    <option value="666">666 — BANGLADEŞ</option>
+                    <option value="667">667 — MALDİV ADALARI</option>
+                    <option value="669">669 — SRİ LANKA</option>
+                    <option value="672">672 — NEPAL</option>
+                    <option value="675">675 — BHUTAN</option>
+                    <option value="676">676 — Myanmar (Burma)</option>
+                    <option value="680">680 — TAYLAND</option>
+                    <option value="684">684 — Laos (Halk Cum.)</option>
+                    <option value="690">690 — VİETNAM</option>
+                    <option value="696">696 — KAMBOÇYA</option>
+                    <option value="700">700 — ENDONEZYA</option>
+                    <option value="701">701 — MALEZYA</option>
+                    <option value="703">703 — BRUNEİ</option>
+                    <option value="706">706 — SİNGAPUR</option>
+                    <option value="708">708 — FİLİPİNLER</option>
+                    <option value="716">716 — MOĞOLİSTAN</option>
+                    <option value="720">720 — ÇİN HALK CUMHURİYETİ</option>
+                    <option value="724">724 — KUZEY KORE DEMOKRATİK HALK CUM.</option>
+                    <option value="728">728 — GÜNEY KORE CUMHURİYETİ</option>
+                    <option value="732">732 — JAPONYA</option>
+                    <option value="736">736 — TAYVAN</option>
+                    <option value="740">740 — HONG KONG</option>
+                    <option value="743">743 — MAKAO</option>
+                    </optgroup>
+                    <optgroup label="Okyanusya">
+                    <option value="800">800 — AVUSTRALYA</option>
+                    <option value="801">801 — PAPUA YENİ GİNE</option>
+                    <option value="802">802 — AVUSTRALYA OKYANUSU</option>
+                    <option value="803">803 — NAURU</option>
+                    <option value="804">804 — YENİ ZELANDA</option>
+                    <option value="806">806 — SOLOMON ADALARI</option>
+                    <option value="807">807 — TUVALU</option>
+                    <option value="808">808 — AMERİKAN OKYANUSYASI</option>
+                    <option value="809">809 — YENİ KALODENYA VE BAĞLANTILARI</option>
+                    <option value="811">811 — WALLİS VE FUTUNA ADALARI</option>
+                    <option value="812">812 — KİRİBATİ</option>
+                    <option value="813">813 — PİTCAİRN</option>
+                    <option value="814">814 — YENİ ZELANDA OKYANUSU</option>
+                    <option value="815">815 — FİJİ</option>
+                    <option value="816">816 — VANUATU</option>
+                    <option value="817">817 — TONGA</option>
+                    <option value="819">819 — Samoa (Batı Samoa)</option>
+                    <option value="820">820 — KUZEY MARİANA ADALARI</option>
+                    <option value="822">822 — FRANSIZ POLİNEZYASI</option>
+                    <option value="823">823 — MİKRONEZYA</option>
+                    <option value="824">824 — MARSHALL ADALARI</option>
+                    <option value="825">825 — PALAU</option>
+                    <option value="830">830 — Amerikan Samoası</option>
+                    <option value="831">831 — GUAM</option>
+                    <option value="832">832 — BİRLEŞİK DEVLETLER MİNOR OUTLYING ADALARI</option>
+                    <option value="833">833 — KOKOS ADALARI</option>
+                    <option value="834">834 — CHRISTMAS ADALARI</option>
+                    <option value="835">835 — HEARD ADASI ve MCDONALD ADALARI</option>
+                    <option value="836">836 — NORFOLK ADASI</option>
+                    <option value="837">837 — COOK ADALARI</option>
+                    <option value="838">838 — NİUE</option>
+                    <option value="839">839 — TOKELAU</option>
+                    <option value="882">882 — SAMOA</option>
+                    </optgroup>
+                    <optgroup label="Diğer">
+                    <option value="890">890 — KUTUP BÖLGELERİ</option>
+                    <option value="891">891 — ANTARTİKA</option>
+                    <option value="892">892 — BOUVET ADASI</option>
+                    <option value="893">893 — GÜNEY GEORGIA VE GÜNEY SANDWICH ADALARI</option>
+                    <option value="894">894 — FRANSIZ GÜNEY TOPRAKLARI</option>
+                    <option value="901">901 — BİSMARK ARCHİPELAGO</option>
+                    <option value="958">958 — BİLİNEMEYEN ÜLKE VE TOPRAKLAR</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>10. Gideceği Sevk Ülkesi</label>
+                <input type="text" id="byn-10" value="052">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>17. Gideceği Ülke</label>
+                <input type="text" id="byn-17" value="052">
+            </div>
+
         </div>
     </div>
+
+    <!-- ═══════════ BÖLÜM 2 — FİRMA VE KİŞİSEL BİLGİLER ═══════════ -->
+    <div class="form-section-card">
+        <div class="form-section-title"><i data-lucide="building-2"></i> 2. Firma ve Kişisel Bilgiler</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+            <div class="input-group" style="margin:0;grid-column:span 2;">
+                <label>2. Gönderici / İhracatçı <span style="font-size:10px;color:var(--primary);">(Araç kaydından otomatik)</span></label>
+                <textarea id="byn-2" rows="3" placeholder="Gönderici firma adı ve adresi"></textarea>
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>8. Alıcı — Vergi Numarası <span style="font-size:10px;color:var(--primary);">(Firmaya göre otomatik)</span></label>
+                <input type="text" id="byn-8" placeholder="Vergi numarası">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>8. Alıcı — Unvan</label>
+                <input type="text" id="byn-8-unvan" placeholder="Alıcı firma unvanı">
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════ BÖLÜM 3 — FİNANSAL BİLGİLER ═══════════ -->
+    <div class="form-section-card">
+        <div class="form-section-title"><i data-lucide="banknote"></i> 3. Finansal Bilgiler</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
+
+            <div class="input-group" style="margin:0;">
+                <label>20. Teslim Şekli <span style="font-size:10px;color:var(--primary);">(Araçtan otomatik)</span></label>
+                <select id="byn-20" onchange="window.bynTeslimChange(this.value)">
+                    <option value="CIF">CIF — Maliyet + Sigorta + Navlun</option>
+                    <option value="EXW">EXW — Fabrikadan Teslim</option>
+                    <option value="FOB">FOB — Free on Board</option>
+                    <option value="CFR">CFR — Maliyet + Navlun</option>
+                    <option value="DAP">DAP — Teslimat Yeri</option>
+                    <option value="DDP">DDP — Gümrük Ödenmiş</option>
+                </select>
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>22. Fatura Bedeli (EUR) <span style="font-size:10px;color:var(--primary);">(Araçtan otomatik)</span></label>
+                <input type="text" id="byn-22" placeholder="0.00">
+            </div>
+
+            <div class="input-group" style="margin:0;" id="byn-navlun-wrap">
+                <label>Navlun — Yurt Dışı (EUR) <span id="byn-navlun-hint" style="font-size:10px;color:var(--warning);">EXW ise girilmeli</span></label>
+                <input type="text" id="byn-navlun" placeholder="0.00">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Sigorta (EUR)</label>
+                <input type="text" id="byn-sigorta" value="100">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Yurt İçi (TL)</label>
+                <input type="text" id="byn-sigorta-ic" value="20000">
+            </div>
+
+            <div class="input-group" style="margin:0;grid-column:span 2;">
+                <label>28. Banka & Şube <span style="font-size:10px;color:var(--primary);">— İsim veya EFT kodu ile arayın</span></label>
+                <div style="position:relative;">
+                    <i data-lucide="search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-muted);pointer-events:none;z-index:2;"></i>
+                    <input type="text" id="byn-banka-arama"
+                        oninput="window.bynBankaAraInline(this.value)"
+                        onkeyup="if(event.key==='Escape'){document.getElementById('byn-banka-dd').style.display='none';}"
+                        placeholder="Garanti, Ziraat, 0062, 0010, Ayazağa..."
+                        autocomplete="off"
+                        style="width:100%;padding:10px 14px 10px 38px;border-radius:10px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-primary);font-size:13.5px;">
+                    <div id="byn-banka-dd" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:10px;max-height:240px;overflow-y:auto;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.25);"></div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:6px;">
+                    <input type="text" id="byn-28-banka" placeholder="Banka Kodu (EFT)" readonly style="flex:1;opacity:.8;font-size:12px;">
+                    <input type="text" id="byn-28-sube" placeholder="Şube Kodu (otomatik)" readonly style="flex:1;opacity:.8;font-size:12px;">
+                </div>
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Şasi Numarası <span style="font-size:10px;color:var(--primary);">(Araçtan otomatik)</span></label>
+                <input type="text" id="byn-sasi" placeholder="Araç detayından otomatik gelir" style="font-family:monospace;font-weight:700;font-size:15px;letter-spacing:1.5px;">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>IMEİ Numarası <span style="font-size:10px;color:var(--primary);">(Araçtan otomatik)</span></label>
+                <input type="text" id="byn-imei" placeholder="Araç detayından otomatik gelir">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Özet Beyan No <span style="font-size:10px;color:var(--primary);">(Araçtan otomatik)</span></label>
+                <input type="text" id="byn-ozet-beyan" placeholder="Araç detayından otomatik gelir">
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════ BÖLÜM 4 — TAŞIMA BİLGİLERİ ═══════════ -->
+    <div class="form-section-card">
+        <div class="form-section-title"><i data-lucide="truck"></i> 4. Taşıma Bilgileri</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
+
+            <div class="input-group" style="margin:0;">
+                <label>25. Sınırdaki Taşıma Şekli</label>
+                <input type="text" id="byn-25" value="30" readonly style="opacity:.7;">
+                <small style="color:var(--text-muted);font-size:10px;margin-top:2px;display:block;">30 = Kara Yolu (Sabit)</small>
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>18. Çıkıştaki Araç — Plaka</label>
+                <input type="text" id="byn-18-plaka" placeholder="34 ABC 1234" style="text-transform:uppercase;">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>18. Çıkıştaki Araç — Ülke Kodu</label>
+                <input type="text" id="byn-18-ulke" value="4" placeholder="4 = Türkiye">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>21. Sınırdaki Araç — Plaka <span style="font-size:10px;color:var(--text-muted);">(18 ile aynı olabilir)</span></label>
+                <input type="text" id="byn-21-plaka" placeholder="34 ABC 1234" style="text-transform:uppercase;">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>21. Sınırdaki Araç — Ülke Kodu</label>
+                <input type="text" id="byn-21-ulke" value="4" placeholder="4 = Türkiye">
+            </div>
+
+        </div>
+
+        <!-- 18 → 21 kopyala butonu -->
+        <div style="margin-top:10px;">
+            <button type="button" class="btn-sm" onclick="window.byn18to21()">
+                <i data-lucide="copy"></i> 18. bilgileri 21.'ye kopyala
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════ ÖZET KARTLARI ═══════════ -->
+    <div id="byn-ozet-alan" style="display:none;" class="form-section-card">
+        <div class="form-section-title"><i data-lucide="file-check-2"></i> Beyanname Özeti</div>
+        <div id="byn-ozet-icerik" style="font-size:13px;line-height:1.9;color:var(--text-primary);white-space:pre-wrap;font-family:monospace;"></div>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-primary" onclick="window.bynOzetOlustur()">
+                <i data-lucide="refresh-cw"></i> Özeti Güncelle
+            </button>
+            <button class="btn-sm" onclick="window.bynKopyala()">
+                <i data-lucide="copy"></i> Kopyala
+            </button>
+        </div>
+    </div>
+
+    </div><!-- /fade-in -->
 </template>
+    
 <template id="tpl-sureDilekcesi">
     <style>
         /* DİLEKÇE EKRAN STİLİ */
@@ -2832,10 +3271,18 @@ div[style*="position: relative"] > input {
         <div><div class="page-eyebrow">Araçlar & Bilgi</div><h1 class="page-title">Banka & Şube Arama</h1></div>
     </div>
     <div class="card card-pad fade-in">
-        <div class="input-group" style="position:relative; max-width:600px;">
-            <label>Banka veya Şube Adı Yazın (En az 3 karakter)</label>
-            <input type="text" id="banka-arama-input" oninput="window.buluttanBankaAra(this.value)" onkeyup="if(event.key==='Enter')window.buluttanBankaAra(this.value)" placeholder="Örn: Garanti, Ziraat, Garanti Ayazağa..." autocomplete="off" style="font-size:15px;padding:14px;">
-            <div id="banka-dropdown"></div>
+        <div class="input-group" style="max-width:620px;">
+            <label>Banka Adı, Şube Adı veya EFT / Şube Kodu ile Arayın</label>
+            <div style="position:relative;">
+                <i data-lucide="search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--text-muted);pointer-events:none;z-index:2;"></i>
+                <input type="text" id="banka-arama-input"
+                    oninput="window.buluttanBankaAra(this.value)"
+                    onkeyup="if(event.key==='Enter')window.buluttanBankaAra(this.value)"
+                    placeholder="Garanti, Ziraat, 0062, 0010, Ayazağa..."
+                    autocomplete="off"
+                    style="width:100%;font-size:14px;padding:12px 14px 12px 44px;border-radius:10px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-primary);">
+                <div id="banka-dropdown"></div>
+            </div>
         </div>
         <div id="banka-sonuc-detay" style="margin-top:20px;display:none;">
             <div style="display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end;">
@@ -2954,7 +3401,7 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0;"><label>Antrepo T.</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div>
                     <div class="input-group" style="margin:0;"><label>Beyanname CIF</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div>
                     <div class="input-group" style="margin:0;"><label>Kıymet V. T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc()"></div>
-                    <div class="input-group" style="margin:0;"><label>Kıymet G. T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Kıymet G. T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc(); window.kiymetTarihKontrol();"></div>
                 </div>
             </div>
 
@@ -2990,7 +3437,13 @@ div[style*="position: relative"] > input {
                     </div>
 
                     <div class="input-group" style="margin:0;"><label>Fatura Tutarı (€)</label><input type="text" id="da-fatura" oninput="window.formatCurrencyInput(this)"></div>
-                    <div class="input-group" style="margin:0;"><label>Kıymet Tutarı (€)</label><input type="text" id="da-kiymet" oninput="window.formatCurrencyInput(this)"></div>
+                    <div class="input-group" style="margin:0;">
+                        <label>Kıymet Tutarı (€)</label>
+                        <input type="text" id="da-kiymet" oninput="window.formatCurrencyInput(this); window.kiymetUyariTemizle();">
+                        <div id="kiymet-uyari" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:8px;color:#f87171;font-size:12px;font-weight:600;">
+                            ⚠️ Kıymet tarihi girildi ancak Kıymet Tutarı boş! Lütfen tutarı girin.
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -4083,7 +4536,7 @@ window.buluttanBankaAra = async function(val) {
     if(!dd) return;
     
     let q = val.toLocaleUpperCase('tr').trim();
-    if(q.length < 2) { dd.style.display = 'none'; return; }
+    if(q.length < 2) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
     
     if(!window._bankaCache) {
         dd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);">Banka listesi yükleniyor...</div>';
@@ -4099,18 +4552,34 @@ window.buluttanBankaAra = async function(val) {
     
     let kelimeler = q.split(/\s+/);
     let sonuclar = window._bankaCache.filter(function(b) {
-        let metin = ((b.banka_adi||'') + ' ' + (b.sube_adi||'')).toLocaleUpperCase('tr');
+        // İsim + şube adı + EFT kodu + şube kodu içinde ara
+        let metin = (
+            (b.banka_adi||'') + ' ' +
+            (b.sube_adi||'') + ' ' +
+            (b.eft_kodu||'') + ' ' +
+            (b.sube_kodu||'') + ' ' +
+            (b.il_kodu||'')
+        ).toLocaleUpperCase('tr');
         return kelimeler.every(function(k) { return metin.indexOf(k) !== -1; });
-    }).slice(0, 50);
-    
+    }).slice(0, 80);
+
     if(sonuclar.length > 0) {
-        let html = '<div style="padding:6px 12px;font-size:10px;color:var(--text-muted);border-bottom:1px solid var(--border);">' + sonuclar.length + ' sonuç</div>';
+        let html = '<div style="padding:6px 12px;font-size:10px;color:var(--text-muted);border-bottom:1px solid var(--border);">' +
+            sonuclar.length + ' sonuç — İsim, EFT kodu veya şube kodu ile arayabilirsiniz</div>';
         sonuclar.forEach(function(b) {
             let ad = (b.banka_adi||'').replace(/'/g,"\\'");
             let sAd = (b.sube_adi||'').replace(/'/g,"\\'");
+            // Arama terimi ile eşleşen kodu vurgula
+            let eftVurgu = b.eft_kodu || '-';
+            let subeVurgu = b.sube_kodu || '-';
+            kelimeler.forEach(function(k) {
+                let re = new RegExp('(' + k + ')', 'gi');
+                eftVurgu = eftVurgu.replace(re, '<mark style="background:rgba(90,172,255,.3);color:inherit;border-radius:2px;padding:0 1px;">$1</mark>');
+                subeVurgu = subeVurgu.replace(re, '<mark style="background:rgba(90,172,255,.3);color:inherit;border-radius:2px;padding:0 1px;">$1</mark>');
+            });
             html += '<div class="banka-item" onclick="window.bankasec(\'' + b.eft_kodu + '\', \'' + b.sube_kodu + '\', \'' + ad + ' - ' + sAd + '\')">' +
-                '<div class="b-ad">' + b.banka_adi + '</div>' +
-                '<div class="b-detay">' + b.sube_adi + ' · İl: ' + (b.il_kodu||'-') + ' · Şube: ' + b.sube_kodu + ' · EFT: ' + b.eft_kodu + '</div>' +
+                '<div class="b-ad">' + b.banka_adi + ' <span style="font-size:10px;font-weight:600;color:var(--primary);margin-left:6px;">EFT: ' + eftVurgu + '</span></div>' +
+                '<div class="b-detay">' + b.sube_adi + ' · İl: ' + (b.il_kodu||'-') + ' · Şube Kodu: ' + subeVurgu + '</div>' +
             '</div>';
         });
         dd.innerHTML = html;
@@ -6721,7 +7190,39 @@ window.inlineEditDate = function(el, idx, field, source) {
             
             saveData('decl');
             saveData('firm');
-            
+
+            // KIYMET GELİŞ TARİHİ GİRİLDİĞİNDE — kıymet tutarı boşsa uyar ve modalı aç
+            if (field === 'kiymGt' && yeniDeger) {
+                let arac = aracSasi
+                    ? (window.declarationsData.find(x => x && x.sasi === aracSasi) || kaynak[idx])
+                    : kaynak[idx];
+                let aracIdx = aracSasi
+                    ? window.declarationsData.findIndex(x => x && x.sasi === aracSasi)
+                    : idx;
+                let kiymetTutar = (arac && arac.kiymet) ? String(arac.kiymet).replace(/[.,\s]/g,'') : '';
+                if (!kiymetTutar || kiymetTutar === '0') {
+                    window.showToast('⚠️ Kıymetten geliş tarihi girildi ancak Kıymet Tutarı (€) boş! Araç detayı açılıyor...', 'warn');
+                    // 1 saniye sonra araç modalını aç, kıymet alanına scroll et
+                    setTimeout(function() {
+                        let ctx = source === 'firm' ? 'firm' : 'decl';
+                        let openIdx = ctx === 'firm' ? idx : (aracIdx !== -1 ? aracIdx : idx);
+                        window.openDeclVehicleModal(openIdx, ctx);
+                        // Modal açıldıktan sonra kıymet alanına scroll et ve vurgula
+                        setTimeout(function() {
+                            let kiymetEl = document.getElementById('da-kiymet');
+                            let uyariEl  = document.getElementById('kiymet-uyari');
+                            if(kiymetEl) {
+                                kiymetEl.scrollIntoView({ behavior:'smooth', block:'center' });
+                                kiymetEl.focus();
+                                kiymetEl.style.borderColor = '#ef4444';
+                                kiymetEl.style.boxShadow   = '0 0 0 3px rgba(239,68,68,.2)';
+                            }
+                            if(uyariEl) uyariEl.style.display = 'block';
+                        }, 400);
+                    }, 800);
+                }
+            }
+
             // Hangi sayfadaysak onu yeniden render et
             if (source === 'firm' && window.renderFirmVehicles) {
                 window.renderFirmVehicles();
@@ -6835,6 +7336,81 @@ window.confirmEditFirmMeta=function(name){
     window.renderFirmsList();
     document.querySelector('.modal-overlay.active')?.remove();
 };
+
+    // ─── EVRENSEL TOAST (modal üzerinde de görünür) ──────────────────────
+    window.showToast = function(msg, tip) {
+        // Varsa önce eski toast'u kaldır
+        let eskiToast = document.getElementById('pro-toast');
+        if(eskiToast) eskiToast.remove();
+
+        let renk = tip === 'warn'
+            ? 'rgba(245,158,11,.18)'
+            : tip === 'error'
+            ? 'rgba(239,68,68,.18)'
+            : 'rgba(16,185,129,.18)';
+        let kenari = tip === 'warn' ? '#f59e0b' : tip === 'error' ? '#ef4444' : '#10b981';
+
+        let t = document.createElement('div');
+        t.id = 'pro-toast';
+        t.style.cssText = [
+            'position:fixed', 'bottom:90px', 'left:50%',
+            'transform:translateX(-50%)',
+            'z-index:999999',
+            'background:var(--bg-elevated)',
+            'border:2px solid ' + kenari,
+            'border-radius:14px',
+            'padding:14px 20px',
+            'font-size:13.5px', 'font-weight:600',
+            'color:var(--text-primary)',
+            'box-shadow:0 12px 40px rgba(0,0,0,.4)',
+            'max-width:90vw', 'text-align:center',
+            'animation:fadeUp .3s ease',
+            'white-space:normal'
+        ].join(';');
+        t.textContent = msg;
+        document.body.appendChild(t);
+
+        setTimeout(() => { if(t.parentNode) t.remove(); }, 4500);
+    };
+
+    // ─── KIYMET TARİHİ KONTROLÜ ──────────────────────────────────────────
+    window.kiymetTarihKontrol = function() {
+        let tarihEl = document.getElementById('da-kiymGt');
+        let tutarEl = document.getElementById('da-kiymet');
+        let uyariEl = document.getElementById('kiymet-uyari');
+        if(!tarihEl || !tarihEl.value) return;
+
+        let tutar = (tutarEl?.value || '').replace(/[.,\s]/g,'');
+        if(!tutar || tutar === '0') {
+            // Modal içi uyarı kutusu
+            if(uyariEl) uyariEl.style.display = 'block';
+
+            // Input kırmızı
+            if(tutarEl) {
+                tutarEl.style.borderColor = '#ef4444';
+                tutarEl.style.boxShadow   = '0 0 0 3px rgba(239,68,68,.2)';
+            }
+
+            // Ekran üstü toast (modal üzerinde de görünür)
+            window.showToast('⚠️ Kıymet tarihi girildi ancak Kıymet Tutarı (€) boş! Lütfen tutarı girin.', 'warn');
+
+            // Focus
+            setTimeout(() => {
+                tutarEl?.scrollIntoView({ behavior:'smooth', block:'center' });
+                tutarEl?.focus();
+            }, 150);
+        }
+    };
+
+    window.kiymetUyariTemizle = function() {
+        let tutarEl = document.getElementById('da-kiymet');
+        let uyariEl = document.getElementById('kiymet-uyari');
+        let tutar   = (tutarEl?.value || '').replace(/[.,\s]/g,'');
+        if(tutar && tutar !== '0') {
+            if(uyariEl) uyariEl.style.display = 'none';
+            if(tutarEl) { tutarEl.style.borderColor = ''; tutarEl.style.boxShadow = ''; }
+        }
+    };
 
     window.declAutoCalc=function(){
         let val=id=>document.getElementById(id)?.value;
@@ -6957,7 +7533,7 @@ if(role !== 'admin' && !yetkiler.izleyici && (d.firma || '').toLocaleUpperCase('
                     <span style="font-weight:700;font-size:15px;color:var(--text-primary);">${d.marka||''} ${d.model||''}</span>
                     <span style="color:var(--text-muted);font-size:12px;margin-left:8px;">(${d.yil||'-'})</span>
                     <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
-                        <span style="font-family:monospace;font-weight:600;">${d.sasi||'-'}</span>
+                        <span class="sasi-no">${d.sasi||'-'}</span>
                         <span style="margin:0 8px;">·</span>${d.firma||'-'}
                         <span style="margin:0 8px;">·</span>${d.tarih||'-'}
                         ${d.beyanname?'<span style="margin:0 8px;">·</span>Byn: '+d.beyanname:''}
@@ -6987,6 +7563,396 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         setTimeout(() => window.calculateTaxes(), 100);
     };
 
+    // ─── BEYANNAME FORM KALICILIĞI (localStorage) ────────────────────────
+    const BYN_LS_KEY = 'gumruk_byn_form_v1';
+    const BYN_ALANLAR = [
+        'byn-firma-sec','byn-kullanici','byn-otv-muhaf','byn-37','byn-alici-satici','byn-kap',
+        'byn-11','byn-15','byn-10','byn-17',
+        'byn-2','byn-8','byn-8-unvan',
+        'byn-20','byn-22','byn-navlun','byn-sigorta','byn-sigorta-ic','byn-sasi','byn-imei','byn-ozet-beyan',
+        'byn-28-banka','byn-28-sube','byn-banka-arama',
+        'byn-25','byn-18-plaka','byn-18-ulke','byn-21-plaka','byn-21-ulke'
+    ];
+
+    window.bynFormKaydet = function() {
+        let kayit = {};
+        BYN_ALANLAR.forEach(id => {
+            let el = document.getElementById(id);
+            if(el) kayit[id] = el.value || '';
+        });
+        localStorage.setItem(BYN_LS_KEY, JSON.stringify(kayit));
+    };
+
+    window.bynFormYukle = function() {
+        try {
+            let kayit = JSON.parse(localStorage.getItem(BYN_LS_KEY) || 'null');
+            if(!kayit) return false;
+            BYN_ALANLAR.forEach(id => {
+                let el = document.getElementById(id);
+                if(!el || kayit[id] === undefined) return;
+                // readonly olsa bile value set edilebilir
+                let readonlyBak = el.readOnly;
+                el.readOnly = false;
+                el.value = kayit[id];
+                el.readOnly = readonlyBak;
+            });
+            // Firma seçiliyse sabit bilgilerini de güncelle (şifre hariç)
+            let firmaEl = document.getElementById('byn-firma-sec');
+            if(firmaEl && firmaEl.value) {
+                let cfg = window.BYN_FIRMA_CONFIG && window.BYN_FIRMA_CONFIG[firmaEl.value];
+                if(cfg) {
+                    // Sadece boş kalmış alanları doldur
+                    let k = document.getElementById('byn-kullanici');
+                    if(k && !k.value) k.value = cfg.kullanici;
+                }
+            }
+            return true;
+        } catch(e) { return false; }
+    };
+
+    // ─── PDF OLUŞTUR ──────────────────────────────────────────────────────
+    window.bynPdfOlustur = function() {
+        window.bynOzetOlustur();
+        setTimeout(() => {
+            let get = id => { let el = document.getElementById(id); return el ? el.value.trim() : ''; };
+            let firma = get('byn-firma-sec') || 'Firma';
+            let sasi  = (document.getElementById('byn-arac-baslik')?.textContent || '').split('Şasi:')[1]?.trim() || '';
+            let tarih = new Date().toLocaleDateString('tr-TR');
+
+            let icerik = `
+<div style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:32px;color:#000;">
+  <div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #1e3a5f;padding-bottom:16px;">
+    <h1 style="font-size:22px;font-weight:900;color:#1e3a5f;margin:0;">BEYANNAME ÖZET</h1>
+    <p style="margin:6px 0 0;font-size:13px;color:#555;">${firma} — ${tarih}</p>
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tr style="background:#1e3a5f;color:#fff;">
+      <td colspan="4" style="padding:8px 12px;font-weight:700;letter-spacing:1px;">1. GENEL GİRİŞ BİLGİLERİ</td>
+    </tr>
+    <tr style="background:#f5f7fa;">
+      <td style="padding:7px 10px;font-weight:600;width:25%;border:1px solid #ddd;">Firma</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-firma-sec')}</td>
+      <td style="padding:7px 10px;font-weight:600;width:25%;border:1px solid #ddd;">Kullanıcı Adı</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-kullanici')}</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">ÖTV Muhafiyet No</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;" colspan="3">${get('byn-otv-muhaf')}</td>
+    </tr>
+    <tr style="background:#f5f7fa;">
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">37. Rejim</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-37')}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">Al/Sat İlişkisi</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-alici-satici')}</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">11. Ticaret Ülkesi</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-11')}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">15. Çıkış Ülkesi</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-15')}</td>
+    </tr>
+    <tr style="background:#f5f7fa;">
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">10. Sevk Ülkesi</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-10')}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">17. Gideceği Ülke</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-17')}</td>
+    </tr>
+
+    <tr style="background:#1e3a5f;color:#fff;">
+      <td colspan="4" style="padding:8px 12px;font-weight:700;letter-spacing:1px;">2. FİRMA VE KİŞİSEL BİLGİLER</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">2. Gönderici</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;" colspan="3">${get('byn-2').replace(/\n/g,'<br>')}</td>
+    </tr>
+    <tr style="background:#f5f7fa;">
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">8. Alıcı VKN</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-8')}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">8. Alıcı Unvan</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-8-unvan')}</td>
+    </tr>
+
+    <tr style="background:#1e3a5f;color:#fff;">
+      <td colspan="4" style="padding:8px 12px;font-weight:700;letter-spacing:1px;">3. FİNANSAL BİLGİLER</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">20. Teslim Şekli</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-20')}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">22. Fatura Bedeli (EUR)</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-22')}</td>
+    </tr>
+    <tr style="background:#f5f7fa;">
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">Navlun (EUR)</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-navlun') || 'CIF dahil'}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">Sigorta (EUR)</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-sigorta') || '100'} EUR</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">Yurt İçi (TL)</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-sigorta-ic') || '20000'} TL</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;" colspan="2"></td>
+    </tr>
+    <tr style="background:#f5f7fa;">
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">28. Banka Adı</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-banka-arama')}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">28. Banka Kodu (EFT)</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-28-banka')}</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">Şasi Numarası</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;font-family:monospace;font-weight:700;letter-spacing:1px;">${get('byn-sasi') || '-'}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">Özet Beyan No</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-ozet-beyan') || '-'}</td>
+    </tr>
+    <tr style="background:#f5f7fa;">
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">IMEİ Numarası</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;" colspan="3">${get('byn-imei') || '-'}</td>
+    </tr>
+
+    <tr style="background:#1e3a5f;color:#fff;">
+      <td colspan="4" style="padding:8px 12px;font-weight:700;letter-spacing:1px;">4. TAŞIMA BİLGİLERİ</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">25. Taşıma Şekli</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-25')}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">Kap Adedi</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-kap')}</td>
+    </tr>
+    <tr style="background:#f5f7fa;">
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">18. Çıkış Plaka</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-18-plaka')} (Ülke: ${get('byn-18-ulke')})</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">21. Sınır Plaka</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-21-plaka')} (Ülke: ${get('byn-21-ulke')})</td>
+    </tr>
+  </table>
+
+  <div style="margin-top:32px;text-align:right;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:10px;">
+    GümrükPortal Cloud — ${tarih}
+  </div>
+</div>`;
+
+            let opt = {
+                margin: [10, 10, 10, 10],
+                filename: `beyanname_ozet_${firma.replace(/\s/g,'_')}_${tarih.replace(/\./g,'-')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // PDF div'i görünür ama ekran dışında render et
+            let div = document.createElement('div');
+            div.innerHTML = icerik;
+            div.style.cssText = [
+                'position:absolute',
+                'top:0', 'left:0',
+                'width:210mm',
+                'background:#fff',
+                'z-index:-1',
+                'opacity:0',
+                'pointer-events:none'
+            ].join(';');
+            document.body.appendChild(div);
+
+            // Kısa bekleme — DOM render tamamlansın
+            setTimeout(() => {
+                html2pdf().set(opt).from(div.firstElementChild).save().then(() => {
+                    document.body.removeChild(div);
+                }).catch(err => {
+                    document.body.removeChild(div);
+                    alert('PDF oluşturma hatası: ' + err);
+                });
+            }, 300);
+        }, 350);
+    };
+
+    // ─── FİRMA SABİT BİLGİLERİ ───────────────────────────────────────────
+    window.BYN_FIRMA_CONFIG = {
+        'ŞAMNU GT': {
+            kullanici:  '38476631862',
+            sifre:      '26041981',
+            otvMuhaf:   '25243160111096067013069/1',
+            vergiNo:    '4110376487',
+            unvan:      'ŞAMNU GT OTOMOTİV'
+        },
+        'FF OTOMOTİV': {
+            kullanici:  '',
+            sifre:      '',
+            otvMuhaf:   '',
+            vergiNo:    '',
+            unvan:      'FF OTOMOTİV'
+        }
+    };
+
+    // ─── FİRMA SEÇİLİNCE SABİT BİLGİLERİ DOLDUR ─────────────────────────
+    window.bynFirmaChange = function(firmaAdi) {
+        let cfg = window.BYN_FIRMA_CONFIG[firmaAdi] || {};
+        let set = (id, val) => { let el = document.getElementById(id); if(el) el.value = val || ''; };
+        set('byn-kullanici',  cfg.kullanici);
+        set('byn-sifre',      cfg.sifre);
+        set('byn-otv-muhaf',  cfg.otvMuhaf);
+        set('byn-8',          cfg.vergiNo);
+        set('byn-8-unvan',    cfg.unvan);
+    };
+
+    // ─── TESLİM ŞEKLİ DEĞİŞİNCE NAVLUN/SİGORTA GÜNCELLE ────────────────
+    window.bynTeslimChange = function(val) {
+        let navlunHint = document.getElementById('byn-navlun-hint');
+        let sigortaHint = document.getElementById('byn-sigorta-hint');
+        let sigortaEl = document.getElementById('byn-sigorta');
+        let sigortaBirim = document.getElementById('byn-sigorta-birim');
+
+        if(val === 'CIF') {
+            if(navlunHint) { navlunHint.textContent = 'CIF ise navlun ayrıca yazılmaz'; navlunHint.style.color = 'var(--text-muted)'; }
+            if(sigortaHint) sigortaHint.textContent = 'Yurt dışı: 100 EUR';
+            if(sigortaEl) sigortaEl.value = '100';
+            if(sigortaBirim) sigortaBirim.value = 'EUR';
+        } else if(val === 'EXW') {
+            if(navlunHint) { navlunHint.textContent = 'EXW ise navlun girilmeli ⚠️'; navlunHint.style.color = 'var(--warning)'; }
+            if(sigortaHint) sigortaHint.textContent = 'Yurt içi: 20.000 TL';
+            if(sigortaEl) sigortaEl.value = '20000';
+            if(sigortaBirim) sigortaBirim.value = 'TL';
+        }
+    };
+
+    // ─── 18 BİLGİLERİNİ 21'E KOPYALA ────────────────────────────────────
+    window.byn18to21 = function() {
+        let p = document.getElementById('byn-18-plaka');
+        let u = document.getElementById('byn-18-ulke');
+        let p2 = document.getElementById('byn-21-plaka');
+        let u2 = document.getElementById('byn-21-ulke');
+        if(p2) p2.value = p ? p.value : '';
+        if(u2) u2.value = u ? u.value : '';
+    };
+
+    // ─── BEYANNAME İÇİ BANKA ARAMA (inline dropdown) ────────────────────
+    window.bynBankaAraInline = async function(val) {
+        let dd = document.getElementById('byn-banka-dd');
+        if(!dd) return;
+        let q = val.toLocaleUpperCase('tr').trim();
+        if(q.length < 2) { dd.style.display = 'none'; return; }
+
+        // Banka verisini yükle (cache varsa tekrar yükleme)
+        if(!window._bankaCache) {
+            dd.innerHTML = '<div style="padding:10px;text-align:center;font-size:12px;color:var(--text-muted);">Yükleniyor...</div>';
+            dd.style.display = 'block';
+            await window.bankaVerisiYukle();
+        }
+        if(!window._bankaCache) {
+            dd.innerHTML = '<div style="padding:10px;text-align:center;font-size:12px;color:var(--danger);">Veri yüklenemedi</div>';
+            dd.style.display = 'block';
+            return;
+        }
+
+        let kelimeler = q.split(/\s+/);
+        let sonuclar = window._bankaCache.filter(function(b) {
+            let metin = ((b.banka_adi||'')+' '+(b.sube_adi||'')+' '+(b.eft_kodu||'')+' '+(b.sube_kodu||'')).toLocaleUpperCase('tr');
+            return kelimeler.every(function(k){ return metin.indexOf(k) !== -1; });
+        }).slice(0, 60);
+
+        if(sonuclar.length === 0) {
+            dd.innerHTML = '<div style="padding:10px;text-align:center;font-size:12px;color:var(--text-muted);">Sonuç bulunamadı</div>';
+            dd.style.display = 'block';
+            return;
+        }
+
+        let html = '<div style="padding:5px 10px;font-size:10px;color:var(--text-muted);border-bottom:1px solid var(--border);">' + sonuclar.length + ' sonuç</div>';
+        sonuclar.forEach(function(b) {
+            let ad = (b.banka_adi||'').replace(/'/g,"\\'");
+            let sAd = (b.sube_adi||'').replace(/'/g,"\\'");
+            html += '<div style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:.12s;" ' +
+                'onmouseover="this.style.background=\'var(--bg-hover)\'" ' +
+                'onmouseout="this.style.background=\'\'" ' +
+                'onclick="window.bynBankaSec(\'' + b.eft_kodu + '\',\'' + b.sube_kodu + '\',\'' + ad + '\',\'' + sAd + '\')">' +
+                '<div style="font-weight:700;font-size:13px;color:var(--text-primary);">' + b.banka_adi +
+                    ' <span style="font-size:10px;font-weight:600;color:var(--primary);margin-left:6px;">EFT: ' + (b.eft_kodu||'-') + '</span>' +
+                '</div>' +
+                '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">' + b.sube_adi + ' · Şube: ' + (b.sube_kodu||'-') + ' · İl: ' + (b.il_kodu||'-') + '</div>' +
+            '</div>';
+        });
+        dd.innerHTML = html;
+        dd.style.display = 'block';
+    };
+
+    window.bynBankaSec = function(eft, sube, bankaAd, subeAd) {
+        let inp = document.getElementById('byn-banka-arama');
+        if(inp) inp.value = bankaAd + ' — ' + subeAd;
+        let eftEl = document.getElementById('byn-28-banka');
+        if(eftEl) eftEl.value = eft;
+        let subeEl = document.getElementById('byn-28-sube');
+        if(subeEl) subeEl.value = sube;
+        let dd = document.getElementById('byn-banka-dd');
+        if(dd) dd.style.display = 'none';
+        // Seçimden hemen sonra kaydet
+        window.bynFormKaydet();
+        setTimeout(window.bynOzetOlustur, 100);
+    };
+
+    // Dışarı tıklanınca byn dropdown kapat
+    document.addEventListener('click', function(e) {
+        if(!e.target.closest('#byn-banka-arama') && !e.target.closest('#byn-banka-dd')) {
+            let dd = document.getElementById('byn-banka-dd');
+            if(dd) dd.style.display = 'none';
+        }
+    });
+
+    // ─── ÖZET OLUŞTUR VE KOPYALA ─────────────────────────────────────────
+    window.bynOzetOlustur = function() {
+        let get = (id) => { let el = document.getElementById(id); return el ? el.value.trim() : ''; };
+        let ozet =
+            '═══════════ BEYANNAME ÖZET ═══════════\n' +
+            'Firma      : ' + get('byn-firma-sec') + '\n' +
+            'Kullanıcı  : ' + get('byn-kullanici') + '\n' +
+            'ÖTV Muhaf. : ' + get('byn-otv-muhaf') + '\n' +
+            '37 Rejim   : ' + get('byn-37') + '\n' +
+            'Al/Sat İliş: ' + get('byn-alici-satici') + '\n' +
+            'Kap Adedi  : ' + get('byn-kap') + '\n' +
+            '─────────────────────────────────────\n' +
+            '11 Ticaret Ülke : ' + get('byn-11') + '\n' +
+            '15 Çıkış Ülkesi : ' + get('byn-15') + '\n' +
+            '10 Sevk Ülkesi  : ' + get('byn-10') + '\n' +
+            '17 Gideceği Ülke: ' + get('byn-17') + '\n' +
+            '─────────────────────────────────────\n' +
+            '2  Gönderici    : ' + get('byn-2').replace(/\n/g,' | ') + '\n' +
+            '8  Alıcı VKN    : ' + get('byn-8') + '\n' +
+            '8  Alıcı Unvan  : ' + get('byn-8-unvan') + '\n' +
+            '─────────────────────────────────────\n' +
+            '20 Teslim Şekli : ' + get('byn-20') + '\n' +
+            '22 Fatura Bedeli: EUR ' + get('byn-22') + '\n' +
+            'Navlun (EUR)     : ' + (get('byn-navlun') || 'CIF dahil') + '\n' +
+            'Sigorta (EUR)    : ' + (get('byn-sigorta') || '100') + ' EUR\n' +
+            'Yurt İçi (TL)    : ' + (get('byn-sigorta-ic') || '20000') + ' TL\n' +
+            '28 Banka        : ' + get('byn-banka-arama') + '\n' +
+            '28 Banka Kodu   : ' + get('byn-28-banka') + '\n' +
+            'Şasi No         : ' + get('byn-sasi') + '\n' +
+            'IMEİ No         : ' + get('byn-imei') + '\n' +
+            'Özet Beyan No   : ' + get('byn-ozet-beyan') + '\n' +
+            '─────────────────────────────────────\n' +
+            '25 Taşıma Şekli : ' + get('byn-25') + '\n' +
+            '18 Çıkış Plaka  : ' + get('byn-18-plaka') + ' (Ülke: ' + get('byn-18-ulke') + ')\n' +
+            '21 Sınır Plaka  : ' + get('byn-21-plaka') + ' (Ülke: ' + get('byn-21-ulke') + ')\n' +
+            '══════════════════════════════════════';
+
+        let el = document.getElementById('byn-ozet-icerik');
+        if(el) el.textContent = ozet;
+        let alan = document.getElementById('byn-ozet-alan');
+        if(alan) alan.style.display = 'block';
+        alan && alan.scrollIntoView({behavior:'smooth'});
+    };
+
+    window.bynKopyala = function() {
+        window.bynOzetOlustur();
+        setTimeout(() => {
+            let text = document.getElementById('byn-ozet-icerik')?.textContent || '';
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Beyanname özeti panoya kopyalandı!');
+            }).catch(() => {
+                prompt('Manuel kopyala (Ctrl+A, Ctrl+C):', text);
+            });
+        }, 200);
+    };
+
+    // ─── ANA AÇMA FONKSİYONU ─────────────────────────────────────────────
     window.openBeyanname = function(idx, ctx) {
         let d = null;
         if(ctx === 'decl') d = window.declarationsData[idx];
@@ -6996,31 +7962,66 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         window.renderView('beyanname');
 
         setTimeout(() => {
-            if(document.getElementById('tcgb-2')) document.getElementById('tcgb-2').value = d.gonderici || '';
-            if(document.getElementById('tcgb-8')) document.getElementById('tcgb-8').value = d.firma || '';
-            if(document.getElementById('tcgb-14')) document.getElementById('tcgb-14').value = d.firma || '';
-            if(document.getElementById('tcgb-20')) document.getElementById('tcgb-20').value = d.teslim || 'CIF';
-            if(document.getElementById('tcgb-22')) document.getElementById('tcgb-22').value = `EUR - ${d.fatura ? window.formatNumber(d.fatura) : ''}`;
-            if(document.getElementById('tcgb-33')) document.getElementById('tcgb-33').value = d.gtip || '';
-            if(document.getElementById('tcgb-35')) document.getElementById('tcgb-35').value = d.brut || '';
-            if(document.getElementById('tcgb-38')) document.getElementById('tcgb-38').value = d.net || '';
-            
-            let kutu31Text = "";
-            if(d.marka) kutu31Text += `MARKA: ${d.marka}\n`;
-            if(d.model) kutu31Text += `MODEL: ${d.model}\n`;
-            if(d.yil) kutu31Text += `YIL: ${d.yil}\n`;
-            if(d.renk) kutu31Text += `RENK: ${d.renk}\n`;
-            if(d.sasi) kutu31Text += `ŞASİ NO: ${d.sasi}\n`;
-            
-            if(document.getElementById('tcgb-31')) document.getElementById('tcgb-31').value = kutu31Text.trim();
-            
-            if(d.tarih) {
-                let parts = d.tarih.split('.');
-                if(parts.length === 3 && document.getElementById('tcgb-54-date')) {
-                    document.getElementById('tcgb-54-date').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                }
+            let set = (id, val) => { let el = document.getElementById(id); if(el && val !== undefined) el.value = val; };
+
+            // Önce localStorage'dan önceki verileri geri yükle
+            window.bynFormYukle();
+
+            // Otomatik kaydet — her değişiklikte
+            let viewArea = document.querySelector('.view-area');
+            if(viewArea && !viewArea._bynAutoSave) {
+                viewArea.addEventListener('input', window.bynFormKaydet);
+                viewArea.addEventListener('change', window.bynFormKaydet);
+                viewArea._bynAutoSave = true;
             }
-        }, 150);
+
+            // Başlık
+            let baslik = document.getElementById('byn-arac-baslik');
+            if(baslik) baslik.textContent = (d.marka||'') + ' ' + (d.model||'') + ' (' + (d.yil||'') + ') — Şasi: ' + (d.sasi||'-');
+
+            // Firma seç ve sabit bilgileri doldur
+            let firmaAdi = d.firma || '';
+            set('byn-firma-sec', firmaAdi);
+            window.bynFirmaChange(firmaAdi);
+
+            // Bölüm 2 — Gönderici
+            set('byn-2', d.gonderici || '');
+
+            // Bölüm 3 — Finansal
+            let teslim = (d.teslim || 'CIF').toUpperCase();
+            set('byn-20', teslim);
+            window.bynTeslimChange(teslim);
+            set('byn-22', d.fatura ? window.formatNumber(d.fatura) : '');
+
+            // TSE localStorage'dan ticaret ülkesini çek
+            try {
+                let tseCached = JSON.parse(localStorage.getItem('gumruk_tse_sablon_v1') || 'null');
+                if(tseCached && tseCached['tse-ithalatUlkesi']) {
+                    set('byn-11', tseCached['tse-ithalatUlkesi']);
+                } else if(d.mensei) {
+                    set('byn-11', d.mensei);
+                }
+            } catch(e) { if(d.mensei) set('byn-11', d.mensei); }
+
+            // Araç için saklanan banka bilgisi
+            if(d.bankaKodu) set('byn-28-banka', d.bankaKodu);
+            if(d.bankaSube) set('byn-28-sube', d.bankaSube);
+
+            // Şasi, IMEİ (da-brut) ve Özet Beyan No
+            set('byn-sasi',       d.sasi      || '');
+            set('byn-imei',       d.brut      || '');
+            set('byn-ozet-beyan', d.ozetBeyan || '');
+
+            // Plaka bilgisi varsa
+            if(d.plaka) {
+                set('byn-18-plaka', d.plaka);
+                set('byn-21-plaka', d.plaka);
+            }
+
+            // Özeti otomatik oluştur
+            setTimeout(window.bynOzetOlustur, 300);
+
+        }, 200);
     };
 
 // ================= TCMB KUR ÇEKME - KALICI ÇÖZÜM =================
@@ -7683,7 +8684,7 @@ document.addEventListener('click', function(e) {
         return `<tr class="${finalRowClass}" data-gun="${gunFarki}" onclick="if(!event.target.closest('button, input, a, .inline-date')) window.openDeclVehicleModal(${i}, 'decl')" style="cursor: pointer;" title="Detayları görmek için tıklayın">
             <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
             <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}${window.renderEvrakBadges(d, i, 'decl')}</td>
-            <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
+            <td><span class="sasi-no">${d.sasi||'-'}</span></td>
             <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'tarih')"` : ''}>${d.tarih||'-'}</td>
             <td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td>
             <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'ekSure')"` : ''}>${d.ekSure||'-'}</td>
@@ -7996,7 +8997,7 @@ window.renderEvrakBadges = function(d, idx, ctx) {
             '<td><span class="font-bold" style="color:var(--text-primary);">'+(d.marka||'')+' '+(d.model||'')+'</span>'+window.renderEvrakBadges(d, i, 'firm')+'</td>'+ 
             '<td>'+(d.yil||'-')+'</td>'+ 
             '<td>'+(d.renk||'-')+'</td>'+ 
-            '<td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">'+(d.sasi||'-')+'</td>'+ 
+            '<td><span class="sasi-no">'+(d.sasi||'-')+'</span></td>'+
             '<td>'+(d.tarih||'-')+'</td>'+ 
             '<td>'+(d.beyanname||'-')+'</td>'+ 
             '<td class="firma-readonly">'+(d.fatura?window.formatNumber(d.fatura)+' €':'-')+'</td>'+ 
@@ -8055,7 +9056,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
                 <td><span class="font-bold" style="color:var(--text-primary);">${d.marka||''} ${d.model||''}</span>${modelUyari}</td>
                 <td>${d.yil||'-'}</td>
                 <td>${d.renk||'-'}</td>
-                <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
+                <td><span class="sasi-no">${d.sasi||'-'}</span></td>
                 <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'tarih','firm')"` : ''}>${d.tarih||'-'}</td>
                 <td>${d.beyanname||'-'}</td>
                 <td>${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
@@ -8078,7 +9079,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
                 </td>
                 <td style="display:none;font-size:0;width:0;padding:0;border:0;">
                 <td style="display:none;">
-                <td class="font-bold" style="font-family:monospace;letter-spacing:0.3px;">${d.sasi||'-'}</td>
+                <td><span class="sasi-no">${d.sasi||'-'}</span></td>
                 <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'tarih','firm')"` : ''}>${d.tarih||'-'}</td>
                 <td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td>
                 <td class="inline-date" ${localStorage.getItem('gumruk_role')==='admin' ? `onclick="window.inlineEditDate(this,${i},'ekSure','firm')"` : ''}>${d.ekSure||'-'}</td>
@@ -8250,26 +9251,94 @@ window.tseMarkaDatalistDoldur = function() {
 };
 
 // TSE Şablonu modalini aç
+// ── TSE ALAN ID LİSTESİ ──────────────────────────────────────────────
+window._TSE_ALANLAR = [
+    'tse-aracCinsi','tse-marka','tse-tip','tse-varyant','tse-versiyon',
+    'tse-kategori','tse-imalTarihi','tse-ticariAd','tse-aracTanitimNo',
+    'tse-yakitTuru','tse-tipOnayNo','tse-tipOnayTarihi','tse-antrepoAdi',
+    'tse-uretildigiUlke','tse-ithalatUlkesi','tse-gtipNo'
+];
+
+// ── MEVCUT ARACI BULMA (şasiye göre) ────────────────────────────────
+window._tseMevcutAraciGetir = function(sasi) {
+    if (!sasi) return null;
+    // declarationsData içinde ara
+    var d = (window.declarationsData || []).find(function(x){ return x.sasi === sasi; });
+    if (d) return d;
+    // firmData içinde ara
+    var firmalar = window.firmData || {};
+    for (var f in firmalar) {
+        var bulunan = (firmalar[f] || []).find(function(x){ return x.sasi === sasi; });
+        if (bulunan) return bulunan;
+    }
+    return null;
+};
+
+// ── TSE FORM VERİSİNİ localStorage'A KAYDET ─────────────────────────
+window.tseSablonFormKaydet = function() {
+    var kayit = {};
+    window._TSE_ALANLAR.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) kayit[id] = el.value || '';
+    });
+    localStorage.setItem('gumruk_tse_sablon_v1', JSON.stringify(kayit));
+};
+
+// ── TSE FORM VERİSİNİ localStorage'DAN GERİ YÜKlE ──────────────────
+window.tseSablonFormYukle = function() {
+    try {
+        var kayit = JSON.parse(localStorage.getItem('gumruk_tse_sablon_v1') || 'null');
+        if (!kayit) return false;
+        window._TSE_ALANLAR.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && kayit[id] !== undefined) el.value = kayit[id];
+        });
+        return true;
+    } catch(e) { return false; }
+};
+
 window.openTseSablonModal = function() {
     window.tseMarkaDatalistDoldur();
 
-    // Beyanname ekranindan bilgileri otomatik cek
     var marka = (document.getElementById('da-marka') || {}).value || '';
     var sasi  = (document.getElementById('da-sase')  || {}).value || '';
     var gtip  = (document.getElementById('da-gtip')  || {}).value || '';
 
-    document.getElementById('tse-marka').value = marka;
-    document.getElementById('tse-aracTanitimNo').value = sasi;
-    document.getElementById('tse-gtipNo').value = gtip;
+    // ── ÖNCEKİ VERİLERİ GERİ YÜKLE ──────────────────────────────────
+    var yuklendiMi = window.tseSablonFormYukle();
 
-    // Antrepo Adi her zaman varsayilan
-    document.getElementById('tse-antrepoAdi').value = 'Y.O.İ.G.M';
+    // Araçtan gelen bilgiler her zaman üzerine yaz (şasi, marka, gtip)
+    if (sasi)  document.getElementById('tse-aracTanitimNo').value = sasi;
+    if (marka) document.getElementById('tse-marka').value = marka;
+    if (gtip)  document.getElementById('tse-gtipNo').value = gtip;
+
+    // Antrepo sadece hiç girilmemişse varsayılanı koy
+    var antrepoEl = document.getElementById('tse-antrepoAdi');
+    if (antrepoEl && !antrepoEl.value) antrepoEl.value = 'Y.O.İ.G.M';
 
     var st = document.getElementById('tse-sablon-status');
-    if (st) { st.style.display = 'none'; st.innerHTML = ''; }
+    if (st) {
+        if (yuklendiMi) {
+            st.style.display = 'block';
+            st.style.color = 'var(--success, #10b981)';
+            st.innerHTML = '✅ Önceki girilen veriler korundu.';
+            setTimeout(function(){ if(st) { st.style.display='none'; st.innerHTML=''; } }, 2500);
+        } else {
+            st.style.display = 'none';
+            st.innerHTML = '';
+        }
+    }
 
     document.getElementById('tse-sablon-modal').classList.remove('hidden');
     if (window.lucide) lucide.createIcons();
+
+    // Her değişiklikte otomatik kaydet (modal kapansa bile korunur)
+    var modal = document.getElementById('tse-sablon-modal');
+    if (modal && !modal._autoSaveAttached) {
+        modal.addEventListener('input', window.tseSablonFormKaydet);
+        modal.addEventListener('change', window.tseSablonFormKaydet);
+        modal._autoSaveAttached = true;
+    }
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -8741,6 +9810,32 @@ window.tseSablonKaydet = function() {
         var sasi      = (document.getElementById('da-sase')||{}).value || v('tse-aracTanitimNo');
         var folderUrl = (document.getElementById('da-evrakLink')||{}).value || '';
 
+        // ── TSE VERİSİNİ localStorage'A KAYDET (form sıfırlanmasın) ──
+        window.tseSablonFormKaydet();
+
+        // ── TSE VERİSİNİ ARACA KAYDET (şasiye göre) ─────────────────
+        var tseKayit = {};
+        window._TSE_ALANLAR.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) tseKayit[id] = el.value || '';
+        });
+        // declarationsData içinde bul ve kaydet
+        var tseArac = window._tseMevcutAraciGetir(sasi || tseKayit['tse-aracTanitimNo']);
+        if (tseArac) {
+            tseArac.tseSablon = tseKayit;
+            // Firebase'e kaydet
+            if (window._firebaseSave && window._dataLoaded) {
+                window._firebaseSave({
+                    decl: window.declarationsData,
+                    firm: window.firmData,
+                    kiymet: window.kiymetData,
+                    firmMeta: window.firmMeta,
+                    cariData: window.cariData
+                });
+            }
+        }
+        // ── /TSE VERİSİ KAYDET ───────────────────────────────────────
+
         if (st) {
             st.style.display = 'block';
             st.style.color = 'var(--warning)';
@@ -8749,8 +9844,9 @@ window.tseSablonKaydet = function() {
 
         if (!folderUrl) {
             if (st) {
-                st.style.color = 'var(--danger, #dc2626)';
-                st.innerHTML = '❌ Bu aracın Drive klasör linki yok. Önce "Klasörü Aç" satırına link ekleyin.';
+                st.style.color = 'var(--success)';
+                st.innerHTML = '✅ TSE verileri kaydedildi. (Drive linki olmadığı için yalnızca sisteme kaydedildi.)';
+                setTimeout(function(){ if(st) st.style.display='none'; }, 3000);
             }
             return;
         }
@@ -9957,6 +11053,28 @@ if(vn==='cariKart'){
 }
 if(vn==='gelecekAraclar'){
     window.renderGelecekTable();
+}
+if(vn==='beyanname'){
+    setTimeout(function(){
+        // Kayıtlı verileri geri yükle
+        if(window.bynFormYukle) window.bynFormYukle();
+        // TSE'den ticaret ülkesini çek
+        try {
+            let tseCached = JSON.parse(localStorage.getItem('gumruk_tse_sablon_v1')||'null');
+            if(tseCached && tseCached['tse-ithalatUlkesi']) {
+                let el = document.getElementById('byn-11');
+                if(el && !el.value) el.value = tseCached['tse-ithalatUlkesi'];
+            }
+        } catch(e){}
+        // Otomatik kaydet
+        let va = document.querySelector('.view-area');
+        if(va && !va._bynAutoSave){
+            va.addEventListener('input', window.bynFormKaydet);
+            va.addEventListener('change', window.bynFormKaydet);
+            va._bynAutoSave = true;
+        }
+        if(window.lucide) lucide.createIcons();
+    }, 250);
 }
 }; 
     document.querySelectorAll('.nav-btn[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.view)window.renderView(b.dataset.view);}));
