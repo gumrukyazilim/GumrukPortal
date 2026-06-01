@@ -10360,7 +10360,7 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     };
 
     window.loadCalcState=function(){
-        let saved=localStorage.getItem(window._getCalcKey && window._getCalcKey() || 'gumruk_calc_state_v15');
+        let saved=localStorage.getItem(window._getCalcKey ? window._getCalcKey() : 'gumruk_calc_state_v15');
         if(!saved) return false;
         try{
             let state=JSON.parse(saved);
@@ -11030,14 +11030,33 @@ if(vn==='cariKart'){
 		if(vn==='uyelikler')window.renderUyelikler();
         if(vn==='firmDetails'){if(document.getElementById('current-firm-title')&&window.currentFirm)document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();}
         if(vn==='calculator'){
-            window._isRestoring = true;
-            window.handleYakitChange(true); 
-            window.handleMTVTuruChange(true); 
-            window._isRestoring = false;
-            
-            window.loadCalcState();
-            window.updateGTIP(true);
-            window.calculateTaxes();
+            // DOM hazır olsun diye kısa gecikme
+            setTimeout(function(){
+                window._isRestoring = true;
+                window.handleYakitChange(true);
+                window.handleMTVTuruChange(true);
+                window._isRestoring = false;
+
+                let yuklendiMi = window.loadCalcState();
+
+                if(yuklendiMi){
+                    setTimeout(function(){
+                        window.updateGTIP && window.updateGTIP(true);
+                        window.calculateTaxes && window.calculateTaxes();
+                    }, 80);
+                } else {
+                    window.updateGTIP && window.updateGTIP(true);
+                    window.calculateTaxes && window.calculateTaxes();
+                }
+
+                // Her değişiklikte otomatik kaydet
+                let calcArea = document.querySelector('.view-area');
+                if(calcArea && !calcArea._calcAutoSave){
+                    calcArea.addEventListener('input',  function(){ if(!window._isRestoring) window.saveCalcState(); });
+                    calcArea.addEventListener('change', function(){ if(!window._isRestoring) window.saveCalcState(); });
+                    calcArea._calcAutoSave = true;
+                }
+            }, 80);
         }
         window.applyRoleUI();
 window.applyRoleUI();
