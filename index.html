@@ -12847,15 +12847,42 @@ window.ardiyeUret = function(idx) {
         d = items[0];
     }
     
+    // ─── GÜN SAYISI VE TİER HESAPLAMALARI ────────────────────────────────
+    // Giriş tarihinden bugüne gün farkını hesapla
+    let girisP = d.tarih.split('.');
+    let girisDate = (girisP.length === 3) ? new Date(girisP[2], girisP[1]-1, girisP[0]) : null;
+    let bugun = new Date(); bugun.setHours(0,0,0,0);
+    let gun = girisDate ? Math.max(0, Math.floor((bugun - girisDate) / 86400000) + 1) : 0;
+
+    // Her tier için gün dağılımı
+    let g1 = 0, g2 = 0, g3 = 0, g4 = 0;
+    if(gun > 0) {
+        if(gun <= 20)       { g1 = gun; }
+        else if(gun <= 50)  { g1 = 20; g2 = gun - 20; }
+        else if(gun <= 80)  { g1 = 20; g2 = 30; g3 = gun - 50; }
+        else                { g1 = 20; g2 = 30; g3 = 30; g4 = gun - 80; }
+    }
+
+    // Her tier tutarı — ADET İLE ÇARP (asıl düzeltme burada!)
+    let t1 = g1 * 145  * adet;
+    let t2 = g2 * 725  * adet;
+    let t3 = g3 * 1160 * adet;
+    let t4 = g4 * 1450 * adet;
+
     window.autoSaveArdiyeToDrive({
-    firma: d.firma || "",
-    beyanname: beyannameList.join("|") || d.sasi || "BELGE",
-    sasi: sasiList.join("|"),
-    tarih: d.tarih || "",
-    evrakLink: d.evrakLink || "",
-    adet: adet,
-    vergiNo: (window.firmMeta[d.firma]||{}).vergiNo || (window.firmMeta[d.firma]||{}).tcNo || "4110376484"
-});
+        firma:     d.firma || "",
+        beyanname: beyannameList.join("|") || d.sasi || "BELGE",
+        sasi:      sasiList.join("|"),
+        tarih:     d.tarih || "",
+        evrakLink: d.evrakLink || "",
+        adet:      adet,
+        gun:       gun,
+        gun1: g1, tutar1: t1,
+        gun2: g2, tutar2: t2,
+        gun3: g3, tutar3: t3,
+        gun4: g4, tutar4: t4,
+        vergiNo: (window.firmMeta[d.firma]||{}).vergiNo || (window.firmMeta[d.firma]||{}).tcNo || "4110376484"
+    });
 
 };
 
@@ -12879,7 +12906,7 @@ window.autoSaveArdiyeToDrive = function(r) {
 };
 
     let script = document.createElement('script');
-    script.src = ARDIYE_GAS + 
+    script.src = ARDIYE_GAS +
         "?action=create" +
         "&firma=" + encodeURIComponent(r.firma || "") +
         "&beyanname=" + encodeURIComponent(r.beyanname || "") +
@@ -12887,8 +12914,23 @@ window.autoSaveArdiyeToDrive = function(r) {
         "&girisTarihi=" + encodeURIComponent(r.tarih || "") +
         "&evrakLink=" + encodeURIComponent(r.evrakLink || "") +
         "&adet=" + encodeURIComponent(r.adet || 1) +
-"&vergiNo=" + encodeURIComponent(r.vergiNo || "4110376484") +
-"&callback=" + callbackName;
+        "&gun=" + encodeURIComponent(r.gun || 0) +
+        "&birim1=" + encodeURIComponent((r.adet || 1) * 145) +
+        "&birim2=" + encodeURIComponent((r.adet || 1) * 725) +
+        "&birim3=" + encodeURIComponent((r.adet || 1) * 1160) +
+        "&birim4=" + encodeURIComponent((r.adet || 1) * 1450) +
+        "&birimGiris=" + encodeURIComponent((r.adet || 1) * 240) +
+        "&birimYukleme=" + encodeURIComponent((r.adet || 1) * 160) +
+        "&gun1=" + encodeURIComponent(r.gun1 || 0) +
+        "&tutar1=" + encodeURIComponent(r.tutar1 || 0) +
+        "&gun2=" + encodeURIComponent(r.gun2 || 0) +
+        "&tutar2=" + encodeURIComponent(r.tutar2 || 0) +
+        "&gun3=" + encodeURIComponent(r.gun3 || 0) +
+        "&tutar3=" + encodeURIComponent(r.tutar3 || 0) +
+        "&gun4=" + encodeURIComponent(r.gun4 || 0) +
+        "&tutar4=" + encodeURIComponent(r.tutar4 || 0) +
+        "&vergiNo=" + encodeURIComponent(r.vergiNo || "4110376484") +
+        "&callback=" + callbackName;
     
     script.onerror = function() {
         if(typeof hideSyncToast === 'function') hideSyncToast("Ardiye bağlantı hatası", false);
