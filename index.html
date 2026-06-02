@@ -7384,6 +7384,45 @@ window.confirmEditFirmMeta=function(name){
         setTimeout(() => { if(t.parentNode) t.remove(); }, 6000);
     };
 
+    // ─── TSE BAŞVURU KONTROL — Zaten başvuru yapılmışsa uyar ─────────────
+    window.tseBasvuruKontrol = function(idx, ctx) {
+        let d = ctx === 'firm'
+            ? (window.firmData[window.currentFirm] || [])[idx]
+            : (window.declarationsData || [])[idx];
+        if(!d) return;
+
+        let evrakler = d.evrakler || {};
+        let tseDeger = evrakler['TSE'];
+        if(tseDeger === true) tseDeger = 2;
+        else if(!tseDeger) tseDeger = 0;
+        else tseDeger = parseInt(tseDeger) || 0;
+
+        if(tseDeger === 1) {
+            // Başvuru yapılmış ama henüz onaylanmamış
+            let devam = confirm(
+                '⚠️ Bu araç için TSE başvurusu zaten YAPILMIŞ!\n\n' +
+                'Şasi: ' + (d.sasi || '-') + '\n' +
+                'Marka: ' + (d.marka || '') + ' ' + (d.model || '') + '\n\n' +
+                'Tekrar TSE başvurusu yapmak istiyor musunuz?'
+            );
+            if(!devam) return;
+        } else if(tseDeger === 2) {
+            // TSE zaten onaylanmış
+            let devam = confirm(
+                '✅ Bu araç için TSE zaten ONAYLANMIŞ!\n\n' +
+                'Şasi: ' + (d.sasi || '-') + '\n' +
+                'Marka: ' + (d.marka || '') + ' ' + (d.model || '') + '\n\n' +
+                'Yine de yeni TSE başvurusu yapmak istiyor musunuz?'
+            );
+            if(!devam) return;
+        }
+
+        // Kontrolden geçti — TSE başlat
+        if(window.TSE && window.TSE.baslat) {
+            window.TSE.baslat(d.sasi || '', d.firma || '', d.tarih || '', d.ozetBeyan || d.beyanname || '');
+        }
+    };
+
     // ─── EVENT DELEGATION — Kıymet tarih inputları için ─────────────────
     // onchange attribute + dispatchEvent yerine document-level dinleme
     document.addEventListener('change', function(e) {
@@ -8754,8 +8793,8 @@ document.addEventListener('click', function(e) {
             <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
             <td style="text-align:center;">
                 <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
-				<button type="button" class="icon-btn" style="background:#10b981; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" 
-        onclick="event.stopImmediatePropagation(); window.TSE.baslat('${d.sasi}', '${d.firma || ''}', '${d.tarih || ''}', '${d.ozetBeyan || d.beyanname || ''}')">
+				<button type="button" class="icon-btn" style="background:#10b981; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;"
+        onclick="event.stopImmediatePropagation(); window.tseBasvuruKontrol(${i}, 'decl')">
     TSE
 </button>
                     <button type="button" class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'decl')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
@@ -9539,6 +9578,22 @@ window.processTseMail = async function() {
 window.bulkTseMailModal = function() {
     var checked = document.querySelectorAll('.decl-cb:checked');
     if (checked.length === 0) { alert('Lütfen araç seçin'); return; }
+
+    // ★ TSE başvurusu zaten yapılmış araçları kontrol et
+    var zatenBasvurulular = [];
+    checked.forEach(function(cb) {
+        var idx = parseInt(cb.value);
+        var d = window.declarationsData[idx];
+        if(d && d.evrakler) {
+            var tse = d.evrakler['TSE'];
+            if(tse === 1 || tse === '1') zatenBasvurulular.push((d.marka||'') + ' ' + (d.model||'') + ' — ' + (d.sasi||'').slice(-6) + ' (Başvuru Yapılmış)');
+            if(tse === 2 || tse === true) zatenBasvurulular.push((d.marka||'') + ' ' + (d.model||'') + ' — ' + (d.sasi||'').slice(-6) + ' (Zaten Onaylı)');
+        }
+    });
+    if(zatenBasvurulular.length > 0) {
+        var devam = confirm('⚠️ Aşağıdaki araçların TSE başvurusu zaten mevcut:\n\n' + zatenBasvurulular.join('\n') + '\n\nDevam etmek istiyor musunuz?');
+        if(!devam) return;
+    }
 
     // Seçili araçların şasi ve firma bilgilerini topla
     var vehicles = [];
