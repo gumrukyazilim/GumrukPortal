@@ -3400,7 +3400,7 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0;"><label>Ek Süre T.</label><input type="date" id="da-ekSure" onchange="window.declAutoCalc()"></div>
                     <div class="input-group" style="margin:0;"><label>Antrepo T.</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div>
                     <div class="input-group" style="margin:0;"><label>Beyanname CIF</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div>
-                    <div class="input-group" style="margin:0;"><label>Kıymet V. T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc()"></div>
+                    <div class="input-group" style="margin:0;"><label>Kıymet V. T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc(); window.kiymVvKontrol();"></div>
                     <div class="input-group" style="margin:0;"><label>Kıymet G. T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc(); window.kiymetTarihKontrol();"></div>
                 </div>
             </div>
@@ -7191,6 +7191,17 @@ window.inlineEditDate = function(el, idx, field, source) {
             saveData('decl');
             saveData('firm');
 
+            // KIYMET VERİLİŞ TARİHİ — beyanname no boşsa hatırlat
+            if (field === 'kiymVv' && yeniDeger) {
+                let arac = aracSasi
+                    ? (window.declarationsData.find(x => x && x.sasi === aracSasi) || kaynak[idx])
+                    : kaynak[idx];
+                let beyanno = (arac && arac.beyanname) ? String(arac.beyanname).trim() : '';
+                if (!beyanno || beyanno === 'undefined' || beyanno === '-') {
+                    window.showToast('📋 Kıymete veriliş tarihi girildi — Beyanname Numarası boş! Lütfen beyanname no\'yu girin.', 'warn');
+                }
+            }
+
             // KIYMET GELİŞ TARİHİ GİRİLDİĞİNDE — kıymet tutarı boşsa uyar ve modalı aç
             if (field === 'kiymGt' && yeniDeger) {
                 let arac = aracSasi
@@ -7370,7 +7381,49 @@ window.confirmEditFirmMeta=function(name){
         t.textContent = msg;
         document.body.appendChild(t);
 
-        setTimeout(() => { if(t.parentNode) t.remove(); }, 4500);
+        setTimeout(() => { if(t.parentNode) t.remove(); }, 6000);
+    };
+
+    // ─── EVENT DELEGATION — Kıymet tarih inputları için ─────────────────
+    // onchange attribute + dispatchEvent yerine document-level dinleme
+    document.addEventListener('change', function(e) {
+        let id = e.target && e.target.id;
+        if(id === 'da-kiymVv') {
+            window.kiymVvKontrol && window.kiymVvKontrol();
+        }
+        if(id === 'da-kiymGt') {
+            window.kiymetTarihKontrol && window.kiymetTarihKontrol();
+        }
+    }, true); // capture=true: attribute onchange'den önce tetiklenir
+
+    // ─── KIYMET VERİLİŞ TARİHİ — BEYANNAME NO KONTROL ──────────────────
+    window.kiymVvKontrol = function() {
+        let tarihEl    = document.getElementById('da-kiymVv');
+        let beyannameEl = document.getElementById('da-beyanname');
+        if(!tarihEl || !tarihEl.value) return;
+
+        let beyanno = (beyannameEl?.value || '').trim();
+        let bosMu = !beyanno || beyanno === 'undefined' || beyanno === '-';
+        if(bosMu) {
+            // Beyanname no alanını vurgula
+            if(beyannameEl) {
+                beyannameEl.style.borderColor = '#f59e0b';
+                beyannameEl.style.boxShadow   = '0 0 0 3px rgba(245,158,11,.2)';
+                setTimeout(() => {
+                    beyannameEl.style.borderColor = '';
+                    beyannameEl.style.boxShadow   = '';
+                }, 3500);
+            }
+
+            // Toast uyarısı
+            window.showToast('📋 Kıymete veriliş tarihi girildi — Beyanname Numarası girilmedi! Lütfen beyanname no\'yu girin.', 'warn');
+
+            // Focus
+            setTimeout(() => {
+                beyannameEl?.scrollIntoView({ behavior:'smooth', block:'center' });
+                beyannameEl?.focus();
+            }, 150);
+        }
     };
 
     // ─── KIYMET TARİHİ KONTROLÜ ──────────────────────────────────────────
