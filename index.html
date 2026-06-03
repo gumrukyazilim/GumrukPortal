@@ -10203,26 +10203,33 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
     };
 
     if(!r.firma || !r.tarih){alert('Zorunlu alanları doldurun!'); return;}
-	// Dosya KAPALI seçildiyse beyanname ve kıymet zorunlu
+
+    // ──── TEK BİRLEŞİK UYARI ────
+    let tumEksikler = [];
+    // Dosya KAPALI özel kontrolü
+    let kapaliUyari = '';
     if(r.evrak === 'Kapalı') {
         let kapaliEksikler = [];
         if(!r.beyanname) kapaliEksikler.push('Beyanname No');
         if(!r.kiymet)    kapaliEksikler.push('Kıymet Tutarı');
         if(kapaliEksikler.length > 0) {
-            let mesaj = '⚠️ Dosya KAPALI olarak işaretlendi ama şu alanlar boş:\n\n• ' + kapaliEksikler.join('\n• ') + '\n\nDosyayı bu haliyle kapatmak istediğinize emin misiniz?';
-            if(!confirm(mesaj)) return;
+            kapaliUyari = '⚠️ Dosya KAPALI olarak işaretlendi, şu alanlar boş:\n  • ' + kapaliEksikler.join('\n  • ') + '\n\n';
         }
     }
-	// 5 önemli alan kontrolü — eksikse onay iste
-    let bosAlanlar = [];
-    if(!r.gonderici)  bosAlanlar.push('Gönderici / İhracatçı');
-    if(!r.gtip)       bosAlanlar.push('GTİP Kodu');
-    if(!r.ozetBeyan)  bosAlanlar.push('Özet Beyan No');
-    if(!r.brut)       bosAlanlar.push('IMEİ Numarası');
-    if(!r.fatura)     bosAlanlar.push('Fatura Tutarı');
-    
-    if(bosAlanlar.length > 0) {
-        let mesaj = 'Şu alan(lar) boş bırakıldı:\n\n• ' + bosAlanlar.join('\n• ') + '\n\nYine de kaydetmek istediğinize emin misiniz?';
+    // 5 önemli alan kontrolü
+    if(!r.gonderici)  tumEksikler.push('Gönderici / İhracatçı');
+    if(!r.gtip)       tumEksikler.push('GTİP Kodu');
+    if(!r.ozetBeyan)  tumEksikler.push('Özet Beyan No');
+    if(!r.brut)       tumEksikler.push('IMEİ Numarası');
+    if(!r.fatura)     tumEksikler.push('Fatura Tutarı');
+
+    // Tüm eksikleri tek confirm'de göster
+    if(kapaliUyari || tumEksikler.length > 0) {
+        let mesaj = kapaliUyari;
+        if(tumEksikler.length > 0) {
+            mesaj += 'Şu alan(lar) boş bırakıldı:\n  • ' + tumEksikler.join('\n  • ') + '\n\n';
+        }
+        mesaj += 'Yine de kaydetmek istediğinize emin misiniz?';
         if(!confirm(mesaj)) return;
     }
     
@@ -10326,10 +10333,29 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
         });
     }
 
-    if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); saveData('kiymet'); }
-    if(window.currentModalContext==='decl') { window.renderDeclarationsTable(); } else { window.renderFirmVehicles(); }
-    window.closeDeclModal();
-    if(window.updateDashboardStats) window.updateDashboardStats();
+    try {
+        if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); saveData('kiymet'); }
+    } catch(e) { console.warn('saveData hatası:', e); }
+
+    try {
+        if(window.currentModalContext==='decl') { window.renderDeclarationsTable(); }
+        else { window.renderFirmVehicles(); }
+    } catch(e) { console.warn('render hatası:', e); }
+
+    // ── Modal'ı ZORLA kapat (her ihtimale karşı) ──
+    let modal = document.getElementById('decl-modal');
+    if(modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+        setTimeout(() => { modal.style.display = ''; }, 100);
+    }
+
+    try { if(window.updateDashboardStats) window.updateDashboardStats(); } catch(e) {}
+
+    // Başarı bildirimi
+    if(typeof window.showToast === 'function') {
+        window.showToast('✅ Kayıt başarıyla güncellendi', 'success');
+    }
 };
 
 // --- WHATSAPP MESAJ MOTORU (KURUMSAL DİL VE DİREKT HAT) ---
