@@ -7196,9 +7196,14 @@ window.inlineEditDate = function(el, idx, field, source) {
                 let arac = aracSasi
                     ? (window.declarationsData.find(x => x && x.sasi === aracSasi) || kaynak[idx])
                     : kaynak[idx];
-                let beyanno = (arac && arac.beyanname) ? String(arac.beyanname).trim() : '';
-                if (!beyanno || beyanno === 'undefined' || beyanno === '-') {
-                    window.showToast('📋 Kıymete veriliş tarihi girildi — Beyanname Numarası boş! Lütfen beyanname no\'yu girin.', 'warn');
+                let beyanno   = (arac && arac.beyanname) ? String(arac.beyanname).trim() : '';
+                let beynmCif  = (arac && arac.beynmCif)  ? String(arac.beynmCif).trim()  : '';
+                let beyannoBos  = !beyanno  || beyanno  === 'undefined' || beyanno  === '-';
+                let beynmCifBos = !beynmCif || beynmCif === 'undefined' || beynmCif === '-';
+                if (beynmCifBos) {
+                    window.showToast('⚠️ Kıymete veriliş tarihi girildi — BEYANNAME CIF TARİHİ boş! Süre hesabı doğru olmaz, lütfen tarihi girin.', 'warn');
+                } else if (beyannoBos) {
+                    window.showToast('📋 Beyanname Numarası boş! Lütfen beyanname no\'yu girin.', 'warn');
                 }
             }
 
@@ -7439,12 +7444,37 @@ window.confirmEditFirmMeta=function(name){
     window.kiymVvKontrol = function() {
         let tarihEl    = document.getElementById('da-kiymVv');
         let beyannameEl = document.getElementById('da-beyanname');
+        let beynmCifEl  = document.getElementById('da-beynmCif');
         if(!tarihEl || !tarihEl.value) return;
 
+        // 1) Beyanname NO kontrolü
         let beyanno = (beyannameEl?.value || '').trim();
-        let bosMu = !beyanno || beyanno === 'undefined' || beyanno === '-';
-        if(bosMu) {
-            // Beyanname no alanını vurgula
+        let beyannoBos = !beyanno || beyanno === 'undefined' || beyanno === '-';
+
+        // 2) Beyanname TARİHİ (CIF) kontrolü
+        let beynmCif = (beynmCifEl?.value || '').trim();
+        let beynmCifBos = !beynmCif;
+
+        // ÖNCELİK: Beyanname TARİHİ daha kritik (süre hesabını etkiler)
+        if(beynmCifBos) {
+            if(beynmCifEl) {
+                beynmCifEl.style.borderColor = '#ef4444';
+                beynmCifEl.style.boxShadow   = '0 0 0 3px rgba(239,68,68,.25)';
+                setTimeout(() => {
+                    beynmCifEl.style.borderColor = '';
+                    beynmCifEl.style.boxShadow   = '';
+                }, 4000);
+            }
+            window.showToast('⚠️ Kıymete veriliş tarihi girildi ancak BEYANNAME CIF TARİHİ boş! Süre hesabı doğru olmaz — lütfen beyanname tarihini girin.', 'warn');
+            setTimeout(() => {
+                beynmCifEl?.scrollIntoView({ behavior:'smooth', block:'center' });
+                beynmCifEl?.focus();
+            }, 150);
+            return;  // beyanname tarihi yokken numara uyarısı verme
+        }
+
+        // Beyanname tarihi varsa, numara da boşsa onu uyar
+        if(beyannoBos) {
             if(beyannameEl) {
                 beyannameEl.style.borderColor = '#f59e0b';
                 beyannameEl.style.boxShadow   = '0 0 0 3px rgba(245,158,11,.2)';
@@ -7453,11 +7483,7 @@ window.confirmEditFirmMeta=function(name){
                     beyannameEl.style.boxShadow   = '';
                 }, 3500);
             }
-
-            // Toast uyarısı
-            window.showToast('📋 Kıymete veriliş tarihi girildi — Beyanname Numarası girilmedi! Lütfen beyanname no\'yu girin.', 'warn');
-
-            // Focus
+            window.showToast('📋 Beyanname Numarası girilmedi! Lütfen beyanname numarasını girin.', 'warn');
             setTimeout(() => {
                 beyannameEl?.scrollIntoView({ behavior:'smooth', block:'center' });
                 beyannameEl?.focus();
