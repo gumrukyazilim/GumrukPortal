@@ -3316,10 +3316,31 @@ div[style*="position: relative"] > input {
             <select id="cari-firma-sec" onchange="window.renderCariTable()" style="min-width:200px;padding:10px;font-weight:600;">
                 <option value="">Tüm Firmalar</option>
             </select>
+            <button class="btn-sm" style="background:var(--success);color:#fff;border:none;" onclick="window.cariTahsilatModal()"><i data-lucide="hand-coins"></i> Tahsilat Al</button>
             <button class="btn-primary" onclick="window.cariHareketEkle()"><i data-lucide="plus"></i> Hareket Ekle</button>
         </div>
     </div>
-    
+
+    <!-- Bakiye Özet Kartı -->
+    <div id="cari-bakiye-ozet" class="fade-in" style="display:none;margin-bottom:18px;background:linear-gradient(135deg,#1e40af,#7c3aed);border-radius:16px;padding:18px 22px;box-shadow:0 8px 28px rgba(59,130,246,.3);color:#fff;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;">
+            <div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;opacity:.85;">KALAN BAKİYE</div>
+                <div id="cari-bakiye-firma" style="font-size:16px;font-weight:700;margin-top:4px;"></div>
+            </div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;">
+                <div style="text-align:right;">
+                    <div style="font-size:11px;opacity:.75;font-weight:600;">GÜMRÜK</div>
+                    <div id="cari-bakiye-eur" style="font-size:26px;font-weight:800;letter-spacing:-.5px;">0 €</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:11px;opacity:.75;font-weight:600;">TSE</div>
+                    <div id="cari-bakiye-try" style="font-size:26px;font-weight:800;letter-spacing:-.5px;">0 ₺</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card fade-in" style="padding:0;overflow:hidden;">
         <div class="table-wrap">
             <table class="data-table">
@@ -4703,6 +4724,8 @@ window.renderCariTable = function() {
     
     if(!firma) {
         if(ozet) ozet.style.display='none';
+        let bOzet = document.getElementById('cari-bakiye-ozet');
+        if(bOzet) bOzet.style.display='none';
         let geriBtn = document.getElementById('cari-geri-btn');
         if(geriBtn) geriBtn.style.display='none';
         let tableHead = document.querySelector('#cari-tbody')?.closest('table')?.querySelector('thead');
@@ -4775,14 +4798,20 @@ window.renderCariTable = function() {
     
     let gercekGumruk = 0, gercekTse = 0;
     const gruplanmisVeri = {};
-    
+
     hareketler.forEach(function(h, idx) {
         let gb = parseFloat(h.gumrukBedeli)||0; let tb = parseFloat(h.tseBedeli)||0;
         if(!gb && !tb && h.tutar) {
             let t=parseFloat(h.tutar)||0; if(h.tur==='borc') t=-t;
             if((h.birim||'EUR').toUpperCase()==='EUR'||(h.birim||'USD').toUpperCase()==='USD') gb=t; else tb=t;
         }
-        gercekGumruk += gb; gercekTse += tb;
+
+        // ─── KALAN BAKİYE = SADECE BEKLEYEN + ÇIKAN ÖDEMESİZ ─────────
+        // Ödenmiş borç ve onun karşılığı tahsilatı saymayacağız
+        if(h.odendi !== true) {
+            gercekGumruk += gb;
+            gercekTse += tb;
+        }
 
         let sasi = (h.sasi || '').trim().toUpperCase();
         
@@ -4817,6 +4846,18 @@ window.renderCariTable = function() {
     if(document.getElementById('cari-bakiye')) {
         document.getElementById('cari-bakiye').innerText = bakiyeText || '0';
         document.getElementById('cari-bakiye').style.color = (gercekGumruk>=0 && gercekTse>=0) ? 'var(--success)' : 'var(--danger)';
+    }
+
+    // Bakiye Özet Kartı güncelle
+    let ozetKart = document.getElementById('cari-bakiye-ozet');
+    if(ozetKart) {
+        ozetKart.style.display = 'block';
+        let firmaEl = document.getElementById('cari-bakiye-firma');
+        let eurEl   = document.getElementById('cari-bakiye-eur');
+        let tryEl   = document.getElementById('cari-bakiye-try');
+        if(firmaEl) firmaEl.textContent = firma;
+        if(eurEl)   eurEl.textContent = window.formatNumber(gercekGumruk, true) + ' €';
+        if(tryEl)   tryEl.textContent = window.formatNumber(gercekTse, true) + ' ₺';
     }
 
     let rows = Object.values(gruplanmisVeri).map(function(item) {
@@ -5776,132 +5817,135 @@ window.cariTabloPDF = function() {
     let meta = window.firmMeta[firma] || {};
     let vergiNo = meta.vergiNo || meta.tcNo || '-';
     
-    // ===== KATI ALGORİTMA: BELLEKTE GRUPLAMA (PDF İÇİN DE) =====
-    // ADIM 1: Boş gruplama objesi oluştur
-    const gruplanmisVeri = {};
-    
-    // ADIM 2: Ham veriyi forEach ile dön
-    hareketler.forEach(function(h, idx) {
-        // ADIM 3: Benzersiz anahtar oluştur (Tarih + Şasi veya Tarih + Temizlenmiş Araç Adı)
-        let tarih = h.tarih || '-';
-        let sasi = (h.sasi || '').trim().toUpperCase();
-        
-        // Araç adını temizle (TSE HİZMETİ, GÜMRÜK HİZMETİ gibi ekleri kaldır)
+    // ===== HESAPLAMA: Borçlar (+), Tahsilatlar (-), Kalan =====
+    let toplamBorcEur = 0, toplamBorcTry = 0;
+    let toplamAlinanEur = 0, toplamAlinanTry = 0;
+
+    // Satırlar — Borç ve Tahsilat'ı AYRI listeler
+    let borcRows = '';
+    let tahsilatRows = '';
+    let borcSayac = 0, tahsilatSayac = 0;
+
+    hareketler.forEach(function(h) {
         let temizAciklama = (h.aciklama || '')
             .replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '')
             .replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '')
             .replace(/\s*H[İI]ZMET[İI]\s*/gi, '')
-            .trim();
-        
-        // Benzersiz anahtar: Tarih + Şasi (veya Tarih + Temizlenmiş Araç Adı)
-        let anahtar;
-        if(sasi && sasi.length > 0) {
-            anahtar = tarih + '|' + sasi;
-        } else {
-            anahtar = tarih + '|' + temizAciklama.toUpperCase();
-        }
-        
-        // ADIM 4: Grup oluştur (yoksa)
-        if(!gruplanmisVeri[anahtar]) {
-            gruplanmisVeri[anahtar] = {
-                tarih: tarih,
-                aciklama: temizAciklama || h.aciklama || '-',
-                sasi: sasi,
-                gumrukTutari: '-',
-                tseTutari: '-',
-                orijinalIndexler: []
-            };
-        }
-        
-        // ADIM 5: Değerleri aynı objede birleştir
-        // Tutar Euro (€) hizmetine aitse
-        if(h.gumrukBedeli && parseFloat(h.gumrukBedeli) > 0) {
-            gruplanmisVeri[anahtar].gumrukTutari = parseFloat(h.gumrukBedeli) || 0;
-        }
-        // Tutar TL (₺) (TSE) hizmetine aitse
-        if(h.tseBedeli && parseFloat(h.tseBedeli) > 0) {
-            gruplanmisVeri[anahtar].tseTutari = parseFloat(h.tseBedeli) || 0;
-        }
+            .trim() || (h.aciklama || '-');
+        let sasi = (h.sasi || '').trim().toUpperCase();
+        let aciklamaPDF = temizAciklama;
+        if(sasi && sasi.length > 6) aciklamaPDF += ' (...' + sasi.slice(-6) + ')';
+
+        let gb = parseFloat(h.gumrukBedeli) || 0;
+        let tb = parseFloat(h.tseBedeli)    || 0;
         // Eski veri yapısı uyumluluğu
-        if(!h.gumrukBedeli && !h.tseBedeli && h.tutar) {
+        if(!gb && !tb && h.tutar) {
             let t = parseFloat(h.tutar) || 0;
+            if(h.tur === 'borc') t = -t;
             let b = (h.birim || 'EUR').toUpperCase();
-            if(b === 'EUR' || b === 'USD') {
-                gruplanmisVeri[anahtar].gumrukTutari = t;
-            } else {
-                gruplanmisVeri[anahtar].tseTutari = t;
-            }
+            if(b === 'EUR' || b === 'USD') gb = t; else tb = t;
         }
-        
-        // Orijinal indeksleri kaydet
-        gruplanmisVeri[anahtar].orijinalIndexler.push(idx);
+
+        let isTahsilat = h.isTahsilat === true || gb < 0 || tb < 0;
+
+        if(isTahsilat) {
+            // ── TAHSİLAT (Alınan) ──
+            tahsilatSayac++;
+            let eMin = gb < 0 ? Math.abs(gb) : 0;
+            let tMin = tb < 0 ? Math.abs(tb) : 0;
+            toplamAlinanEur += eMin;
+            toplamAlinanTry += tMin;
+            let eShow = eMin > 0 ? '<span style="font-weight:700;color:#059669;">−' + window.formatNumber(eMin,true) + ' €</span>' : '-';
+            let tShow = tMin > 0 ? '<span style="font-weight:700;color:#059669;">−' + window.formatNumber(tMin,true) + ' ₺</span>' : '-';
+            tahsilatRows += '<tr style="background:rgba(16,185,129,.05);">' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ tahsilatSayac +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ (h.tarih||'-') +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;color:#059669;">✅ '+ aciklamaPDF +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ eShow +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ tShow +'</td>' +
+            '</tr>';
+        } else {
+            // ── BORÇ ──
+            borcSayac++;
+            toplamBorcEur += gb;
+            toplamBorcTry += tb;
+            let eShow = gb > 0 ? '<span style="font-weight:700;color:#1e40af;">+'+ window.formatNumber(gb,true) +' €</span>' : '-';
+            let tShow = tb > 0 ? '<span style="font-weight:700;color:#b45309;">+'+ window.formatNumber(tb,true) +' ₺</span>' : '-';
+            borcRows += '<tr>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ borcSayac +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ (h.tarih||'-') +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+ aciklamaPDF +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ eShow +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ tShow +'</td>' +
+            '</tr>';
+        }
     });
-    
-    // ADIM 6: Gruplanmış veriden toplam hesapla (PDF İÇİN)
-    let toplamGumruk = 0, toplamTse = 0;
-    Object.values(gruplanmisVeri).forEach(function(item) {
-        if(item.gumrukTutari !== '-' && item.gumrukTutari > 0) toplamGumruk += item.gumrukTutari;
-        if(item.tseTutari !== '-' && item.tseTutari > 0) toplamTse += item.tseTutari;
-    });
-    
-    let bakiyeText = '';
-    if(toplamGumruk !== 0) bakiyeText += window.formatNumber(toplamGumruk, true) + ' €';
-    if(toplamTse !== 0) bakiyeText += (bakiyeText ? ' | ' : '') + window.formatNumber(toplamTse, true) + ' ₺';
-    if(!bakiyeText) bakiyeText = '0';
-    
-    // ADIM 7: Ekrana çizim (TEK SATIR - PDF İÇİN)
-    let rows = '';
-    Object.values(gruplanmisVeri).forEach(function(item, i) {
-        let gumrukDeger = '-';
-        let tseDeger = '-';
-        
-        if(item.gumrukTutari !== '-' && item.gumrukTutari > 0) {
-            gumrukDeger = '<span style="font-weight:700;color:#10b981;">+'+window.formatNumber(item.gumrukTutari,true)+' €</span>';
-        }
-        if(item.tseTutari !== '-' && item.tseTutari > 0) {
-            tseDeger = '<span style="font-weight:700;color:#10b981;">+'+window.formatNumber(item.tseTutari,true)+' ₺</span>';
-        }
-        
-        // PDF'te de şasi son 6 hane göster
-        let aciklamaPDF = item.aciklama;
-        if(item.sasi && item.sasi.length > 6) {
-            aciklamaPDF += ' (...' + item.sasi.slice(-6) + ')';
-        }
-        
-        rows += '<tr>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;">'+(i+1)+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;">'+item.tarih+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+aciklamaPDF+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+gumrukDeger+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+tseDeger+'</td>' +
-        '</tr>';
-    });
-    
+
+    // Kalan hesabı
+    let kalanEur = toplamBorcEur - toplamAlinanEur;
+    let kalanTry = toplamBorcTry - toplamAlinanTry;
+
+    let fmt = (v, sembol) => window.formatNumber(v, true) + ' ' + sembol;
+
+    // Tahsilat satırlarındaki ✅ işaretini kaldır (kurumsal)
+    let tahsilatRowsClean = tahsilatRows.replace(/✅\s/g, '');
+    let borcRowsClean     = borcRows;
+
     div.innerHTML = `
-        <div style="text-align:center;margin-bottom:20px;">
-            <h1 style="color:#1e3a8a;font-size:20px;margin:0 0 5px;">CARİ HESAP DÖKÜMÜ</h1>
-            <h2 style="color:#3b82f6;font-size:14px;margin:0;border-bottom:2px solid #3b82f6;padding-bottom:8px;">${firma}</h2>
-            <p style="font-size:11px;color:#666;margin-top:6px;">Tarih: ${tarih} | VKN/TC: ${vergiNo} | Toplam ${hareketler.length} Hareket</p>
+        <div style="text-align:center;margin-bottom:22px;border-bottom:2px solid #1e3a8a;padding-bottom:14px;">
+            <h1 style="color:#1e3a8a;font-size:22px;margin:0 0 6px;letter-spacing:1px;">CARİ HESAP DÖKÜMÜ</h1>
+            <h2 style="color:#475569;font-size:14px;margin:0;font-weight:600;">${firma}</h2>
+            <p style="font-size:11px;color:#64748b;margin-top:6px;">Tarih: ${tarih} &nbsp;&nbsp;|&nbsp;&nbsp; VKN/TC: ${vergiNo}</p>
         </div>
-        
-        <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:11px;">
+
+        ${borcSayac > 0 ? `
+        <h3 style="color:#1e40af;font-size:13px;margin:10px 0 6px;padding:8px 12px;background:#f1f5f9;border-left:3px solid #1e40af;letter-spacing:.5px;font-weight:700;">CARİ HAREKETLERİ</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10.5px;">
             <tr style="background:#f1f5f9;">
-                <th style="padding:8px;border:1px solid #ddd;width:30px;">#</th>
-                <th style="padding:8px;border:1px solid #ddd;width:80px;">Tarih</th>
-                <th style="padding:8px;border:1px solid #ddd;">Açıklama/Araç</th>
-                <th style="padding:8px;border:1px solid #ddd;text-align:right;color:#10b981;">Gümrük Hizmeti (€)</th>
-                <th style="padding:8px;border:1px solid #ddd;text-align:right;color:#10b981;">TSE Hizmeti (₺)</th>
+                <th style="padding:7px;border:1px solid #ddd;width:28px;">#</th>
+                <th style="padding:7px;border:1px solid #ddd;width:75px;">Tarih</th>
+                <th style="padding:7px;border:1px solid #ddd;">Açıklama / Araç</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:right;color:#1e40af;width:110px;">Gümrük (€)</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:right;color:#b45309;width:110px;">TSE (₺)</th>
             </tr>
-            ${rows}
+            ${borcRowsClean}
+        </table>` : ''}
+
+        ${tahsilatSayac > 0 ? `
+        <h3 style="color:#059669;font-size:13px;margin:14px 0 6px;padding:8px 12px;background:#f0fdf4;border-left:3px solid #059669;letter-spacing:.5px;font-weight:700;">ALINAN ÖDEMELER</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10.5px;">
+            <tr style="background:#f1f5f9;">
+                <th style="padding:7px;border:1px solid #ddd;width:28px;">#</th>
+                <th style="padding:7px;border:1px solid #ddd;width:75px;">Tarih</th>
+                <th style="padding:7px;border:1px solid #ddd;">Açıklama</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:right;color:#059669;width:110px;">Gümrük (€)</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:right;color:#059669;width:110px;">TSE (₺)</th>
+            </tr>
+            ${tahsilatRowsClean}
+        </table>` : ''}
+
+        <table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">
+            <tr style="background:#1e40af;color:#fff;">
+                <th style="padding:10px;border:1px solid #1e40af;text-align:left;letter-spacing:.5px;">ÖZET</th>
+                <th style="padding:10px;border:1px solid #1e40af;text-align:right;width:140px;">Gümrük (€)</th>
+                <th style="padding:10px;border:1px solid #1e40af;text-align:right;width:140px;">TSE (₺)</th>
+            </tr>
+            <tr>
+                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#1e40af;">TOPLAM BORÇ</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#1e40af;font-size:13px;">${fmt(toplamBorcEur, '€')}</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#b45309;font-size:13px;">${fmt(toplamBorcTry, '₺')}</td>
+            </tr>
+            <tr style="background:#f0fdf4;">
+                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#059669;">ALINAN ÖDEME</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#059669;font-size:13px;">${toplamAlinanEur > 0 ? '− ' : ''}${fmt(toplamAlinanEur, '€')}</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#059669;font-size:13px;">${toplamAlinanTry > 0 ? '− ' : ''}${fmt(toplamAlinanTry, '₺')}</td>
+            </tr>
+            <tr style="background:#fef3c7;">
+                <td style="padding:14px 12px;border:2px solid #b45309;font-weight:800;color:#92400e;font-size:14px;letter-spacing:.5px;">KALAN BAKİYE</td>
+                <td style="padding:14px 12px;border:2px solid #b45309;text-align:right;font-weight:900;color:${kalanEur > 0 ? '#dc2626' : '#059669'};font-size:16px;">${fmt(kalanEur, '€')}</td>
+                <td style="padding:14px 12px;border:2px solid #b45309;text-align:right;font-weight:900;color:${kalanTry > 0 ? '#dc2626' : '#059669'};font-size:16px;">${fmt(kalanTry, '₺')}</td>
+            </tr>
         </table>
-        
-        <div style="background:linear-gradient(135deg,#10b981,#059669);padding:15px 20px;border-radius:8px;margin-bottom:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="color:#fff;font-size:14px;font-weight:700;">TOPLAM ALACAK</span>
-                <strong style="color:#fff;font-size:20px;">${bakiyeText}</strong>
-            </div>
-        </div>
-        
     `;
     
     document.body.appendChild(div);
@@ -5932,13 +5976,34 @@ window.cariSeciliPDF = function() {
     if(!checked.length) { alert('En az bir hareket seçin!'); return; }
     
     let hareketler = [];
+    let secilenIdxler = new Set();
     checked.forEach(function(cb) {
         let idx = parseInt(cb.value);
+        secilenIdxler.add(idx);
         let h = window.cariData[firma][idx];
         if(h) hareketler.push(h);
     });
-    
+
     if(!hareketler.length) return;
+
+    // ── TAHSİLATLARI OTOMATİK EKLE ─────────────────────────────────
+    // Seçilen satırlar arasında zaten tahsilat var mı kontrol et
+    let seciliTahsilatVar = hareketler.some(h => h.isTahsilat === true);
+
+    // Eğer kullanıcı tahsilat seçmediyse, firmaya ait TÜM tahsilatları ekle
+    if(!seciliTahsilatVar) {
+        (window.cariData[firma] || []).forEach(function(h, idx) {
+            if(!h) return;
+            if(secilenIdxler.has(idx)) return; // zaten seçilmiş
+            // Tahsilat satırı mı?
+            let gb = parseFloat(h.gumrukBedeli) || 0;
+            let tb = parseFloat(h.tseBedeli)    || 0;
+            let isTahsilat = h.isTahsilat === true || gb < 0 || tb < 0;
+            if(isTahsilat) {
+                hareketler.push(h);
+            }
+        });
+    }
     
     // PDF oluştur
     let div = document.createElement('div');
@@ -5948,92 +6013,127 @@ window.cariSeciliPDF = function() {
     let meta = window.firmMeta[firma] || {};
     let vergiNo = meta.vergiNo || meta.tcNo || '-';
     
-    // Yeni veri yapısına göre hesapla
-    let toplamGumruk=0, toplamTse=0;
+    // ===== Borç + Tahsilat AYRI hesapla =====
+    let toplamBorcEur = 0, toplamBorcTry = 0;
+    let toplamAlinanEur = 0, toplamAlinanTry = 0;
+    let borcRows = '', tahsilatRows = '';
+    let borcSayac = 0, tahsilatSayac = 0;
+
     hareketler.forEach(function(h) {
-        if(h.gumrukBedeli) toplamGumruk += parseFloat(h.gumrukBedeli)||0;
-        if(h.tseBedeli) toplamTse += parseFloat(h.tseBedeli)||0;
-        // Eski veri yapısı uyumluluğu
-        if(!h.gumrukBedeli && !h.tseBedeli && h.tutar) {
-            let t=parseFloat(h.tutar)||0;
-            let b=(h.birim||'EUR').toUpperCase();
-            if(b==='EUR'||b==='USD') toplamGumruk+=t;
-            else toplamTse+=t;
-        }
-    });
-    
-    let bakiyeText = '';
-    if(toplamGumruk!==0) bakiyeText += window.formatNumber(toplamGumruk,true)+' €';
-    if(toplamTse!==0) bakiyeText += (bakiyeText?' | ':'')+window.formatNumber(toplamTse,true)+' ₺';
-    if(!bakiyeText) bakiyeText = '0';
-    
-    // Tablo satırları
-    let rows = '';
-    hareketler.forEach(function(h, i) {
-        let gumrukDeger = '-';
-        let tseDeger = '-';
-        
-        // Yeni veri yapısı
-        if(h.gumrukBedeli && parseFloat(h.gumrukBedeli)>0) {
-            gumrukDeger = '<span style="font-weight:700;color:#10b981;">+'+window.formatNumber(parseFloat(h.gumrukBedeli),true)+' €</span>';
-        }
-        if(h.tseBedeli && parseFloat(h.tseBedeli)>0) {
-            tseDeger = '<span style="font-weight:700;color:#10b981;">+'+window.formatNumber(parseFloat(h.tseBedeli),true)+' ₺</span>';
-        }
-        
-        // Eski veri yapısı uyumluluğu
-        if(!h.gumrukBedeli && !h.tseBedeli && h.tutar) {
+        let temizAciklama = (h.aciklama || '')
+            .replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '')
+            .replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '')
+            .replace(/\s*H[İI]ZMET[İI]\s*/gi, '')
+            .trim() || (h.aciklama || '-');
+        let sasi = (h.sasi || '').trim().toUpperCase();
+        let aciklamaPDF = temizAciklama;
+        if(sasi && sasi.length > 6) aciklamaPDF += ' (...' + sasi.slice(-6) + ')';
+
+        let gb = parseFloat(h.gumrukBedeli) || 0;
+        let tb = parseFloat(h.tseBedeli)    || 0;
+        if(!gb && !tb && h.tutar) {
             let t = parseFloat(h.tutar) || 0;
+            if(h.tur === 'borc') t = -t;
             let b = (h.birim || 'EUR').toUpperCase();
-            let renk = h.tur === 'borc' ? '#ef4444' : '#10b981';
-            let isaret = h.tur === 'borc' ? '-' : '+';
-            if(b === 'EUR' || b === 'USD') {
-                gumrukDeger = '<span style="font-weight:700;color:'+renk+';">'+isaret+window.formatNumber(t,true)+' '+(b==='EUR'?'€':'$')+'</span>';
-            } else {
-                tseDeger = '<span style="font-weight:700;color:'+renk+';">'+isaret+window.formatNumber(t,true)+' ₺</span>';
-            }
+            if(b === 'EUR' || b === 'USD') gb = t; else tb = t;
         }
-        
-        // 🔥 ŞASİ NUMARASINI AÇIKLAMAYA EKLEME MOTORU (SON 6 HANE) 🔥
-        let aciklamaGosterim = h.aciklama || '-';
-        if(h.sasi && h.sasi.length > 6) {
-            aciklamaGosterim += ' (...'+ h.sasi.slice(-6) +')';
-        } else if (h.sasi) {
-            aciklamaGosterim += ' ('+ h.sasi +')'; // Eğer şasi çok kısaysa tamamını yaz
+
+        let isTahsilat = h.isTahsilat === true || gb < 0 || tb < 0;
+
+        if(isTahsilat) {
+            tahsilatSayac++;
+            let eMin = gb < 0 ? Math.abs(gb) : 0;
+            let tMin = tb < 0 ? Math.abs(tb) : 0;
+            toplamAlinanEur += eMin;
+            toplamAlinanTry += tMin;
+            let eShow = eMin > 0 ? '<span style="font-weight:700;color:#059669;">−'+ window.formatNumber(eMin,true) +' €</span>' : '-';
+            let tShow = tMin > 0 ? '<span style="font-weight:700;color:#059669;">−'+ window.formatNumber(tMin,true) +' ₺</span>' : '-';
+            tahsilatRows += '<tr style="background:rgba(16,185,129,.05);">' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ tahsilatSayac +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ (h.tarih||'-') +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;color:#059669;">✅ '+ aciklamaPDF +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ eShow +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ tShow +'</td>' +
+            '</tr>';
+        } else {
+            borcSayac++;
+            toplamBorcEur += gb;
+            toplamBorcTry += tb;
+            let eShow = gb > 0 ? '<span style="font-weight:700;color:#1e40af;">+'+ window.formatNumber(gb,true) +' €</span>' : '-';
+            let tShow = tb > 0 ? '<span style="font-weight:700;color:#b45309;">+'+ window.formatNumber(tb,true) +' ₺</span>' : '-';
+            borcRows += '<tr>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ borcSayac +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ (h.tarih||'-') +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+ aciklamaPDF +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ eShow +'</td>' +
+                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ tShow +'</td>' +
+            '</tr>';
         }
-        
-        rows += '<tr>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;">'+(h.tarih||'-')+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+aciklamaGosterim+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+gumrukDeger+'</td>' +
-            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+tseDeger+'</td>' +
-        '</tr>';
     });
-    
+
+    let kalanEur = toplamBorcEur - toplamAlinanEur;
+    let kalanTry = toplamBorcTry - toplamAlinanTry;
+    let fmt = (v, sembol) => window.formatNumber(v, true) + ' ' + sembol;
+
+    // Tahsilat satırlarındaki ✅ işaretini kaldır (kurumsal görünüm)
+    let tahsilatRowsClean = tahsilatRows.replace(/✅\s/g, '');
+    let borcRowsClean     = borcRows;
+
     div.innerHTML = `
-        <div style="text-align:center;margin-bottom:20px;">
-            <h1 style="color:#1e3a8a;font-size:20px;margin:0 0 5px;">CARİ EKSTRE</h1>
-            <h2 style="color:#3b82f6;font-size:14px;margin:0;border-bottom:2px solid #3b82f6;padding-bottom:8px;">${firma}</h2>
-            <p style="font-size:11px;color:#666;margin-top:6px;">Tarih: ${tarih} | VKN/TC: ${vergiNo}</p>
+        <div style="text-align:center;margin-bottom:22px;border-bottom:2px solid #1e3a8a;padding-bottom:14px;">
+            <h1 style="color:#1e3a8a;font-size:22px;margin:0 0 6px;letter-spacing:1px;">CARİ EKSTRE</h1>
+            <h2 style="color:#475569;font-size:14px;margin:0;font-weight:600;">${firma}</h2>
+            <p style="font-size:11px;color:#64748b;margin-top:6px;">Tarih: ${tarih} &nbsp;&nbsp;|&nbsp;&nbsp; VKN/TC: ${vergiNo}</p>
         </div>
-        
-        <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:11px;">
+
+        ${borcSayac > 0 ? `
+        <h3 style="color:#1e40af;font-size:13px;margin:10px 0 6px;padding:8px 12px;background:#f1f5f9;border-left:3px solid #1e40af;letter-spacing:.5px;font-weight:700;">CARİ HAREKETLERİ</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10.5px;">
             <tr style="background:#f1f5f9;">
-                <th style="padding:8px;border:1px solid #ddd;">Tarih</th>
-                <th style="padding:8px;border:1px solid #ddd;">Açıklama/Araç</th>
-                <th style="padding:8px;border:1px solid #ddd;text-align:right;color:#10b981;">Gümrük Hizmeti (€)</th>
-                <th style="padding:8px;border:1px solid #ddd;text-align:right;color:#10b981;">TSE Hizmeti (₺)</th>
+                <th style="padding:7px;border:1px solid #ddd;width:28px;">#</th>
+                <th style="padding:7px;border:1px solid #ddd;width:75px;">Tarih</th>
+                <th style="padding:7px;border:1px solid #ddd;">Açıklama / Araç</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:right;color:#1e40af;width:110px;">Gümrük (€)</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:right;color:#b45309;width:110px;">TSE (₺)</th>
             </tr>
-            ${rows}
+            ${borcRowsClean}
+        </table>` : ''}
+
+        ${tahsilatSayac > 0 ? `
+        <h3 style="color:#059669;font-size:13px;margin:14px 0 6px;padding:8px 12px;background:#f0fdf4;border-left:3px solid #059669;letter-spacing:.5px;font-weight:700;">ALINAN ÖDEMELER</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10.5px;">
+            <tr style="background:#f1f5f9;">
+                <th style="padding:7px;border:1px solid #ddd;width:28px;">#</th>
+                <th style="padding:7px;border:1px solid #ddd;width:75px;">Tarih</th>
+                <th style="padding:7px;border:1px solid #ddd;">Açıklama</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:right;color:#059669;width:110px;">Gümrük (€)</th>
+                <th style="padding:7px;border:1px solid #ddd;text-align:right;color:#059669;width:110px;">TSE (₺)</th>
+            </tr>
+            ${tahsilatRowsClean}
+        </table>` : ''}
+
+        <table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">
+            <tr style="background:#1e40af;color:#fff;">
+                <th style="padding:10px;border:1px solid #1e40af;text-align:left;letter-spacing:.5px;">ÖZET</th>
+                <th style="padding:10px;border:1px solid #1e40af;text-align:right;width:140px;">Gümrük (€)</th>
+                <th style="padding:10px;border:1px solid #1e40af;text-align:right;width:140px;">TSE (₺)</th>
+            </tr>
+            <tr>
+                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#1e40af;">TOPLAM BORÇ</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#1e40af;font-size:13px;">${fmt(toplamBorcEur, '€')}</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#b45309;font-size:13px;">${fmt(toplamBorcTry, '₺')}</td>
+            </tr>
+            <tr style="background:#f0fdf4;">
+                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#059669;">ALINAN ÖDEME</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#059669;font-size:13px;">${toplamAlinanEur > 0 ? '− ' : ''}${fmt(toplamAlinanEur, '€')}</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#059669;font-size:13px;">${toplamAlinanTry > 0 ? '− ' : ''}${fmt(toplamAlinanTry, '₺')}</td>
+            </tr>
+            <tr style="background:#fef3c7;">
+                <td style="padding:14px 12px;border:2px solid #b45309;font-weight:800;color:#92400e;font-size:14px;letter-spacing:.5px;">KALAN BAKİYE</td>
+                <td style="padding:14px 12px;border:2px solid #b45309;text-align:right;font-weight:900;color:${kalanEur > 0 ? '#dc2626' : '#059669'};font-size:16px;">${fmt(kalanEur, '€')}</td>
+                <td style="padding:14px 12px;border:2px solid #b45309;text-align:right;font-weight:900;color:${kalanTry > 0 ? '#dc2626' : '#059669'};font-size:16px;">${fmt(kalanTry, '₺')}</td>
+            </tr>
         </table>
-        
-        <div style="background:linear-gradient(135deg,#10b981,#059669);padding:15px 20px;border-radius:8px;margin-bottom:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="color:#fff;font-size:14px;font-weight:700;">TOPLAM</span>
-                <strong style="color:#fff;font-size:20px;">${bakiyeText}</strong>
-            </div>
-        </div>
-        
     `;
     
     document.body.appendChild(div);
@@ -14550,6 +14650,209 @@ window.otomatikCariEkle = function(firma, marka, model, sasi) {
         saveCariData();
     }
 };
+// ═══════════════════════════════════════════════════════════════════
+//  KISMI TAHSİLAT — Manuel tutar gir, kalan otomatik hesaplanır
+// ═══════════════════════════════════════════════════════════════════
+window.cariTahsilatModal = function() {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) { alert('Önce bir firma seçin!'); return; }
+
+    // Mevcut bakiyeyi hesapla
+    let hareketler = window.cariData[firma] || [];
+    let bakiyeEur = 0, bakiyeTry = 0;
+    hareketler.forEach(h => {
+        let gb = parseFloat(h.gumrukBedeli) || 0;
+        let tb = parseFloat(h.tseBedeli) || 0;
+        if(!gb && !tb && h.tutar) {
+            let t = parseFloat(h.tutar) || 0; if(h.tur === 'borc') t = -t;
+            let b = (h.birim || 'EUR').toUpperCase();
+            if(b === 'EUR' || b === 'USD') gb = t; else tb = t;
+        }
+        bakiyeEur += gb;
+        bakiyeTry += tb;
+    });
+
+    // Modal oluştur
+    let modal = document.createElement('div');
+    modal.id = 'cari-tahsilat-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);';
+
+    modal.innerHTML = `
+    <div style="background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;width:90%;max-width:480px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.6);">
+
+        <!-- Header -->
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#10b981,#059669);">
+            <div>
+                <h3 style="margin:0;color:#fff;font-size:18px;font-weight:800;">💰 Tahsilat Al</h3>
+                <p style="margin:4px 0 0;color:rgba(255,255,255,.85);font-size:12px;">${firma}</p>
+            </div>
+            <button onclick="document.getElementById('cari-tahsilat-modal').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;">×</button>
+        </div>
+
+        <!-- Mevcut Bakiye Özeti -->
+        <div style="padding:14px 24px;background:rgba(120,140,170,.08);border-bottom:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:.5px;margin-bottom:6px;">MEVCUT BAKİYE</div>
+            <div style="display:flex;gap:20px;">
+                <div>
+                    <div style="font-size:10px;color:var(--text-muted);">Gümrük (€)</div>
+                    <div style="font-size:18px;font-weight:800;color:${bakiyeEur > 0 ? 'var(--primary)' : 'var(--success)'};">${window.formatNumber(bakiyeEur, true)} €</div>
+                </div>
+                <div>
+                    <div style="font-size:10px;color:var(--text-muted);">TSE (₺)</div>
+                    <div style="font-size:18px;font-weight:800;color:${bakiyeTry > 0 ? 'var(--warning)' : 'var(--success)'};">${window.formatNumber(bakiyeTry, true)} ₺</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div style="padding:20px 24px;">
+
+            <!-- Para Birimi Seçimi -->
+            <label style="display:block;color:var(--text-secondary);font-size:12px;margin-bottom:8px;font-weight:700;">💱 Para Birimi</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+                <button type="button" id="th-birim-eur" onclick="window._thBirimSec('EUR')" style="padding:14px;background:linear-gradient(135deg,#3b82f6,#1e40af);color:#fff;border:2px solid #3b82f6;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;">€ EURO (Gümrük)</button>
+                <button type="button" id="th-birim-try" onclick="window._thBirimSec('TRY')" style="padding:14px;background:var(--bg-elevated);color:var(--text-secondary);border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;">₺ LİRA (TSE)</button>
+            </div>
+
+            <!-- Tahsilat Tutarı -->
+            <label style="display:block;color:var(--text-secondary);font-size:12px;margin-bottom:8px;font-weight:700;">💵 Tahsil Edilen Tutar</label>
+            <div style="position:relative;margin-bottom:18px;">
+                <input id="th-tutar" type="number" step="0.01" placeholder="0.00" style="width:100%;padding:16px 50px 16px 16px;background:var(--bg-elevated);border:2px solid var(--border);border-radius:12px;color:var(--text-primary);font-size:22px;font-weight:800;box-sizing:border-box;">
+                <span id="th-birim-isaret" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);color:var(--primary);font-size:22px;font-weight:800;">€</span>
+            </div>
+
+            <!-- Hızlı Tutarlar -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+                <button type="button" onclick="window._thHizliTutar(100)" style="padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;">100</button>
+                <button type="button" onclick="window._thHizliTutar(500)" style="padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;">500</button>
+                <button type="button" onclick="window._thHizliTutar(1000)" style="padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;">1.000</button>
+                <button type="button" onclick="window._thHizliTutar(5000)" style="padding:6px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;">5.000</button>
+                <button type="button" onclick="window._thHizliTutar('bakiye')" style="padding:6px 12px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">💯 Tüm Bakiye</button>
+            </div>
+
+            <!-- Açıklama -->
+            <label style="display:block;color:var(--text-secondary);font-size:12px;margin-bottom:8px;font-weight:700;">📝 Açıklama (opsiyonel)</label>
+            <input id="th-aciklama" type="text" placeholder="Banka havalesi / Nakit / Çek vb." style="width:100%;padding:12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:14px;box-sizing:border-box;margin-bottom:18px;">
+
+            <!-- Kalan Önizleme -->
+            <div id="th-onizleme" style="display:none;background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(16,185,129,.05));border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:12px 16px;margin-bottom:18px;">
+                <div style="font-size:11px;color:var(--success);font-weight:700;letter-spacing:.5px;margin-bottom:4px;">📊 İŞLEM SONRASI KALAN</div>
+                <div id="th-onizleme-deger" style="font-size:20px;font-weight:800;color:var(--text-primary);"></div>
+            </div>
+        </div>
+
+        <!-- Butonlar -->
+        <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:12px;background:var(--bg-elevated);">
+            <button onclick="document.getElementById('cari-tahsilat-modal').remove()" style="flex:1;padding:14px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;">İPTAL</button>
+            <button onclick="window._thKaydet()" style="flex:2;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;box-shadow:0 4px 15px rgba(16,185,129,.35);">✅ TAHSİLAT KAYDET</button>
+        </div>
+    </div>`;
+
+    document.body.appendChild(modal);
+
+    // State
+    window._thSecimBirim = 'EUR';
+    window._thBakiyeEur = bakiyeEur;
+    window._thBakiyeTry = bakiyeTry;
+    window._thSecimBakiye = bakiyeEur;
+
+    // Tutar değişince önizleme güncelle
+    document.getElementById('th-tutar')?.addEventListener('input', window._thOnizlemeGuncelle);
+
+    // Backdrop tıklama → kapat
+    modal.addEventListener('click', function(e) {
+        if(e.target === modal) modal.remove();
+    });
+
+    if(window.lucide) lucide.createIcons();
+};
+
+window._thBirimSec = function(birim) {
+    window._thSecimBirim = birim;
+    let eurBtn = document.getElementById('th-birim-eur');
+    let tryBtn = document.getElementById('th-birim-try');
+    let isaret = document.getElementById('th-birim-isaret');
+    if(birim === 'EUR') {
+        eurBtn.style.cssText = 'padding:14px;background:linear-gradient(135deg,#3b82f6,#1e40af);color:#fff;border:2px solid #3b82f6;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;';
+        tryBtn.style.cssText = 'padding:14px;background:var(--bg-elevated);color:var(--text-secondary);border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;';
+        isaret.textContent = '€';
+        isaret.style.color = 'var(--primary)';
+        window._thSecimBakiye = window._thBakiyeEur;
+    } else {
+        tryBtn.style.cssText = 'padding:14px;background:linear-gradient(135deg,#f59e0b,#b45309);color:#fff;border:2px solid #f59e0b;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;';
+        eurBtn.style.cssText = 'padding:14px;background:var(--bg-elevated);color:var(--text-secondary);border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;';
+        isaret.textContent = '₺';
+        isaret.style.color = 'var(--warning)';
+        window._thSecimBakiye = window._thBakiyeTry;
+    }
+    window._thOnizlemeGuncelle();
+};
+
+window._thHizliTutar = function(val) {
+    let inp = document.getElementById('th-tutar');
+    if(val === 'bakiye') {
+        inp.value = window._thSecimBakiye;
+    } else {
+        inp.value = val;
+    }
+    window._thOnizlemeGuncelle();
+};
+
+window._thOnizlemeGuncelle = function() {
+    let tutar = parseFloat(document.getElementById('th-tutar')?.value) || 0;
+    let kalan = window._thSecimBakiye - tutar;
+    let oniz = document.getElementById('th-onizleme');
+    let onizDeger = document.getElementById('th-onizleme-deger');
+    if(tutar > 0) {
+        oniz.style.display = 'block';
+        let sembol = window._thSecimBirim === 'EUR' ? '€' : '₺';
+        let renk = kalan > 0 ? 'var(--warning)' : (kalan < 0 ? 'var(--danger)' : 'var(--success)');
+        onizDeger.style.color = renk;
+        onizDeger.innerHTML = `${window.formatNumber(kalan, true)} ${sembol} ${kalan === 0 ? '✅ KAPANDI' : kalan < 0 ? '⚠️ FAZLA ÖDEME' : 'kalacak'}`;
+    } else {
+        oniz.style.display = 'none';
+    }
+};
+
+window._thKaydet = function() {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) return;
+
+    let tutar = parseFloat(document.getElementById('th-tutar')?.value) || 0;
+    if(tutar <= 0) { alert('Geçerli bir tutar girin!'); return; }
+
+    let aciklama = document.getElementById('th-aciklama')?.value.trim() || 'Tahsilat';
+    let birim = window._thSecimBirim;
+
+    if(!window.cariData[firma]) window.cariData[firma] = [];
+
+    let yeniKayit = {
+        tarih: window.formatTRDate(new Date()),
+        aciklama: 'Tahsilat - ' + aciklama,
+        sasi: '',
+        gumrukBedeli: birim === 'EUR' ? -tutar : 0,
+        tseBedeli: birim === 'TRY' ? -tutar : 0,
+        tur: 'borc',
+        isTahsilat: true,
+        odendi: false
+    };
+
+    window.cariData[firma].unshift(yeniKayit);
+
+    if(typeof saveCariData === 'function') saveCariData();
+    if(typeof saveData === 'function') saveData('cari');
+
+    document.getElementById('cari-tahsilat-modal')?.remove();
+    window.renderCariTable();
+
+    let sembol = birim === 'EUR' ? '€' : '₺';
+    if(typeof window.showToast === 'function') {
+        window.showToast(`✅ ${window.formatNumber(tutar, true)} ${sembol} tahsilat kaydedildi`, 'success');
+    } else if(typeof showSyncToast === 'function') {
+        showSyncToast(`Tahsilat alındı: ${tutar} ${sembol}`, true);
+    }
+};
+
 // --- AKILLI TAHSİLAT: ÖDEME ALMA FONKSİYONU ---
 window.cariOdemeyiAl = function(indexlerStr) {
     let firma = document.getElementById('cari-firma-sec')?.value;
@@ -14584,6 +14887,7 @@ window.cariOdemeyiAl = function(indexlerStr) {
     });
 
     // Otomatik "Eksi Bakiye (Tahsilat)" satırı oluştur!
+    // odendi:true → bakiye hesabında sayılmaz (ödenmiş borçla birlikte düşer)
     window.cariData[firma].unshift({
         tarih: window.formatTRDate(new Date()),
         aciklama: 'Tahsilat - ' + aciklamaBase,
@@ -14591,7 +14895,8 @@ window.cariOdemeyiAl = function(indexlerStr) {
         gumrukBedeli: toplamGumruk > 0 ? -toplamGumruk : 0,
         tseBedeli: toplamTse > 0 ? -toplamTse : 0,
         tur: 'borc',
-        isTahsilat: true
+        isTahsilat: true,
+        odendi: true
     });
 
     saveCariData();
