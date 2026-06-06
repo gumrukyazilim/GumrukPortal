@@ -33,6 +33,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         // KRİTİK: gelecekData'yi en başta boş dizi olarak başlat (undefined çökmesini önler)
         window.gelecekData = [];
@@ -2255,6 +2256,236 @@ div[style*="position: relative"] > input {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   📊 ANALİZ DASHBOARD STİLLERİ
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Dönem butonları */
+.analiz-period {
+    padding: 8px 14px;
+    border-radius: 22px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+}
+.analiz-period:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.analiz-period.active {
+    background: linear-gradient(135deg, #3b82f6, #1e40af);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(59,130,246,.35);
+}
+
+/* KPI Kartı */
+.analiz-kpi {
+    border-radius: 18px;
+    padding: 18px 20px;
+    color: #fff;
+    box-shadow: 0 6px 24px rgba(0,0,0,.18);
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s;
+    cursor: pointer;
+}
+.analiz-kpi:hover { transform: translateY(-3px); }
+.analiz-kpi::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.1);
+}
+.analiz-kpi-lbl {
+    font-size: 10.5px;
+    font-weight: 700;
+    opacity: .85;
+    letter-spacing: .8px;
+    margin-bottom: 6px;
+}
+.analiz-kpi-val {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+    line-height: 1.1;
+}
+.analiz-kpi-sub {
+    font-size: 10.5px;
+    opacity: .75;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* Firma satırı */
+.firma-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    cursor: pointer;
+    transition: opacity .2s;
+}
+.firma-row:hover { opacity: .8; }
+.firma-rank {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #3b82f6, #1e40af);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.firma-rank.r2 { background: linear-gradient(135deg,#a855f7,#7e22ce); }
+.firma-rank.r3 { background: linear-gradient(135deg,#f59e0b,#b45309); }
+.firma-rank.r4, .firma-rank.r5 { background: var(--bg-hover); color: var(--text-secondary); }
+.firma-info { flex: 1; min-width: 0; }
+.firma-name {
+    font-size: 13px; font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.firma-bar-wrap {
+    margin-top: 4px;
+    height: 6px;
+    background: var(--bg-hover);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.firma-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #a855f7);
+    border-radius: 3px;
+    transition: width .6s ease;
+}
+.firma-stats {
+    text-align: right;
+    flex-shrink: 0;
+}
+.firma-count {
+    font-size: 15px; font-weight: 800;
+    color: var(--text-primary);
+}
+.firma-change {
+    font-size: 10.5px; font-weight: 700;
+    margin-top: 2px;
+}
+.firma-change.up { color: var(--success); }
+.firma-change.down { color: var(--danger); }
+
+/* Heatmap hücresi */
+.heat-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: rgba(120,140,170,.1);
+    position: relative;
+    cursor: pointer;
+    transition: transform .15s;
+}
+.heat-cell:hover { transform: scale(1.15); }
+.heat-cell.lvl1 { background: rgba(59,130,246,.25); }
+.heat-cell.lvl2 { background: rgba(59,130,246,.5); }
+.heat-cell.lvl3 { background: rgba(59,130,246,.75); }
+.heat-cell.lvl4 { background: rgba(59,130,246,1); }
+
+/* Funnel */
+.funnel-step {
+    display: flex; align-items: center; gap: 12px;
+}
+.funnel-bar {
+    flex: 1;
+    height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px;
+    color: #fff;
+    font-size: 12px; font-weight: 700;
+    transition: all .3s;
+}
+.funnel-step:nth-child(1) .funnel-bar { background: linear-gradient(90deg,#3b82f6,#1e40af); }
+.funnel-step:nth-child(2) .funnel-bar { background: linear-gradient(90deg,#06b6d4,#0e7490); }
+.funnel-step:nth-child(3) .funnel-bar { background: linear-gradient(90deg,#10b981,#047857); }
+.funnel-step:nth-child(4) .funnel-bar { background: linear-gradient(90deg,#f59e0b,#b45309); }
+.funnel-step:nth-child(5) .funnel-bar { background: linear-gradient(90deg,#a855f7,#7e22ce); }
+
+/* Rekor satırı */
+.rekor-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,.08);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.1);
+}
+.rekor-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.rekor-info { flex: 1; min-width: 0; }
+.rekor-lbl {
+    font-size: 10.5px; font-weight: 600;
+    color: rgba(255,255,255,.7);
+    letter-spacing: .3px;
+}
+.rekor-val {
+    font-size: 13px; font-weight: 700;
+    color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+/* Uyarı bandı */
+.analiz-uyari {
+    background: linear-gradient(135deg, rgba(239,68,68,.12), rgba(245,158,11,.08));
+    border: 1px solid rgba(239,68,68,.3);
+    border-left: 4px solid var(--danger);
+    border-radius: 12px;
+    padding: 12px 18px;
+    color: var(--text-primary);
+    font-size: 13.5px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+}
+
+/* Detay tablo */
+#detay-tablo th, #detay-tablo td {
+    padding: 9px 12px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+#detay-tablo th {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: .5px;
+}
+#detay-tablo td.firma-cell {
+    text-align: left;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+#detay-tablo td.total-cell {
+    font-weight: 800;
+    color: var(--primary);
+    background: rgba(59,130,246,.05);
+}
+
+@media (max-width: 768px) {
+    .fade-in > div[style*="grid-template-columns:1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
 /* ── ŞASİ NUMARASI — Okunakli, Büyük, Monospace ────────────────────── */
 .sasi-no {
   font-family: 'Courier New', 'Consolas', 'SF Mono', monospace !important;
@@ -2356,6 +2587,7 @@ div[style*="position: relative"] > input {
         <nav class="sidebar-nav">
             <div class="sidebar-section-label">Genel Bakış</div>
             <button class="nav-btn active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Sistem Özeti</span></button>
+            <button class="nav-btn admin-only" data-view="analiz"><i data-lucide="bar-chart-3"></i><span>📊 Analiz Dashboard</span></button>
             
             <div class="sidebar-section-label" style="margin-top:8px;">Yönetim</div>
             <button class="nav-btn" data-view="declarations"><i data-lucide="car"></i><span>Gelen Araçlar</span></button>
@@ -3298,6 +3530,167 @@ div[style*="position: relative"] > input {
         </div>
     </div>
 </template>
+<template id="tpl-analiz">
+    <div class="page-hdr fade-in">
+        <div>
+            <div class="page-eyebrow">İŞ ZEKASI</div>
+            <h1 class="page-title">📊 Analiz Dashboard</h1>
+            <p class="page-sub">Firma, marka, dönem bazlı detaylı analiz ve raporlar</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn-sm" onclick="window.analizPdf()" style="background:var(--danger);color:#fff;border:none;"><i data-lucide="file-down"></i> PDF</button>
+        </div>
+    </div>
+
+    <!-- ZAMAN FİLTRESİ -->
+    <div class="fade-in" style="margin-bottom:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;padding:14px 18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+        <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-right:8px;">📅 DÖNEM:</span>
+        <button class="analiz-period active" data-period="hafta" onclick="window.analizSetPeriod('hafta')">Bu Hafta</button>
+        <button class="analiz-period" data-period="ay" onclick="window.analizSetPeriod('ay')">Bu Ay</button>
+        <button class="analiz-period" data-period="gecenAy" onclick="window.analizSetPeriod('gecenAy')">Geçen Ay</button>
+        <button class="analiz-period" data-period="3ay" onclick="window.analizSetPeriod('3ay')">Son 3 Ay</button>
+        <button class="analiz-period" data-period="6ay" onclick="window.analizSetPeriod('6ay')">Son 6 Ay</button>
+        <button class="analiz-period" data-period="yil" onclick="window.analizSetPeriod('yil')">Son 12 Ay</button>
+        <button class="analiz-period" data-period="tumu" onclick="window.analizSetPeriod('tumu')">Tümü</button>
+        <div style="flex:1;"></div>
+        <span id="analiz-donem-info" style="font-size:12px;color:var(--text-muted);"></span>
+    </div>
+
+    <!-- UYARILAR BANDI -->
+    <div id="analiz-uyarilar" class="fade-in" style="display:none;margin-bottom:18px;"></div>
+
+    <!-- KPI KARTLARI -->
+    <div class="fade-in" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px;">
+        <div class="analiz-kpi" style="background:linear-gradient(135deg,#3b82f6,#1e40af);">
+            <div class="analiz-kpi-lbl">GELEN ARAÇ</div>
+            <div class="analiz-kpi-val" id="kpi-gelen">0</div>
+            <div class="analiz-kpi-sub" id="kpi-gelen-sub">- önceki dönem</div>
+        </div>
+        <div class="analiz-kpi" style="background:linear-gradient(135deg,#10b981,#047857);">
+            <div class="analiz-kpi-lbl">ÇEKİLEN ARAÇ</div>
+            <div class="analiz-kpi-val" id="kpi-cekilen">0</div>
+            <div class="analiz-kpi-sub" id="kpi-cekilen-sub">- tamamlanan</div>
+        </div>
+        <div class="analiz-kpi" style="background:linear-gradient(135deg,#f59e0b,#b45309);">
+            <div class="analiz-kpi-lbl">BEKLEYEN</div>
+            <div class="analiz-kpi-val" id="kpi-bekleyen">0</div>
+            <div class="analiz-kpi-sub" id="kpi-bekleyen-sub">- açık dosya</div>
+        </div>
+        <div class="analiz-kpi" style="background:linear-gradient(135deg,#a855f7,#7e22ce);">
+            <div class="analiz-kpi-lbl">TOPLAM FATURA (€)</div>
+            <div class="analiz-kpi-val" id="kpi-fatura">0</div>
+            <div class="analiz-kpi-sub" id="kpi-fatura-sub">- dönem cirosu</div>
+        </div>
+        <div class="analiz-kpi" style="background:linear-gradient(135deg,#06b6d4,#0e7490);">
+            <div class="analiz-kpi-lbl">ORT. İŞLEM SÜRESİ</div>
+            <div class="analiz-kpi-val" id="kpi-ortSure">0</div>
+            <div class="analiz-kpi-sub">gün — geliş > çekiş</div>
+        </div>
+        <div class="analiz-kpi" style="background:linear-gradient(135deg,#ef4444,#991b1b);">
+            <div class="analiz-kpi-lbl">RİSKLİ ARAÇ</div>
+            <div class="analiz-kpi-val" id="kpi-riskli">0</div>
+            <div class="analiz-kpi-sub">≤ 5 gün kalan</div>
+        </div>
+    </div>
+
+    <!-- AYLIK TREND GRAFİĞİ -->
+    <div class="fade-in" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div>
+                <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">TREND</div>
+                <h3 id="trend-baslik" style="font-size:16px;font-weight:700;margin:2px 0 0;">📈 Aylık Hareket Grafiği</h3>
+            </div>
+        </div>
+        <div style="position:relative;height:280px;">
+            <canvas id="chart-trend"></canvas>
+        </div>
+    </div>
+
+    <!-- FİRMA VE MARKA -->
+    <div class="fade-in" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+        <!-- Firma Sıralaması -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">FİRMA BAZLI</div>
+                <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">🏢 Firma Sıralaması</h3>
+            </div>
+            <div id="firma-siralama" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <!-- Marka Dağılımı -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">MARKA BAZLI</div>
+                <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">🚙 Marka Dağılımı</h3>
+            </div>
+            <div style="position:relative;height:260px;">
+                <canvas id="chart-marka"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- HAFTALIK HEATMAP + ÜLKE DAĞILIMI -->
+    <div class="fade-in" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+        <!-- Haftalık Aktivite -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">AKTİVİTE</div>
+                <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">🗓️ Haftalık Aktivite Haritası</h3>
+            </div>
+            <div id="heatmap-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:10px;color:var(--text-muted);">
+                <span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Pzr</span>
+            </div>
+        </div>
+
+        <!-- Ülke / Menşei -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">MENŞEİ</div>
+                <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">🌍 Bölgesel Dağılım</h3>
+            </div>
+            <div style="position:relative;height:260px;">
+                <canvas id="chart-bolge"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- SÜREÇ FUNNEL + REKORLAR -->
+    <div class="fade-in" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+        <!-- Süreç Funnel -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">SÜREÇ</div>
+                <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">⚡ Süreç Performans Hunisi</h3>
+            </div>
+            <div id="funnel-area" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <!-- Rekorlar -->
+        <div style="background:linear-gradient(135deg,#1e3a8a,#7e22ce);border:1px solid var(--border);border-radius:16px;padding:20px;color:#fff;">
+            <div style="margin-bottom:16px;">
+                <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.6px;">REKORLAR</div>
+                <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">🏆 Dikkat Çekici İstatistikler</h3>
+            </div>
+            <div id="rekor-area" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+    </div>
+
+    <!-- AYLIK FİRMA × ARAÇ DETAY TABLOSU -->
+    <div class="fade-in" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px;">
+        <div style="margin-bottom:14px;">
+            <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">DETAY</div>
+            <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">📋 Aylık Firma Detayı (Son 6 Ay)</h3>
+        </div>
+        <div style="overflow:auto;">
+            <table id="detay-tablo" style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead><tr id="detay-head" style="background:rgba(120,140,170,.1);"></tr></thead>
+                <tbody id="detay-body"></tbody>
+            </table>
+        </div>
+    </div>
+</template>
+
 <template id="tpl-cariKart">
     <div class="page-hdr fade-in">
         <div><div class="page-eyebrow">Finans</div><h1 class="page-title">Cari Kart</h1></div>
@@ -6155,6 +6548,700 @@ window.cariSeciliPDF = function() {
         alert("PDF hatası: " + err.message);
     });
 };
+
+// ═══════════════════════════════════════════════════════════════════
+//  📊 ANALİZ DASHBOARD MOTORU
+// ═══════════════════════════════════════════════════════════════════
+window._analizPeriod = 'hafta';
+window._analizCharts = {};
+
+window.analizSetPeriod = function(p) {
+    window._analizPeriod = p;
+    document.querySelectorAll('.analiz-period').forEach(b => {
+        b.classList.toggle('active', b.dataset.period === p);
+    });
+    window.analizRender();
+};
+
+// Tarih yardımcıları
+window._parsTR = function(s) {
+    if(!s) return null;
+    let p = String(s).split('.');
+    if(p.length === 3) return new Date(+p[2], +p[1] - 1, +p[0]);
+    return null;
+};
+
+window._periodRange = function(period) {
+    let now = new Date(); now.setHours(0,0,0,0);
+    let baslangic, bitis;
+    bitis = new Date(now); bitis.setHours(23,59,59,999);
+
+    if(period === 'hafta') {
+        baslangic = new Date(now);
+        let day = baslangic.getDay() || 7;
+        baslangic.setDate(baslangic.getDate() - (day - 1));
+    } else if(period === 'ay') {
+        baslangic = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if(period === 'gecenAy') {
+        baslangic = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        bitis = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    } else if(period === '3ay') {
+        baslangic = new Date(now); baslangic.setMonth(baslangic.getMonth() - 3);
+    } else if(period === '6ay') {
+        baslangic = new Date(now); baslangic.setMonth(baslangic.getMonth() - 6);
+    } else if(period === 'yil') {
+        baslangic = new Date(now); baslangic.setMonth(baslangic.getMonth() - 12);
+    } else { // tumu
+        baslangic = new Date(2000, 0, 1);
+    }
+    return { baslangic, bitis };
+};
+
+window._periodLabel = function(period) {
+    const map = {
+        'hafta': 'Bu Hafta',
+        'ay': 'Bu Ay',
+        'gecenAy': 'Geçen Ay',
+        '3ay': 'Son 3 Ay',
+        '6ay': 'Son 6 Ay',
+        'yil': 'Son 12 Ay',
+        'tumu': 'Tüm Zamanlar'
+    };
+    return map[period] || period;
+};
+
+window.analizRender = function() {
+    if(typeof Chart === 'undefined') {
+        console.warn('Chart.js yüklü değil, 500ms sonra dene');
+        setTimeout(window.analizRender, 500);
+        return;
+    }
+
+    let { baslangic, bitis } = window._periodRange(window._analizPeriod);
+    let prevRange = (function(){
+        let len = bitis - baslangic;
+        let pb = new Date(baslangic.getTime() - len);
+        let pe = new Date(baslangic.getTime() - 1);
+        return { baslangic: pb, bitis: pe };
+    })();
+
+    let donemEl = document.getElementById('analiz-donem-info');
+    if(donemEl) {
+        let fmt = d => d.toLocaleDateString('tr-TR');
+        donemEl.textContent = window._periodLabel(window._analizPeriod) + ' — ' + fmt(baslangic) + ' / ' + fmt(bitis);
+    }
+
+    let data = window.declarationsData || [];
+
+    // Dönem filtresi
+    let donemAraclari = data.filter(d => {
+        if(!d || !d.tarih) return false;
+        let dt = window._parsTR(d.tarih);
+        if(!dt) return false;
+        return dt >= baslangic && dt <= bitis;
+    });
+    let oncekiAraclar = data.filter(d => {
+        if(!d || !d.tarih) return false;
+        let dt = window._parsTR(d.tarih);
+        if(!dt) return false;
+        return dt >= prevRange.baslangic && dt <= prevRange.bitis;
+    });
+
+    // ═══════ KPI HESABI ═══════
+    let gelen = donemAraclari.length;
+    let oncekiGelen = oncekiAraclar.length;
+    let cekilen = donemAraclari.filter(d => (d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')).length;
+    let bekleyen = donemAraclari.filter(d => !((d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal'))).length;
+
+    let toplamFatura = donemAraclari.reduce((s, d) => {
+        let f = parseFloat(String(d.fatura||'').replace(/\./g,'').replace(',','.')) || 0;
+        return s + f;
+    }, 0);
+
+    // Ortalama işlem süresi
+    let sureler = [];
+    donemAraclari.forEach(d => {
+        if((d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal') && d.tarih && d.kiymGt) {
+            let a = window._parsTR(d.tarih);
+            let b = window._parsTR(d.kiymGt);
+            if(a && b) sureler.push((b - a) / 86400000);
+        }
+    });
+    let ortSure = sureler.length ? Math.round(sureler.reduce((s,v) => s + v, 0) / sureler.length) : 0;
+
+    // Riskli araçlar
+    let riskli = 0;
+    let bugun = new Date(); bugun.setHours(0,0,0,0);
+    data.forEach(d => {
+        if(!d || !d.tarih) return;
+        if((d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')) return;
+        if(window.calculateVehicleMetrics) {
+            let m = window.calculateVehicleMetrics(d);
+            if(m && typeof m.klnGun === 'number' && m.klnGun <= 5) riskli++;
+        }
+    });
+
+    // KPI render
+    let set = (id, v) => { let e = document.getElementById(id); if(e) e.textContent = v; };
+    set('kpi-gelen', gelen);
+    let degisim = oncekiGelen > 0 ? Math.round(((gelen - oncekiGelen) / oncekiGelen) * 100) : 0;
+    let degisimIco = gelen > oncekiGelen ? '↗' : (gelen < oncekiGelen ? '↘' : '→');
+    set('kpi-gelen-sub', oncekiGelen + ' önceki dönem ' + degisimIco + ' %' + Math.abs(degisim));
+    set('kpi-cekilen', cekilen);
+    set('kpi-cekilen-sub', '%' + (gelen ? Math.round((cekilen/gelen)*100) : 0) + ' tamamlanma');
+    set('kpi-bekleyen', bekleyen);
+    set('kpi-bekleyen-sub', '%' + (gelen ? Math.round((bekleyen/gelen)*100) : 0) + ' açık');
+    set('kpi-fatura', toplamFatura.toLocaleString('tr-TR', {maximumFractionDigits:0}));
+    set('kpi-fatura-sub', gelen ? '~' + Math.round(toplamFatura/gelen).toLocaleString('tr-TR') + ' €/araç' : '-');
+    set('kpi-ortSure', ortSure);
+    set('kpi-riskli', riskli);
+
+    // ═══════ UYARILAR ═══════
+    let uyariBox = document.getElementById('analiz-uyarilar');
+    if(uyariBox) {
+        let uyarilar = [];
+        if(riskli > 0) uyarilar.push('⚠️ <strong>' + riskli + ' araç</strong> 5 günden az kaldı — acil işlem gerekli');
+
+        let cikanOdemesiz = 0;
+        let cikanOdemesizMiktar = 0;
+        Object.keys(window.cariData || {}).forEach(firma => {
+            (window.cariData[firma] || []).forEach(h => {
+                if(h.odendi || h.isTahsilat) return;
+                let sasi = (h.sasi||'').toUpperCase();
+                let arac = data.find(d => d.sasi && d.sasi.toUpperCase() === sasi);
+                if(arac && (arac.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')) {
+                    cikanOdemesiz++;
+                    cikanOdemesizMiktar += parseFloat(h.gumrukBedeli) || 0;
+                }
+            });
+        });
+        if(cikanOdemesiz > 0) {
+            uyarilar.push('🚨 <strong>' + cikanOdemesiz + ' araç</strong> çıkış yaptı ama ödeme alınmadı (yaklaşık ' + Math.round(cikanOdemesizMiktar).toLocaleString('tr-TR') + ' €)');
+        }
+
+        uyariBox.innerHTML = uyarilar.map(u => '<div class="analiz-uyari">' + u + '</div>').join('');
+        uyariBox.style.display = uyarilar.length > 0 ? 'block' : 'none';
+    }
+
+    // ═══════ TREND GRAFİĞİ (Dönem Seçimine Göre Dinamik) ═══════
+    let trendLabels = [];
+    let trendGelen = [];
+    let trendCekilen = [];
+    let trendBekleyen = [];
+    let trendBaslik = '';
+
+    // Dönem türüne göre dilim seç (gün/hafta/ay)
+    let period = window._analizPeriod;
+    let dilimler = [];
+
+    if(period === 'hafta') {
+        // Son 7 gün — günlük
+        trendBaslik = 'Günlük Hareket (Bu Hafta)';
+        for(let i = 6; i >= 0; i--) {
+            let g = new Date(); g.setHours(0,0,0,0); g.setDate(g.getDate() - i);
+            let gSonu = new Date(g); gSonu.setHours(23,59,59,999);
+            dilimler.push({ baslangic: g, bitis: gSonu, label: g.toLocaleDateString('tr-TR',{day:'2-digit',month:'short'}) });
+        }
+    } else if(period === 'ay' || period === 'gecenAy') {
+        // 30 gün — haftalık dilim
+        trendBaslik = 'Haftalık Hareket (' + window._periodLabel(period) + ')';
+        let basla = (period === 'ay')
+            ? new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+            : new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+        let bit = (period === 'ay')
+            ? new Date()
+            : new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59);
+        // Haftalara böl
+        let cur = new Date(basla);
+        let hafta = 1;
+        while(cur <= bit) {
+            let haftaSonu = new Date(cur); haftaSonu.setDate(cur.getDate() + 6); haftaSonu.setHours(23,59,59,999);
+            if(haftaSonu > bit) haftaSonu = new Date(bit);
+            dilimler.push({ baslangic: new Date(cur), bitis: haftaSonu, label: cur.getDate() + '-' + haftaSonu.getDate() + ' ' + cur.toLocaleDateString('tr-TR',{month:'short'}) });
+            cur.setDate(cur.getDate() + 7);
+            hafta++;
+        }
+    } else if(period === '3ay') {
+        // Son 12 hafta — haftalık
+        trendBaslik = 'Haftalık Hareket (Son 3 Ay)';
+        let basla = new Date(); basla.setDate(basla.getDate() - 12*7);
+        for(let i = 0; i < 12; i++) {
+            let g = new Date(basla); g.setDate(basla.getDate() + i*7);
+            let gSonu = new Date(g); gSonu.setDate(g.getDate() + 6); gSonu.setHours(23,59,59,999);
+            dilimler.push({ baslangic: g, bitis: gSonu, label: g.toLocaleDateString('tr-TR',{day:'2-digit',month:'short'}) });
+        }
+    } else if(period === '6ay') {
+        // Son 6 ay — aylık
+        trendBaslik = 'Aylık Hareket (Son 6 Ay)';
+        for(let i = 5; i >= 0; i--) {
+            let ay = new Date(); ay.setDate(1); ay.setMonth(ay.getMonth() - i); ay.setHours(0,0,0,0);
+            let aySonu = new Date(ay.getFullYear(), ay.getMonth() + 1, 0, 23, 59, 59);
+            dilimler.push({ baslangic: ay, bitis: aySonu, label: ay.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}) });
+        }
+    } else if(period === 'yil') {
+        // Son 12 ay — aylık
+        trendBaslik = 'Aylık Hareket (Son 12 Ay)';
+        for(let i = 11; i >= 0; i--) {
+            let ay = new Date(); ay.setDate(1); ay.setMonth(ay.getMonth() - i); ay.setHours(0,0,0,0);
+            let aySonu = new Date(ay.getFullYear(), ay.getMonth() + 1, 0, 23, 59, 59);
+            dilimler.push({ baslangic: ay, bitis: aySonu, label: ay.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}) });
+        }
+    } else { // tumu
+        // Tüm veri — aylık
+        trendBaslik = 'Aylık Hareket (Tüm Zamanlar)';
+        let enEski = data.reduce((min, d) => {
+            if(!d.tarih) return min;
+            let dt = window._parsTR(d.tarih);
+            if(!dt) return min;
+            return (!min || dt < min) ? dt : min;
+        }, null);
+        if(!enEski) enEski = new Date(); enEski.setDate(1);
+        let bugAy = new Date(); bugAy.setDate(1);
+        let cur = new Date(enEski.getFullYear(), enEski.getMonth(), 1);
+        while(cur <= bugAy) {
+            let aySonu = new Date(cur.getFullYear(), cur.getMonth() + 1, 0, 23, 59, 59);
+            dilimler.push({ baslangic: new Date(cur), bitis: aySonu, label: cur.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}) });
+            cur.setMonth(cur.getMonth() + 1);
+        }
+        // 24 ay üzerine çıkıyorsa son 24'le sınırla
+        if(dilimler.length > 24) dilimler = dilimler.slice(-24);
+    }
+
+    // Dilimleri doldur
+    dilimler.forEach(dil => {
+        let donemAraclar = data.filter(d => {
+            if(!d.tarih) return false;
+            let dt = window._parsTR(d.tarih);
+            return dt && dt >= dil.baslangic && dt <= dil.bitis;
+        });
+        trendLabels.push(dil.label);
+        trendGelen.push(donemAraclar.length);
+        trendCekilen.push(donemAraclar.filter(d => (d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')).length);
+        trendBekleyen.push(donemAraclar.filter(d => !(d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')).length);
+    });
+
+    // Başlığı güncelle
+    let trendBaslikEl = document.getElementById('trend-baslik');
+    if(trendBaslikEl) trendBaslikEl.textContent = '📈 ' + trendBaslik;
+
+    let trendCtx = document.getElementById('chart-trend');
+    if(trendCtx) {
+        if(window._analizCharts.trend) window._analizCharts.trend.destroy();
+        window._analizCharts.trend = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [
+                    { label:'Gelen', data:trendGelen, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.1)', tension:.4, fill:true, borderWidth:3 },
+                    { label:'Çekilen', data:trendCekilen, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.08)', tension:.4, fill:true, borderWidth:3 },
+                    { label:'Bekleyen', data:trendBekleyen, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.08)', tension:.4, fill:true, borderWidth:3 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels:{ color:getComputedStyle(document.body).getPropertyValue('--text-primary'), font:{size:12,weight:700} } } },
+                scales: {
+                    x: { grid:{color:'rgba(120,140,170,.1)'}, ticks:{color:getComputedStyle(document.body).getPropertyValue('--text-muted')} },
+                    y: { grid:{color:'rgba(120,140,170,.1)'}, ticks:{color:getComputedStyle(document.body).getPropertyValue('--text-muted')}, beginAtZero:true }
+                }
+            }
+        });
+    }
+
+    // ═══════ FİRMA SIRALAMASI ═══════
+    let firmaMap = {};
+    let firmaPrev = {};
+    donemAraclari.forEach(d => {
+        let f = d.firma || 'Bilinmiyor';
+        firmaMap[f] = (firmaMap[f] || 0) + 1;
+    });
+    oncekiAraclar.forEach(d => {
+        let f = d.firma || 'Bilinmiyor';
+        firmaPrev[f] = (firmaPrev[f] || 0) + 1;
+    });
+
+    let firmaSiralama = document.getElementById('firma-siralama');
+    if(firmaSiralama) {
+        let firmalar = Object.entries(firmaMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
+        let maxCount = firmalar[0] ? firmalar[0][1] : 1;
+        if(firmalar.length === 0) {
+            firmaSiralama.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:13px;">Bu dönemde veri yok</div>';
+        } else {
+            firmaSiralama.innerHTML = firmalar.map(([f, c], i) => {
+                let prev = firmaPrev[f] || 0;
+                let degisim = prev > 0 ? Math.round(((c - prev)/prev)*100) : (c > 0 ? 100 : 0);
+                let degClass = degisim > 0 ? 'up' : (degisim < 0 ? 'down' : '');
+                let degIco = degisim > 0 ? '↗' : (degisim < 0 ? '↘' : '→');
+                let pct = (c / maxCount) * 100;
+                return '<div class="firma-row">' +
+                    '<div class="firma-rank ' + (i===1?'r2':i===2?'r3':i>2?'r4':'') + '">' + (i+1) + '</div>' +
+                    '<div class="firma-info">' +
+                        '<div class="firma-name">' + f + '</div>' +
+                        '<div class="firma-bar-wrap"><div class="firma-bar" style="width:' + pct + '%"></div></div>' +
+                    '</div>' +
+                    '<div class="firma-stats">' +
+                        '<div class="firma-count">' + c + '</div>' +
+                        '<div class="firma-change ' + degClass + '">' + degIco + ' %' + Math.abs(degisim) + '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+    }
+
+    // ═══════ MARKA DAĞILIMI (Donut) ═══════
+    let markaMap = {};
+    donemAraclari.forEach(d => {
+        let m = (d.marka || 'Diğer').toUpperCase();
+        markaMap[m] = (markaMap[m] || 0) + 1;
+    });
+    let markaSir = Object.entries(markaMap).sort((a,b) => b[1] - a[1]);
+    let topMarka = markaSir.slice(0, 6);
+    let digerMarka = markaSir.slice(6).reduce((s, [,c]) => s + c, 0);
+    if(digerMarka > 0) topMarka.push(['DİĞER', digerMarka]);
+
+    let markaCtx = document.getElementById('chart-marka');
+    if(markaCtx) {
+        if(window._analizCharts.marka) window._analizCharts.marka.destroy();
+        let palette = ['#3b82f6','#a855f7','#10b981','#f59e0b','#ef4444','#06b6d4','#94a3b8'];
+        window._analizCharts.marka = new Chart(markaCtx, {
+            type: 'doughnut',
+            data: {
+                labels: topMarka.map(([m]) => m),
+                datasets: [{
+                    data: topMarka.map(([,c]) => c),
+                    backgroundColor: palette.slice(0, topMarka.length),
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: { legend: { position:'right', labels:{ color:getComputedStyle(document.body).getPropertyValue('--text-primary'), font:{size:11, weight:600}, padding:10, usePointStyle:true } } }
+            }
+        });
+    }
+
+    // ═══════ HAFTALIK HEATMAP (Son 8 hafta × 7 gün) — DETAYLI ═══════
+    let heatmap = document.getElementById('heatmap-grid');
+    if(heatmap) {
+        let now = new Date(); now.setHours(0,0,0,0);
+        let day = now.getDay() || 7;
+        let buHaftaPzt = new Date(now); buHaftaPzt.setDate(now.getDate() - (day - 1));
+        let basla = new Date(buHaftaPzt); basla.setDate(basla.getDate() - 7*7);
+
+        // Her gün için: gelen ve çekilen araçları topla
+        let gunDetay = {};
+        data.forEach(d => {
+            // Gelen (d.tarih = geliş tarihi)
+            if(d.tarih) {
+                let dt = window._parsTR(d.tarih);
+                if(dt && dt >= basla && dt <= now) {
+                    let key = dt.getFullYear() + '-' + dt.getMonth() + '-' + dt.getDate();
+                    if(!gunDetay[key]) gunDetay[key] = { gelen: [], cekilen: [] };
+                    gunDetay[key].gelen.push(d);
+                }
+            }
+            // Çekilen (kiymGt = çekiş tarihi varsa)
+            if(d.kiymGt && (d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')) {
+                let ct = window._parsTR(d.kiymGt);
+                if(ct && ct >= basla && ct <= now) {
+                    let key = ct.getFullYear() + '-' + ct.getMonth() + '-' + ct.getDate();
+                    if(!gunDetay[key]) gunDetay[key] = { gelen: [], cekilen: [] };
+                    gunDetay[key].cekilen.push(d);
+                }
+            }
+        });
+
+        let maxGun = Math.max(1, ...Object.values(gunDetay).map(g => g.gelen.length + g.cekilen.length));
+        let html = '';
+        for(let h = 0; h < 8; h++) {
+            for(let g = 0; g < 7; g++) {
+                let d = new Date(basla); d.setDate(d.getDate() + h * 7 + g);
+                let key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+                let detay = gunDetay[key] || { gelen:[], cekilen:[] };
+                let toplam = detay.gelen.length + detay.cekilen.length;
+                let lvl = toplam === 0 ? 0 : (toplam <= maxGun*0.25 ? 1 : toplam <= maxGun*0.5 ? 2 : toplam <= maxGun*0.75 ? 3 : 4);
+
+                // JSON encode et — popup için
+                let payload = encodeURIComponent(JSON.stringify({
+                    tarih: d.toLocaleDateString('tr-TR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'}),
+                    gelen: detay.gelen.map(a => ({firma:a.firma||'-', marka:a.marka||'', model:a.model||'', sasi:(a.sasi||'').slice(-6)})),
+                    cekilen: detay.cekilen.map(a => ({firma:a.firma||'-', marka:a.marka||'', model:a.model||'', sasi:(a.sasi||'').slice(-6)}))
+                }));
+
+                html += '<div class="heat-cell ' + (lvl ? 'lvl'+lvl : '') + '" data-payload="' + payload +
+                        '" onmouseenter="window.heatHover(event,this)" onmouseleave="window.heatHide()" onclick="window.heatHover(event,this)"></div>';
+            }
+        }
+        heatmap.innerHTML = html;
+    }
+
+    // ═══════ BÖLGE / ÜLKE ═══════
+    let bolgeMap = { 'AB (Avrupa)':0, 'Birleşik Krallık':0, 'ABD':0, 'Asya':0, 'Diğer':0 };
+    donemAraclari.forEach(d => {
+        if(window.getVehicleOrigin) {
+            let o = window.getVehicleOrigin(d.sasi, d.marka);
+            if(o === 'EU') bolgeMap['AB (Avrupa)']++;
+            else if(o === 'UK') bolgeMap['Birleşik Krallık']++;
+            else if(o === 'USA') bolgeMap['ABD']++;
+            else if(o === 'ASIA') bolgeMap['Asya']++;
+            else bolgeMap['Diğer']++;
+        } else {
+            bolgeMap['Diğer']++;
+        }
+    });
+
+    let bolgeCtx = document.getElementById('chart-bolge');
+    if(bolgeCtx) {
+        if(window._analizCharts.bolge) window._analizCharts.bolge.destroy();
+        let labels = Object.keys(bolgeMap).filter(k => bolgeMap[k] > 0);
+        let values = labels.map(k => bolgeMap[k]);
+        window._analizCharts.bolge = new Chart(bolgeCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Araç Sayısı',
+                    data: values,
+                    backgroundColor: ['#3b82f6','#a855f7','#ef4444','#f59e0b','#10b981'].slice(0, labels.length),
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid:{color:'rgba(120,140,170,.1)'}, ticks:{color:getComputedStyle(document.body).getPropertyValue('--text-muted')}, beginAtZero:true },
+                    y: { grid:{display:false}, ticks:{color:getComputedStyle(document.body).getPropertyValue('--text-primary'), font:{weight:700}} }
+                }
+            }
+        });
+    }
+
+    // ═══════ SÜREÇ FUNNEL ═══════
+    let funnel = document.getElementById('funnel-area');
+    if(funnel) {
+        let total = gelen || 1;
+        let tseTamam = donemAraclari.filter(d => d.evrakler && (d.evrakler.TSE === true || d.evrakler.TSE === 2)).length;
+        let beyVar = donemAraclari.filter(d => d.beyanname && d.beyanname !== 'undefined').length;
+        let kiymVar = donemAraclari.filter(d => d.kiymVv).length;
+        let kapali = cekilen;
+
+        let steps = [
+            {lbl:'GELEN', val:gelen},
+            {lbl:'TSE TAMAM', val:tseTamam},
+            {lbl:'BEYANNAME', val:beyVar},
+            {lbl:'KIYMETE VERİLDİ', val:kiymVar},
+            {lbl:'ÇEKİLDİ', val:kapali}
+        ];
+
+        funnel.innerHTML = steps.map(s => {
+            let pct = total > 0 ? Math.round((s.val/total)*100) : 0;
+            return '<div class="funnel-step">' +
+                '<div class="funnel-bar" style="width:' + Math.max(20, pct) + '%">' +
+                    '<span>' + s.lbl + '</span>' +
+                    '<span>' + s.val + ' (%' + pct + ')</span>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    // ═══════ REKORLAR ═══════
+    let rekor = document.getElementById('rekor-area');
+    if(rekor) {
+        // En hızlı çekilen
+        let hizliArac = null;
+        let hizliSure = Infinity;
+        donemAraclari.forEach(d => {
+            if((d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal') && d.tarih && d.kiymGt) {
+                let a = window._parsTR(d.tarih);
+                let b = window._parsTR(d.kiymGt);
+                if(a && b) {
+                    let s = Math.round((b-a)/86400000);
+                    if(s > 0 && s < hizliSure) { hizliSure = s; hizliArac = d; }
+                }
+            }
+        });
+
+        // En uzun bekleyen
+        let uzunArac = null;
+        let uzunSure = 0;
+        bugun.setHours(0,0,0,0);
+        donemAraclari.forEach(d => {
+            if(!(d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal') && d.tarih) {
+                let a = window._parsTR(d.tarih);
+                if(a) {
+                    let s = Math.round((bugun-a)/86400000);
+                    if(s > uzunSure) { uzunSure = s; uzunArac = d; }
+                }
+            }
+        });
+
+        // En çok marka
+        let cokMarka = markaSir[0];
+
+        // En karlı firma (fatura toplam)
+        let firmaFatura = {};
+        donemAraclari.forEach(d => {
+            let f = d.firma || 'Bilinmiyor';
+            let v = parseFloat(String(d.fatura||'').replace(/\./g,'').replace(',','.')) || 0;
+            firmaFatura[f] = (firmaFatura[f] || 0) + v;
+        });
+        let karli = Object.entries(firmaFatura).sort((a,b) => b[1] - a[1])[0];
+
+        let rekorlar = [];
+        if(hizliArac) rekorlar.push({ico:'⚡', lbl:'En Hızlı Çekilen', val:hizliArac.marka + ' ' + hizliArac.model + ' — ' + hizliSure + ' gün'});
+        if(uzunArac)  rekorlar.push({ico:'🐢', lbl:'En Uzun Bekleyen', val:uzunArac.marka + ' ' + uzunArac.model + ' — ' + uzunSure + ' gün'});
+        if(cokMarka)  rekorlar.push({ico:'🚙', lbl:'En Çok Marka', val:cokMarka[0] + ' (' + cokMarka[1] + ' araç)'});
+        if(karli)     rekorlar.push({ico:'💎', lbl:'En Karlı Firma', val:karli[0] + ' (' + Math.round(karli[1]).toLocaleString('tr-TR') + ' €)'});
+        rekorlar.push({ico:'📊', lbl:'Tamamlanma Oranı', val:'%' + (gelen ? Math.round((cekilen/gelen)*100) : 0) + ' (' + cekilen + '/' + gelen + ')'});
+
+        rekor.innerHTML = rekorlar.map(r =>
+            '<div class="rekor-row">' +
+                '<div class="rekor-icon">' + r.ico + '</div>' +
+                '<div class="rekor-info">' +
+                    '<div class="rekor-lbl">' + r.lbl + '</div>' +
+                    '<div class="rekor-val">' + r.val + '</div>' +
+                '</div>' +
+            '</div>'
+        ).join('');
+    }
+
+    // ═══════ AYLIK FİRMA × ARAÇ DETAYI (Son 6 Ay) ═══════
+    let detayHead = document.getElementById('detay-head');
+    let detayBody = document.getElementById('detay-body');
+    if(detayHead && detayBody) {
+        let aylar = [];
+        for(let i = 5; i >= 0; i--) {
+            let ay = new Date(); ay.setDate(1); ay.setMonth(ay.getMonth() - i);
+            aylar.push({ d:ay, lbl:ay.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}) });
+        }
+        detayHead.innerHTML = '<th style="text-align:left;">FİRMA</th>' +
+            aylar.map(a => '<th>' + a.lbl + '</th>').join('') +
+            '<th>TOPLAM</th>';
+
+        let firmaListesi = [...new Set(data.filter(d => d.firma).map(d => d.firma))];
+        let satirlar = '';
+        let aylikToplam = aylar.map(() => 0);
+        firmaListesi.forEach(f => {
+            let satirHtml = '<td class="firma-cell">' + f + '</td>';
+            let firmaToplam = 0;
+            aylar.forEach((a, i) => {
+                let aySonu = new Date(a.d.getFullYear(), a.d.getMonth() + 1, 0, 23, 59, 59);
+                let say = data.filter(d => {
+                    if(d.firma !== f || !d.tarih) return false;
+                    let dt = window._parsTR(d.tarih);
+                    return dt && dt >= a.d && dt <= aySonu;
+                }).length;
+                aylikToplam[i] += say;
+                firmaToplam += say;
+                satirHtml += '<td>' + (say > 0 ? '<strong>'+say+'</strong>' : '<span style="color:var(--text-muted);">-</span>') + '</td>';
+            });
+            satirHtml += '<td class="total-cell">' + firmaToplam + '</td>';
+            if(firmaToplam > 0) satirlar += '<tr>' + satirHtml + '</tr>';
+        });
+
+        // Toplam satırı
+        satirlar += '<tr style="background:rgba(59,130,246,.08);font-weight:800;">' +
+            '<td class="firma-cell">📊 TOPLAM</td>' +
+            aylikToplam.map(a => '<td style="color:var(--primary);"><strong>' + a + '</strong></td>').join('') +
+            '<td class="total-cell" style="font-size:14px;">' + aylikToplam.reduce((s,v) => s+v, 0) + '</td>' +
+        '</tr>';
+
+        detayBody.innerHTML = satirlar || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">Veri yok</td></tr>';
+    }
+
+    if(window.lucide) lucide.createIcons();
+};
+
+// Heatmap hücre popup
+window.heatHover = function(e, el) {
+    let payload;
+    try { payload = JSON.parse(decodeURIComponent(el.dataset.payload)); } catch(err) { return; }
+
+    let pop = document.getElementById('heat-popup');
+    if(!pop) {
+        pop = document.createElement('div');
+        pop.id = 'heat-popup';
+        pop.style.cssText = 'position:fixed;background:var(--bg-elevated);border:1px solid var(--border-active);border-radius:14px;padding:14px 16px;box-shadow:0 20px 60px rgba(0,0,0,.5);z-index:99999;min-width:260px;max-width:340px;font-size:12.5px;color:var(--text-primary);pointer-events:none;backdrop-filter:blur(20px);';
+        document.body.appendChild(pop);
+    }
+
+    let firmaGruplari = (liste) => {
+        let g = {};
+        liste.forEach(a => {
+            if(!g[a.firma]) g[a.firma] = [];
+            g[a.firma].push(a);
+        });
+        return g;
+    };
+
+    let renderFirmaListesi = (grup, renk) => {
+        let html = '';
+        Object.keys(grup).forEach(fn => {
+            html += '<div style="margin-bottom:8px;">';
+            html += '<div style="font-size:11px;font-weight:700;color:' + renk + ';letter-spacing:.3px;margin-bottom:3px;">' + fn + ' (' + grup[fn].length + ' araç)</div>';
+            grup[fn].forEach(a => {
+                html += '<div style="font-size:11.5px;padding:3px 0;color:var(--text-secondary);">• ' + a.marka + ' ' + a.model + ' <span style="font-family:monospace;color:var(--text-muted);font-size:10px;">…' + a.sasi + '</span></div>';
+            });
+            html += '</div>';
+        });
+        return html;
+    };
+
+    let icerik = '<div style="font-size:13px;font-weight:800;color:var(--text-primary);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);">📅 ' + payload.tarih + '</div>';
+
+    if(payload.gelen.length === 0 && payload.cekilen.length === 0) {
+        icerik += '<div style="text-align:center;padding:12px 0;color:var(--text-muted);font-style:italic;">Bu tarihte hareket yok</div>';
+    } else {
+        if(payload.gelen.length > 0) {
+            icerik += '<div style="font-size:11px;font-weight:700;color:#10b981;margin:8px 0 6px;letter-spacing:.5px;">🚗 GELEN (' + payload.gelen.length + ')</div>';
+            icerik += renderFirmaListesi(firmaGruplari(payload.gelen), '#10b981');
+        }
+        if(payload.cekilen.length > 0) {
+            icerik += '<div style="font-size:11px;font-weight:700;color:#3b82f6;margin:12px 0 6px;letter-spacing:.5px;">✅ ÇEKİLEN (' + payload.cekilen.length + ')</div>';
+            icerik += renderFirmaListesi(firmaGruplari(payload.cekilen), '#3b82f6');
+        }
+    }
+
+    pop.innerHTML = icerik;
+    pop.style.display = 'block';
+
+    // Pozisyonla (mouse'un yanı, ama ekran kenarına taşmasın)
+    let rect = el.getBoundingClientRect();
+    let popW = 320, popH = pop.offsetHeight;
+    let x = rect.right + 10;
+    let y = rect.top;
+    if(x + popW > window.innerWidth) x = rect.left - popW - 10;
+    if(y + popH > window.innerHeight) y = window.innerHeight - popH - 10;
+    if(y < 10) y = 10;
+    pop.style.left = x + 'px';
+    pop.style.top = y + 'px';
+};
+
+window.heatHide = function() {
+    let pop = document.getElementById('heat-popup');
+    if(pop) pop.style.display = 'none';
+};
+
+window.analizPdf = function() {
+    let area = document.querySelector('.view-area');
+    if(!area) return;
+    if(typeof showSyncToast === 'function') showSyncToast('Analiz PDF hazırlanıyor...');
+    let opt = {
+        margin: 8,
+        filename: 'Analiz_Dashboard_' + new Date().toISOString().slice(0,10) + '.pdf',
+        image: { type:'jpeg', quality:.95 },
+        html2canvas: { scale:2, useCORS:true, backgroundColor:'#0a0e1a' },
+        jsPDF: { unit:'mm', format:'a3', orientation:'portrait' }
+    };
+    html2pdf().set(opt).from(area).save().then(() => {
+        if(typeof hideSyncToast === 'function') hideSyncToast('Analiz PDF indirildi', true);
+    });
+};
+// ═══════════════════════════════════════════════════════════════════
 
 function saveCariData() {
     localStorage.setItem('gumrukCariData', JSON.stringify(window.cariData));
@@ -11332,6 +12419,11 @@ if(vn==='cariKart'){
 }
 if(vn==='gelecekAraclar'){
     window.renderGelecekTable();
+}
+if(vn==='analiz'){
+    setTimeout(function(){
+        if(window.analizRender) window.analizRender();
+    }, 150);
 }
 if(vn==='beyanname'){
     setTimeout(function(){
