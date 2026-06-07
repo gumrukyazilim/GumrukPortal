@@ -2494,6 +2494,30 @@ div[style*="position: relative"] > input {
   letter-spacing: 2px !important;
   color: var(--text-primary) !important;
 }
+
+/* ── TSE BUTONU PULSING ANİMASYONLAR ───────────────────────────── */
+@keyframes tse-pulse-red {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239,68,68,.6), 0 4px 14px rgba(239,68,68,.5);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 8px rgba(239,68,68,0), 0 6px 20px rgba(239,68,68,.7);
+  }
+}
+@keyframes tse-pulse-yellow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245,158,11,.7), 0 4px 16px rgba(245,158,11,.5);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 10px rgba(245,158,11,0), 0 6px 24px rgba(245,158,11,.8);
+  }
+}
+.tse-akilli-btn:hover { transform: scale(1.08) !important; }
+.tse-akilli-btn:active { transform: scale(.96) !important; }
 @media (max-width: 768px) {
   .sasi-no { font-size: 15px !important; letter-spacing: 1.2px !important; }
 }
@@ -7243,6 +7267,907 @@ window.analizPdf = function() {
 };
 // ═══════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════
+//  📤 TSE'ye Tek Araç Başvurusu (Egzoz PDF mail ile gönder)
+// ═══════════════════════════════════════════════════════════════════
+window.tseTekAracBasvuruYap = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) { alert('Araç bulunamadı'); return; }
+
+    if(!arac.sasi || arac.sasi.length !== 17) {
+        alert('⚠️ Şasi 17 hane olmalı'); return;
+    }
+
+    // Önce Egzoz PDF üretildi mi?
+    if(!arac.tseEgzozPdfUrl) {
+        if(!confirm('⚠️ Bu araç için TSE Egzoz PDF henüz üretilmemiş.\n\nÖnce Egzoz PDF üretmeniz önerilir.\n\nYine de başvuru göndermek istiyor musunuz?')) return;
+    }
+
+    if(!confirm('📤 TSE\'ye otomatik başvuru gönderilecek:\n\n' +
+        'Araç: ' + (arac.marka||'') + ' ' + (arac.model||'') + '\n' +
+        'Şasi: ' + arac.sasi + '\n' +
+        'Firma: ' + (arac.firma||'') + '\n\n' +
+        'Mail TSE\'ye gönderilsin mi?')) return;
+
+    if(typeof showSyncToast === 'function') showSyncToast('📤 TSE\'ye başvuru gönderiliyor...');
+
+    const TSE_MAIL_GAS = 'https://script.google.com/macros/s/AKfycbxwhzxqivEyPn_aKFW2gsKtxkzGjL_k8N90bL22p1nGyrZcCsJWK4KmzBmRXuRXWn37Vw/exec';
+
+    try {
+        fetch(
+            TSE_MAIL_GAS + '?action=sendTseMail&sasi=' + encodeURIComponent(arac.sasi) + '&firma=' + encodeURIComponent(arac.firma || ''),
+            { mode: 'no-cors' }
+        ).then(() => {
+            // no-cors modda yanıt okunamaz, başarı varsayılır
+            if(typeof hideSyncToast === 'function') hideSyncToast('✅ TSE\'ye başvuru gönderildi!', true);
+
+            // TSE durumunu 1'e geçir (başvuru yapıldı)
+            if(!arac.evrakler) arac.evrakler = {};
+            if(arac.evrakler['TSE'] !== 2) arac.evrakler['TSE'] = 1;
+            arac.tseBasvuruGonderildi = true;
+            arac.tseBasvuruGonderildiTarih = new Date().toISOString();
+
+            if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+            if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+
+            setTimeout(() => {
+                alert('✅ TSE Başvurusu Gönderildi!\n\nMail TSE\'ye iletildi.\nGmail kutunuzu kontrol edebilirsiniz.\n\nTSE\'den dönüş geldikten sonra:\n→ TSE_Basvuru.pdf araç klasörüne inecek\n→ Sonra "🛡️ TSE" → Rapor PDF üretebilirsiniz');
+            }, 500);
+        }).catch(err => {
+            if(typeof hideSyncToast === 'function') hideSyncToast('❌ Mail gönderim hatası', false);
+            alert('Hata: ' + err.message);
+        });
+    } catch(err) {
+        alert('Bağlantı hatası: ' + err.message);
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  🔗 TSE TAM ZİNCİR — 3 Adım Otomasyonu
+//  1. Egzoz PDF üret   2. TSE.baslat ile başvuru   3. Rapor PDF üret
+// ═══════════════════════════════════════════════════════════════════
+window.tseEgzozPlusBasvuru = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) { alert('Araç bulunamadı'); return; }
+
+    if(!arac.sasi || arac.sasi.length !== 17) {
+        alert('⚠️ Şasi 17 hane olmalı'); return;
+    }
+
+    // TSE eklentisi yüklü mü kontrol
+    if(typeof window.TSE === 'undefined' || !window.TSE.baslat) {
+        alert('❌ TSE Bot servisi YOK!\n\n' +
+              'Masaüstündeki "tse_otomasyon" klasöründen API_BASLAT.bat dosyasını çalıştırın.\n' +
+              'Konsol penceresi açık kalmalı.\n\n' +
+              'Sayfayı yenileyip tekrar deneyin.');
+        return;
+    }
+
+    if(!confirm('🛡️ TSE TAM AKIŞ BAŞLATILACAK (3 ADIM):\n\n' +
+        '1️⃣ TSE Egzoz PDF üretilecek\n' +
+        '2️⃣ TSE web sitesinde otomatik başvuru yapılacak\n' +
+        '3️⃣ Başvuru tamamlanınca Rapor PDF üretilecek\n\n' +
+        'Araç: ' + (arac.marka||'') + ' ' + (arac.model||'') + '\n' +
+        'Şasi: ' + arac.sasi + '\n\n' +
+        '⚠️ Bot işini bitirene kadar sayfayı kapatmayın.\n\n' +
+        'Devam edilsin mi?')) return;
+
+    // İlerleme göstergesi aç
+    tseAkisGosterici(arac);
+
+    // ─── ADIM 1: Egzoz PDF ───
+    if(!arac.tseEgzozPdfUrl) {
+        tseAkisGuncelle(1, 'progress', 'Egzoz PDF hazırlanıyor...');
+
+        window._tseEgzozSessiz = true;
+        window._tseEgzozSonrasi = function(res) {
+            tseAkisGuncelle(1, 'done', 'Egzoz PDF hazırlandı ✓');
+            setTimeout(() => tseBasvuruyuTetikle(arac, idx, ctx), 600);
+        };
+        window._tseEgzozBypassConfirm = true;
+        window.createTseEgzozPdf(idx, ctx);
+    } else {
+        tseAkisGuncelle(1, 'done', 'Egzoz PDF zaten hazır ✓');
+        setTimeout(() => tseBasvuruyuTetikle(arac, idx, ctx), 500);
+    }
+};
+
+// ADIM 2: TSE.baslat çağır
+function tseBasvuruyuTetikle(arac, idx, ctx) {
+    try {
+        tseAkisGuncelle(2, 'progress', 'TSE web sitesi açılıyor, bot çalışıyor...');
+
+        let firmaId = window.TSE.firmaIdBul ? window.TSE.firmaIdBul(arac.firma || '') : '1';
+        window.TSE.baslat(
+            arac.sasi || '',
+            firmaId,
+            arac.tarih || '',
+            arac.ozetBeyan || arac.beyanname || '',
+            'YOK'
+        );
+
+        // Durum güncelle
+        if(!arac.evrakler) arac.evrakler = {};
+        if(arac.evrakler['TSE'] !== 2 && arac.evrakler['TSE'] !== true) {
+            arac.evrakler['TSE'] = 1;
+        }
+        arac.tseBasvuruGonderildi = true;
+        arac.tseBasvuruGonderildiTarih = new Date().toISOString();
+        if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+
+        // Adım 2 tamam
+        setTimeout(() => {
+            tseAkisGuncelle(2, 'done', 'TSE başvurusu gönderildi ✓');
+            // ADIM 3: Rapor PDF (kullanıcı "DEVAM ET" derse veya 60sn sonra otomatik)
+            tseAkisAdim3Bekle(idx, ctx);
+        }, 2000);
+    } catch(e) {
+        tseAkisGuncelle(2, 'error', 'Hata: ' + e.message);
+        console.error(e);
+    }
+}
+
+// ADIM 3: Rapor PDF (kullanıcı onayı + otomatik bekleme)
+function tseAkisAdim3Bekle(idx, ctx) {
+    tseAkisGuncelle(3, 'wait',
+        'TSE bot işini bitirip TSE_Basvuru.pdf Drive\'a indikten sonra başlayacak.<br>' +
+        '<button onclick="window.tseAkisAdim3Baslat(' + idx + ',\'' + ctx + '\')" style="margin-top:10px;padding:10px 18px;background:linear-gradient(135deg,#1e40af,#7c3aed);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;">📋 DEVAM ET — RAPOR PDF ÜRET</button>'
+    );
+}
+
+// Kullanıcı manuel DEVAM ET'e bastığında
+window.tseAkisAdim3Baslat = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) return;
+
+    tseAkisGuncelle(3, 'progress', 'Rapor PDF üretiliyor — TSE_Basvuru.pdf okunuyor...');
+
+    // TSE Rapor modalını açma yerine direkt PDF üret
+    let tseCached = null;
+    try { tseCached = JSON.parse(localStorage.getItem('gumruk_tse_sablon_v1') || 'null'); } catch(e){}
+    let tipOnayNo = (tseCached && tseCached['tse-tipOnayNo']) || '';
+
+    let fInfo = window.firmaYetkiliBilgisi ? window.firmaYetkiliBilgisi(arac.firma) : { resmiUnvan: arac.firma, yetkili: '', unvan: '' };
+
+    let bugun = new Date();
+    let incelemeT = window.akilliIncelemeTarihi ? window.akilliIncelemeTarihi(bugun) : bugun;
+    let bugunStr = window.formatTRTarih ? window.formatTRTarih(bugun) : bugun.toLocaleDateString('tr-TR');
+    let incelemeStr = window.formatTRTarih ? window.formatTRTarih(incelemeT) : incelemeT.toLocaleDateString('tr-TR');
+
+    let payload = {
+        action: 'createTseRapor',
+        firma: fInfo.resmiUnvan,
+        yetkili: fInfo.yetkili,
+        unvan: fInfo.unvan,
+        tipOnayNo: tipOnayNo,
+        basvuruTarih: bugunStr,
+        incelemeTarih: incelemeStr,
+        basvuruNo: '',  // BOŞ! → PDF'ten otomatik okunacak
+        sasi: arac.sasi,
+        marka: arac.marka || '',
+        model: arac.model || '',
+        yil: arac.yil || '',
+        evrakLink: arac.evrakLink || '',
+        aracFirma: arac.firma || ''
+    };
+
+    const TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+    const callbackName = 'tseAkisRapCb_' + Date.now();
+    window[callbackName] = function(res) {
+        delete window[callbackName];
+        if(res && res.success) {
+            tseAkisGuncelle(3, 'done', 'Rapor PDF üretildi ✓');
+            if(res.pdfUrl) {
+                arac.tseRaporPdfUrl = res.pdfUrl;
+                arac.tseBasvuruNo = (res.okunan && res.okunan.basvuruNo) || '';
+                if(!arac.evrakler) arac.evrakler = {};
+                // Rapor PDF üretildi ama TSE durumu 1'de kalır
+                // Kullanıcı manuel "Onay Geldi" butonuyla 2'ye geçirecek
+                if(!arac.evrakler['TSE']) arac.evrakler['TSE'] = 1;
+                if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+                if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+                setTimeout(() => window.open(res.pdfUrl, '_blank'), 1000);
+            }
+            // Hepsi tamamlandı bildirim
+            setTimeout(() => {
+                tseAkisTamamlandi();
+            }, 1500);
+        } else {
+            tseAkisGuncelle(3, 'error',
+                'Rapor PDF üretilemedi: ' + (res?.error || 'TSE_Basvuru.pdf bulunamadı olabilir') + '<br>' +
+                '<button onclick="window.tseAkisAdim3Baslat(' + idx + ',\'' + ctx + '\')" style="margin-top:8px;padding:8px 14px;background:#f59e0b;color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 Tekrar Dene</button>'
+            );
+        }
+    };
+
+    let params = new URLSearchParams();
+    Object.keys(payload).forEach(k => params.append(k, payload[k]));
+    params.append('callback', callbackName);
+
+    let script = document.createElement('script');
+    script.src = TSE_GAS_URL + '?' + params.toString();
+    document.body.appendChild(script);
+};
+
+// ─── İLERLEME GÖSTERGESİ ─────────────────────────────────────────────
+function tseAkisGosterici(arac) {
+    let mevcut = document.getElementById('tse-akis-modal');
+    if(mevcut) mevcut.remove();
+
+    let modal = document.createElement('div');
+    modal.id = 'tse-akis-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);';
+    modal.innerHTML = `
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:20px;width:92%;max-width:520px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.6);">
+        <div style="padding:18px 22px;background:linear-gradient(135deg,#10b981,#0891b2,#1e40af);color:#fff;">
+            <h3 style="margin:0;font-size:16px;font-weight:800;">🛡️ TSE OTOMATİK AKIŞ</h3>
+            <p style="margin:4px 0 0;font-size:11.5px;opacity:.9;">${arac.marka||''} ${arac.model||''} — ${arac.sasi||''}</p>
+        </div>
+        <div style="padding:18px 22px;">
+            <div id="tse-akis-1" data-step="1" style="margin-bottom:10px;"></div>
+            <div id="tse-akis-2" data-step="2" style="margin-bottom:10px;"></div>
+            <div id="tse-akis-3" data-step="3" style="margin-bottom:10px;"></div>
+        </div>
+        <div style="padding:12px 22px;border-top:1px solid var(--border);text-align:right;">
+            <button onclick="document.getElementById('tse-akis-modal').remove()" style="padding:8px 16px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;">Kapat</button>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+
+    // Başlangıç durumları
+    tseAkisGuncelle(1, 'pending', '🌫️ Adım 1: Egzoz PDF');
+    tseAkisGuncelle(2, 'pending', '📤 Adım 2: TSE Başvuru');
+    tseAkisGuncelle(3, 'pending', '📋 Adım 3: Rapor PDF');
+}
+
+function tseAkisGuncelle(step, durum, mesaj) {
+    let el = document.getElementById('tse-akis-' + step);
+    if(!el) return;
+    let icon = { pending: '⚪', progress: '⏳', wait: '⏸️', done: '✅', error: '❌' }[durum] || '⚪';
+    let renk = { pending: 'rgba(120,140,170,.15)', progress: 'rgba(245,158,11,.15)', wait: 'rgba(59,130,246,.15)', done: 'rgba(16,185,129,.15)', error: 'rgba(239,68,68,.15)' }[durum];
+    let border = { pending: 'var(--border)', progress: 'rgba(245,158,11,.4)', wait: 'rgba(59,130,246,.4)', done: 'rgba(16,185,129,.4)', error: 'rgba(239,68,68,.4)' }[durum];
+    let titles = { 1: 'Egzoz PDF', 2: 'TSE Başvuru', 3: 'Rapor PDF' };
+    el.style.cssText = 'padding:12px 14px;border-radius:10px;background:' + renk + ';border:1px solid ' + border + ';';
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">' + icon + '</span>' +
+                   '<div style="flex:1;"><div style="font-size:12px;font-weight:700;letter-spacing:.3px;">ADIM ' + step + ' — ' + titles[step] + '</div>' +
+                   '<div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">' + mesaj + '</div></div></div>';
+}
+
+function tseAkisTamamlandi() {
+    let modal = document.getElementById('tse-akis-modal');
+    if(!modal) return;
+    let footer = modal.querySelector('div[style*="border-top"]');
+    if(footer) {
+        footer.innerHTML = '<div style="text-align:center;color:var(--success);font-weight:800;font-size:14px;padding:6px;">🎉 TÜM AKIŞ TAMAMLANDI</div>';
+    }
+    setTimeout(() => {
+        modal.remove();
+    }, 4000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  🛡️ TSE AKILLI MENU — Tek butondan tüm TSE işlemleri
+// ═══════════════════════════════════════════════════════════════════
+window.openTseAkilliMenu = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) { alert('Araç bulunamadı'); return; }
+
+    // 3 Aşamalı Akış:
+    //   Aşama 1: Egzoz PDF üretildi mi? (arac.tseEgzozPdfUrl)
+    //   Aşama 2: TSE'ye başvuru yapıldı mı? (arac.evrakler.TSE === 1)
+    //   Aşama 3: Rapor PDF üretildi mi? (arac.evrakler.TSE === 2)
+
+    let evrakler = arac.evrakler || {};
+    let tseDeger = evrakler['TSE'];
+    if(tseDeger === true) tseDeger = 2;
+    else if(!tseDeger) tseDeger = 0;
+    else tseDeger = parseInt(tseDeger) || 0;
+
+    let egzozHazir = !!arac.tseEgzozPdfUrl;
+    let basvuruYapildi = (tseDeger === 1 || tseDeger === 2);
+    let raporHazir = !!arac.tseRaporPdfUrl;
+    let onayGeldi = (tseDeger === 2);
+
+    // Aktif aşamayı belirle
+    let aktif;
+    let durumLabel, sonrakiAdim;
+
+    if(!egzozHazir) {
+        aktif = 1;
+        durumLabel = '🔵 EGZOZ HAZIRLANACAK';
+        sonrakiAdim = 'egzoz';
+    } else if(!basvuruYapildi) {
+        aktif = 2;
+        durumLabel = '🌫️ EGZOZ HAZIR — BAŞVURU BEKLENİYOR';
+        sonrakiAdim = 'basvuru';
+    } else if(!raporHazir) {
+        aktif = 3;
+        durumLabel = '🟡 BAŞVURU YAPILDI — RAPOR HAZIRLANACAK';
+        sonrakiAdim = 'rapor';
+    } else if(!onayGeldi) {
+        aktif = 4;
+        durumLabel = '⏳ TSE ONAY BEKLENİYOR — TAMAMLANDIĞINDA İŞARETLE';
+        sonrakiAdim = 'tamamla';
+    } else {
+        aktif = 'tamam';
+        durumLabel = '✅ TÜM SÜREÇ TAMAMLANDI';
+        sonrakiAdim = 'tamam';
+    }
+
+    let modal = document.createElement('div');
+    modal.id = 'tse-akilli-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
+
+    modal.innerHTML = `
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:20px;width:92%;max-width:560px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.6);">
+
+        <!-- Header -->
+        <div style="padding:20px 24px;background:linear-gradient(135deg,#10b981,#0891b2,#1e40af);color:#fff;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div>
+                    <div style="font-size:11px;letter-spacing:1px;opacity:.85;font-weight:700;">TSE İŞLEM MERKEZİ</div>
+                    <h2 style="margin:4px 0 4px;font-size:18px;font-weight:800;letter-spacing:.2px;">🛡️ ${arac.marka||''} ${arac.model||''}</h2>
+                    <div style="font-family:monospace;font-size:11.5px;letter-spacing:1px;opacity:.9;">${arac.sasi||'-'}</div>
+                </div>
+                <button onclick="document.getElementById('tse-akilli-modal').remove()" style="background:rgba(255,255,255,.22);color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer;">×</button>
+            </div>
+
+            <!-- Durum Etiketi -->
+            <div style="margin-top:14px;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(0,0,0,.25);border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;">
+                MEVCUT DURUM:&nbsp;${durumLabel}
+            </div>
+        </div>
+
+        <!-- Body — Akış Görsel -->
+        <div style="padding:22px 24px 18px;">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:14px;">📍 SÜREÇ AKIŞI</div>
+
+            <!-- 4 Adımlı Akış -->
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:18px;">
+                <!-- Adım 1: Egzoz -->
+                <div style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${egzozHazir ? '#10b981' : (aktif === 1 ? '#10b981' : 'var(--border)')};background:${egzozHazir ? 'rgba(16,185,129,.12)' : (aktif === 1 ? 'rgba(16,185,129,.05)' : 'transparent')};text-align:center;${aktif === 1 ? 'box-shadow:0 0 0 3px rgba(16,185,129,.18);' : ''}">
+                    <div style="font-size:18px;margin-bottom:2px;">${egzozHazir ? '✅' : '🌫️'}</div>
+                    <div style="font-size:9px;font-weight:800;color:${egzozHazir || aktif === 1 ? '#10b981' : 'var(--text-muted)'};letter-spacing:.3px;">1. EGZOZ</div>
+                </div>
+                <div style="font-size:14px;color:var(--text-muted);">→</div>
+                <!-- Adım 2: TSE Başvuru -->
+                <div style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${basvuruYapildi ? '#f59e0b' : (aktif === 2 ? '#f59e0b' : 'var(--border)')};background:${basvuruYapildi ? 'rgba(245,158,11,.12)' : (aktif === 2 ? 'rgba(245,158,11,.05)' : 'transparent')};text-align:center;${aktif === 2 ? 'box-shadow:0 0 0 3px rgba(245,158,11,.18);' : ''}">
+                    <div style="font-size:18px;margin-bottom:2px;">${basvuruYapildi ? '✅' : '📤'}</div>
+                    <div style="font-size:9px;font-weight:800;color:${basvuruYapildi || aktif === 2 ? '#f59e0b' : 'var(--text-muted)'};letter-spacing:.3px;">2. BAŞVURU</div>
+                </div>
+                <div style="font-size:14px;color:var(--text-muted);">→</div>
+                <!-- Adım 3: Rapor -->
+                <div style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${raporHazir ? '#3b82f6' : (aktif === 3 ? '#3b82f6' : 'var(--border)')};background:${raporHazir ? 'rgba(59,130,246,.12)' : (aktif === 3 ? 'rgba(59,130,246,.05)' : 'transparent')};text-align:center;${aktif === 3 ? 'box-shadow:0 0 0 3px rgba(59,130,246,.18);' : ''}">
+                    <div style="font-size:18px;margin-bottom:2px;">${raporHazir ? '✅' : '📋'}</div>
+                    <div style="font-size:9px;font-weight:800;color:${raporHazir || aktif === 3 ? '#3b82f6' : 'var(--text-muted)'};letter-spacing:.3px;">3. RAPOR</div>
+                </div>
+                <div style="font-size:14px;color:var(--text-muted);">→</div>
+                <!-- Adım 4: Onay -->
+                <div style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${onayGeldi ? '#10b981' : (aktif === 4 ? '#10b981' : 'var(--border)')};background:${onayGeldi ? 'rgba(16,185,129,.12)' : (aktif === 4 ? 'rgba(16,185,129,.05)' : 'transparent')};text-align:center;${aktif === 4 ? 'box-shadow:0 0 0 3px rgba(16,185,129,.25);' : ''}">
+                    <div style="font-size:18px;margin-bottom:2px;">${onayGeldi ? '✅' : '⏳'}</div>
+                    <div style="font-size:9px;font-weight:800;color:${onayGeldi || aktif === 4 ? '#10b981' : 'var(--text-muted)'};letter-spacing:.3px;">4. ONAY</div>
+                </div>
+            </div>
+
+            <!-- ÖNERİLEN AKSIYON -->
+            ${sonrakiAdim === 'egzoz' ? `
+                <button onclick="document.getElementById('tse-akilli-modal').remove(); window.createTseEgzozPdf(${idx}, '${ctx}')" style="width:100%;padding:16px;background:linear-gradient(135deg,#059669,#0891b2);color:#fff;border:none;border-radius:14px;cursor:pointer;font-size:14.5px;font-weight:800;letter-spacing:.3px;box-shadow:0 8px 24px rgba(8,145,178,.4);margin-bottom:10px;">
+                    🌫️ ADIM 1 — TSE EGZOZ PDF OLUŞTUR
+                </button>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:14px;">Egzoz PDF hazırlanır → Sonraki adım: TSE web sitesine başvuru</div>
+            ` : ''}
+
+            ${sonrakiAdim === 'basvuru' ? `
+                <button onclick="document.getElementById('tse-akilli-modal').remove(); window.tseEgzozPlusBasvuru(${idx}, '${ctx}')" style="width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b,#dc2626);color:#fff;border:none;border-radius:14px;cursor:pointer;font-size:14.5px;font-weight:800;letter-spacing:.3px;box-shadow:0 8px 24px rgba(245,158,11,.4);margin-bottom:10px;">
+                    📤 ADIM 2 — TSE'YE OTOMATİK BAŞVURU YAP
+                </button>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:14px;">TSE web sitesi açılır, otomatik giriş + form doldurma yapılır</div>
+            ` : ''}
+
+            ${sonrakiAdim === 'rapor' ? `
+                <button onclick="document.getElementById('tse-akilli-modal').remove(); window.openTseRaporModal(${idx}, '${ctx}')" style="width:100%;padding:16px;background:linear-gradient(135deg,#1e40af,#7c3aed);color:#fff;border:none;border-radius:14px;cursor:pointer;font-size:14.5px;font-weight:800;letter-spacing:.3px;box-shadow:0 8px 24px rgba(124,58,237,.4);margin-bottom:10px;">
+                    📋 ADIM 3 — TSE RAPOR BAŞVURU PDF OLUŞTUR
+                </button>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:14px;">TSE_Basvuru.pdf'ten Başvuru No otomatik okunur</div>
+            ` : ''}
+
+            ${sonrakiAdim === 'tamamla' ? `
+                <div style="padding:14px 16px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:14px;text-align:center;margin-bottom:12px;">
+                    <div style="font-size:24px;margin-bottom:4px;">⏳</div>
+                    <div style="font-weight:700;color:#f59e0b;font-size:13px;">TSE'den Onay Bekleniyor</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Rapor PDF hazır — TSE onayı geldikten sonra aşağıdaki butona basın</div>
+                </div>
+                <button onclick="document.getElementById('tse-akilli-modal').remove(); window.tseOnayGeldi(${idx}, '${ctx}')" style="width:100%;padding:16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:14px;cursor:pointer;font-size:14.5px;font-weight:800;letter-spacing:.3px;box-shadow:0 8px 24px rgba(16,185,129,.4);margin-bottom:10px;">
+                    ✅ ONAY GELDİ — TSE TAMAMLANDI İŞARETLE
+                </button>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:14px;">TSE'den onay geldiyse durum "Tamamlandı" olarak işaretlenir</div>
+            ` : ''}
+
+            ${sonrakiAdim === 'tamam' ? `
+                <div style="padding:16px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:14px;text-align:center;margin-bottom:14px;">
+                    <div style="font-size:32px;margin-bottom:6px;">✅</div>
+                    <div style="font-weight:800;color:#10b981;font-size:14px;">TSE Süreci Tamamlandı</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Tüm 3 adım tamamlandı, onay alındı</div>
+                </div>
+            ` : ''}
+
+            <!-- DİĞER İŞLEMLER -->
+            <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px;">
+                <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:10px;">DİĞER İŞLEMLER (Manuel)</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    ${sonrakiAdim !== 'egzoz' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.createTseEgzozPdf(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">🌫️ Egzoz Yenile</button>` : ''}
+                    ${sonrakiAdim !== 'basvuru' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.tseEgzozPlusBasvuru(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📤 TSE'ye Başvur</button>` : ''}
+                    ${sonrakiAdim !== 'rapor' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.openTseRaporModal(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Rapor Yenile</button>` : ''}
+                    <button onclick="document.getElementById('tse-akilli-modal').remove(); window.tseDurumDegistir(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">🔄 Durum</button>
+                    ${arac.evrakLink ? `<a href="${arac.evrakLink}" target="_blank" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;" onclick="document.getElementById('tse-akilli-modal').remove();">📁 Klasör</a>` : ''}
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    document.body.appendChild(modal);
+
+    // Backdrop tıklama → kapat
+    modal.addEventListener('click', function(e) {
+        if(e.target === modal) modal.remove();
+    });
+};
+
+// ✅ TSE Onayı Geldi — Durum 2'ye (Tamamlandı) geçir
+window.tseOnayGeldi = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) return;
+
+    if(!confirm('✅ TSE Onayı Onayla?\n\n' +
+        'Bu işlem aracın TSE durumunu "TAMAMLANDI" olarak işaretler.\n\n' +
+        'Araç: ' + (arac.marka||'') + ' ' + (arac.model||'') + '\n' +
+        'Şasi: ' + arac.sasi + '\n\n' +
+        'TSE\'den onay geldiğini onaylıyor musunuz?')) return;
+
+    if(!arac.evrakler) arac.evrakler = {};
+    arac.evrakler['TSE'] = 2;
+    arac.tseOnayTarihi = new Date().toISOString();
+
+    if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+    if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+
+    if(typeof window.showToast === 'function') {
+        window.showToast('✅ TSE Onayı kaydedildi — Durum: TAMAMLANDI', 'success');
+    } else {
+        alert('✅ TSE Tamamlandı işaretlendi!');
+    }
+};
+
+// TSE Durumunu manuel değiştir (0 → 1 → 2 → 0)
+window.tseDurumDegistir = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) return;
+    if(!arac.evrakler) arac.evrakler = {};
+
+    let mevcut = arac.evrakler['TSE'];
+    if(mevcut === true) mevcut = 2;
+    else if(!mevcut) mevcut = 0;
+    else mevcut = parseInt(mevcut) || 0;
+
+    let yeni = (mevcut + 1) % 3;
+    let yeniLabel = ['🔵 BAŞLAMADI', '🟡 BAŞVURU YAPILDI', '✅ ONAYLI'][yeni];
+
+    if(confirm('TSE durumunu değiştir:\n\n' + ['🔵 BAŞLAMADI', '🟡 BAŞVURU YAPILDI', '✅ ONAYLI'][mevcut] + ' → ' + yeniLabel + '\n\nDevam edilsin mi?')) {
+        arac.evrakler['TSE'] = yeni;
+        if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+        if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+        if(typeof window.showToast === 'function') {
+            window.showToast('✅ TSE durumu güncellendi: ' + yeniLabel, 'success');
+        }
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  🌫️ TSE EGZOZ PDF Üretici (tek tıkla, modal yok)
+// ═══════════════════════════════════════════════════════════════════
+window.createTseEgzozPdf = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) { alert('Araç bulunamadı'); return; }
+
+    if(!arac.sasi || arac.sasi.length !== 17) {
+        alert('⚠️ Şasi 17 hane olmalı: ' + (arac.sasi || 'boş'));
+        return;
+    }
+
+    // Akıllı tarih hesabı
+    let bugun = new Date();
+    let tarihStr = window.formatTRTarih ? window.formatTRTarih(bugun) :
+        (String(bugun.getDate()).padStart(2,'0') + '.' + String(bugun.getMonth()+1).padStart(2,'0') + '.' + bugun.getFullYear());
+
+    // Zincir akışta confirm atla
+    if(!window._tseEgzozBypassConfirm) {
+        if(!confirm('🌫️ TSE EGZOZ PDF üretilecek:\n\n' +
+            'Şasi: ' + arac.sasi + '\n' +
+            'Marka/Model: ' + (arac.marka||'') + ' ' + (arac.model||'') + '\n' +
+            'Tarih: ' + tarihStr + '\n\n' +
+            'Devam edilsin mi?')) return;
+    }
+    window._tseEgzozBypassConfirm = false;
+
+    if(typeof showSyncToast === 'function') showSyncToast('TSE Egzoz PDF üretiliyor...');
+
+    const TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+    let payload = {
+        action: 'createTseEgzoz',
+        sasi: arac.sasi,
+        tarih: tarihStr,
+        firma: arac.firma || '',
+        marka: arac.marka || '',
+        model: arac.model || '',
+        evrakLink: arac.evrakLink || ''
+    };
+
+    const callbackName = 'tseEgzozCb_' + Date.now();
+    window[callbackName] = function(res) {
+        delete window[callbackName];
+        if(typeof hideSyncToast === 'function') hideSyncToast(res && res.success ? 'TSE Egzoz PDF üretildi!' : 'Üretilemedi', !!(res && res.success));
+
+        if(res && res.success) {
+            console.log('✅ TSE Egzoz PDF:', res);
+            // PDF aç (sadece sessizModda değilse)
+            if(res.pdfUrl && !window._tseEgzozSessiz) window.open(res.pdfUrl, '_blank');
+            if(arac) {
+                arac.tseEgzozPdfUrl = res.pdfUrl;
+                // Egzoz üretmek = TSE durumu DEĞİŞMEZ (durum sadece başvuru yapıldığında değişir)
+                if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+                if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+            }
+            // Sonrası callback (zincir akış için)
+            if(typeof window._tseEgzozSonrasi === 'function') {
+                let cb = window._tseEgzozSonrasi;
+                window._tseEgzozSonrasi = null;
+                window._tseEgzozSessiz = false;
+                setTimeout(() => cb(res), 800);
+            }
+        } else {
+            alert('❌ TSE Egzoz hatası: ' + (res && res.error ? res.error : 'Bilinmeyen'));
+            console.error('TSE Egzoz hata:', res);
+            window._tseEgzozSonrasi = null;
+            window._tseEgzozSessiz = false;
+        }
+    };
+
+    let params = new URLSearchParams();
+    Object.keys(payload).forEach(k => params.append(k, payload[k]));
+    params.append('callback', callbackName);
+
+    let script = document.createElement('script');
+    script.src = TSE_GAS_URL + '?' + params.toString();
+    script.onerror = function() {
+        delete window[callbackName];
+        alert('Apps Script bağlantı hatası');
+        if(typeof hideSyncToast === 'function') hideSyncToast('Bağlantı hatası', false);
+        script.remove();
+    };
+    document.body.appendChild(script);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  🛡️ TSE RAPOR BAŞVURU MOTORU — Google Apps Script ile PDF üretim
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── Firma Yetkili Sözlüğü ───────────────────────────────────────────
+window.FIRMA_YETKILI = {
+    'ŞAMNU GT': {
+        resmiUnvan: 'ŞAMNU GT MOTORLU ARAÇLAR SANAYİ VE TİCARET LİMİTED ŞİRKETİ',
+        yetkili: 'FEVZİ ALPER TAVMAN',
+        unvan: 'Yetkili Temsilci',
+        kaseTipi: 'firma' // kendi kaşesi
+    },
+    'FF OTOMOTİV': {
+        resmiUnvan: 'FF OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ',
+        yetkili: 'GÖRKEM DEMİREL',
+        unvan: 'Sorumlu Mühendis',
+        kaseTipi: 'muhendis' // mühendis kaşesi
+    },
+    'KARABAYIR': {
+        resmiUnvan: 'KARABAYIR ...',
+        yetkili: '...',
+        unvan: 'Yetkili Temsilci',
+        kaseTipi: 'firma'
+    },
+    '_DEFAULT': {
+        resmiUnvan: '',
+        yetkili: 'GÖRKEM DEMİREL',
+        unvan: 'Sorumlu Mühendis',
+        kaseTipi: 'muhendis'
+    }
+};
+
+window.firmaYetkiliBilgisi = function(firma) {
+    let f = window.FIRMA_YETKILI[firma];
+    if(f) return f;
+    return Object.assign({}, window.FIRMA_YETKILI['_DEFAULT'], { resmiUnvan: firma || '' });
+};
+
+// ─── Akıllı İnceleme Tarihi Hesaplayıcı ──────────────────────────────
+// Kural:
+//  - Saat < 15:30 → +1 gün
+//  - Saat ≥ 15:30 → +2 gün
+//  - Sonuç Cumartesi → Pazartesi'ye at
+//  - Sonuç Pazar → Pazartesi'ye at
+window.akilliIncelemeTarihi = function(baseDate) {
+    let d = baseDate ? new Date(baseDate) : new Date();
+    let saat = d.getHours();
+    let dakika = d.getMinutes();
+    let kacGun = (saat > 15 || (saat === 15 && dakika >= 30)) ? 2 : 1;
+    d.setDate(d.getDate() + kacGun);
+    // Hafta sonu kontrol
+    let gun = d.getDay();
+    if(gun === 6) d.setDate(d.getDate() + 2);      // Cumartesi → Pazartesi
+    else if(gun === 0) d.setDate(d.getDate() + 1); // Pazar → Pazartesi
+    return d;
+};
+
+window.formatTRTarih = function(d) {
+    if(!(d instanceof Date)) d = new Date(d);
+    return String(d.getDate()).padStart(2,'0') + '.' +
+           String(d.getMonth()+1).padStart(2,'0') + '.' +
+           d.getFullYear();
+};
+
+// ─── TSE Rapor Başvuru Modal ─────────────────────────────────────────
+window.openTseRaporModal = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) { alert('Araç bulunamadı'); return; }
+
+    // Şasi VIN doğrulama
+    if(!arac.sasi || arac.sasi.length !== 17) {
+        alert('⚠️ Şasi numarası 17 hane olmalı: ' + (arac.sasi || 'boş'));
+        return;
+    }
+
+    // Firma bilgileri
+    let fInfo = window.firmaYetkiliBilgisi(arac.firma);
+
+    // TSE şablonundan tip onay no oku
+    let tseCached = null;
+    try { tseCached = JSON.parse(localStorage.getItem('gumruk_tse_sablon_v1') || 'null'); } catch(e){}
+    let tipOnayNo = (tseCached && tseCached['tse-tipOnayNo']) || '';
+    let tipKategori = (tseCached && tseCached['tse-kategori']) || '';
+    let varyant = (tseCached && tseCached['tse-varyant']) || '';
+    let versiyon = (tseCached && tseCached['tse-versiyon']) || '';
+
+    // Akıllı tarihler
+    let bugun = new Date();
+    let incelemeT = window.akilliIncelemeTarihi(bugun);
+
+    let bugunStr = window.formatTRTarih(bugun);
+    let incelemeStr = window.formatTRTarih(incelemeT);
+
+    // Modal oluştur
+    let modal = document.createElement('div');
+    modal.id = 'tse-rapor-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);';
+
+    modal.innerHTML = `
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:18px;width:92%;max-width:620px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.6);">
+
+        <!-- Header -->
+        <div style="padding:18px 22px;background:linear-gradient(135deg,#1e40af,#7c3aed);display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h3 style="margin:0;color:#fff;font-size:17px;font-weight:800;letter-spacing:.3px;">📋 TSE Rapor Başvurusu</h3>
+                <p style="margin:3px 0 0;color:rgba(255,255,255,.85);font-size:11.5px;font-family:monospace;letter-spacing:.5px;">${arac.sasi}</p>
+            </div>
+            <button onclick="document.getElementById('tse-rapor-modal').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;">×</button>
+        </div>
+
+        <!-- Body (scrollable) -->
+        <div style="padding:20px 22px;overflow-y:auto;flex:1;">
+
+            <!-- ARAÇ ÖZET -->
+            <div style="background:rgba(120,140,170,.08);border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:6px;">ARAÇ BİLGİLERİ (Otomatik)</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12.5px;">
+                    <div><strong>Marka:</strong> ${arac.marka||'-'}</div>
+                    <div><strong>Model:</strong> ${arac.model||'-'}</div>
+                    <div><strong>Yıl:</strong> ${arac.yil||'-'}</div>
+                    <div><strong>Renk:</strong> ${arac.renk||'-'}</div>
+                </div>
+            </div>
+
+            <!-- FİRMA -->
+            <label class="trm-lbl">📛 Başvuran Firma</label>
+            <input type="text" id="trm-firma" value="${fInfo.resmiUnvan}" style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:13px;margin-bottom:10px;">
+
+            <!-- YETKİLİ -->
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;">
+                <div>
+                    <label class="trm-lbl">👤 Firma Yetkilisi / Temsilcisi</label>
+                    <input type="text" id="trm-yetkili" value="${fInfo.yetkili}" style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:13px;">
+                </div>
+                <div>
+                    <label class="trm-lbl">📜 Unvan</label>
+                    <input type="text" id="trm-unvan" value="${fInfo.unvan}" style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:13px;">
+                </div>
+            </div>
+
+            <!-- TİP ONAY -->
+            <label class="trm-lbl">🚗 Araç Tip Onay Numarası ${tipOnayNo ? '<span style="color:#10b981;font-size:10px;">✓ TSE Şablonundan</span>' : '<span style="color:#f59e0b;font-size:10px;">⚠️ TSE Şablonu boş</span>'}</label>
+            <input type="text" id="trm-tipOnay" value="${tipOnayNo}" placeholder="e1*2018/858*00347" style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:13px;font-family:monospace;margin-bottom:10px;">
+
+            <!-- TARİHLER -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div>
+                    <label class="trm-lbl">📅 Başvuru Tarihi</label>
+                    <input type="text" id="trm-basvuruT" value="${bugunStr}" readonly style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:13px;opacity:.75;">
+                </div>
+                <div>
+                    <label class="trm-lbl">🔍 İnceleme Tarihi <span style="color:#3b82f6;font-size:10px;">🤖 Akıllı</span></label>
+                    <input type="text" id="trm-incelemeT" value="${incelemeStr}" style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:13px;">
+                </div>
+                <div>
+                    <label class="trm-lbl">🔢 Başvuru No</label>
+                    <input type="text" id="trm-basvuruNo" placeholder="(boş bırak → PDF'ten oku)" style="width:100%;padding:11px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:13px;">
+                </div>
+            </div>
+
+            <!-- BİLGİ KUTUSU -->
+            <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;">
+                <span style="font-size:18px;">💡</span>
+                <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.5;">
+                    <strong style="color:var(--primary);">İnceleme Tarihi Mantığı:</strong> Saat 15:30 öncesi → +1 gün, sonrası → +2 gün. Hafta sonuna denk gelirse Pazartesi'ye atlar.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div style="padding:14px 22px;background:var(--bg-elevated);border-top:1px solid var(--border);display:flex;gap:10px;">
+            <button onclick="document.getElementById('tse-rapor-modal').remove()" style="flex:1;padding:13px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;">İptal</button>
+            <button onclick="window.tseRaporPdfOlustur(${idx},'${ctx}')" style="flex:2;padding:13px;background:linear-gradient(135deg,#1e40af,#7c3aed);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:800;box-shadow:0 4px 14px rgba(30,64,175,.4);">
+                📄 PDF Oluştur ve Drive'a Yükle
+            </button>
+        </div>
+    </div>
+
+    <style>
+        .trm-lbl { display:block; font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:.4px; margin-bottom:5px; text-transform:uppercase; }
+    </style>`;
+
+    document.body.appendChild(modal);
+};
+
+// ─── PDF Üretim — Apps Script'e gönder ───────────────────────────────
+window.tseRaporPdfOlustur = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) return;
+
+    let v = id => (document.getElementById(id) || {}).value || '';
+    let payload = {
+        action: 'createTseRapor',
+        firma: v('trm-firma'),
+        yetkili: v('trm-yetkili'),
+        unvan: v('trm-unvan'),
+        tipOnayNo: v('trm-tipOnay'),
+        basvuruTarih: v('trm-basvuruT'),
+        incelemeTarih: v('trm-incelemeT'),
+        basvuruNo: v('trm-basvuruNo'),
+        sasi: arac.sasi,
+        marka: arac.marka || '',
+        model: arac.model || '',
+        yil: arac.yil || '',
+        evrakLink: arac.evrakLink || '',
+        aracFirma: arac.firma || ''
+    };
+
+    // Zorunlu alan kontrolü
+    if(!payload.firma)      { alert('❌ Başvuran firma boş'); return; }
+    if(!payload.yetkili)    { alert('❌ Yetkili adı boş'); return; }
+    if(!payload.tipOnayNo)  { alert('❌ Tip Onay No boş — TSE şablonundan giriniz'); return; }
+    if(!payload.evrakLink)  {
+        if(!confirm('⚠️ Bu araç için Drive klasörü tanımlı değil.\nApps Script kök dizine kaydedecek. Devam edilsin mi?')) return;
+    }
+
+    // Buton kilitle
+    let btn = document.querySelector('#tse-rapor-modal button[onclick*="tseRaporPdfOlustur"]');
+    if(btn) { btn.disabled = true; btn.innerHTML = '⏳ Hazırlanıyor...'; btn.style.opacity = '.7'; }
+
+    if(typeof showSyncToast === 'function') showSyncToast('TSE Rapor PDF üretiliyor...');
+
+    // ── Apps Script URL'i (sizin kendi web app linkiniz buraya gelecek)
+    const TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+    if(!TSE_GAS_URL || TSE_GAS_URL.length < 30) {
+        alert('⚠️ Apps Script URL tanımlı değil.');
+        if(btn) { btn.disabled = false; btn.innerHTML = '📄 PDF Oluştur ve Drive\'a Yükle'; btn.style.opacity = '1'; }
+        return;
+    }
+
+    // JSONP fetch
+    const callbackName = 'tseRapCb_' + Date.now();
+    window[callbackName] = function(res) {
+        delete window[callbackName];
+        if(typeof hideSyncToast === 'function') hideSyncToast(res && res.success ? 'TSE Rapor PDF üretildi!' : 'PDF üretilemedi', !!(res && res.success));
+
+        // Debug bilgisini konsola yaz
+        if(res && res.debug) {
+            console.group('🔍 TSE Rapor PDF Debug');
+            console.log('%c📌 Apps Script Versiyon: ' + (res.scriptVersion || res.debug.scriptVersion || '⚠️ ESKİ VERSİYON!'), 'background:#1e40af;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold;');
+            if(!res.scriptVersion && !(res.debug && res.debug.scriptVersion)) {
+                console.warn('⚠️ Apps Script eski versiyondan çalışıyor — Yeni kodu deploy edin!');
+            }
+            console.log('Klasör bulundu:', res.debug.klasorBulundu);
+            console.log('Klasör adı:', res.debug.klasorAdi);
+            console.log('Uyarı:', res.debug.uyari);
+            console.log('Klasördeki dosyalar:', res.debug.dosyalar);
+            if(res.debug.adimlar) {
+                console.log('İşlem adımları:');
+                res.debug.adimlar.forEach(a => console.log('  ' + a));
+            }
+            console.log('Okunan değer:', res.okunan);
+            console.groupEnd();
+        }
+
+        if(res && res.success) {
+            // Modal kapat
+            document.getElementById('tse-rapor-modal')?.remove();
+            // PDF aç
+            if(res.pdfUrl) window.open(res.pdfUrl, '_blank');
+            // Araç verisine yaz
+            if(arac) {
+                arac.tseRaporPdfUrl = res.pdfUrl;
+                arac.tseBasvuruNo = payload.basvuruNo || (res.okunan && res.okunan.basvuruNo) || '';
+                // Rapor PDF üretildi ama durum DEĞİŞMEZ — kullanıcı manuel "TAMAMLANDI" işaretleyecek
+                // (TSE'den gerçek onay geldiğinde)
+                if(!arac.evrakler) arac.evrakler = {};
+                if(!arac.evrakler['TSE']) arac.evrakler['TSE'] = 1; // En azından 1 (başvuru yapıldı)
+                if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+                if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+            }
+            // Eğer Başvuru No okunamadıysa uyar
+            if((!res.okunan || !res.okunan.basvuruNo) && !payload.basvuruNo) {
+                setTimeout(() => {
+                    alert('⚠️ PDF oluşturuldu ama Başvuru No otomatik okunamadı.\n\nF12 → Console sekmesinde detayları görebilirsiniz.\n\nSorunu çözmek için Apps Script log\'larına bakabilir veya manuel No girebilirsiniz.');
+                }, 1500);
+            }
+        } else {
+            alert('PDF üretim hatası: ' + (res && res.error ? res.error : 'Bilinmeyen'));
+            if(btn) { btn.disabled = false; btn.innerHTML = '📄 PDF Oluştur ve Drive\'a Yükle'; btn.style.opacity = '1'; }
+        }
+    };
+
+    // URL parametreleri ile gönder (GET — JSONP)
+    let params = new URLSearchParams();
+    Object.keys(payload).forEach(k => params.append(k, payload[k]));
+    params.append('callback', callbackName);
+
+    let script = document.createElement('script');
+    script.src = TSE_GAS_URL + '?' + params.toString();
+    script.onerror = function() {
+        delete window[callbackName];
+        alert('Apps Script bağlantı hatası');
+        if(btn) { btn.disabled = false; btn.innerHTML = '📄 PDF Oluştur ve Drive\'a Yükle'; btn.style.opacity = '1'; }
+        script.remove();
+    };
+    document.body.appendChild(script);
+};
+
 function saveCariData() {
     localStorage.setItem('gumrukCariData', JSON.stringify(window.cariData));
     if(window._firebaseSave && window._dataLoaded) {
@@ -10006,10 +10931,22 @@ document.addEventListener('click', function(e) {
             <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
             <td style="text-align:center;">
                 <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
-				<button type="button" class="icon-btn" style="background:#10b981; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;"
-        onclick="event.stopImmediatePropagation(); window.tseBasvuruKontrol(${i}, 'decl')">
-    TSE
-</button>
+				${(function(){
+					let tD = d.evrakler && d.evrakler.TSE;
+					if(tD === true) tD = 2;
+					else if(!tD) tD = 0;
+					else tD = parseInt(tD) || 0;
+					let cfg = [
+						{ bg:'linear-gradient(135deg,#dc2626,#f97316)', icon:'🚨', lbl:'TSE BAŞLAT', anim:'tse-pulse-red 2s infinite', sb:'0 0 0 2px rgba(239,68,68,.3),0 4px 12px rgba(239,68,68,.5)' },
+						{ bg:'linear-gradient(135deg,#f59e0b,#dc2626)', icon:'⏳', lbl:'TSE BEKLİYOR', anim:'tse-pulse-yellow 1.5s infinite', sb:'0 0 0 2px rgba(245,158,11,.4),0 4px 16px rgba(245,158,11,.6)' },
+						{ bg:'linear-gradient(135deg,#10b981,#059669)', icon:'✅', lbl:'TSE TAMAM', anim:'none', sb:'0 2px 8px rgba(16,185,129,.4)' }
+					][tD];
+					return `<button type="button" class="icon-btn admin-only tse-akilli-btn" data-idx="${i}" data-ctx="decl"
+						style="background:${cfg.bg};color:white;border:none;padding:7px 14px;border-radius:10px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;letter-spacing:.4px;animation:${cfg.anim};box-shadow:${cfg.sb};text-transform:uppercase;min-width:130px;justify-content:center;"
+						onclick="event.stopImmediatePropagation(); window.openTseAkilliMenu(${i}, 'decl')" title="TSE İşlemleri">
+							<span style="font-size:14px;">${cfg.icon}</span> ${cfg.lbl}
+					</button>`;
+				})()}
                     <button type="button" class="icon-btn admin-only" style="color:var(--warning);" onclick="window.prepareSureDilekcesi(${i}, 'decl')" title="Süre Uzatma Dilekçesi"><i data-lucide="file-clock"></i></button>
                     
                     ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent); display:inline-flex;" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : `<span style="color:var(--text-muted); opacity:0.3; display:inline-flex;"><i data-lucide="minus"></i></span>`}
