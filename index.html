@@ -7576,6 +7576,7 @@ window.openTseAkilliMenu = function(idx, ctx) {
     let basvuruYapildi = (tseDeger === 1 || tseDeger === 2);
     let raporHazir = !!arac.tseRaporPdfUrl;
     let onayGeldi = (tseDeger === 2);
+    let ulmHazir = !!arac.ulmPdfUrl;
 
     // Aktif aşamayı belirle
     let aktif;
@@ -7597,6 +7598,10 @@ window.openTseAkilliMenu = function(idx, ctx) {
         aktif = 4;
         durumLabel = '⏳ TSE ONAY BEKLENİYOR — TAMAMLANDIĞINDA İŞARETLE';
         sonrakiAdim = 'tamamla';
+    } else if(!ulmHazir) {
+        aktif = 5;
+        durumLabel = '📄 TSE TAMAM — ULM RAPORU HAZIRLANACAK';
+        sonrakiAdim = 'ulm';
     } else {
         aktif = 'tamam';
         durumLabel = '✅ TÜM SÜREÇ TAMAMLANDI';
@@ -7631,30 +7636,36 @@ window.openTseAkilliMenu = function(idx, ctx) {
         <div style="padding:22px 24px 18px;">
             <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:14px;">📍 SÜREÇ AKIŞI</div>
 
-            <!-- 4 Adımlı Akış -->
-            <div style="display:flex;align-items:center;gap:5px;margin-bottom:18px;">
+            <!-- 5 Adımlı Akış -->
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:18px;">
                 <!-- Adım 1: Egzoz -->
-                <div style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${egzozHazir ? '#10b981' : (aktif === 1 ? '#10b981' : 'var(--border)')};background:${egzozHazir ? 'rgba(16,185,129,.12)' : (aktif === 1 ? 'rgba(16,185,129,.05)' : 'transparent')};text-align:center;${aktif === 1 ? 'box-shadow:0 0 0 3px rgba(16,185,129,.18);' : ''}">
-                    <div style="font-size:18px;margin-bottom:2px;">${egzozHazir ? '✅' : '🌫️'}</div>
-                    <div style="font-size:9px;font-weight:800;color:${egzozHazir || aktif === 1 ? '#10b981' : 'var(--text-muted)'};letter-spacing:.3px;">1. EGZOZ</div>
+                <div style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid ${egzozHazir ? '#10b981' : (aktif === 1 ? '#10b981' : 'var(--border)')};background:${egzozHazir ? 'rgba(16,185,129,.12)' : (aktif === 1 ? 'rgba(16,185,129,.05)' : 'transparent')};text-align:center;${aktif === 1 ? 'box-shadow:0 0 0 3px rgba(16,185,129,.18);' : ''}">
+                    <div style="font-size:17px;margin-bottom:2px;">${egzozHazir ? '✅' : '🌫️'}</div>
+                    <div style="font-size:8.5px;font-weight:800;color:${egzozHazir || aktif === 1 ? '#10b981' : 'var(--text-muted)'};letter-spacing:.3px;">1.EGZOZ</div>
                 </div>
-                <div style="font-size:14px;color:var(--text-muted);">→</div>
+                <div style="font-size:12px;color:var(--text-muted);">→</div>
                 <!-- Adım 2: TSE Başvuru -->
-                <div style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${basvuruYapildi ? '#f59e0b' : (aktif === 2 ? '#f59e0b' : 'var(--border)')};background:${basvuruYapildi ? 'rgba(245,158,11,.12)' : (aktif === 2 ? 'rgba(245,158,11,.05)' : 'transparent')};text-align:center;${aktif === 2 ? 'box-shadow:0 0 0 3px rgba(245,158,11,.18);' : ''}">
-                    <div style="font-size:18px;margin-bottom:2px;">${basvuruYapildi ? '✅' : '📤'}</div>
-                    <div style="font-size:9px;font-weight:800;color:${basvuruYapildi || aktif === 2 ? '#f59e0b' : 'var(--text-muted)'};letter-spacing:.3px;">2. BAŞVURU</div>
+                <div style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid ${basvuruYapildi ? '#f59e0b' : (aktif === 2 ? '#f59e0b' : 'var(--border)')};background:${basvuruYapildi ? 'rgba(245,158,11,.12)' : (aktif === 2 ? 'rgba(245,158,11,.05)' : 'transparent')};text-align:center;${aktif === 2 ? 'box-shadow:0 0 0 3px rgba(245,158,11,.18);' : ''}">
+                    <div style="font-size:17px;margin-bottom:2px;">${basvuruYapildi ? '✅' : '📤'}</div>
+                    <div style="font-size:8.5px;font-weight:800;color:${basvuruYapildi || aktif === 2 ? '#f59e0b' : 'var(--text-muted)'};letter-spacing:.3px;">2.BAŞV.</div>
                 </div>
-                <div style="font-size:14px;color:var(--text-muted);">→</div>
+                <div style="font-size:12px;color:var(--text-muted);">→</div>
                 <!-- Adım 3: Rapor -->
-                <div style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${raporHazir ? '#3b82f6' : (aktif === 3 ? '#3b82f6' : 'var(--border)')};background:${raporHazir ? 'rgba(59,130,246,.12)' : (aktif === 3 ? 'rgba(59,130,246,.05)' : 'transparent')};text-align:center;${aktif === 3 ? 'box-shadow:0 0 0 3px rgba(59,130,246,.18);' : ''}">
-                    <div style="font-size:18px;margin-bottom:2px;">${raporHazir ? '✅' : '📋'}</div>
-                    <div style="font-size:9px;font-weight:800;color:${raporHazir || aktif === 3 ? '#3b82f6' : 'var(--text-muted)'};letter-spacing:.3px;">3. RAPOR</div>
+                <div style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid ${raporHazir ? '#3b82f6' : (aktif === 3 ? '#3b82f6' : 'var(--border)')};background:${raporHazir ? 'rgba(59,130,246,.12)' : (aktif === 3 ? 'rgba(59,130,246,.05)' : 'transparent')};text-align:center;${aktif === 3 ? 'box-shadow:0 0 0 3px rgba(59,130,246,.18);' : ''}">
+                    <div style="font-size:17px;margin-bottom:2px;">${raporHazir ? '✅' : '📋'}</div>
+                    <div style="font-size:8.5px;font-weight:800;color:${raporHazir || aktif === 3 ? '#3b82f6' : 'var(--text-muted)'};letter-spacing:.3px;">3.RAPOR</div>
                 </div>
-                <div style="font-size:14px;color:var(--text-muted);">→</div>
+                <div style="font-size:12px;color:var(--text-muted);">→</div>
                 <!-- Adım 4: Onay -->
-                <div style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${onayGeldi ? '#10b981' : (aktif === 4 ? '#10b981' : 'var(--border)')};background:${onayGeldi ? 'rgba(16,185,129,.12)' : (aktif === 4 ? 'rgba(16,185,129,.05)' : 'transparent')};text-align:center;${aktif === 4 ? 'box-shadow:0 0 0 3px rgba(16,185,129,.25);' : ''}">
-                    <div style="font-size:18px;margin-bottom:2px;">${onayGeldi ? '✅' : '⏳'}</div>
-                    <div style="font-size:9px;font-weight:800;color:${onayGeldi || aktif === 4 ? '#10b981' : 'var(--text-muted)'};letter-spacing:.3px;">4. ONAY</div>
+                <div style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid ${onayGeldi ? '#10b981' : (aktif === 4 ? '#10b981' : 'var(--border)')};background:${onayGeldi ? 'rgba(16,185,129,.12)' : (aktif === 4 ? 'rgba(16,185,129,.05)' : 'transparent')};text-align:center;${aktif === 4 ? 'box-shadow:0 0 0 3px rgba(16,185,129,.25);' : ''}">
+                    <div style="font-size:17px;margin-bottom:2px;">${onayGeldi ? '✅' : '⏳'}</div>
+                    <div style="font-size:8.5px;font-weight:800;color:${onayGeldi || aktif === 4 ? '#10b981' : 'var(--text-muted)'};letter-spacing:.3px;">4.ONAY</div>
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);">→</div>
+                <!-- Adım 5: ULM Raporu -->
+                <div style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid ${ulmHazir ? '#7c3aed' : (aktif === 5 ? '#7c3aed' : 'var(--border)')};background:${ulmHazir ? 'rgba(124,58,237,.14)' : (aktif === 5 ? 'rgba(124,58,237,.05)' : 'transparent')};text-align:center;${aktif === 5 ? 'box-shadow:0 0 0 3px rgba(124,58,237,.22);' : ''}">
+                    <div style="font-size:17px;margin-bottom:2px;">${ulmHazir ? '✅' : '📄'}</div>
+                    <div style="font-size:8.5px;font-weight:800;color:${ulmHazir || aktif === 5 ? '#7c3aed' : 'var(--text-muted)'};letter-spacing:.3px;">5.ULM</div>
                 </div>
             </div>
 
@@ -7692,11 +7703,18 @@ window.openTseAkilliMenu = function(idx, ctx) {
                 <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:14px;">TSE'den onay geldiyse durum "Tamamlandı" olarak işaretlenir</div>
             ` : ''}
 
+            ${sonrakiAdim === 'ulm' ? `
+                <button onclick="document.getElementById('tse-akilli-modal').remove(); window.createUlmRapor(${idx}, '${ctx}')" style="width:100%;padding:16px;background:linear-gradient(135deg,#7c3aed,#a21caf);color:#fff;border:none;border-radius:14px;cursor:pointer;font-size:14.5px;font-weight:800;letter-spacing:.3px;box-shadow:0 8px 24px rgba(124,58,237,.4);margin-bottom:10px;">
+                    📄 ADIM 5 — ULM MÜNFERİT UYGUNLUK RAPORU
+                </button>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:14px;">Varyant şablonu kullanılır, İthal Başvuru PDF'inden rapor no/tarih okunur</div>
+            ` : ''}
+
             ${sonrakiAdim === 'tamam' ? `
                 <div style="padding:16px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:14px;text-align:center;margin-bottom:14px;">
                     <div style="font-size:32px;margin-bottom:6px;">✅</div>
-                    <div style="font-weight:800;color:#10b981;font-size:14px;">TSE Süreci Tamamlandı</div>
-                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Tüm 3 adım tamamlandı, onay alındı</div>
+                    <div style="font-weight:800;color:#10b981;font-size:14px;">Tüm Süreç Tamamlandı</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">TSE + ULM raporları hazır</div>
                 </div>
             ` : ''}
 
@@ -7707,6 +7725,7 @@ window.openTseAkilliMenu = function(idx, ctx) {
                     ${sonrakiAdim !== 'egzoz' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.createTseEgzozPdf(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">🌫️ Egzoz Yenile</button>` : ''}
                     ${sonrakiAdim !== 'basvuru' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.tseEgzozPlusBasvuru(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📤 TSE'ye Başvur</button>` : ''}
                     ${sonrakiAdim !== 'rapor' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.openTseRaporModal(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Rapor Yenile</button>` : ''}
+                    ${sonrakiAdim !== 'ulm' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.createUlmRapor(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📄 ULM ${ulmHazir ? 'Yenile' : 'Üret'}</button>` : ''}
                     <button onclick="document.getElementById('tse-akilli-modal').remove(); window.tseDurumDegistir(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">🔄 Durum</button>
                     ${arac.evrakLink ? `<a href="${arac.evrakLink}" target="_blank" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;" onclick="document.getElementById('tse-akilli-modal').remove();">📁 Klasör</a>` : ''}
                 </div>
@@ -7774,6 +7793,177 @@ window.tseDurumDegistir = function(idx, ctx) {
         }
     }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+//  📄 ULM MÜNFERİT UYGUNLUK RAPORU — PDF üretici
+// ═══════════════════════════════════════════════════════════════════
+window.createUlmRapor = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) { alert('Araç bulunamadı'); return; }
+
+    if(!arac.sasi || arac.sasi.length !== 17) {
+        alert('⚠️ Şasi 17 hane olmalı: ' + (arac.sasi || 'boş'));
+        return;
+    }
+    if(!arac.evrakLink) {
+        alert('⚠️ Bu aracın Drive klasörü tanımlı değil.\nÖnce araç klasörünü oluşturup evrakLink atayın.');
+        return;
+    }
+
+    // ℹ️ NOT: Marka & Varyant artık SUNUCU tarafında APMGumrukSablon.xls'ten okunuyor.
+    // localStorage'daki TSE şablonu cache'i SON açılan araca aittir, mevcut araca ait olmayabilir.
+    // O yüzden burada client'tan göndermek tehlikeli — sunucu APM'den okuyor.
+    let varyant = '';  // Sadece hint olarak gönder (sunucu yine de APM'den okuyacak)
+
+    // Firma bilgisi — resmi unvan
+    let firmaInfo = (typeof window.firmaYetkiliBilgisi === 'function')
+        ? window.firmaYetkiliBilgisi(arac.firma)
+        : { resmiUnvan: arac.firma || '' };
+    let firmaUnvan = firmaInfo.resmiUnvan || arac.firma || '';
+
+    // Onay diyaloğu — ana akış (forceUret false)
+    if(!window._ulmBypassConfirm) {
+        let onayMsg = '📄 ULM MÜNFERİT UYGUNLUK RAPORU\n\n' +
+            'Şasi: ' + arac.sasi + '\n' +
+            'Firma: ' + firmaUnvan + '\n\n' +
+            'Sistem şu adımları yapacak:\n' +
+            '  1. APMGumrukSablon.xls okur (marka/varyant buradan)\n' +
+            '  2. SISTEM_ULM_SABLONLARI/{MARKA}/{VARYANT}.docx bulur\n' +
+            '  3. İthal Başvuru PDF\'inden rapor no/tarih okur\n' +
+            '  4. Aracın klasörüne PDF kaydeder\n\n' +
+            'Devam edilsin mi?';
+        if(!confirm(onayMsg)) return;
+    }
+    window._ulmBypassConfirm = false;
+
+    const TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+    // ── 1. ADIM: ULM PDF zaten var mı kontrol et
+    if(typeof showSyncToast === 'function') showSyncToast('ULM kontrol ediliyor...');
+
+    let checkCb = 'ulmCheckCb_' + Date.now();
+    window[checkCb] = function(check) {
+        delete window[checkCb];
+
+        if(check && check.varMi) {
+            let dt = check.guncelleme ? new Date(check.guncelleme).toLocaleString('tr-TR') : '';
+            if(typeof hideSyncToast === 'function') hideSyncToast('', true);
+            if(!confirm('⚠️ Bu ULM raporu zaten var:\n\n' +
+                'ULM-03-FR-01-016_0 MÜNFERİT İTHAL ARAÇ  UYGUNLUK RAPORU.pdf\n\n' +
+                'Son güncelleme: ' + dt + '\n\n' +
+                'Üzerine yazılsın mı?')) return;
+        }
+
+        // ── 2. ADIM: PDF üretimi başlat
+        ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, false);
+    };
+
+    let chkParams = new URLSearchParams({
+        action: 'checkUlmDosya',
+        evrakLink: arac.evrakLink,
+        callback: checkCb
+    });
+    let chkScript = document.createElement('script');
+    chkScript.src = TSE_GAS_URL + '?' + chkParams.toString();
+    chkScript.onerror = function() {
+        delete window[checkCb];
+        // Kontrol başarısız olsa bile devam — direkt üret
+        ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, false);
+        chkScript.remove();
+    };
+    document.body.appendChild(chkScript);
+};
+
+// ULM PDF üretim — gerçek istek
+function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret) {
+    if(typeof showSyncToast === 'function') showSyncToast('ULM raporu üretiliyor (15-20 sn)...');
+
+    let payload = {
+        action: 'createUlmRapor',
+        sasi: arac.sasi,
+        marka: arac.marka || '',
+        varyant: varyant,
+        firma: firmaUnvan,
+        evrakLink: arac.evrakLink,
+        forceUret: forceUret ? '1' : ''
+    };
+
+    let cb = 'ulmCb_' + Date.now();
+    window[cb] = function(res) {
+        delete window[cb];
+
+        if(res && res.success) {
+            if(typeof hideSyncToast === 'function') hideSyncToast('ULM raporu hazır!', true);
+            console.log('✅ ULM PDF:', res);
+
+            // Aracın state'ine kaydet
+            arac.ulmPdfUrl = res.pdfUrl;
+            arac.ulmRaporNo = res.okunan && res.okunan.raporNo;
+            arac.ulmTarih = res.okunan && res.okunan.tarih;
+            if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+            if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+
+            // PDF'i aç
+            if(res.pdfUrl) window.open(res.pdfUrl, '_blank');
+
+            // Toast
+            if(typeof window.showToast === 'function') {
+                window.showToast('📄 ULM Raporu üretildi: ' + (res.okunan ? res.okunan.raporNo : ''), 'success');
+            }
+            return;
+        }
+
+        // ── HATA AYIRT ──
+        if(typeof hideSyncToast === 'function') hideSyncToast('Üretilemedi', false);
+
+        if(res && res.templateMissing) {
+            alert('❌ ULM ŞABLONU BULUNAMADI\n\n' +
+                'Marka: ' + res.marka + '\n' +
+                'Varyant: ' + res.varyant + '\n\n' +
+                'Drive\'da bu şablonu hazırlayın:\n' +
+                'SISTEM_ULM_SABLONLARI/' + res.marka + '/' + res.varyant + '.docx');
+            console.error('ULM şablonu eksik:', res.debug);
+            return;
+        }
+
+        // Doğrulama hatası — kritik uyuşmazlık
+        if(res && res.validation && res.validation.kritikHata && res.validation.kritikHata.length > 0) {
+            let mesaj = '🚫 ŞABLON-APM UYUŞMAZLIĞI (Kritik):\n\n';
+            res.validation.kritikHata.forEach(function(k) {
+                mesaj += '• ' + k.alan + ':\n';
+                mesaj += '  APM:    "' + (k.apm || '(boş)') + '"\n';
+                mesaj += '  Şablon: "' + (k.sablon || '(boş)') + '"\n\n';
+            });
+            mesaj += 'Bu şablon bu araca ait olmayabilir!\n';
+            mesaj += 'Yine de devam etmek ister misiniz?';
+
+            if(confirm(mesaj)) {
+                // Kullanıcı yine de istiyorsa — forceUret ile tekrar dene
+                ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, true);
+            }
+            return;
+        }
+
+        alert('❌ ULM hatası: ' + (res && res.error ? res.error : 'Bilinmeyen'));
+        console.error('ULM hata:', res);
+    };
+
+    let params = new URLSearchParams();
+    Object.keys(payload).forEach(function(k) { params.append(k, payload[k]); });
+    params.append('callback', cb);
+
+    let script = document.createElement('script');
+    script.src = TSE_GAS_URL + '?' + params.toString();
+    script.onerror = function() {
+        delete window[cb];
+        alert('Apps Script bağlantı hatası');
+        if(typeof hideSyncToast === 'function') hideSyncToast('Bağlantı hatası', false);
+        script.remove();
+    };
+    document.body.appendChild(script);
+}
 
 // ═══════════════════════════════════════════════════════════════════
 //  🌫️ TSE EGZOZ PDF Üretici (tek tıkla, modal yok)
