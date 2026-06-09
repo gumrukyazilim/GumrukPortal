@@ -7795,6 +7795,107 @@ window.tseDurumDegistir = function(idx, ctx) {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+//  📋 CoC UYGUNLUK BELGESİ — Sessiz otomatik üretim
+//  Klasör oluşturulduktan sonra background'da çağrılır
+// ═══════════════════════════════════════════════════════════════════
+window.createCocSessiz = function(arac, evrakLink) {
+    return new Promise(function(resolve) {
+        if(!arac || !arac.sasi || !evrakLink) { resolve({success:false, error:'param eksik'}); return; }
+
+        const TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+        // Firma resmi unvanı
+        let firmaUnvan = arac.firma || '';
+        try {
+            if(typeof window.firmaYetkiliBilgisi === 'function') {
+                let info = window.firmaYetkiliBilgisi(arac.firma);
+                firmaUnvan = info.resmiUnvan || arac.firma || '';
+            }
+        } catch(e){}
+
+        let cb = 'cocCb_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+        let timeout = setTimeout(function(){
+            delete window[cb];
+            resolve({success:false, error:'timeout (30sn)'});
+        }, 30000);
+
+        window[cb] = function(res) {
+            clearTimeout(timeout);
+            delete window[cb];
+            let s = document.getElementById(cb + '_script');
+            if(s) s.remove();
+            if(res && res.success) {
+                arac.cocUrl = res.cocUrl;
+                console.log('✅ CoC üretildi:', res.cocUrl);
+            } else {
+                console.warn('⚠️ CoC üretilemedi:', res && res.error);
+            }
+            resolve(res || {success:false});
+        };
+
+        let params = new URLSearchParams({
+            action: 'createCocDosyasi',
+            sasi: arac.sasi,
+            firma: firmaUnvan,
+            marka: arac.marka || '',
+            evrakLink: evrakLink,
+            callback: cb
+        });
+        let script = document.createElement('script');
+        script.id = cb + '_script';
+        script.src = TSE_GAS_URL + '?' + params.toString();
+        script.onerror = function() {
+            clearTimeout(timeout);
+            delete window[cb];
+            script.remove();
+            resolve({success:false, error:'script load fail'});
+        };
+        document.body.appendChild(script);
+    });
+};
+
+// CoC manuel üretim — buton için
+window.createCocManuel = function(idx, ctx) {
+    let arac = ctx === 'firm'
+        ? (window.firmData[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+    if(!arac) { alert('Araç bulunamadı'); return; }
+    if(!arac.evrakLink) { alert('⚠️ Bu aracın Drive klasörü tanımlı değil.'); return; }
+
+    if(!confirm('📋 CoC_TR.xlsx üretilecek:\n\n' +
+        'Şasi: ' + arac.sasi + '\n' +
+        'Marka: ' + (arac.marka||'') + '\n\n' +
+        'APM\'den marka/varyant okunur, şablonu bulunur,\n' +
+        'placeholder\'lar doldurulur ve klasöre kaydedilir.\n\n' +
+        'Devam edilsin mi?')) return;
+
+    if(typeof showSyncToast === 'function') showSyncToast('CoC_TR.xlsx üretiliyor...');
+
+    window.createCocSessiz(arac, arac.evrakLink).then(function(res) {
+        if(res && res.success) {
+            if(typeof hideSyncToast === 'function') hideSyncToast('CoC hazır!', true);
+            if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); }
+            if(typeof window.renderDeclarationsTable === 'function') window.renderDeclarationsTable();
+            if(res.cocUrl) window.open(res.cocUrl, '_blank');
+            if(typeof window.showToast === 'function') {
+                window.showToast('📋 CoC_TR.xlsx üretildi (' + (res.placeholderSayisi||0) + ' alan dolduruldu)', 'success');
+            }
+        } else {
+            if(typeof hideSyncToast === 'function') hideSyncToast('Üretilemedi', false);
+            if(res && res.templateMissing) {
+                alert('❌ CoC ŞABLONU BULUNAMADI\n\n' +
+                    'Marka: ' + res.marka + '\n' +
+                    'Varyant: ' + res.varyant + '\n\n' +
+                    'Drive\'da bu şablonu hazırlayın:\n' +
+                    'SISTEM_COC_SABLONLARI/' + res.marka + '/' + res.varyant + '.xlsx');
+            } else {
+                alert('❌ CoC hatası: ' + (res && res.error ? res.error : 'Bilinmeyen'));
+            }
+        }
+    });
+};
+
+// ═══════════════════════════════════════════════════════════════════
 //  📄 ULM MÜNFERİT UYGUNLUK RAPORU — PDF üretici
 // ═══════════════════════════════════════════════════════════════════
 window.createUlmRapor = function(idx, ctx) {
@@ -14654,6 +14755,9 @@ window.eksikKlasorleriOlustur = async function() {
             basarili++;
             let detayEl = document.getElementById('klasor-progress-detay');
             if(detayEl) detayEl.innerHTML = '✅ ' + (d.marka||'') + ' — ' + (d.sasi||'') + '<br>' + detayEl.innerHTML;
+
+            // 🆕 CoC otomatik üretim (klasör oluştuktan sonra, sessizce)
+            try { await window.createCocSessiz(d, url); } catch(e){ console.warn('CoC üretim hatası:', e); }
         } else {
             hatali++;
             let detayEl = document.getElementById('klasor-progress-detay');
