@@ -11122,10 +11122,21 @@ document.addEventListener('click', function(e) {
             <td style="text-align:center;">
                 <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
 				${(function(){
+					// Kapali kontrolu - TSE BASLAT yanip sonmesin
+					let _dur = (d.evrak || d.durum || "").toLocaleLowerCase("tr");
+					let _isKapali = (_dur === "kapali" || _dur === "kapalı");
 					let tD = d.evrakler && d.evrakler.TSE;
 					if(tD === true) tD = 2;
 					else if(!tD) tD = 0;
 					else tD = parseInt(tD) || 0;
+					if(_isKapali) {
+						let _lbl = (tD === 2) ? "TSE ✅" : (tD === 1 ? "TSE ⏳" : "TSE -");
+						return `<button type="button" class="icon-btn admin-only tse-akilli-btn" data-idx="${i}" data-ctx="decl"
+							style="background:rgba(100,116,139,.18);color:var(--text-muted);border:1px solid rgba(100,116,139,.3);padding:7px 14px;border-radius:10px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;letter-spacing:.4px;text-transform:uppercase;min-width:130px;justify-content:center;opacity:.7;"
+							onclick="event.stopImmediatePropagation(); window.openTseAkilliMenu(${i}, 'decl')" title="Dosya KAPALI">
+								🔒 ${_lbl}
+						</button>`;
+					}
 					let cfg = [
 						{ bg:'linear-gradient(135deg,#dc2626,#f97316)', icon:'🚨', lbl:'TSE BAŞLAT', anim:'tse-pulse-red 2s infinite', sb:'0 0 0 2px rgba(239,68,68,.3),0 4px 12px rgba(239,68,68,.5)' },
 						{ bg:'linear-gradient(135deg,#f59e0b,#dc2626)', icon:'⏳', lbl:'TSE BEKLİYOR', anim:'tse-pulse-yellow 1.5s infinite', sb:'0 0 0 2px rgba(245,158,11,.4),0 4px 16px rgba(245,158,11,.6)' },
