@@ -3454,7 +3454,7 @@ div[style*="position: relative"] > input {
     </div> 
     <div class="fade-in" style="padding:0;overflow:visible;"><div class="table-wrap"><table class="data-table"><thead><tr>
         <th style="width:40px;text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb" id="decl-selectAll" onclick="window.toggleAllDeclarations(this.checked)"></th>
-        <th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('decl')">G.TARİHİ ↕</th><th>İLK SÜRE</th><th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th><th>DURUM</th><th class="firma-readonly">FATURA</th><th>ARDİYE</th>
+        <th>FİRMA/ARAÇ</th><th>ŞASİ NO</th><th class="sortable-th" onclick="window.sortData('decl','tarih')" title="Geliş tarihine göre sırala">G.TARİHİ ↕</th><th>İLK SÜRE</th><th>EK SÜRE</th><th>ANTREPO</th><th>BEYANNAME</th><th>K.VER.</th><th>K.GEL.</th><th>KLN SON</th><th>KALAN</th><th>SON GÜN</th><th class="sortable-th" onclick="window.sortData('decl','durum')" title="Duruma göre sırala (Kıymette → Açık → Kapalı)">DURUM ↕</th><th class="firma-readonly">FATURA</th><th>ARDİYE</th>
         <th style="text-align:center;" class="admin-only">VERGİ</th><th style="text-align:center;">İŞLEM</th>
     </tr></thead><tbody id="declarations-tbody"></tbody></table></div></div> 
 </template>
@@ -9848,7 +9848,47 @@ window.confirmEditFirmMeta=function(name){
     };
 
     window.sortState={col:'tarih',asc:false};
-    window.sortData=function(ctx){window.sortState.asc=!window.sortState.asc;let mul=window.sortState.asc?1:-1;let pD=s=>{if(!s)return 0;let c=window.fixExcelDate(s);let p=c.split('.');return p.length===3?parseInt(p[2]+p[1]+p[0]):0;};if(ctx==='decl'){window.declarationsData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('decl');window.renderDeclarationsTable();}else if(ctx==='firm'){window.firmData[window.currentFirm].sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('firm');window.renderFirmVehicles();}else if(ctx==='kiymet'){window.kiymetData.sort((a,b)=>(pD(a.tarih)-pD(b.tarih))*mul);saveData('kiymet');window.renderKiymetTable();}};
+    window.sortData=function(ctx,field){
+        field = field || 'tarih';
+        // Aynı kolona tekrar tıklarsa yön değiştir, farklı kolonsa varsayılan yön
+        if(window.sortState.col===field) window.sortState.asc=!window.sortState.asc;
+        else { window.sortState.col=field; window.sortState.asc = (field==='durum') ? true : false; }
+        let mul=window.sortState.asc?1:-1;
+
+        let pD=function(s){if(!s)return 0;let c=window.fixExcelDate(s);let p=c.split('.');return p.length===3?parseInt(p[2]+p[1]+p[0]):0;};
+
+        // DURUM sıralama anahtarı:
+        // 1=KIYMETTE, 2=AÇIK(beklemede), 3=KAPALI, 4=DİĞER
+        let pDurum=function(d){
+            let e=(d.evrak||'').toLocaleLowerCase('tr');
+            let acik=(e==='açık'||e==='acik');
+            let kiymette = d.kiymVv && !d.kiymGt;
+            if(kiymette) return 1;
+            if(acik) return 2;
+            if(e==='kapalı'||e==='kapali') return 3;
+            return 4;
+        };
+
+        let cmp;
+        if(field==='durum') cmp = function(a,b){
+            let dx=pDurum(a)-pDurum(b);
+            if(dx!==0) return dx*mul;
+            // Aynı durumdaysa tarih ikincil sıra
+            return (pD(b.tarih)-pD(a.tarih));
+        };
+        else cmp = function(a,b){return (pD(a.tarih)-pD(b.tarih))*mul;};
+
+        if(ctx==='decl'){window.declarationsData.sort(cmp);saveData('decl');window.renderDeclarationsTable();}
+        else if(ctx==='firm'){window.firmData[window.currentFirm].sort(cmp);saveData('firm');window.renderFirmVehicles();}
+        else if(ctx==='kiymet'){window.kiymetData.sort(cmp);saveData('kiymet');window.renderKiymetTable();}
+
+        // Toast feedback
+        if(typeof window.showToast==='function'){
+            let labels={tarih:'Geliş Tarihi',durum:'Durum'};
+            let yon=window.sortState.asc?'↑':'↓';
+            window.showToast('🔃 Sıralama: '+(labels[field]||field)+' '+yon,'info');
+        }
+    };
     window.goToFilter=function(f){window.renderView('declarations');setTimeout(function(){let el=document.getElementById('decl-status-filter');if(el){el.value=f;window.renderDeclarationsTable();}},50);};
 
     let _searchTimeout=null;
