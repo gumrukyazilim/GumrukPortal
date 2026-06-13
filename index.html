@@ -7726,6 +7726,7 @@ window.openTseAkilliMenu = function(idx, ctx) {
                     ${sonrakiAdim !== 'basvuru' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.tseEgzozPlusBasvuru(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📤 TSE'ye Başvur</button>` : ''}
                     ${sonrakiAdim !== 'rapor' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.openTseRaporModal(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Rapor Yenile</button>` : ''}
                     ${sonrakiAdim !== 'ulm' ? `<button onclick="document.getElementById('tse-akilli-modal').remove(); window.createUlmRapor(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📄 ULM ${ulmHazir ? 'Yenile' : 'Üret'}</button>` : ''}
+                    <button onclick="document.getElementById('tse-akilli-modal').remove(); window.createCocManuel(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">📋 CoC Üret</button>
                     <button onclick="document.getElementById('tse-akilli-modal').remove(); window.tseDurumDegistir(${idx}, '${ctx}')" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">🔄 Durum</button>
                     ${arac.evrakLink ? `<a href="${arac.evrakLink}" target="_blank" style="padding:11px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;" onclick="document.getElementById('tse-akilli-modal').remove();">📁 Klasör</a>` : ''}
                 </div>
@@ -11858,20 +11859,39 @@ window._tseMevcutAraciGetir = function(sasi) {
     return null;
 };
 
-// ── TSE FORM VERİSİNİ localStorage'A KAYDET ─────────────────────────
+// ── TSE şasiye özel localStorage anahtarı ─────────────────────────
+// Her aracın TSE şablonu KENDİ şasi'si altında saklanır.
+// Önceki davranış: tek global cache → farklı araçta diğerinin verisi geliyordu.
+window._tseCacheKey = function() {
+    var sasi = ((document.getElementById('da-sase') || {}).value || '').trim().toUpperCase();
+    if (!sasi) return null;
+    return 'gumruk_tse_sablon_' + sasi;
+};
+
+// ── TSE FORM VERİSİNİ localStorage'A KAYDET (şasi bazlı) ──────────
 window.tseSablonFormKaydet = function() {
+    var key = window._tseCacheKey();
+    if (!key) return;  // Şasi yoksa kaydetme — yanlış araca yazmasın
     var kayit = {};
     window._TSE_ALANLAR.forEach(function(id) {
         var el = document.getElementById(id);
         if (el) kayit[id] = el.value || '';
     });
+    localStorage.setItem(key, JSON.stringify(kayit));
+    // Geriye dönük: son düzenlenen aracın anahtarını da tut
     localStorage.setItem('gumruk_tse_sablon_v1', JSON.stringify(kayit));
 };
 
-// ── TSE FORM VERİSİNİ localStorage'DAN GERİ YÜKlE ──────────────────
+// ── TSE FORM VERİSİNİ localStorage'DAN GERİ YÜKlE (şasi bazlı) ────
 window.tseSablonFormYukle = function() {
     try {
-        var kayit = JSON.parse(localStorage.getItem('gumruk_tse_sablon_v1') || 'null');
+        var key = window._tseCacheKey();
+        var kayit = null;
+        if (key) {
+            kayit = JSON.parse(localStorage.getItem(key) || 'null');
+        }
+        // ★ Bu aracın kendi kaydı yoksa GLOBAL kayıt UYGULANMAZ
+        // (çünkü o, başka aracın verisi olabilir). Form temiz kalır.
         if (!kayit) return false;
         window._TSE_ALANLAR.forEach(function(id) {
             var el = document.getElementById(id);
@@ -11887,8 +11907,15 @@ window.openTseSablonModal = function() {
     var marka = (document.getElementById('da-marka') || {}).value || '';
     var sasi  = (document.getElementById('da-sase')  || {}).value || '';
     var gtip  = (document.getElementById('da-gtip')  || {}).value || '';
+    var evrakLink = (document.getElementById('da-evrakLink') || {}).value || '';
 
-    // ── ÖNCEKİ VERİLERİ GERİ YÜKLE ──────────────────────────────────
+    // 🧹 Form temizle — başka aracın verisi sızmasın
+    window._TSE_ALANLAR.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    // ── 1. Bu aracın kendi şasi'si için yerel cache var mı?
     var yuklendiMi = window.tseSablonFormYukle();
 
     // Araçtan gelen bilgiler her zaman üzerine yaz (şasi, marka, gtip)
@@ -11905,7 +11932,7 @@ window.openTseSablonModal = function() {
         if (yuklendiMi) {
             st.style.display = 'block';
             st.style.color = 'var(--success, #10b981)';
-            st.innerHTML = '✅ Önceki girilen veriler korundu.';
+            st.innerHTML = '✅ Bu araç için önceki veriler yüklendi.';
             setTimeout(function(){ if(st) { st.style.display='none'; st.innerHTML=''; } }, 2500);
         } else {
             st.style.display = 'none';
@@ -11923,6 +11950,121 @@ window.openTseSablonModal = function() {
         modal.addEventListener('change', window.tseSablonFormKaydet);
         modal._autoSaveAttached = true;
     }
+
+    // ── 2. ★ APM xls'ten otomatik çek (kesin doğru kaynak)
+    // Araç klasöründeki APMGumrukSablon.xls aracın gerçek verisi.
+    // Yerel cache başka araca ait olabilir — APM en güvenilir.
+    if (evrakLink) {
+        window.tseSablonApmFromDrive(evrakLink, sasi);
+    }
+};
+
+// ★ Aracın klasöründen APM okuyup formu doldur
+window.tseSablonApmFromDrive = function(evrakLink, expectedSasi) {
+    if (!evrakLink) return;
+
+    var st = document.getElementById('tse-sablon-status');
+    if (st) {
+        st.style.display = 'block';
+        st.style.color = 'var(--text-muted, #94a3b8)';
+        st.innerHTML = '⏳ Aracın Drive klasöründen veri çekiliyor (APM)...';
+    }
+
+    const TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+    var cb = 'apmCb_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    var timer = setTimeout(function() {
+        delete window[cb];
+        var s = document.getElementById(cb + '_script');
+        if (s) s.remove();
+        if (st) {
+            st.style.color = 'var(--text-muted)';
+            st.innerHTML = 'ℹ️ APM okunamadı (zaman aşımı) — elle doldurun';
+            setTimeout(function(){ if(st){st.style.display='none';st.innerHTML='';} }, 3500);
+        }
+    }, 20000);
+
+    window[cb] = function(res) {
+        clearTimeout(timer);
+        delete window[cb];
+        var s = document.getElementById(cb + '_script');
+        if (s) s.remove();
+
+        if (!res || !res.success || !res.data) {
+            if (st) {
+                st.style.color = 'var(--text-muted)';
+                st.innerHTML = 'ℹ️ APM bulunamadı — elle doldurun (' + ((res && res.error) || '') + ')';
+                setTimeout(function(){ if(st){st.style.display='none';st.innerHTML='';} }, 3500);
+            }
+            return;
+        }
+
+        // ⚠️ Şasi tutarlılık kontrolü — APM yanlış araca aitse uyar
+        var apmSasi = (res.data['Araç Tanıtım No'] || '').trim().toUpperCase();
+        var nowSasi = (expectedSasi || '').trim().toUpperCase();
+        if (nowSasi && apmSasi && nowSasi !== apmSasi) {
+            if (st) {
+                st.style.color = 'var(--warning, #f59e0b)';
+                st.innerHTML = '⚠️ APM\'deki şasi (' + apmSasi + ') aracın şasi\'si (' + nowSasi + ') ile uyuşmuyor! Form doldurulmadı.';
+                setTimeout(function(){ if(st){st.style.display='none';st.innerHTML='';} }, 6000);
+            }
+            return;
+        }
+
+        // ✅ APM verisini form alanlarına aktar
+        var apm = res.data;
+        var alanMap = {
+            'tse-aracCinsi':       apm['Araç Cinsi'],
+            'tse-marka':           apm.Marka,
+            'tse-tip':             apm.Tip,
+            'tse-varyant':         apm.Varyant,
+            'tse-versiyon':        apm.Versiyon,
+            'tse-kategori':        apm.Kategori,
+            'tse-imalTarihi':      apm['İmal Tarihi'],
+            'tse-ticariAd':        apm['Ticari Ad'],
+            'tse-aracTanitimNo':   apm['Araç Tanıtım No'],
+            'tse-yakitTuru':       apm['Yakıt Türü'],
+            'tse-tipOnayNo':       apm['Tip Onay No'],
+            'tse-tipOnayTarihi':   apm['Tip Onay Tarihi'],
+            'tse-antrepoAdi':      apm['Antrepo Adı'],
+            'tse-uretildigiUlke':  apm['Üretildiği Ülke'],
+            'tse-ithalatUlkesi':   apm['İthalatın Yapıldığı Ülke'],
+            'tse-gtipNo':          apm['GTIP No']
+        };
+        Object.keys(alanMap).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && alanMap[id]) el.value = alanMap[id];
+        });
+
+        // Cache'i de güncelle (offline kullanım için)
+        if (typeof window.tseSablonFormKaydet === 'function') window.tseSablonFormKaydet();
+
+        if (st) {
+            st.style.color = 'var(--success, #10b981)';
+            st.innerHTML = '✅ APM\'den otomatik dolduruldu (' + apmSasi + ')';
+            setTimeout(function(){ if(st){st.style.display='none';st.innerHTML='';} }, 3000);
+        }
+    };
+
+    var params = new URLSearchParams({
+        action: 'readApmData',
+        evrakLink: evrakLink,
+        callback: cb
+    });
+    var script = document.createElement('script');
+    script.id = cb + '_script';
+    script.src = TSE_GAS_URL + '?' + params.toString();
+    script.onerror = function() {
+        clearTimeout(timer);
+        delete window[cb];
+        script.remove();
+        if (st) {
+            st.style.color = 'var(--text-muted)';
+            st.innerHTML = 'ℹ️ APM bağlantı hatası';
+            setTimeout(function(){ if(st){st.style.display='none';st.innerHTML='';} }, 3000);
+        }
+    };
+    document.body.appendChild(script);
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -12132,13 +12274,34 @@ window.bulkTseMailModal = function() {
 window.processBulkTseMail = async function() {
     var vehicles = window.bulkTseVehicles;
     var statusDiv = document.getElementById('bulk-tse-status');
+    var modal = document.getElementById('bulk-tse-modal');
     if (!vehicles || vehicles.length === 0) return;
+
+    // Gönder butonunu kilitle + spinner
+    var gonderBtn = modal ? modal.querySelector('button[onclick*="processBulkTseMail"]') : null;
+    if (gonderBtn) {
+        gonderBtn.disabled = true;
+        gonderBtn.style.opacity = '0.6';
+        gonderBtn.style.cursor = 'wait';
+        gonderBtn.innerHTML = '⏳ Gönderiliyor...';
+    }
 
     vehicles.forEach(function(v) {
         statusDiv.innerHTML += `<div style="padding: 3px 0; color: #3b82f6;">✓ ${v.sasi} eklendi</div>`;
     });
 
-    statusDiv.innerHTML += `<div style="padding: 4px 0; color: #f59e0b;">⏳ İşleniyor... (PDF okuma biraz sürebilir)</div>`;
+    var processingMsg = document.createElement('div');
+    processingMsg.style.cssText = 'padding:4px 0;color:#f59e0b;display:flex;align-items:center;gap:8px;';
+    processingMsg.innerHTML = '<span class="bulk-tse-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(245,158,11,0.3);border-top-color:#f59e0b;border-radius:50%;animation:bulk-tse-spin 0.8s linear infinite;"></span><span>İşleniyor... (PDF okuma biraz sürebilir)</span>';
+    statusDiv.appendChild(processingMsg);
+
+    // Spinner keyframes (yoksa ekle)
+    if (!document.getElementById('bulk-tse-spinner-style')) {
+        var styleEl = document.createElement('style');
+        styleEl.id = 'bulk-tse-spinner-style';
+        styleEl.textContent = '@keyframes bulk-tse-spin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(styleEl);
+    }
 
     try {
         var sasiList = vehicles.map(function(v) { return v.sasi; }).join(',');
@@ -12148,9 +12311,36 @@ window.processBulkTseMail = async function() {
             { mode: 'no-cors' }
         );
 
-        statusDiv.innerHTML += `<div style="color: #10b981; font-weight: 600; padding: 8px 0;">✅ ${vehicles.length} araç için mail gönderildi! (Gmail kutusunu kontrol edin)</div>`;
+        // İşleme mesajını sil, başarı mesajını koy
+        processingMsg.remove();
+        statusDiv.innerHTML += `<div style="color:#10b981;font-weight:700;padding:10px 12px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;margin-top:6px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;">✅</span>
+            <div>
+                <div>${vehicles.length} araç için mail gönderildi!</div>
+                <div style="font-size:11px;font-weight:400;opacity:0.8;margin-top:2px;">Gmail kutunuzu kontrol edebilirsiniz.</div>
+            </div>
+        </div>`;
+
+        // Toast bildirim (modal kapansa bile kullanıcı görür)
+        if (typeof window.showToast === 'function') {
+            window.showToast('📧 ' + vehicles.length + ' araç için TSE mail gönderildi', 'success');
+        }
+
+        // 2.5 saniye sonra modalı kapat
+        setTimeout(function() {
+            if (modal && modal.parentNode) modal.remove();
+        }, 2500);
+
     } catch (err) {
-        statusDiv.innerHTML += `<div style="color: var(--error, #ef4444);">❌ Hata: ${err.message}</div>`;
+        processingMsg.remove();
+        statusDiv.innerHTML += `<div style="color:var(--error,#ef4444);padding:8px;background:rgba(239,68,68,0.1);border-radius:6px;margin-top:6px;">❌ Hata: ${err.message}</div>`;
+        // Hata durumunda butonu tekrar aktifleştir
+        if (gonderBtn) {
+            gonderBtn.disabled = false;
+            gonderBtn.style.opacity = '1';
+            gonderBtn.style.cursor = 'pointer';
+            gonderBtn.innerHTML = '🔁 Tekrar Dene';
+        }
     }
 };
 
@@ -12465,11 +12655,62 @@ window.tseSablonKaydet = function() {
                 sasi: sasi
             })
         }).then(function(){
+            console.log('🟢 APM yüklendi → CoC otomasyonu başlatılıyor');
+
             if (st) {
                 st.style.color = 'var(--success)';
-                st.innerHTML = '✅ APMGumrukSablon.xls aracın Drive klasörüne yüklendi.';
+                st.innerHTML = '✅ APMGumrukSablon.xls yüklendi. ⏳ CoC üretiliyor (varyant: ' + v('tse-varyant') + ')...';
             }
-            setTimeout(function(){ window.closeTseSablonModal(); }, 3000);
+
+            // ★ 1. ADIM: APM'in Drive'da indekslenmesi için bekleyiş (5 sn — Drive yavaş)
+            // 2. ADIM: Varyanta göre CoC_TR.xlsx otomatik üret
+            setTimeout(function() {
+                var firmaForCoc = (document.getElementById('da-firma') || {}).value || '';
+                var arac = {
+                    sasi: sasi,
+                    firma: firmaForCoc,
+                    marka: v('tse-marka'),
+                    evrakLink: folderUrl
+                };
+
+                console.log('🟢 CoC tetiği — arac:', arac);
+                console.log('🟢 createCocSessiz tipi:', typeof window.createCocSessiz);
+
+                if (typeof window.createCocSessiz !== 'function') {
+                    console.error('❌ window.createCocSessiz tanımlı DEĞİL — sayfayı hard refresh edin (Ctrl+Shift+R)');
+                    if (st) {
+                        st.style.color = 'var(--danger, #dc2626)';
+                        st.innerHTML = '❌ CoC fonksiyonu yüklenmemiş — Ctrl+Shift+R ile sayfayı yenileyin';
+                    }
+                    return;
+                }
+
+                window.createCocSessiz(arac, folderUrl).then(function(cocRes) {
+                    console.log('🟢 CoC sonucu:', cocRes);
+
+                    if (st) {
+                        if (cocRes && cocRes.success) {
+                            st.style.color = 'var(--success)';
+                            st.innerHTML = '✅ APM + CoC_TR.xlsx aracın klasörüne yüklendi.';
+                            if (typeof window.showToast === 'function') {
+                                window.showToast('📋 CoC_TR.xlsx otomatik üretildi (varyant: ' + v('tse-varyant') + ')', 'success');
+                            }
+                        } else if (cocRes && cocRes.templateMissing) {
+                            st.style.color = 'var(--warning, #f59e0b)';
+                            st.innerHTML = '⚠️ APM yüklendi ama CoC şablonu yok: ' +
+                                'SISTEM_COC_SABLONLARI/' + (cocRes.marka || v('tse-marka')) + '/' + (cocRes.varyant || v('tse-varyant')) + '.xlsx';
+                            if (typeof window.showToast === 'function') {
+                                window.showToast('⚠️ CoC şablonu eksik: ' + (cocRes.varyant || v('tse-varyant')) + '.xlsx', 'warn');
+                            }
+                        } else {
+                            st.style.color = 'var(--warning, #f59e0b)';
+                            st.innerHTML = '⚠️ APM yüklendi, CoC üretilemedi: ' + ((cocRes && cocRes.error) || 'bilinmeyen hata');
+                        }
+                        setTimeout(function(){ window.closeTseSablonModal(); }, 4000);
+                    }
+                });
+            }, 5000);
+
         }).catch(function(){
             if (st) {
                 st.style.color = 'var(--danger, #dc2626)';
