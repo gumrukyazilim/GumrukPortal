@@ -7978,9 +7978,33 @@ window.createUlmRapor = function(idx, ctx) {
     document.body.appendChild(chkScript);
 };
 
+// ULM placeholder Türkçe etiketleri (modal için)
+window.ULM_PLACEHOLDER_LABELS = {
+    MARKA: 'Marka', TIP: 'Tip', VARYANT: 'Varyant', VERSIYON: 'Versiyon',
+    ARAC_KATEGORISI: 'Araç Kategorisi', TIP_ONAY_NUMARASI: 'Tip Onay Numarası',
+    TICARI_AD: 'Ticari Ad', YAKIT: 'Yakıt Türü', IMAL_TARIHI: 'İmal Tarihi',
+    ARAC_CINSI: 'Araç Cinsi',
+    KAPI_SAYISI: 'Kapı Sayısı', KOLTUK_SAYISI: 'Koltuk Sayısı',
+    KAROSER_KODU: 'Karoser Kodu', DINGIL_SAYISI: 'Dingil Sayısı',
+    YONLENDIRILEBILIR: 'Yönlendirilebilir Dingiller (örn: 1/1)',
+    TAHRIKLI_DINGILLER: 'Tahrikli Dingiller (örn: 2/2)',
+    MOTOR_TIPI: 'Motor Tipi / Üretici',
+    UZUNLUK: 'Uzunluk (mm)', YUKSEKLIK: 'Yükseklik (mm)',
+    GENISLIK: 'Genişlik (mm)', DINGIL_MESAFESI: 'Dingil Mesafesi (mm)',
+    LASTIK_AKS1_OLCU: '1. Aks Lastik Ölçüsü', LASTIK_AKS1_YUK: '1. Aks Yük İndeksi',
+    LASTIK_AKS1_HIZ: '1. Aks Hız Sembolü',
+    LASTIK_AKS2_OLCU: '2. Aks Lastik Ölçüsü', LASTIK_AKS2_YUK: '2. Aks Yük İndeksi',
+    LASTIK_AKS2_HIZ: '2. Aks Hız Sembolü'
+};
+
 // ULM PDF üretim — gerçek istek
-function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret) {
+// Override eşlemeleri Apps Script PropertiesService'te tutulur (cloud — tüm cihazlardan erişilir).
+// Client sadece YENİ override'ları yollar; eski hatırlananları server otomatik yükler.
+function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret, extraOverrides) {
     if(typeof showSyncToast === 'function') showSyncToast('ULM raporu üretiliyor (15-20 sn)...');
+
+    let yeniOverrides = extraOverrides || {};
+    let hasNewOverrides = Object.keys(yeniOverrides).length > 0;
 
     let payload = {
         action: 'createUlmRapor',
@@ -7989,7 +8013,9 @@ function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret)
         varyant: varyant,
         firma: firmaUnvan,
         evrakLink: arac.evrakLink,
-        forceUret: forceUret ? '1' : ''
+        forceUret: forceUret ? '1' : '',
+        overrides: hasNewOverrides ? JSON.stringify(yeniOverrides) : '',
+        saveOverrides: hasNewOverrides ? '1' : ''  // server bunu cloud'a kaydetsin
     };
 
     let cb = 'ulmCb_' + Date.now();
@@ -8013,6 +8039,11 @@ function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret)
             // Toast
             if(typeof window.showToast === 'function') {
                 window.showToast('📄 ULM Raporu üretildi: ' + (res.okunan ? res.okunan.raporNo : ''), 'success');
+            }
+
+            // ★ EKSİK PLACEHOLDER MODALI — varsa kullanıcıya sor
+            if(res.bosPlaceholders && res.bosPlaceholders.length > 0) {
+                window.ulmEksikAlanModali(idx, ctx, arac, res.marka || arac.marka, res.varyant || varyant, res.bosPlaceholders, res.doluPlaceholders || {}, firmaUnvan, TSE_GAS_URL);
             }
             return;
         }
@@ -8060,12 +8091,104 @@ function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret)
     script.src = TSE_GAS_URL + '?' + params.toString();
     script.onerror = function() {
         delete window[cb];
-        alert('Apps Script bağlantı hatası');
+        alert('Apps Script bağlantı hatası — ULM');
         if(typeof hideSyncToast === 'function') hideSyncToast('Bağlantı hatası', false);
         script.remove();
     };
     document.body.appendChild(script);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  📋 ULM EKSİK ALAN MODALI — boş kalan placeholder'lar için
+//  Kullanıcı doldurur → marka+varyant bazlı hafızaya kaydedilir
+//  → "Yeniden Üret" ile PDF anında güncellenir.
+// ═══════════════════════════════════════════════════════════════════
+window.ulmEksikAlanModali = function(idx, ctx, arac, marka, varyant, bosListe, doluListe, firmaUnvan, TSE_GAS_URL) {
+    // Eski modal varsa kaldır
+    let eski = document.getElementById('ulm-eksik-modal');
+    if(eski) eski.remove();
+
+    let labels = window.ULM_PLACEHOLDER_LABELS || {};
+    let modal = document.createElement('div');
+    modal.id = 'ulm-eksik-modal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    let inputlarHTML = bosListe.map(function(ph) {
+        let label = labels[ph] || ph;
+        return '<div style="margin-bottom:10px;">' +
+            '<label style="display:block;font-size:11.5px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">' +
+                label + ' <span style="color:var(--text-muted);font-weight:400;font-size:10px;">{' + ph + '}</span>' +
+            '</label>' +
+            '<input type="text" id="ulm-eksik-' + ph + '" placeholder="Sabit değer veya @B45 (CoC hücre adresi)" ' +
+                'style="width:100%;padding:8px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:12.5px;" autocomplete="off">' +
+        '</div>';
+    }).join('');
+
+    let doluOzet = Object.keys(doluListe).length;
+
+    modal.innerHTML =
+        '<div style="background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:14px;max-width:560px;width:100%;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5);">' +
+            '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(239,68,68,.05));">' +
+                '<div>' +
+                    '<h2 style="margin:0;font-size:16px;font-weight:700;">⚠️ Eksik Alanlar Tespit Edildi</h2>' +
+                    '<p style="margin:4px 0 0;font-size:11px;color:var(--text-muted);">' +
+                        marka + ' / ' + varyant + ' &nbsp;·&nbsp; ' + doluOzet + ' alan otomatik dolduruldu, ' +
+                        '<strong style="color:var(--warning);">' + bosListe.length + ' alan boş kaldı</strong>' +
+                    '</p>' +
+                '</div>' +
+                '<button onclick="document.getElementById(\'ulm-eksik-modal\').remove()" ' +
+                    'style="background:transparent;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;padding:0 8px;">×</button>' +
+            '</div>' +
+
+            '<div style="padding:16px 20px;overflow-y:auto;flex:1;">' +
+                '<p style="margin:0 0 12px;font-size:12px;color:var(--text-muted);line-height:1.5;">' +
+                    'Aşağıdaki alanlar CoC dosyasından okunamadı. <strong>İki seçenek var:</strong><br>' +
+                    '• <strong>Sabit değer</strong> yaz (her araçta aynı kalacaksa, örn: <code>4</code>)<br>' +
+                    '• <strong>@ + hücre adresi</strong> yaz (araç başına değişiyorsa, örn: <code>@B45</code> veya <code>@Sayfa2!C12</code>) — her ULM\'de o hücreden okunur.<br>' +
+                    'Kaydedilen seçim <strong>bu marka+varyant için kalıcı hatırlanır</strong>.' +
+                '</p>' +
+                inputlarHTML +
+            '</div>' +
+
+            '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--bg-base);">' +
+                '<button onclick="document.getElementById(\'ulm-eksik-modal\').remove()" ' +
+                    'style="padding:9px 16px;background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;font-size:12px;cursor:pointer;">Şimdi Değil</button>' +
+                '<button id="ulm-eksik-kaydet-btn" ' +
+                    'style="padding:9px 18px;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;color:#fff;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">' +
+                    '💾 Hatırla &amp; ULM\'yi Yenile' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+
+    document.body.appendChild(modal);
+
+    document.getElementById('ulm-eksik-kaydet-btn').addEventListener('click', function() {
+        let yeniDegerler = {};
+        let doluSayisi = 0;
+        bosListe.forEach(function(ph) {
+            let inp = document.getElementById('ulm-eksik-' + ph);
+            let v = (inp && inp.value || '').trim();
+            if(v) { yeniDegerler[ph] = v; doluSayisi++; }
+        });
+
+        if(doluSayisi === 0) {
+            alert('En az bir alan doldurmalısın — yoksa "Şimdi Değil"\'e bas.');
+            return;
+        }
+
+        // Modali kapat — Apps Script PropertiesService'e kaydedecek (cloud, tüm cihazlardan erişilir)
+        document.getElementById('ulm-eksik-modal').remove();
+
+        if(typeof window.showToast === 'function') {
+            window.showToast('☁️ ' + doluSayisi + ' alan cloud\'a kaydediliyor & ULM yenileniyor...', 'success');
+        }
+
+        // ULM'yi yeniden üret — bu sefer overrides ile birlikte
+        let TSE_GAS_URL_LOCAL = TSE_GAS_URL || window.TSE_GAS_URL;
+        ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL_LOCAL, true, yeniDegerler);
+    });
+};
 
 // ═══════════════════════════════════════════════════════════════════
 //  🌫️ TSE EGZOZ PDF Üretici (tek tıkla, modal yok)
@@ -12740,7 +12863,6 @@ window.triggerDriveBridge = function(firma, marka, sasi) {
         
         let script = document.createElement('script');
         window.driveCallback = function(data) {
-alert("DRIVE YANIT: " + JSON.stringify(data));
             if(data && data.url) {
                 document.getElementById('da-evrakLink').value = data.url;
                 if(typeof hideSyncToast === 'function') hideSyncToast("Klasör Drive'a bağlandı!", true);
@@ -12953,11 +13075,12 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
         }
     }
     
-    if(!r.evrakLink && i === -1) { 
-        let driveUrl = await window.triggerDriveBridge(r.firma, r.marka, r.sasi);
-        if(driveUrl) { r.evrakLink = driveUrl; }
+    // Drive Bridge: yeni kayıt için arka planda tetikle, kullanıcı beklemesin
+    let _driveBridgePromise = null;
+    if(!r.evrakLink && i === -1) {
+        _driveBridgePromise = window.triggerDriveBridge(r.firma, r.marka, r.sasi);
     }
-    
+
     if(window.currentModalContext==='decl'){
         let os=i===-1?null:window.declarationsData[i].sasi;
         if(i===-1){
@@ -13062,6 +13185,24 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
     // Başarı bildirimi
     if(typeof window.showToast === 'function') {
         window.showToast('✅ Kayıt başarıyla güncellendi', 'success');
+    }
+
+    // Drive Bridge sonucunu arka planda işle: link gelince kayda yaz, tabloyu yenile
+    if(_driveBridgePromise) {
+        _driveBridgePromise.then(function(driveUrl){
+            if(!driveUrl) return;
+            let dRec = window.declarationsData.find(x => x.sasi === r.sasi);
+            if(dRec) dRec.evrakLink = driveUrl;
+            if(window.firmData[r.firma]) {
+                let fRec = window.firmData[r.firma].find(x => x.sasi === r.sasi);
+                if(fRec) fRec.evrakLink = driveUrl;
+            }
+            try { if(typeof saveData === 'function') { saveData('decl'); saveData('firm'); } } catch(e){}
+            try {
+                if(window.currentModalContext==='decl' && window.renderDeclarationsTable) window.renderDeclarationsTable();
+                else if(window.renderFirmVehicles) window.renderFirmVehicles();
+            } catch(e){}
+        }).catch(function(e){ console.warn('Drive Bridge arka plan hatası:', e); });
     }
 };
 
