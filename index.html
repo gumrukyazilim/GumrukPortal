@@ -8120,7 +8120,7 @@ window.ulmEksikAlanModali = function(idx, ctx, arac, marka, varyant, bosListe, d
             '<label style="display:block;font-size:11.5px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">' +
                 label + ' <span style="color:var(--text-muted);font-weight:400;font-size:10px;">{' + ph + '}</span>' +
             '</label>' +
-            '<input type="text" id="ulm-eksik-' + ph + '" placeholder="Sabit değer veya @B45 (CoC hücre adresi)" ' +
+            '<input type="text" id="ulm-eksik-' + ph + '" placeholder="@B45 veya @Sayfa2!C12 (önerilen) — değer için doğrudan yaz" ' +
                 'style="width:100%;padding:8px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:12.5px;" autocomplete="off">' +
         '</div>';
     }).join('');
@@ -8143,10 +8143,10 @@ window.ulmEksikAlanModali = function(idx, ctx, arac, marka, varyant, bosListe, d
 
             '<div style="padding:16px 20px;overflow-y:auto;flex:1;">' +
                 '<p style="margin:0 0 12px;font-size:12px;color:var(--text-muted);line-height:1.5;">' +
-                    'Aşağıdaki alanlar CoC dosyasından okunamadı. <strong>İki seçenek var:</strong><br>' +
-                    '• <strong>Sabit değer</strong> yaz (her araçta aynı kalacaksa, örn: <code>4</code>)<br>' +
-                    '• <strong>@ + hücre adresi</strong> yaz (araç başına değişiyorsa, örn: <code>@B45</code> veya <code>@Sayfa2!C12</code>) — her ULM\'de o hücreden okunur.<br>' +
-                    'Kaydedilen seçim <strong>bu marka+varyant için kalıcı hatırlanır</strong>.' +
+                    '<strong style="color:var(--success);">✅ Önerilen: @ hücre adresi yaz</strong> (örn: <code>@B45</code> veya <code>@Sayfa2!C12</code>) — her ULM\'de o aracın kendi CoC\'undan okunur. ' +
+                    'Koltuk sayısı, motor tipi, lastik vb. <u>aynı varyantta bile araçtan araca değişebileceği</u> için güvenli yöntem budur.<br>' +
+                    '<span style="color:var(--text-muted);font-size:11px;">Sadece <strong>gerçekten yapısal sabit</strong> alanlar için doğrudan değer yaz (örn. Araç Kategorisi = M1). ' +
+                    'Kaydedilen seçim bu marka+varyant için cloud\'a kaydedilir, tüm cihazlardan erişilir.</span>' +
                 '</p>' +
                 inputlarHTML +
             '</div>' +
