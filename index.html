@@ -8358,9 +8358,16 @@ window.openTseRaporModal = function(idx, ctx) {
     // Firma bilgileri
     let fInfo = window.firmaYetkiliBilgisi(arac.firma);
 
-    // TSE şablonundan tip onay no oku
+    // TSE şablonundan tip onay no oku — önce ŞASİ'ye özel cache, sonra global fallback
     let tseCached = null;
-    try { tseCached = JSON.parse(localStorage.getItem('gumruk_tse_sablon_v1') || 'null'); } catch(e){}
+    try {
+        let sasiKey = 'gumruk_tse_sablon_' + (arac.sasi || '').toUpperCase().trim();
+        tseCached = JSON.parse(localStorage.getItem(sasiKey) || 'null');
+        if(!tseCached || !tseCached['tse-tipOnayNo']) {
+            // Fallback: son düzenlenen araç (eski davranış)
+            tseCached = JSON.parse(localStorage.getItem('gumruk_tse_sablon_v1') || 'null');
+        }
+    } catch(e){}
     let tipOnayNo = (tseCached && tseCached['tse-tipOnayNo']) || '';
     let tipKategori = (tseCached && tseCached['tse-kategori']) || '';
     let varyant = (tseCached && tseCached['tse-varyant']) || '';
@@ -8464,6 +8471,43 @@ window.openTseRaporModal = function(idx, ctx) {
     </style>`;
 
     document.body.appendChild(modal);
+
+    // ── Tip Onay No boşsa APM xls'ten arka planda çek (Apps Script readApmData)
+    if(!tipOnayNo && arac.evrakLink) {
+        let TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+        let cb = 'apmTipOnayCb_' + Date.now();
+        let inp = document.getElementById('trm-tipOnay');
+        let lblWrap = inp ? inp.previousElementSibling : null;
+        // Yükleniyor görünümü
+        if(lblWrap) lblWrap.innerHTML = '🚗 Araç Tip Onay Numarası <span style="color:#3b82f6;font-size:10px;">⏳ APM\'den çekiliyor...</span>';
+
+        window[cb] = function(res) {
+            delete window[cb];
+            try { scr.remove(); } catch(e){}
+            if(res && res.success && res.data && res.data['Tip Onay No']) {
+                let tn = String(res.data['Tip Onay No']).trim();
+                if(inp && !inp.value.trim()) {
+                    inp.value = tn;
+                    if(lblWrap) lblWrap.innerHTML = '🚗 Araç Tip Onay Numarası <span style="color:#10b981;font-size:10px;">✓ APM xls\'ten otomatik</span>';
+                }
+            } else {
+                if(lblWrap) lblWrap.innerHTML = '🚗 Araç Tip Onay Numarası <span style="color:#f59e0b;font-size:10px;">⚠️ APM\'de bulunamadı — manuel giriniz</span>';
+            }
+        };
+        let params = new URLSearchParams({
+            action: 'readApmData',
+            evrakLink: arac.evrakLink,
+            callback: cb
+        });
+        let scr = document.createElement('script');
+        scr.src = TSE_GAS_URL + '?' + params.toString();
+        scr.onerror = function(){
+            delete window[cb];
+            scr.remove();
+            if(lblWrap) lblWrap.innerHTML = '🚗 Araç Tip Onay Numarası <span style="color:#ef4444;font-size:10px;">❌ APM bağlantı hatası</span>';
+        };
+        document.body.appendChild(scr);
+    }
 };
 
 // ─── PDF Üretim — Apps Script'e gönder ───────────────────────────────
