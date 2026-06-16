@@ -33,13 +33,13 @@ window.TSE = {
         return btn;
     },
 
-    baslat: async function(sasi, firmaId, gelisTarihi, ozetBeyan, atr = 'YOK') {
+    baslat: async function(sasi, firmaId, gelisTarihi, ozetBeyan, atr = 'YOK', firmaAdi = '') {
         if (!sasi) {
             alert("Şasi numarası bulunamadı!");
             return;
         }
 
-        const onay = confirm(`TSE Başvurusu başlatılsın mı?\n\nŞasi: ${sasi}\nFirma ID: ${firmaId}`);
+        const onay = confirm(`TSE Başvurusu başlatılsın mı?\n\nŞasi: ${sasi}\nFirma: ${firmaAdi || ('ID ' + firmaId)}`);
         if (!onay) return;
 
         try {
@@ -48,6 +48,7 @@ window.TSE = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     firma_id: firmaId,
+                    firma_adi: firmaAdi,        // YENİ: tam firma adı (yoksa boş gönderilir → eski davranış)
                     sasi_no: sasi,
                     gelis_tarihi: gelisTarihi,
                     ozet_beyan: ozetBeyan,
