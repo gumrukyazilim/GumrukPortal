@@ -4,11 +4,12 @@ window.TSE = {
 
     firmaIdBul: function(firmaAdi) {
         if (!firmaAdi) return "1";
-        const f = firmaAdi.toUpperCase();
+        const f = firmaAdi.toLocaleUpperCase('tr');
         if (f.includes("ŞAMNU")) return "1";
-        if (f.includes("FF OTOMOTİV")) return "2";
-        if (f.includes("SANDIKÇI")) return "3";
+        if (f.includes("FF OTOMOT")) return "2";
+        if (f.includes("SANDIKÇI") || f.includes("SANDIKCI")) return "3";
         if (f.includes("MASKAR")) return "4";
+        if (f.includes("BAZİLİKA") || f.includes("BAZILIKA")) return "5";
         return "1";
     },
 
