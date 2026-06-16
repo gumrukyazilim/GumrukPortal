@@ -8172,6 +8172,7 @@ window.createCocSessiz = function(arac, evrakLink) {
             sasi: arac.sasi,
             firma: firmaUnvan,
             marka: arac.marka || '',
+            renk: arac.renk || '',          // ★ Renk araç ekle'den geliyor (APM'de yok)
             evrakLink: evrakLink,
             callback: cb
         });
@@ -8283,9 +8284,18 @@ window.ulmOverrideYoneticisiAc = function() {
             html += '<form onsubmit="event.preventDefault(); window.ulmOverrideKaydetForm(\'' + item.marka.replace(/\'/g,"\\'") + '\',\'' + item.varyant.replace(/\'/g,"\\'") + '\', this);">';
             alanlar.forEach(k => {
                 let v = String(item.data[k]||'').replace(/"/g,'&quot;');
-                html += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:6px;">';
+                let mkEsc = item.marka.replace(/\'/g,"\\'");
+                let vrEsc = item.varyant.replace(/\'/g,"\\'");
+                let kEsc  = k.replace(/\'/g,"\\'");
+                html += '<div class="ulm-ov-field-row" data-key="' + k + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">';
                 html += '<label style="min-width:200px;font-size:12px;color:var(--text-secondary);font-family:monospace;font-weight:600;">{' + k + '}</label>';
                 html += '<input name="' + k + '" value="' + v + '" style="flex:1;padding:7px 10px;background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:6px;color:var(--text-primary);font-size:12.5px;font-family:monospace;">';
+                // Tek alan: Anlık kaydet
+                html += '<button type="button" title="Bu alanı kaydet" onclick="window.ulmOverrideAlanKaydet(\'' + mkEsc + '\',\'' + vrEsc + '\', this)" style="background:#10b981;color:#fff;border:none;border-radius:6px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0;">💾</button>';
+                // Tek alan: Yeniden adlandır
+                html += '<button type="button" title="Bu alanın adını değiştir" onclick="window.ulmOverrideAlanYenidenAdlandir(\'' + mkEsc + '\',\'' + vrEsc + '\',\'' + kEsc + '\', this)" style="background:#3b82f6;color:#fff;border:none;border-radius:6px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0;">✏️</button>';
+                // Tek alan: Anlık sil
+                html += '<button type="button" title="Bu alanı sil" onclick="window.ulmOverrideAlanSil(\'' + mkEsc + '\',\'' + vrEsc + '\',\'' + kEsc + '\', this)" style="background:var(--danger,#ef4444);color:#fff;border:none;border-radius:6px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0;">🗑️</button>';
                 html += '</div>';
             });
             html += '<div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end;">';
@@ -8306,19 +8316,224 @@ window.ulmOverrideYoneticisiAc = function() {
     document.body.appendChild(scr);
 };
 
+// Placeholder adını normalize et — süslü parantez/boşluk/Türkçe karakterleri temizle
+window._ulmAdNormalize = function(raw) {
+    if(!raw) return '';
+    let ad = String(raw).trim();
+    // Süslü parantezleri kaldır (kullanıcı {AD} yazdıysa)
+    ad = ad.replace(/^\{+/, '').replace(/\}+$/, '');
+    // Türkçe karakterleri ASCII'ye çevir
+    ad = ad
+        .replace(/ı/g,'i').replace(/İ/g,'I')
+        .replace(/ş/g,'s').replace(/Ş/g,'S')
+        .replace(/ç/g,'c').replace(/Ç/g,'C')
+        .replace(/ğ/g,'g').replace(/Ğ/g,'G')
+        .replace(/ü/g,'u').replace(/Ü/g,'U')
+        .replace(/ö/g,'o').replace(/Ö/g,'O');
+    ad = ad.toUpperCase();
+    // İzin verilen: A-Z, 0-9, _ — diğerleri _ olur
+    ad = ad.replace(/[^A-Z0-9_]/g,'_');
+    // Birden fazla art arda _ tek _'a indir
+    ad = ad.replace(/_+/g,'_');
+    // Baş/son _'ları kırp
+    ad = ad.replace(/^_+/,'').replace(/_+$/,'');
+    return ad;
+};
+
 window.ulmOverrideAlanEkle = function(btn) {
     let form = btn.closest('form');
-    let ad = prompt('Yeni placeholder adı (örn: SAYFA2_M3_DOGRU):');
-    if(!ad) return;
-    ad = ad.trim().toUpperCase().replace(/[^A-Z0-9_]/g,'_');
+    let ham = prompt('Yeni placeholder adı (örn: KAPI_SAYISI):');
+    let ad = window._ulmAdNormalize(ham);
     if(!ad) return;
     if(form.querySelector('[name="' + ad + '"]')) { alert('Bu alan zaten var'); return; }
+
+    // Marka/varyant'ı form'un onsubmit'inden çıkar
+    let mkVr = ['',''];
+    try {
+        let m = (form.getAttribute('onsubmit')||'').match(/ulmOverrideKaydetForm\(\s*'([^']*)'\s*,\s*'([^']*)'/);
+        if(m) mkVr = [m[1], m[2]];
+    } catch(e){}
+    let mkEsc = mkVr[0].replace(/\'/g,"\\'");
+    let vrEsc = mkVr[1].replace(/\'/g,"\\'");
+    let kEsc  = ad.replace(/\'/g,"\\'");
+
     let div = document.createElement('div');
-    div.style.cssText = 'display:flex;gap:10px;align-items:center;margin-bottom:6px;';
-    div.innerHTML = '<label style="min-width:200px;font-size:12px;color:var(--text-secondary);font-family:monospace;font-weight:600;">{' + ad + '}</label>' +
-        '<input name="' + ad + '" value="" placeholder="@B45 veya sabit metin" style="flex:1;padding:7px 10px;background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:6px;color:var(--text-primary);font-size:12.5px;font-family:monospace;">';
+    div.className = 'ulm-ov-field-row';
+    div.dataset.key = ad;
+    div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+    div.innerHTML =
+        '<label style="min-width:200px;font-size:12px;color:var(--text-secondary);font-family:monospace;font-weight:600;">{' + ad + '}</label>' +
+        '<input name="' + ad + '" value="" placeholder="@B45 veya sabit metin" style="flex:1;padding:7px 10px;background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:6px;color:var(--text-primary);font-size:12.5px;font-family:monospace;">' +
+        '<button type="button" title="Bu alanı kaydet" onclick="window.ulmOverrideAlanKaydet(\'' + mkEsc + '\',\'' + vrEsc + '\', this)" style="background:#10b981;color:#fff;border:none;border-radius:6px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0;">💾</button>' +
+        '<button type="button" title="Bu alanın adını değiştir" onclick="window.ulmOverrideAlanYenidenAdlandir(\'' + mkEsc + '\',\'' + vrEsc + '\',\'' + kEsc + '\', this)" style="background:#3b82f6;color:#fff;border:none;border-radius:6px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0;">✏️</button>' +
+        '<button type="button" title="Bu alanı sil" onclick="window.ulmOverrideAlanSil(\'' + mkEsc + '\',\'' + vrEsc + '\',\'' + kEsc + '\', this)" style="background:var(--danger,#ef4444);color:#fff;border:none;border-radius:6px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0;">🗑️</button>';
     form.insertBefore(div, btn.parentElement);
     div.querySelector('input').focus();
+};
+
+// Tek alanın adını değiştir
+window.ulmOverrideAlanYenidenAdlandir = function(marka, varyant, eskiAd, btn) {
+    let yeniHam = prompt('Yeni placeholder adı:', eskiAd);
+    if(yeniHam === null) return;
+    let yeniAd = window._ulmAdNormalize(yeniHam);
+    if(!yeniAd) { alert('Geçersiz ad'); return; }
+    if(yeniAd === eskiAd) return;
+
+    const URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+    btn.disabled = true; btn.textContent = '⏳';
+    if(typeof showSyncToast === 'function') showSyncToast('Adı değiştiriliyor...');
+
+    let getCb = 'ulmOvGet_' + Date.now();
+    window[getCb] = function(getRes) {
+        delete window[getCb];
+        let mevcut = (getRes && getRes.data) || {};
+        if(mevcut[yeniAd] !== undefined) {
+            btn.disabled = false; btn.textContent = '✏️';
+            if(typeof hideSyncToast === 'function') hideSyncToast('Çakışma', false);
+            alert('❌ {' + yeniAd + '} alanı zaten var. Önce onu sil veya başka isim seç.');
+            return;
+        }
+        // Değeri yeni ad'a taşı
+        let row = btn.closest('.ulm-ov-field-row');
+        let inp = row ? row.querySelector('input[name]') : null;
+        let deger = inp ? inp.value.trim() : (mevcut[eskiAd] || '');
+        delete mevcut[eskiAd];
+        if(deger) mevcut[yeniAd] = deger;
+
+        let saveCb = 'ulmOvSaveOne_' + Date.now();
+        window[saveCb] = function(saveRes) {
+            delete window[saveCb];
+            btn.disabled = false; btn.textContent = '✏️';
+            if(saveRes && saveRes.success) {
+                if(typeof hideSyncToast === 'function') hideSyncToast('Ad değişti ✓', true);
+                window.ulmOverrideYoneticisiAc();   // Modal'ı tazele
+            } else {
+                if(typeof hideSyncToast === 'function') hideSyncToast('Hata', false);
+                alert('❌ Yeniden adlandırma hatası: ' + ((saveRes && saveRes.error) || 'bilinmeyen'));
+            }
+        };
+        let prms = new URLSearchParams({
+            action: 'saveUlmOverride',
+            marka: marka,
+            varyant: varyant,
+            overridesJson: JSON.stringify(mevcut),
+            callback: saveCb
+        });
+        let scr2 = document.createElement('script');
+        scr2.src = URL + '?' + prms.toString();
+        scr2.onerror = function(){ delete window[saveCb]; btn.disabled = false; btn.textContent = '✏️'; alert('Apps Script bağlantı hatası'); };
+        document.body.appendChild(scr2);
+    };
+    let getParams = new URLSearchParams({ action:'getUlmOverride', marka:marka, varyant:varyant, callback:getCb });
+    let getScr = document.createElement('script');
+    getScr.src = URL + '?' + getParams.toString();
+    getScr.onerror = function(){ delete window[getCb]; btn.disabled = false; btn.textContent = '✏️'; alert('Apps Script bağlantı hatası'); };
+    document.body.appendChild(getScr);
+};
+
+// Tek alan anlık kaydet — sadece bu satırın değerini günceller, diğerlerine dokunmaz
+window.ulmOverrideAlanKaydet = function(marka, varyant, btn) {
+    let row = btn.closest('.ulm-ov-field-row');
+    if(!row) return;
+    let inp = row.querySelector('input[name]');
+    if(!inp) return;
+    let alanAdi = inp.name;
+    let yeniDeger = (inp.value || '').trim();
+
+    // Önce mevcut tüm kayıtları çek, sonra tek alanı güncelle, geri yaz
+    const URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+    let getCb = 'ulmOvGet_' + Date.now();
+    btn.disabled = true; btn.textContent = '⏳';
+    if(typeof showSyncToast === 'function') showSyncToast('Kaydediliyor: ' + alanAdi);
+    window[getCb] = function(getRes) {
+        delete window[getCb];
+        let mevcut = (getRes && getRes.data) || {};
+        if(!yeniDeger) {
+            delete mevcut[alanAdi];   // Boş = sil
+        } else {
+            mevcut[alanAdi] = yeniDeger;
+        }
+        // Kaydet
+        let saveCb = 'ulmOvSaveOne_' + Date.now();
+        window[saveCb] = function(saveRes) {
+            delete window[saveCb];
+            btn.disabled = false; btn.textContent = '💾';
+            if(saveRes && saveRes.success) {
+                if(typeof hideSyncToast === 'function') hideSyncToast('Alan kaydedildi ✓', true);
+                // Yumuşak görsel onay
+                row.style.transition = 'background .3s';
+                row.style.background = 'rgba(16,185,129,.15)';
+                setTimeout(() => { row.style.background = ''; }, 700);
+            } else {
+                if(typeof hideSyncToast === 'function') hideSyncToast('Hata', false);
+                alert('❌ Kayıt hatası: ' + ((saveRes && saveRes.error) || 'bilinmeyen'));
+            }
+        };
+        let prms = new URLSearchParams({
+            action: 'saveUlmOverride',
+            marka: marka,
+            varyant: varyant,
+            overridesJson: JSON.stringify(mevcut),
+            callback: saveCb
+        });
+        let scr2 = document.createElement('script');
+        scr2.src = URL + '?' + prms.toString();
+        scr2.onerror = function(){ delete window[saveCb]; btn.disabled = false; btn.textContent = '💾'; alert('Apps Script bağlantı hatası'); };
+        document.body.appendChild(scr2);
+    };
+    let getParams = new URLSearchParams({ action:'getUlmOverride', marka:marka, varyant:varyant, callback:getCb });
+    let getScr = document.createElement('script');
+    getScr.src = URL + '?' + getParams.toString();
+    getScr.onerror = function(){ delete window[getCb]; btn.disabled = false; btn.textContent = '💾'; alert('Apps Script bağlantı hatası'); };
+    document.body.appendChild(getScr);
+};
+
+// Tek alan anlık sil
+window.ulmOverrideAlanSil = function(marka, varyant, alanAdi, btn) {
+    if(!confirm('🗑️ {' + alanAdi + '} alanı silinecek (' + marka + ' / ' + varyant + ').\n\nDevam edilsin mi?')) return;
+    const URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+    let row = btn.closest('.ulm-ov-field-row');
+    btn.disabled = true; btn.textContent = '⏳';
+    if(typeof showSyncToast === 'function') showSyncToast('Siliniyor: ' + alanAdi);
+    // Önce mevcut alanları al
+    let getCb = 'ulmOvGet_' + Date.now();
+    window[getCb] = function(getRes) {
+        delete window[getCb];
+        let mevcut = (getRes && getRes.data) || {};
+        delete mevcut[alanAdi];
+        // Geri yaz
+        let saveCb = 'ulmOvSaveOne_' + Date.now();
+        window[saveCb] = function(saveRes) {
+            delete window[saveCb];
+            if(saveRes && saveRes.success) {
+                if(typeof hideSyncToast === 'function') hideSyncToast('Alan silindi ✓', true);
+                // Satırı görsel olarak kaldır
+                if(row) row.remove();
+                // Kalan alan sayısını göster (modal başlığındaki "X eşleme")
+                window.ulmOverrideYoneticisiAc();
+            } else {
+                btn.disabled = false; btn.textContent = '🗑️';
+                if(typeof hideSyncToast === 'function') hideSyncToast('Hata', false);
+                alert('❌ Silme hatası: ' + ((saveRes && saveRes.error) || 'bilinmeyen'));
+            }
+        };
+        let prms = new URLSearchParams({
+            action: 'saveUlmOverride',
+            marka: marka,
+            varyant: varyant,
+            overridesJson: JSON.stringify(mevcut),
+            callback: saveCb
+        });
+        let scr2 = document.createElement('script');
+        scr2.src = URL + '?' + prms.toString();
+        scr2.onerror = function(){ delete window[saveCb]; btn.disabled = false; btn.textContent = '🗑️'; alert('Apps Script bağlantı hatası'); };
+        document.body.appendChild(scr2);
+    };
+    let getParams = new URLSearchParams({ action:'getUlmOverride', marka:marka, varyant:varyant, callback:getCb });
+    let getScr = document.createElement('script');
+    getScr.src = URL + '?' + getParams.toString();
+    getScr.onerror = function(){ delete window[getCb]; btn.disabled = false; btn.textContent = '🗑️'; alert('Apps Script bağlantı hatası'); };
+    document.body.appendChild(getScr);
 };
 
 window.ulmOverrideKaydetForm = function(marka, varyant, form) {
