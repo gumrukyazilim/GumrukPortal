@@ -12914,7 +12914,8 @@ window.tseSablonApmFromDrive = function(evrakLink, expectedSasi) {
             return;
         }
 
-        // ✅ APM verisini form alanlarına aktar
+        // ✅ APM verisini form alanlarına aktar — SADECE BOŞ ALANLARI doldur
+        // Kullanıcının manuel girdiği/önceden kaydedilmiş veriler korunur.
         var apm = res.data;
         var alanMap = {
             'tse-aracCinsi':       apm['Araç Cinsi'],
@@ -12934,9 +12935,14 @@ window.tseSablonApmFromDrive = function(evrakLink, expectedSasi) {
             'tse-ithalatUlkesi':   apm['İthalatın Yapıldığı Ülke'],
             'tse-gtipNo':          apm['GTIP No']
         };
+        var dolduruldu = 0, atlandi = 0;
         Object.keys(alanMap).forEach(function(id) {
             var el = document.getElementById(id);
-            if (el && alanMap[id]) el.value = alanMap[id];
+            if (!el || !alanMap[id]) return;
+            var mevcut = (el.value || '').trim();
+            if (mevcut) { atlandi++; return; }   // ⛔ Dolu alana dokunma
+            el.value = alanMap[id];
+            dolduruldu++;
         });
 
         // Cache'i de güncelle (offline kullanım için)
@@ -12944,7 +12950,13 @@ window.tseSablonApmFromDrive = function(evrakLink, expectedSasi) {
 
         if (st) {
             st.style.color = 'var(--success, #10b981)';
-            st.innerHTML = '✅ APM\'den otomatik dolduruldu (' + apmSasi + ')';
+            if (dolduruldu === 0) {
+                st.innerHTML = '✅ Önceki veriler korundu (APM\'den ekleme yapılmadı)';
+            } else if (atlandi === 0) {
+                st.innerHTML = '✅ APM\'den otomatik dolduruldu (' + apmSasi + ')';
+            } else {
+                st.innerHTML = '✅ APM\'den ' + dolduruldu + ' boş alan dolduruldu, ' + atlandi + ' mevcut veri korundu';
+            }
             setTimeout(function(){ if(st){st.style.display='none';st.innerHTML='';} }, 3000);
         }
     };
@@ -13132,13 +13144,13 @@ window.bulkTseMailModal = function() {
         if(!devam) return;
     }
 
-    // Seçili araçların şasi ve firma bilgilerini topla
+    // Seçili araçların şasi, firma ve evrakLink bilgilerini topla
     var vehicles = [];
     checked.forEach(function(cb) {
         var idx = parseInt(cb.value);
         var d = window.declarationsData[idx];
         if (d && d.sasi) {
-            vehicles.push({ sasi: d.sasi, firma: d.firma || '' });
+            vehicles.push({ sasi: d.sasi, firma: d.firma || '', evrakLink: d.evrakLink || '' });
         }
     });
 
@@ -13160,13 +13172,13 @@ window.bulkTseMailModal = function() {
         <div style="background: var(--bg-surface, #1e293b); border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.3);">
             <h2 style="margin: 0 0 16px 0; color: var(--text, #fff);">📧 Çoklu Araç - TSE Mail Gönder</h2>
             <p style="color: var(--text-muted, #999); margin: 0 0 8px 0; font-size: 13px;">
-                Seçili <b>${vehicles.length} araç</b> için başvuru numaraları PDF'lerden çekilip Excel'e doldurulacak ve mail gönderilecek.
+                Seçili <b>${vehicles.length} araç</b> için başvuru numaraları önce PDF'lerden okunup gösterilecek. Doğruysa onayladıktan sonra Excel'e doldurulup mail gönderilecek.
             </p>
             <p style="color: var(--text-muted, #999); margin: 0 0 16px 0; font-size: 12px;">Firmalar: ${firmaText}</p>
-            <div id="bulk-tse-status" style="background: var(--bg-elevated, #0f172a); border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 12px; max-height: 250px; overflow-y: auto; color: var(--text, #fff);"></div>
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <div id="bulk-tse-status" style="background: var(--bg-elevated, #0f172a); border: 1px solid var(--border, rgba(255,255,255,0.1)); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 12px; max-height: 350px; overflow-y: auto; color: var(--text, #fff);"></div>
+            <div id="bulk-tse-buttons" style="display: flex; gap: 8px; justify-content: flex-end;">
                 <button onclick="document.getElementById('bulk-tse-modal').remove()" style="padding: 8px 16px; border: 1px solid var(--border); background: transparent; color: var(--text); border-radius: 6px; cursor: pointer; font-size: 13px;">İptal</button>
-                <button onclick="window.processBulkTseMail()" style="padding: 8px 16px; background: var(--primary, #3b82f6); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">🚀 Gönder</button>
+                <button id="bulk-tse-preview-btn" onclick="window.previewBulkTseMail()" style="padding: 8px 16px; background: var(--accent, #f59e0b); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">👁️ Numaraları Önizle</button>
             </div>
         </div>
     </div>`;
@@ -13174,11 +13186,176 @@ window.bulkTseMailModal = function() {
     document.body.insertAdjacentHTML('beforeend', html);
 };
 
+// ═══════════════════════════════════════════════════════════════
+//  PREVIEW: Başvuru numaralarını PDF'lerden çek, kullanıcıya göster
+//  Onay verildiğinde processBulkTseMail() çağrılır.
+// ═══════════════════════════════════════════════════════════════
+window.previewBulkTseMail = function() {
+    var vehicles = window.bulkTseVehicles;
+    var statusDiv = document.getElementById('bulk-tse-status');
+    var modal = document.getElementById('bulk-tse-modal');
+    if (!vehicles || vehicles.length === 0) return;
+
+    var previewBtn = document.getElementById('bulk-tse-preview-btn');
+    if (previewBtn) {
+        previewBtn.disabled = true;
+        previewBtn.style.opacity = '0.6';
+        previewBtn.style.cursor = 'wait';
+        previewBtn.innerHTML = '⏳ Numaralar okunuyor...';
+    }
+
+    statusDiv.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:#f59e0b;padding:6px 0;">' +
+        '<span class="bulk-tse-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(245,158,11,0.3);border-top-color:#f59e0b;border-radius:50%;animation:bulk-tse-spin 0.8s linear infinite;"></span>' +
+        '<span>Her aracın TSE_Basvuru.pdf\'i Drive\'dan okunuyor — biraz sürebilir...</span></div>';
+
+    // Spinner keyframes
+    if (!document.getElementById('bulk-tse-spinner-style')) {
+        var styleEl = document.createElement('style');
+        styleEl.id = 'bulk-tse-spinner-style';
+        styleEl.textContent = '@keyframes bulk-tse-spin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(styleEl);
+    }
+
+    const TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+    var cb = 'tsePrevCb_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    var timer = setTimeout(function() {
+        delete window[cb];
+        var s = document.getElementById(cb + '_script'); if (s) s.remove();
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:8px;">❌ Zaman aşımı — Apps Script yanıt vermedi (60s)</div>';
+        if (previewBtn) {
+            previewBtn.disabled = false; previewBtn.style.opacity = '1'; previewBtn.style.cursor = 'pointer';
+            previewBtn.innerHTML = '🔁 Tekrar Dene';
+        }
+    }, 60000);
+
+    window[cb] = function(res) {
+        clearTimeout(timer);
+        delete window[cb];
+        var s = document.getElementById(cb + '_script'); if (s) s.remove();
+
+        if (!res || !res.success) {
+            statusDiv.innerHTML = '<div style="color:#ef4444;padding:8px;">❌ Hata: ' + ((res && res.error) || 'Bilinmeyen') + '</div>';
+            if (previewBtn) {
+                previewBtn.disabled = false; previewBtn.style.opacity = '1'; previewBtn.style.cursor = 'pointer';
+                previewBtn.innerHTML = '🔁 Tekrar Dene';
+            }
+            return;
+        }
+
+        var items = res.items || [];
+        var basariliSayi = items.filter(function(x){ return x.durum === 'ok'; }).length;
+        var hataliSayi   = items.length - basariliSayi;
+
+        // Şasi → preview verisini eşle (sıralama korunsun diye)
+        window.bulkTsePreviewItems = items;
+
+        // ⚠️ Değerler Excel data validation listesi ile BİREBİR eşleşmeli (boşluklar dahil)
+        var konuSecenekleri = [
+            'AT Tip Onaylı (Münferit )',
+            'Tip Onaysız(ATOM)',
+            'Eski Kullanılmış Antika Araç',
+            'Münferit Araç Onaylı',
+            'AT Tip Onaylı (Seri )',
+            'Muafiyet Kapsamında Araç'
+        ];
+        function konuOptionsFor(secili) {
+            return konuSecenekleri.map(function(k) {
+                var sel = (k === secili) ? ' selected' : '';
+                return '<option value="' + k + '"' + sel + '>' + k + '</option>';
+            }).join('');
+        }
+
+        var rowsHtml = items.map(function(it, i) {
+            var v = vehicles[i] || {};
+            var ok = it.durum === 'ok';
+            var noCell = ok
+                ? '<input type="text" id="bulk-tse-no-' + i + '" value="' + (it.basvuruNo || '').replace(/"/g,'&quot;') + '" style="width:100%;padding:4px 6px;background:var(--input-bg,#0f172a);border:1px solid var(--border,#334155);border-radius:4px;color:var(--text,#fff);font-size:12px;font-family:monospace;">'
+                : '<span style="color:#ef4444;font-size:11px;">' + (it.hata || 'Okunamadı') + '</span>';
+            var konuCell = '<select id="bulk-tse-konu-' + i + '" style="width:100%;padding:4px 6px;background:var(--input-bg,#0f172a);border:1px solid var(--border,#334155);border-radius:4px;color:var(--text,#fff);font-size:11px;">' +
+                konuOptionsFor('AT Tip Onaylı (Münferit )') +
+                '</select>';
+            var statusIcon = ok ? '✅' : '❌';
+            return '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+                '<td style="padding:6px 8px;text-align:center;">' + statusIcon + '</td>' +
+                '<td style="padding:6px 8px;font-family:monospace;font-size:11px;">' + (v.sasi || '') + '</td>' +
+                '<td style="padding:6px 8px;width:200px;">' + konuCell + '</td>' +
+                '<td style="padding:6px 8px;">' + noCell + '</td>' +
+                '</tr>';
+        }).join('');
+
+        var summaryColor = hataliSayi > 0 ? '#f59e0b' : '#10b981';
+        var summaryText = hataliSayi > 0
+            ? '⚠️ ' + basariliSayi + ' okundu, ' + hataliSayi + ' okunamadı — okunamayanları boş geçebilir veya iptal edebilirsin.'
+            : '✅ Tüm araçların başvuru numaraları başarıyla okundu. Aşağıdaki numaraları kontrol et, gerekirse düzenle.';
+
+        statusDiv.innerHTML =
+            '<div style="color:' + summaryColor + ';font-weight:600;margin-bottom:8px;font-size:12px;">' + summaryText + '</div>' +
+            '<div style="margin-bottom:10px;padding:6px 10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:11px;color:var(--text-muted,#94a3b8);">' +
+                '📍 İnceleme Yeri: <b style="color:var(--text,#fff);">YEŞİLKÖY GÜMRÜK MÜD.</b> (tüm satırlar için sabit)' +
+            '</div>' +
+            '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+                '<thead><tr style="background:rgba(255,255,255,0.05);">' +
+                    '<th style="padding:6px 8px;text-align:center;width:30px;"></th>' +
+                    '<th style="padding:6px 8px;text-align:left;">Şasi</th>' +
+                    '<th style="padding:6px 8px;text-align:left;width:200px;">Başvuru Konusu</th>' +
+                    '<th style="padding:6px 8px;text-align:left;">Başvuru No</th>' +
+                '</tr></thead>' +
+                '<tbody>' + rowsHtml + '</tbody>' +
+            '</table>' +
+            '<div style="margin-top:8px;font-size:11px;color:var(--text-muted,#94a3b8);">💡 Her araç için Başvuru Konusu ve Başvuru No\'yu ayrı ayrı kontrol/değiştirebilirsin. Varsayılan: <b>AT Tip Onaylı (Münferit )</b>.</div>';
+
+        // Buton barını "Geri" + "Onayla & Gönder" yap
+        var btnBar = document.getElementById('bulk-tse-buttons');
+        if (btnBar) {
+            btnBar.innerHTML =
+                '<button onclick="document.getElementById(\'bulk-tse-modal\').remove()" style="padding:8px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:6px;cursor:pointer;font-size:13px;">İptal</button>' +
+                '<button onclick="window.processBulkTseMail()" ' + (basariliSayi === 0 ? 'disabled style="padding:8px 16px;background:#64748b;color:white;border:none;border-radius:6px;cursor:not-allowed;font-size:13px;font-weight:600;opacity:0.5;"' : 'style="padding:8px 16px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;"') + '>✅ Onayla & Gönder</button>';
+        }
+    };
+
+    var payload = {
+        action: 'previewBasvuruNos',
+        sasiList: vehicles.map(function(v){ return v.sasi; }).join(','),
+        evrakLinks: vehicles.map(function(v){ return v.evrakLink || ''; }).join('|||'),
+        callback: cb
+    };
+    var script = document.createElement('script');
+    script.id = cb + '_script';
+    script.src = TSE_GAS_URL + '?' + new URLSearchParams(payload).toString();
+    script.onerror = function() {
+        clearTimeout(timer);
+        delete window[cb];
+        script.remove();
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:8px;">❌ Apps Script bağlantı hatası</div>';
+        if (previewBtn) {
+            previewBtn.disabled = false; previewBtn.style.opacity = '1'; previewBtn.style.cursor = 'pointer';
+            previewBtn.innerHTML = '🔁 Tekrar Dene';
+        }
+    };
+    document.body.appendChild(script);
+};
+
 window.processBulkTseMail = async function() {
     var vehicles = window.bulkTseVehicles;
     var statusDiv = document.getElementById('bulk-tse-status');
     var modal = document.getElementById('bulk-tse-modal');
     if (!vehicles || vehicles.length === 0) return;
+
+    // Önizleme yapıldıysa kullanıcı düzenlemelerini topla (mail Apps Script'e parametre olarak yollanır)
+    var overrides = [];
+    var prevItems = window.bulkTsePreviewItems || [];
+    if (prevItems.length === vehicles.length) {
+        for (var i = 0; i < vehicles.length; i++) {
+            var noEl   = document.getElementById('bulk-tse-no-' + i);
+            var konuEl = document.getElementById('bulk-tse-konu-' + i);
+            overrides.push({
+                sasi: vehicles[i].sasi,
+                basvuruNo: noEl ? (noEl.value || '').trim() : '',
+                basvuruKonusu: konuEl ? konuEl.value : 'AT Tip Onaylı (Münferit )'
+            });
+        }
+    }
 
     // Gönder butonunu kilitle + spinner
     var gonderBtn = modal ? modal.querySelector('button[onclick*="processBulkTseMail"]') : null;
@@ -13209,10 +13386,18 @@ window.processBulkTseMail = async function() {
     try {
         var sasiList = vehicles.map(function(v) { return v.sasi; }).join(',');
         var firma = vehicles[0].firma || '';
-        await fetch(
-            'https://script.google.com/macros/s/AKfycbxwhzxqivEyPn_aKFW2gsKtxkzGjL_k8N90bL22p1nGyrZcCsJWK4KmzBmRXuRXWn37Vw/exec?action=sendTseMail&sasi=' + encodeURIComponent(sasiList) + '&firma=' + encodeURIComponent(firma),
-            { mode: 'no-cors' }
-        );
+        var incelemeYeri = 'YEŞİLKÖY GÜMRÜK MÜD.';
+
+        var mailUrl = 'https://script.google.com/macros/s/AKfycbxwhzxqivEyPn_aKFW2gsKtxkzGjL_k8N90bL22p1nGyrZcCsJWK4KmzBmRXuRXWn37Vw/exec'
+                    + '?action=sendTseMail'
+                    + '&sasi=' + encodeURIComponent(sasiList)
+                    + '&firma=' + encodeURIComponent(firma)
+                    + '&incelemeYeri=' + encodeURIComponent(incelemeYeri);
+        // Kullanıcı önizlemede numaraları düzelttiyse onları override olarak gönder
+        if (overrides && overrides.length) {
+            mailUrl += '&overrides=' + encodeURIComponent(JSON.stringify(overrides));
+        }
+        await fetch(mailUrl, { mode: 'no-cors' });
 
         // İşleme mesajını sil, başarı mesajını koy
         processingMsg.remove();
