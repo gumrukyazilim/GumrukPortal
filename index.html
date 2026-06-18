@@ -3438,6 +3438,7 @@ div[style*="position: relative"] > input {
             </select>
             <button id="decl-bulk-delete-btn" class="btn-sm btn-danger hidden admin-only" onclick="window.bulkDeleteDeclarations()"><i data-lucide="trash-2"></i> Sil (<span id="decl-sel-count">0</span>)</button>
             <button id="decl-bulk-tse-btn" class="btn-sm hidden" style="border-color:var(--accent);color:var(--accent);" onclick="window.bulkTseMailModal()"><i data-lucide="mail"></i> TSE Mail (<span id="decl-tse-count">0</span>)</button>
+            <button id="decl-bulk-tse-print-btn" class="btn-sm hidden" style="border-color:#3b82f6;color:#3b82f6;" onclick="window.tseBasvuruYazdir()" title="Seçili aracın TSE evraklarını tek tıkla yazdır (CoC DE önlü arkalı)"><i data-lucide="printer"></i> TSE Evrak Yazdır</button>
         </div>
         <div class="toolbar-right">
 <button class="btn-sm" onclick="let m=document.getElementById('sutun-menu');m.style.display=m.style.display==='block'?'none':'block';" style="margin-right:10px;">
@@ -5132,6 +5133,21 @@ window.groupCariData = function(hareketler, firma) {
     });
 };
 
+// ── CARİ YARDIMCI: h kaydından gümrük/tse bedellerini standart şekilde çıkar ──
+// Eski format (h.tutar + h.birim + h.tur) ve yeni format (h.gumrukBedeli + h.tseBedeli)
+// arasında dönüşüm. Tek noktada tutulur ki çelişki olmasın.
+window._cariBedellerGetir = function(h) {
+    let gb = parseFloat(h.gumrukBedeli) || 0;
+    let tb = parseFloat(h.tseBedeli) || 0;
+    if (!gb && !tb && h.tutar) {
+        let t = parseFloat(h.tutar) || 0;
+        if (h.tur === 'borc') t = -t;
+        let b = (h.birim || 'EUR').toUpperCase();
+        if (b === 'EUR' || b === 'USD') gb = t; else tb = t;
+    }
+    return { gb: gb, tb: tb };
+};
+
 // --- CARİ TABLO RENDER MOTORU (AKILLI DEDEKTİF VE ÖDEME SİSTEMİ) ---
 window.renderCariTable = function() {
     let firma = document.getElementById('cari-firma-sec')?.value;
@@ -5217,11 +5233,8 @@ window.renderCariTable = function() {
     const gruplanmisVeri = {};
 
     hareketler.forEach(function(h, idx) {
-        let gb = parseFloat(h.gumrukBedeli)||0; let tb = parseFloat(h.tseBedeli)||0;
-        if(!gb && !tb && h.tutar) {
-            let t=parseFloat(h.tutar)||0; if(h.tur==='borc') t=-t;
-            if((h.birim||'EUR').toUpperCase()==='EUR'||(h.birim||'USD').toUpperCase()==='USD') gb=t; else tb=t;
-        }
+        let _b = window._cariBedellerGetir(h);
+        let gb = _b.gb, tb = _b.tb;
 
         // ─── KALAN BAKİYE = SADECE BEKLEYEN + ÇIKAN ÖDEMESİZ ─────────
         // Ödenmiş borç ve onun karşılığı tahsilatı saymayacağız
@@ -5239,8 +5252,10 @@ window.renderCariTable = function() {
         }
 
         // FİLTRE MANTIĞI:
-        if(filtre === 'bekleyen' && (h.odendi || h.isTahsilat)) return;
-        if(filtre === 'cikan_odemesiz' && (h.odendi || h.isTahsilat || !isAracCikti)) return; 
+        // 'bekleyen': açık borç + manuel tahsilat + ödenmiş borç (badge'li) gözüksün
+        //            Sadece otomatik kapanış tahsilatı (isTahsilat && odendi) gizlenir.
+        if(filtre === 'bekleyen' && (h.isTahsilat && h.odendi)) return;
+        if(filtre === 'cikan_odemesiz' && (h.odendi || h.isTahsilat || !isAracCikti)) return;
         
         let tarih = h.tarih || '-';
         let temizAciklama = (h.aciklama || '').replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '').replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '').replace(/\s*H[İI]ZMET[İI]\s*/gi, '').trim();
@@ -6157,15 +6172,15 @@ window.cariHareketSilByGroup = function(indexlerStr, idsStr) {
     let firma = document.getElementById('cari-firma-sec')?.value;
     if(!firma) return;
     if(!confirm('Bu hareketi silmek istediğinize emin misiniz?')) return;
-    
+
     let indexler = indexlerStr ? indexlerStr.split(',').map(Number).filter(function(n){return !isNaN(n);}) : [];
     let ids = idsStr ? idsStr.split(',').filter(function(x){return x;}) : [];
-    
+
     if(!indexler.length && !ids.length) return;
-    
+
     // Silinecek index'leri topla (ID varsa ID'den bul, yoksa direkt index kullan)
     let silinecekIndexler = [];
-    
+
     if(ids.length > 0) {
         // ID'LERLE BUL
         ids.forEach(function(id) {
@@ -6178,7 +6193,43 @@ window.cariHareketSilByGroup = function(indexlerStr, idsStr) {
         // DİREKT INDEX KULLAN
         silinecekIndexler = indexler.slice();
     }
-    
+
+    // ★ ÖKÜZ TAHSİLAT YAKALA: Silinen borç ödenmişse (odendi:true) ve borca eşli
+    // otomatik bir "Tahsilat - …" satırı varsa, kullanıcıya sor ve birlikte sil.
+    // Eşleme: isTahsilat:true + odendi:true + aynı şasi (veya aciklama "Tahsilat - <bu açıklama>")
+    let oksuzTahsilatIdx = [];
+    silinecekIndexler.forEach(function(idx) {
+        let h = window.cariData[firma][idx];
+        if(!h || !h.odendi || h.isTahsilat) return; // sadece ödenmiş borç satırları için
+        let aranSasi = (h.sasi || '').trim();
+        let aranAcikBase = (h.aciklama || '').trim();
+        window.cariData[firma].forEach(function(t, ti) {
+            if(silinecekIndexler.indexOf(ti) !== -1) return; // zaten silinecek
+            if(oksuzTahsilatIdx.indexOf(ti) !== -1) return;
+            if(!t.isTahsilat || !t.odendi) return;
+            let esles = false;
+            if(aranSasi && t.sasi && t.sasi.trim() === aranSasi) esles = true;
+            else if(aranAcikBase && t.aciklama && t.aciklama.indexOf('Tahsilat - ' + aranAcikBase) === 0) esles = true;
+            if(esles) oksuzTahsilatIdx.push(ti);
+        });
+    });
+
+    if(oksuzTahsilatIdx.length > 0) {
+        let detay = oksuzTahsilatIdx.map(function(i){
+            let t = window.cariData[firma][i];
+            return '• ' + (t.tarih || '') + ' — ' + (t.aciklama || '');
+        }).join('\n');
+        let oksuzSil = confirm(
+            'Bu borç kapatılmış. Karşılığında ' + oksuzTahsilatIdx.length + ' otomatik tahsilat satırı var:\n\n' +
+            detay + '\n\n' +
+            'Silinen borçla birlikte bunlar da silinsin mi?\n' +
+            '(Hayır derseniz tahsilat satırları yetim kalır — bakiye yanlış görünebilir.)'
+        );
+        if(oksuzSil) {
+            silinecekIndexler = silinecekIndexler.concat(oksuzTahsilatIdx);
+        }
+    }
+
     // TEK SEFERDE SİL (büyükten küçüğe sırala ki index'ler kaymasın)
     silinecekIndexler.sort(function(a,b){return b-a;});
     silinecekIndexler.forEach(function(idx) {
@@ -6186,7 +6237,7 @@ window.cariHareketSilByGroup = function(indexlerStr, idsStr) {
             window.cariData[firma].splice(idx, 1);
         }
     });
-    
+
     saveCariData();
     window.renderCariTable();
 };
@@ -6244,6 +6295,11 @@ window.cariTabloPDF = function() {
     let borcSayac = 0, tahsilatSayac = 0;
 
     hareketler.forEach(function(h) {
+        // ★ KAPANMIŞ KAYITLARI PDF'E DAHİL ETME
+        // - Ödenmiş borç (odendi:true) zaten kapanmış, müşteriye gönderilen ekstrede gözükmesin
+        // - Otomatik kapanış tahsilatı (isTahsilat + odendi) "Alınan Ödemeler"de görünüp ekstreyi kirletmesin
+        if(h.odendi === true) return;
+
         let temizAciklama = (h.aciklama || '')
             .replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '')
             .replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '')
@@ -6253,15 +6309,8 @@ window.cariTabloPDF = function() {
         let aciklamaPDF = temizAciklama;
         if(sasi && sasi.length > 6) aciklamaPDF += ' (...' + sasi.slice(-6) + ')';
 
-        let gb = parseFloat(h.gumrukBedeli) || 0;
-        let tb = parseFloat(h.tseBedeli)    || 0;
-        // Eski veri yapısı uyumluluğu
-        if(!gb && !tb && h.tutar) {
-            let t = parseFloat(h.tutar) || 0;
-            if(h.tur === 'borc') t = -t;
-            let b = (h.birim || 'EUR').toUpperCase();
-            if(b === 'EUR' || b === 'USD') gb = t; else tb = t;
-        }
+        let _b = window._cariBedellerGetir(h);
+        let gb = _b.gb, tb = _b.tb;
 
         let isTahsilat = h.isTahsilat === true || gb < 0 || tb < 0;
 
@@ -6407,15 +6456,15 @@ window.cariSeciliPDF = function() {
     // Seçilen satırlar arasında zaten tahsilat var mı kontrol et
     let seciliTahsilatVar = hareketler.some(h => h.isTahsilat === true);
 
-    // Eğer kullanıcı tahsilat seçmediyse, firmaya ait TÜM tahsilatları ekle
+    // Eğer kullanıcı tahsilat seçmediyse, firmaya ait AÇIK tahsilatları ekle
+    // (Kapanmış / odendi:true olan tahsilatlar ekstreyi kirletmesin)
     if(!seciliTahsilatVar) {
         (window.cariData[firma] || []).forEach(function(h, idx) {
             if(!h) return;
             if(secilenIdxler.has(idx)) return; // zaten seçilmiş
-            // Tahsilat satırı mı?
-            let gb = parseFloat(h.gumrukBedeli) || 0;
-            let tb = parseFloat(h.tseBedeli)    || 0;
-            let isTahsilat = h.isTahsilat === true || gb < 0 || tb < 0;
+            if(h.odendi === true) return;       // kapanmış kayıtları atla
+            let _b = window._cariBedellerGetir(h);
+            let isTahsilat = h.isTahsilat === true || _b.gb < 0 || _b.tb < 0;
             if(isTahsilat) {
                 hareketler.push(h);
             }
@@ -7554,6 +7603,204 @@ window._mergePdfBase64Listesi = async function(base64Listesi) {
     }
     let mergedBytes = await mergedPdf.save();
     return window._bytesToBase64(mergedBytes);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  🖨️ TSE BAŞVURU EVRAKLARI — TEK TIKLA YAZDIR
+//  Seçili araca ait 5 PDF'i 2 ayrı yazıcı diyaloğunda gönderir:
+//    JOB 1: Liste + Rapor + ULM + Etiket  → tek yüz (simplex)
+//    JOB 2: CoC DE                         → çift yüz (duplex, uzun kenardan)
+//  Eksik varsa kullanıcıya sorar.
+// ═══════════════════════════════════════════════════════════════════
+window.tseBasvuruYazdir = async function() {
+    // ── Seçili aracı bul (declarations tablosundan)
+    let checked = document.querySelectorAll('.decl-cb:checked');
+    if(checked.length === 0) {
+        alert('⚠️ Önce bir araç seçin (checkbox).');
+        return;
+    }
+    if(checked.length > 1) {
+        alert('⚠️ Tek bir araç seçin — bu işlem her seferinde tek araca yapılır.');
+        return;
+    }
+    let idx = parseInt(checked[0].value);
+    let arac = (window.declarationsData || [])[idx];
+    if(!arac) { alert('Araç bulunamadı'); return; }
+
+    let evrakLink = arac.evrakLink || '';
+    let sasi = arac.sasi || '';
+    if(!evrakLink) {
+        alert('⚠️ Bu araç için Drive klasör linki tanımlı değil.');
+        return;
+    }
+
+    // Toast bildirimi
+    if(typeof showSyncToast === 'function') showSyncToast('📂 Drive klasörü taranıyor...');
+
+    const TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+    // JSONP ile Apps Script'i çağır
+    let res = await new Promise(function(resolve, reject) {
+        var cb = 'tsePrintCb_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+        var timer = setTimeout(function() {
+            delete window[cb];
+            var s = document.getElementById(cb + '_script'); if(s) s.remove();
+            reject(new Error('Zaman aşımı (60s) — Apps Script yanıt vermedi'));
+        }, 60000);
+
+        window[cb] = function(r) {
+            clearTimeout(timer);
+            delete window[cb];
+            var s = document.getElementById(cb + '_script'); if(s) s.remove();
+            resolve(r);
+        };
+
+        var params = new URLSearchParams({
+            action: 'findTseBasvuruPdflerForPrint',
+            evrakLink: evrakLink,
+            callback: cb
+        });
+        var script = document.createElement('script');
+        script.id = cb + '_script';
+        script.src = TSE_GAS_URL + '?' + params.toString();
+        script.onerror = function() {
+            clearTimeout(timer);
+            delete window[cb];
+            script.remove();
+            reject(new Error('Bağlantı hatası'));
+        };
+        document.body.appendChild(script);
+    }).catch(function(err) {
+        if(typeof hideSyncToast === 'function') hideSyncToast('❌ ' + err.message, false);
+        alert('❌ ' + err.message);
+        return null;
+    });
+
+    if(!res) return;
+    if(!res.success) {
+        if(typeof hideSyncToast === 'function') hideSyncToast('❌ Klasör hatası', false);
+        alert('❌ ' + (res.error || 'Klasör okunamadı'));
+        return;
+    }
+
+    // Eksik varsa kullanıcıya sor
+    if(res.eksikler && res.eksikler.length > 0) {
+        let devam = confirm(
+            '⚠️ Bu evraklar klasörde bulunamadı:\n\n• ' + res.eksikler.join('\n• ') + '\n\n' +
+            'Mevcut ' + res.bulunan + '/5 evrakla devam edilsin mi?\n' +
+            '(İptal: Hiçbir şey yazdırılmaz)'
+        );
+        if(!devam) {
+            if(typeof hideSyncToast === 'function') hideSyncToast('İptal edildi', false);
+            return;
+        }
+    }
+
+    // 2 ayrı grup: simplex (4 evrak) ve duplex (CoC DE)
+    let simplexBase64 = [];
+    let duplexBase64 = [];
+    ['liste','rapor','ulm','etiket'].forEach(function(k) {
+        if(res[k] && res[k].base64) simplexBase64.push(res[k].base64);
+    });
+    if(res.cocDe && res.cocDe.base64) duplexBase64.push(res.cocDe.base64);
+
+    let toplam = simplexBase64.length + duplexBase64.length;
+    if(toplam === 0) {
+        if(typeof hideSyncToast === 'function') hideSyncToast('❌ Hiç PDF yok', false);
+        alert('❌ Klasörde yazdırılabilir hiçbir evrak yok.');
+        return;
+    }
+
+    if(typeof showSyncToast === 'function') showSyncToast('📑 ' + toplam + ' PDF hazırlanıyor...');
+
+    // ─── Yardımcı: PDF üret + Duplex viewer prefs ekle ─────────────
+    let _pdfUret = async function(base64Listesi, duplexHint) {
+        let PDFLib = await window._pdfLibYukle();
+        let mergedPdf = await PDFLib.PDFDocument.create();
+        for(let i = 0; i < base64Listesi.length; i++) {
+            let bytes = window._base64ToBytes(base64Listesi[i]);
+            let pdf = await PDFLib.PDFDocument.load(bytes);
+            let pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+            pages.forEach(function(p){ mergedPdf.addPage(p); });
+        }
+        // Duplex hint (yazıcılar/Adobe Reader bunu okur, Chrome görmezden gelebilir)
+        try {
+            let ctx = mergedPdf.context;
+            let vpDict = ctx.obj({
+                Duplex: PDFLib.PDFName.of(duplexHint),
+                PickTrayByPDFSize: true
+            });
+            mergedPdf.catalog.set(PDFLib.PDFName.of('ViewerPreferences'), vpDict);
+        } catch(e){ /* yoksay — hint başarısız olsa da PDF çalışır */ }
+        let mergedBytes = await mergedPdf.save();
+        let blob = new Blob([mergedBytes], { type: 'application/pdf' });
+        return URL.createObjectURL(blob);
+    };
+
+    // ─── Yardımcı: URL'i yeni sekmede aç + print tetikle ──────────
+    let _yazdirAc = function(url, dosyaAdi, gecikme) {
+        let win = window.open(url, '_blank');
+        if(!win) {
+            // Pop-up engellendi → indirme fallback
+            let a = document.createElement('a');
+            a.href = url;
+            a.download = dosyaAdi;
+            a.click();
+            return false;
+        }
+        win.addEventListener('load', function() {
+            setTimeout(function() {
+                try { win.focus(); win.print(); } catch(e){}
+            }, gecikme || 800);
+        });
+        return true;
+    };
+
+    try {
+        let urls = []; // temizlemek için
+        let popupEngeli = false;
+
+        // JOB 1 — Simplex (4 evrak)
+        if(simplexBase64.length > 0) {
+            let url1 = await _pdfUret(simplexBase64, 'Simplex');
+            urls.push(url1);
+            let ok = _yazdirAc(url1, (sasi || 'TSE') + '_Evraklar_Simplex.pdf', 800);
+            if(!ok) popupEngeli = true;
+        }
+
+        // JOB 2 — Duplex (CoC DE) — kullanıcıya bilgi
+        if(duplexBase64.length > 0) {
+            if(simplexBase64.length > 0) {
+                // İlk yazdırmadan sonra kısa beklet ki kullanıcı yazıcıyı seçebilsin
+                await new Promise(function(r){ setTimeout(r, 500); });
+                if(typeof showSyncToast === 'function') {
+                    showSyncToast('📄 2. yazdırma: CoC DE — yazıcı diyaloğunda "ÇİFT TARAFLI" seçin', true);
+                }
+            }
+            let url2 = await _pdfUret(duplexBase64, 'DuplexFlipLongEdge');
+            urls.push(url2);
+            let ok = _yazdirAc(url2, (sasi || 'TSE') + '_CoC_DE_Duplex.pdf', 1200);
+            if(!ok) popupEngeli = true;
+        }
+
+        // 1 dk sonra blob URL'leri temizle
+        setTimeout(function(){
+            urls.forEach(function(u){ URL.revokeObjectURL(u); });
+        }, 60000);
+
+        if(popupEngeli) {
+            if(typeof hideSyncToast === 'function') hideSyncToast('⚠️ Pop-up engellendi — PDF indirildi', false);
+            alert('Pop-up engellendiği için PDF indirildi. Açıp Ctrl+P ile yazdırabilirsin.');
+        } else {
+            if(typeof hideSyncToast === 'function') {
+                hideSyncToast('🖨️ ' + toplam + ' evrak yazıcıya gönderildi (CoC DE: çift taraflı)', true);
+            }
+        }
+
+    } catch(err) {
+        if(typeof hideSyncToast === 'function') hideSyncToast('❌ Birleştirme hatası', false);
+        alert('❌ PDF birleştirme hatası: ' + err.message);
+    }
 };
 
 window._uploadMergedPdf = async function(evrakLink, fileName, base64) {
@@ -12618,7 +12865,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         }
         tb.innerHTML=_kData.map((k,i)=>{let dc=k.durum&&k.durum.toUpperCase().includes('MAHKEME')?'badge-danger':(k.durum&&k.durum.toUpperCase().includes('YOK')?'badge-dark':'badge-warning');return`<tr onclick="if(!event.target.closest('button, input, a')) window.editKiymet(${i})" style="cursor: pointer;" title="Detayları görmek için tıklayın"><td style="text-align:center;"><input type="checkbox" class="custom-cb kiymet-cb" value="${i}" onclick="window.toggleKiymetCb()"></td><td><span class="font-bold" style="color:var(--text-primary);">${k.marka||'-'} ${k.model||'-'}</span></td><td>${k.yil||'-'} / ${k.renk||'-'}</td><td class="font-bold" style="font-family:monospace;">${k.sasi||'-'}</td><td>${k.tarih||'-'}</td><td>${k.fatura?window.formatNumber(k.fatura)+' €':'-'}</td><td style="color:var(--success);font-weight:600;">${k.kiymet?window.formatNumber(k.kiymet)+' €':'-'}</td><td>${k.durum?`<span class="badge ${dc}">${k.durum}</span>`:'-'}</td><td style="text-align:center;"><div style="display:flex;gap:3px;justify-content:center;"><button class="icon-btn" onclick="window.editKiymet(${i})"><i data-lucide="edit-3"></i></button><button class="icon-btn text-danger-btn" onclick="window.deleteKiymet(${i})"><i data-lucide="trash-2"></i></button></div></td></tr>`;}).join('');document.getElementById('kiymet-selectAll').checked=false;window.toggleKiymetCb();if(window.lucide)lucide.createIcons();};
 
-    window.toggleDeclCb=function(){let c=document.querySelectorAll('.decl-cb:checked'),b=document.getElementById('decl-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('decl-sel-count').innerText=c.length;}else b.classList.add('hidden');}var tb=document.getElementById('decl-bulk-tse-btn');if(tb){if(c.length>0){tb.classList.remove('hidden');document.getElementById('decl-tse-count').innerText=c.length;}else tb.classList.add('hidden');}document.querySelectorAll('.decl-cb').forEach(function(cb){let row=cb.closest('tr');if(row){if(cb.checked)row.classList.add('selected');else row.classList.remove('selected');}});};
+    window.toggleDeclCb=function(){let c=document.querySelectorAll('.decl-cb:checked'),b=document.getElementById('decl-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('decl-sel-count').innerText=c.length;}else b.classList.add('hidden');}var tb=document.getElementById('decl-bulk-tse-btn');if(tb){if(c.length>0){tb.classList.remove('hidden');document.getElementById('decl-tse-count').innerText=c.length;}else tb.classList.add('hidden');}var pb=document.getElementById('decl-bulk-tse-print-btn');if(pb){if(c.length>0)pb.classList.remove('hidden');else pb.classList.add('hidden');}document.querySelectorAll('.decl-cb').forEach(function(cb){let row=cb.closest('tr');if(row){if(cb.checked)row.classList.add('selected');else row.classList.remove('selected');}});};
     window.toggleAllDeclarations=function(v){document.querySelectorAll('.decl-cb').forEach(c=>c.checked=v);window.toggleDeclCb();};
     window.bulkDeleteDeclarations=function(){const _r=localStorage.getItem('gumruk_role');if(_r&&_r!=='admin'){alert('Yetkiniz yok.');return;}let c=document.querySelectorAll('.decl-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.declarationsData[i];if(d&&d.sasi){let sasi=d.sasi;Object.keys(window.firmData).forEach(function(fn){window.firmData[fn]=window.firmData[fn].filter(function(x){return x.sasi!==sasi;});});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.declarationsData.splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderDeclarationsTable();if(window.updateDashboardStats)window.updateDashboardStats();}};
     window.toggleAllFirmVehicles=function(v){document.querySelectorAll('.firm-cb').forEach(c=>c.checked=v);window.toggleFirmCb();};
@@ -18575,50 +18822,80 @@ window._thKaydet = function() {
 };
 
 // --- AKILLI TAHSİLAT: ÖDEME ALMA FONKSİYONU ---
+// Muhasebe mantığı:
+// 1. Seçili borç satırlarını "ödendi:true" işaretle (orijinaller defterde kalır, bakiyeden düşer)
+// 2. Aynı şasili AÇIK partial tahsilatları (varsa) da kapat — borçla denkleşir
+// 3. NET kalan = (orijinal borç) - (önceki partial tahsilat) → bu kadar otomatik Tahsilat oluştur
+//    (NET 0 ise yeni satır oluşturma — gereksiz)
+// 4. Çoklu araç destekli: tüm şasi ve açıklamalar Tahsilat satırında listelenir
 window.cariOdemeyiAl = function(indexlerStr) {
     let firma = document.getElementById('cari-firma-sec')?.value;
     if(!firma) return;
     if(!confirm('Bu aracın ödemesini tahsil ettiniz mi?\n\nBu işlem satırı "Ödendi" olarak mühürleyecek ve bakiyeden otomatik düşecektir.')) return;
 
-    let indexler = indexlerStr.split(',').map(Number);
-    let toplamGumruk = 0;
-    let toplamTse = 0;
-    let aciklamaBase = "";
-    let sasi = "";
+    let indexler = indexlerStr.split(',').map(Number).filter(function(n){return !isNaN(n);});
+    let toplamGumrukBorc = 0;
+    let toplamTseBorc = 0;
+    let sasilerSet = {};   // sasi → true (benzersiz)
+    let aciklamalar = [];
 
-    indexler.forEach(idx => {
+    // 1) Seçili borç satırlarını ödendi yap, tutarları topla
+    indexler.forEach(function(idx) {
         let h = window.cariData[firma][idx];
-        if(h) {
-            h.odendi = true; // Eski kaydı ödendi olarak işaretle
-            
-            // Tutarı hesapla
-            let gb = parseFloat(h.gumrukBedeli)||0;
-            let tb = parseFloat(h.tseBedeli)||0;
-            if(!gb && !tb && h.tutar) {
-                let t = parseFloat(h.tutar)||0; if(h.tur === 'borc') t = -t;
-                let b = (h.birim||'EUR').toUpperCase();
-                if(b === 'EUR' || b === 'USD') gb = t; else tb = t;
-            }
-            toplamGumruk += gb;
-            toplamTse += tb;
-            
-            if(!aciklamaBase) aciklamaBase = h.aciklama;
-            if(h.sasi) sasi = h.sasi;
-        }
+        if(!h) return;
+        h.odendi = true;
+        let b = window._cariBedellerGetir(h);
+        toplamGumrukBorc += b.gb;
+        toplamTseBorc    += b.tb;
+        if(h.sasi) sasilerSet[h.sasi] = true;
+        if(h.aciklama) aciklamalar.push(h.aciklama);
     });
 
-    // Otomatik "Eksi Bakiye (Tahsilat)" satırı oluştur!
-    // odendi:true → bakiye hesabında sayılmaz (ödenmiş borçla birlikte düşer)
-    window.cariData[firma].unshift({
-        tarih: window.formatTRDate(new Date()),
-        aciklama: 'Tahsilat - ' + aciklamaBase,
-        sasi: sasi,
-        gumrukBedeli: toplamGumruk > 0 ? -toplamGumruk : 0,
-        tseBedeli: toplamTse > 0 ? -toplamTse : 0,
-        tur: 'borc',
-        isTahsilat: true,
-        odendi: true
-    });
+    // 2) Aynı şasili açık partial tahsilatları bul ve kapat (denkleşme)
+    let toplamGumrukKredi = 0;  // negatif olur (önceki tahsilat = -X)
+    let toplamTseKredi = 0;
+    let sasiler = Object.keys(sasilerSet);
+    if(sasiler.length > 0) {
+        window.cariData[firma].forEach(function(h, idx) {
+            if(indexler.indexOf(idx) !== -1) return; // zaten işlendi
+            if(!h.isTahsilat) return;                // sadece tahsilat satırları
+            if(h.odendi) return;                     // sadece açık olanlar
+            if(!h.sasi || !sasilerSet[h.sasi]) return;
+            let b = window._cariBedellerGetir(h);
+            toplamGumrukKredi += b.gb;
+            toplamTseKredi    += b.tb;
+            h.odendi = true; // bu kısmi tahsilat da borçla birlikte kapanıyor
+        });
+    }
+
+    // 3) NET kalan = borç + kredi (kredi negatif). Pozitifse otomatik tahsilat gerek.
+    let netGumruk = toplamGumrukBorc + toplamGumrukKredi;
+    let netTse    = toplamTseBorc    + toplamTseKredi;
+
+    // 4) Otomatik kapanış satırı açıklaması (çoklu araç → liste)
+    let sasiText = sasiler.join(', ');
+    let aciklamaText;
+    if(sasiler.length > 1) {
+        aciklamaText = 'Tahsilat - ' + sasiler.length + ' araç (' + sasiText + ')';
+    } else if(aciklamalar.length > 0) {
+        aciklamaText = 'Tahsilat - ' + aciklamalar[0];
+    } else {
+        aciklamaText = 'Tahsilat - ' + (sasiText || 'kapanış');
+    }
+
+    // Eğer NET 0 ise satır oluşturmaya gerek yok (önceki tahsilat zaten karşılıyor)
+    if(netGumruk > 0 || netTse > 0) {
+        window.cariData[firma].unshift({
+            tarih: window.formatTRDate(new Date()),
+            aciklama: aciklamaText,
+            sasi: sasiText,
+            gumrukBedeli: netGumruk > 0 ? -netGumruk : 0,
+            tseBedeli:    netTse    > 0 ? -netTse    : 0,
+            tur: 'borc',
+            isTahsilat: true,
+            odendi: true
+        });
+    }
 
     saveCariData();
     window.renderCariTable();
