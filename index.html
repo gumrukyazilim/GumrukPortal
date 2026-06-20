@@ -10732,19 +10732,60 @@ window.inlineEditDate = function(el, idx, field, source) {
             saveData('decl');
             saveData('firm');
 
-            // KIYMET VERİLİŞ TARİHİ — beyanname no boşsa hatırlat
+            // KIYMET VERİLİŞ TARİHİ — beyanname no veya CIF tarihi boşsa modal'ı aç ve doldurmaya yönlendir
             if (field === 'kiymVv' && yeniDeger) {
                 let arac = aracSasi
                     ? (window.declarationsData.find(x => x && x.sasi === aracSasi) || kaynak[idx])
                     : kaynak[idx];
+                let aracIdx = aracSasi
+                    ? window.declarationsData.findIndex(x => x && x.sasi === aracSasi)
+                    : idx;
                 let beyanno   = (arac && arac.beyanname) ? String(arac.beyanname).trim() : '';
                 let beynmCif  = (arac && arac.beynmCif)  ? String(arac.beynmCif).trim()  : '';
                 let beyannoBos  = !beyanno  || beyanno  === 'undefined' || beyanno  === '-';
                 let beynmCifBos = !beynmCif || beynmCif === 'undefined' || beynmCif === '-';
-                if (beynmCifBos) {
-                    window.showToast('⚠️ Kıymete veriliş tarihi girildi — BEYANNAME CIF TARİHİ boş! Süre hesabı doğru olmaz, lütfen tarihi girin.', 'warn');
-                } else if (beyannoBos) {
-                    window.showToast('📋 Beyanname Numarası boş! Lütfen beyanname no\'yu girin.', 'warn');
+
+                if (beynmCifBos || beyannoBos) {
+                    // Hangi alanlar boş — kullanıcıya bildir
+                    let eksikler = [];
+                    if (beynmCifBos) eksikler.push('Beyanname CIF Tarihi');
+                    if (beyannoBos)  eksikler.push('Beyanname Numarası');
+                    window.showToast('⚠️ Kıymete veriliş tarihi girildi — Eksik: ' + eksikler.join(' + ') + '. Araç detayı açılıyor...', 'warn');
+
+                    // 1 saniye sonra araç modalını aç, eksik alana scroll + vurgula
+                    setTimeout(function() {
+                        let ctx = source === 'firm' ? 'firm' : 'decl';
+                        let openIdx = ctx === 'firm' ? idx : (aracIdx !== -1 ? aracIdx : idx);
+                        window.openDeclVehicleModal(openIdx, ctx);
+                        // Modal açıldıktan sonra alanları kontrol et + vurgula
+                        setTimeout(function() {
+                            let vurgula = function(elId) {
+                                let el = document.getElementById(elId);
+                                if (!el) return;
+                                el.style.borderColor = '#ef4444';
+                                el.style.boxShadow   = '0 0 0 3px rgba(239,68,68,.2)';
+                                // 4 sn sonra vurguyu sönümle
+                                setTimeout(function(){
+                                    el.style.borderColor = '';
+                                    el.style.boxShadow = '';
+                                }, 4000);
+                            };
+                            // CIF tarihi öncelikli (boşsa ona scroll + focus)
+                            let oncelikliEl = null;
+                            if (beynmCifBos) {
+                                oncelikliEl = document.getElementById('da-beynmCif');
+                                vurgula('da-beynmCif');
+                            }
+                            if (beyannoBos) {
+                                vurgula('da-beyanname');
+                                if (!oncelikliEl) oncelikliEl = document.getElementById('da-beyanname');
+                            }
+                            if (oncelikliEl) {
+                                oncelikliEl.scrollIntoView({ behavior:'smooth', block:'center' });
+                                try { oncelikliEl.focus(); } catch(e){}
+                            }
+                        }, 400);
+                    }, 800);
                 }
             }
 
