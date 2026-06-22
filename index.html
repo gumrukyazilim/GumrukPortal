@@ -3924,11 +3924,24 @@ div[style*="position: relative"] > input {
             <div class="modal-section" id="da-scan-section">
                 <div class="modal-section-title">📄 Evrak Tarama → PDF</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
-                    <input type="text" id="da-scan-name" placeholder="Evrak adı (Fatura, TSE, Beyanname...)" style="flex:1;min-width:150px;padding:8px 12px;font-size:13px;">
-                    <input type="file" id="da-scan-input" style="display:none;" accept="image/*" multiple>
+                    <select id="da-scan-name" onchange="window.scanGenelEvrakDegisti()" style="flex:1;min-width:150px;padding:8px 12px;font-size:13px;background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;">
+                        <option value="">— Evrak Adı Seç —</option>
+                        <option value="ATR">ATR</option>
+                        <option value="BEYANNAME">BEYANNAME</option>
+                        <option value="SÜRE">SÜRE</option>
+                        <option value="CMR">CMR</option>
+                        <option value="ORDİNO">ORDİNO</option>
+                        <option value="T1">T1</option>
+                        <option value="İHRACAAT">İHRACAAT</option>
+                        <option value="FATURA">FATURA</option>
+                        <option value="COC">COC</option>
+                        <option value="DIGER">Diğer (yaz)…</option>
+                    </select>
+                    <input type="text" id="da-scan-name-custom" placeholder="Diğer evrak adı..." style="display:none;flex:1;min-width:150px;padding:8px 12px;font-size:13px;" oninput="window.scanGenelEvrakDegisti()">
+                    <input type="file" id="da-scan-input" style="display:none;" accept="image/*,application/pdf" multiple>
                     <input type="file" id="da-scan-camera" style="display:none;" accept="image/*" capture="environment">
                     <button type="button" class="btn-sm" style="border-color:var(--warning);color:var(--warning);white-space:nowrap;" onclick="document.getElementById('da-scan-camera').click()"><i data-lucide="camera"></i> Kamera</button>
-                    <button type="button" class="btn-sm" style="border-color:var(--primary);color:var(--primary);white-space:nowrap;" onclick="document.getElementById('da-scan-input').click()"><i data-lucide="image"></i> Galeriden</button>
+                    <button type="button" class="btn-sm" style="border-color:var(--primary);color:var(--primary);white-space:nowrap;" onclick="document.getElementById('da-scan-input').click()"><i data-lucide="image"></i> Galeriden / PDF</button>
                 </div>
                 <div id="da-scan-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
                 <div id="da-scan-status" style="font-size:11px;font-weight:600;"></div>
@@ -16623,8 +16636,43 @@ window.uploadPhotos = async function() {
     setTimeout(function() { window.loadPhotoGallery(); }, 2000);
 };
 
-// ============ EVRAK TARAMA → PDF SİSTEMİ (v2 — File Tabanlı) ============
-window._scanFiles = []; // File objesi + objectURL tutar (hafıza dostu)
+// ============ EVRAK TARAMA → PDF SİSTEMİ (v3 — pdf-lib + Çoklu Evrak) ============
+// Hazır evrak isimleri (dropdown). "DIGER" seçilirse custom input açılır.
+window.SCAN_EVRAK_NAMES = ['ATR','BEYANNAME','SÜRE','CMR','ORDİNO','T1','İHRACAAT','FATURA','COC'];
+
+window._scanFiles = []; // File objeleri
+window._scanNames = []; // paralel: her dosya için evrak adı (boş = global'den miras)
+
+// Genel dropdown'da bir seçim yapılınca: Diğer için input göster/gizle + boş per-file isimleri doldur
+window.scanGenelEvrakDegisti = function() {
+    let sel = document.getElementById('da-scan-name');
+    let custom = document.getElementById('da-scan-name-custom');
+    if(!sel) return;
+    if(sel.value === 'DIGER') {
+        if(custom) custom.style.display = 'block';
+    } else {
+        if(custom) { custom.style.display = 'none'; custom.value = ''; }
+    }
+    window.scanOnizlemeGuncelle();
+};
+
+// Genel seçili evrak adını döndür (özel veya preset)
+window._scanGenelEvrakAdi = function() {
+    let sel = document.getElementById('da-scan-name');
+    if(!sel || !sel.value) return '';
+    if(sel.value === 'DIGER') {
+        let custom = document.getElementById('da-scan-name-custom');
+        return custom ? (custom.value || '').trim() : '';
+    }
+    return sel.value;
+};
+
+// Per-file dropdown'da değişim
+window.scanFileEvrakDegisti = function(idx, val) {
+    if(idx >= 0 && idx < window._scanNames.length) {
+        window._scanNames[idx] = val || '';
+    }
+};
 
 // Kamera ve galeri listener
 (function(){
@@ -16634,15 +16682,17 @@ window._scanFiles = []; // File objesi + objectURL tutar (hafıza dostu)
         if(cam) cam.addEventListener('change', function() {
             if(this.files[0]) {
                 window._scanFiles.push(this.files[0]);
+                window._scanNames.push(''); // boş = genel seçimi miras al
                 window.scanOnizlemeGuncelle();
             }
             this.value = '';
         });
-        // Galeri (çoklu)
+        // Galeri / PDF (çoklu)
         let si = document.getElementById('da-scan-input');
         if(si) si.addEventListener('change', function() {
             Array.from(this.files).forEach(function(file) {
                 window._scanFiles.push(file);
+                window._scanNames.push('');
             });
             window.scanOnizlemeGuncelle();
             this.value = '';
@@ -16662,22 +16712,52 @@ window.scanOnizlemeGuncelle = function() {
         return;
     }
     if(btn) btn.style.display = 'flex';
-    
-    // File objelerinden objectURL oluştur (hafıza dostu, base64 yok)
+
+    let genelAd = window._scanGenelEvrakAdi();
+    // Dropdown option HTML üretici (seçili olanı işaretler)
+    let _optsFor = function(seciliAd) {
+        let html = '<option value=""' + (!seciliAd ? ' selected' : '') + '>— Seç —</option>';
+        window.SCAN_EVRAK_NAMES.forEach(function(n) {
+            html += '<option value="' + n + '"' + (n === seciliAd ? ' selected' : '') + '>' + n + '</option>';
+        });
+        return html;
+    };
+
+    // File objelerinden preview
     preview.innerHTML = window._scanFiles.map(function(file, i) {
-        let url = URL.createObjectURL(file);
-        return '<div style="position:relative;width:70px;height:95px;border:2px solid var(--border);border-radius:6px;overflow:hidden;">' +
-            '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' +
-            '<div style="position:absolute;top:2px;left:4px;background:var(--primary);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;">' + (i+1) + '</div>' +
-            '<div style="position:absolute;bottom:2px;left:2px;right:2px;font-size:7px;color:#fff;background:rgba(0,0,0,0.6);padding:1px 3px;border-radius:2px;overflow:hidden;white-space:nowrap;">' + (file.size/1024).toFixed(0) + 'KB</div>' +
-            '<button onclick="window.scanSayfaSil(' + i + ')" style="position:absolute;top:1px;right:1px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;">✕</button>' +
+        let isPDF = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+        let perAd = (window._scanNames[i] || '').trim();
+        let efektifAd = perAd || genelAd || '';
+        let kart;
+        if(isPDF) {
+            kart = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-weight:800;font-size:13px;letter-spacing:0.5px;">PDF</div>';
+        } else {
+            let url = URL.createObjectURL(file);
+            kart = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">';
+        }
+        return '<div style="display:flex;flex-direction:column;gap:3px;align-items:center;">' +
+            '<div style="position:relative;width:78px;height:100px;border:2px solid ' + (perAd ? 'var(--success)' : 'var(--border)') + ';border-radius:6px;overflow:hidden;">' +
+                kart +
+                '<div style="position:absolute;top:2px;left:4px;background:var(--primary);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;">' + (i+1) + '</div>' +
+                '<div style="position:absolute;bottom:2px;left:2px;right:2px;font-size:7px;color:#fff;background:rgba(0,0,0,0.7);padding:1px 3px;border-radius:2px;overflow:hidden;white-space:nowrap;text-align:center;">' + (file.size/1024).toFixed(0) + 'KB</div>' +
+                '<button onclick="window.scanSayfaSil(' + i + ')" style="position:absolute;top:1px;right:1px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;">✕</button>' +
+            '</div>' +
+            '<select onchange="window.scanFileEvrakDegisti(' + i + ', this.value); window.scanOnizlemeGuncelle()" style="width:88px;font-size:10px;padding:2px 4px;background:var(--input-bg);color:var(--text-primary);border:1px solid ' + (perAd ? 'var(--success)' : 'var(--border)') + ';border-radius:4px;cursor:pointer;" title="Bu dosya için evrak adı (boş bırakırsan genel seçimi alır)">' + _optsFor(perAd) + '</select>' +
+            (efektifAd ? '<div style="font-size:9px;color:var(--text-muted);max-width:88px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + efektifAd + '</div>' : '<div style="font-size:9px;color:var(--danger);">⚠️ Adsız</div>') +
         '</div>';
     }).join('');
-    if(status) status.innerHTML = '<span style="color:var(--success);">' + window._scanFiles.length + ' sayfa hazır (' + (window._scanFiles.reduce(function(t,f){return t+f.size;},0)/1024/1024).toFixed(1) + ' MB)</span>';
+    let toplamMB = (window._scanFiles.reduce(function(t,f){return t+f.size;},0)/1024/1024).toFixed(1);
+    let adsizSayisi = window._scanFiles.filter(function(_, i){ return !(window._scanNames[i] || '').trim() && !genelAd; }).length;
+    let durumText = '<span style="color:var(--success);">' + window._scanFiles.length + ' dosya hazır (' + toplamMB + ' MB)</span>';
+    if(adsizSayisi > 0) {
+        durumText += ' &nbsp;<span style="color:var(--danger);">⚠️ ' + adsizSayisi + ' dosyaya evrak adı verilmedi</span>';
+    }
+    if(status) status.innerHTML = durumText;
 };
 
 window.scanSayfaSil = function(idx) {
     window._scanFiles.splice(idx, 1);
+    window._scanNames.splice(idx, 1);
     window.scanOnizlemeGuncelle();
 };
 
@@ -16717,113 +16797,203 @@ window.fileToSmallBase64 = function(file) {
     });
 };
 
+// ─── Yardımcı: Image dosyasını JPG bytes'a çevir (pdf-lib embedJpg için) ─
+window._scanImageToJpgBytes = async function(file) {
+    let url = URL.createObjectURL(file);
+    try {
+        let img = new Image();
+        await new Promise(function(resolve, reject) {
+            img.onload = resolve;
+            img.onerror = function(){ reject(new Error('Resim yüklenemedi: ' + file.name + ' (format desteklenmiyor olabilir — HEIC vs.)')); };
+            img.src = url;
+        });
+        // Boyut sınırla
+        let maxW = 1600, maxH = 2100;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if(!w || !h) throw new Error('Resim boyutu okunamadı: ' + file.name);
+        if(w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+        let canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        let ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        let blob = await new Promise(function(resolve, reject) {
+            canvas.toBlob(function(b) {
+                if(!b) reject(new Error('Canvas blob hatası')); else resolve(b);
+            }, 'image/jpeg', 0.85);
+        });
+        let buf = await blob.arrayBuffer();
+        return new Uint8Array(buf);
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+};
+
+// ─── Yardımcı: Bir grup dosyayı tek PDF'e çevir (pdf-lib ile, html2pdf YOK) ─
+window._scanGroupToPdf = async function(files) {
+    let PDFLib = await window._pdfLibYukle();
+    let outPdf = await PDFLib.PDFDocument.create();
+    let pageW = 595.28, pageH = 841.89, margin = 18; // A4 portre (pt)
+
+    for(let f of files) {
+        let isPDF = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+        if(isPDF) {
+            // PDF: olduğu gibi sayfa kopyala
+            let buf = await f.arrayBuffer();
+            try {
+                let src = await PDFLib.PDFDocument.load(new Uint8Array(buf), { ignoreEncryption: true });
+                let pages = await outPdf.copyPages(src, src.getPageIndices());
+                pages.forEach(function(p){ outPdf.addPage(p); });
+            } catch(e) {
+                throw new Error('PDF okunamadı: ' + f.name + ' — ' + e.message);
+            }
+        } else {
+            // Resim: canvas → JPG → embedJpg → tam sayfa A4
+            let jpgBytes = await window._scanImageToJpgBytes(f);
+            let img = await outPdf.embedJpg(jpgBytes);
+            let availW = pageW - 2*margin, availH = pageH - 2*margin;
+            let scale = Math.min(availW / img.width, availH / img.height, 1);
+            let drawW = img.width * scale, drawH = img.height * scale;
+            let page = outPdf.addPage([pageW, pageH]);
+            page.drawImage(img, {
+                x: (pageW - drawW) / 2,
+                y: (pageH - drawH) / 2,
+                width: drawW,
+                height: drawH
+            });
+        }
+    }
+    let bytes = await outPdf.save();
+    return bytes; // Uint8Array
+};
+
 window.scanPdfYukle = async function() {
-    if(!window._scanFiles.length) { alert('Önce sayfa ekleyin!'); return; }
-    let evrakAdi = document.getElementById('da-scan-name')?.value?.trim();
-    if(!evrakAdi) { alert('Evrak adı girin!'); return; }
+    if(!window._scanFiles.length) { alert('Önce dosya ekleyin!'); return; }
+
     let sasi = document.getElementById('da-sase')?.value;
     let firma = document.getElementById('da-firma')?.value;
     let marka = document.getElementById('da-marka')?.value;
     if(!sasi) { alert('Şasi numarası gerekli!'); return; }
 
+    // Her dosyayı bir evrak adına ata: per-file > genel
+    let genelAd = window._scanGenelEvrakAdi();
+    let gruplar = {}; // { 'ATR': [file1, file2], 'CMR': [file3] }
+    let adsiz = [];
+    window._scanFiles.forEach(function(f, i) {
+        let ad = (window._scanNames[i] || '').trim() || genelAd;
+        if(!ad) { adsiz.push(i+1); return; }
+        if(!gruplar[ad]) gruplar[ad] = [];
+        gruplar[ad].push(f);
+    });
+
+    if(adsiz.length > 0) {
+        alert('⚠️ Şu sayfaların evrak adı eksik: #' + adsiz.join(', #') + '\nYa her kutuya evrak adı seç, ya da üstteki "Evrak Adı Seç" dropdown\'undan genel bir isim seç.');
+        return;
+    }
+
+    let evraklar = Object.keys(gruplar);
+    if(evraklar.length === 0) { alert('Geçerli evrak bulunamadı'); return; }
+
     let btn = document.getElementById('da-scan-upload-btn');
     let status = document.getElementById('da-scan-status');
     btn.disabled = true;
-    btn.innerHTML = '<i class="spinner" style="width:14px;height:14px;border-width:2px;"></i> PDF oluşturuluyor...';
+    btn.innerHTML = '<i class="spinner" style="width:14px;height:14px;border-width:2px;"></i> PDF üretiliyor...';
+
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
+    let yuklenenler = [];
+    let hatali = [];
+    window._lastScanPdfBlob = null;
+    window._lastScanPdfName = '';
 
     try {
-        // ADIM 1: Her File'ı canvas ile küçük JPEG'e çevir
-        let pdfImages = [];
-        for(let i = 0; i < window._scanFiles.length; i++) {
-            status.innerHTML = '<span style="color:var(--warning);">Sayfa ' + (i+1) + '/' + window._scanFiles.length + ' küçültülüyor...</span>';
-            let smallDataUrl = await window.fileToSmallBase64(window._scanFiles[i]);
-            pdfImages.push(smallDataUrl);
+        for(let e = 0; e < evraklar.length; e++) {
+            let evrakAdi = evraklar[e];
+            let dosyalar = gruplar[evrakAdi];
+            status.innerHTML = '<span style="color:var(--warning);">📑 ' + (e+1) + '/' + evraklar.length + ' — "' + evrakAdi + '" (' + dosyalar.length + ' sayfa) üretiliyor...</span>';
+
+            let pdfBytes;
+            try {
+                pdfBytes = await window._scanGroupToPdf(dosyalar);
+            } catch(err) {
+                console.error('PDF üretim hatası (' + evrakAdi + '):', err);
+                hatali.push(evrakAdi + ' (üretim: ' + err.message + ')');
+                continue;
+            }
+
+            let blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            let pdfKB = (blob.size / 1024).toFixed(0);
+            let dosyaAdi = evrakAdi.toUpperCase().replace(/\s+/g,'_') + '_' + sasi + '.pdf';
+            // Son üretilen → indirme fallback için
+            window._lastScanPdfBlob = blob;
+            window._lastScanPdfName = dosyaAdi;
+
+            // Blob → base64
+            let base64 = await new Promise(function(resolve, reject) {
+                let reader = new FileReader();
+                reader.onload = function(ev){ resolve(ev.target.result.split(',')[1]); };
+                reader.onerror = function(){ reject(new Error('base64 hatası')); };
+                reader.readAsDataURL(blob);
+            });
+
+            status.innerHTML = '<span style="color:var(--warning);">⬆️ ' + (e+1) + '/' + evraklar.length + ' — "' + dosyaAdi + '" (' + pdfKB + ' KB) yükleniyor...</span>';
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: "uploadFile",
+                        fileData: base64,
+                        fileName: dosyaAdi,
+                        sasi: sasi,
+                        firma: firma || '',
+                        marka: marka || ''
+                    })
+                });
+                yuklenenler.push(dosyaAdi);
+                // GAS'a nefes aldır — birden fazla yüklemede önemli
+                await new Promise(function(r){ setTimeout(r, 1500); });
+            } catch(uErr) {
+                console.error('Upload hatası (' + dosyaAdi + '):', uErr);
+                hatali.push(dosyaAdi + ' (upload: ' + uErr.message + ')');
+            }
         }
 
-        // ADIM 2: html2pdf ile tek PDF üret
-        status.innerHTML = '<span style="color:var(--warning);">PDF dosyası oluşturuluyor...</span>';
-        let pdfDiv = document.createElement('div');
-        pdfDiv.style.cssText = 'width:210mm;background:#fff;position:absolute;left:-9999px;top:0;';
-        pdfImages.forEach(function(imgSrc, idx) {
-            let imgEl = document.createElement('img');
-            imgEl.src = imgSrc;
-            imgEl.style.cssText = 'width:100%;display:block;margin:0;padding:0;';
-            if(idx > 0) imgEl.style.pageBreakBefore = 'always';
-            pdfDiv.appendChild(imgEl);
-        });
-        document.body.appendChild(pdfDiv);
-
-        // Kısa bekleme (DOM render)
-        await new Promise(function(r) { setTimeout(r, 300); });
-
-        let pdfBlob = await html2pdf().set({
-            margin: 2,
-            filename: evrakAdi + '.pdf',
-            image: {type:'jpeg', quality:0.85},
-            html2canvas: {scale:2, useCORS:true, logging:false},
-            jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
-            pagebreak: {mode:['css','legacy'], avoid:['img']}
-        }).from(pdfDiv).outputPdf('blob');
-
-        document.body.removeChild(pdfDiv);
-        // Bellek temizle
-        pdfImages = null;
-
-        let pdfKB = (pdfBlob.size / 1024).toFixed(0);
-        console.log('PDF Blob: ' + pdfKB + ' KB');
-
-        // ADIM 3: Blob → Base64
-        status.innerHTML = '<span style="color:var(--warning);">Drive\'a yükleniyor... (' + pdfKB + ' KB)</span>';
-        let base64 = await new Promise(function(resolve, reject) {
-            let reader = new FileReader();
-            reader.onload = function(e) { resolve(e.target.result.split(',')[1]); };
-            reader.onerror = function() { reject(new Error('Base64 çevrim hatası')); };
-            reader.readAsDataURL(pdfBlob);
-        });
-
-        // Yerel indirme için sakla
-        window._lastScanPdfBlob = pdfBlob;
-        let dosyaAdi = evrakAdi.toUpperCase().replace(/\s+/g,'_') + '_' + sasi + '.pdf';
-        window._lastScanPdfName = dosyaAdi;
-
-        // ADIM 4: GAS'a fetch + JSON ile yükle
-        let scriptURL = "https://script.google.com/macros/s/AKfycbxvz0MoOhcX2oKqTIZye_XBAZyOp8wU7gQMEvHIuzRd1N1jbRXa1TAMmW6OaJ-dh_EZrA/exec";
-
-        console.log('GAS yükleme: ' + dosyaAdi + ' (' + (base64.length / 1024).toFixed(0) + ' KB base64)');
-
-        await fetch(scriptURL, {
-            method: "POST",
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-                action: "uploadFile",
-                fileData: base64,
-                fileName: dosyaAdi,
-                sasi: sasi,
-                firma: firma || '',
-                marka: marka || ''
-            })
-        });
-
         // GAS işleme süresi
-        await new Promise(function(r) { setTimeout(r, 3000); });
+        await new Promise(function(r) { setTimeout(r, 1500); });
 
-        // ADIM 5: Temizle
+        // Temizle
         window._scanFiles = [];
+        window._scanNames = [];
         window.scanOnizlemeGuncelle();
-        document.getElementById('da-scan-name').value = '';
-        status.innerHTML = '<span style="color:var(--success);">✅ "' + dosyaAdi + '" yüklendi!</span>' +
-            ' <button onclick="window.scanPdfIndir()" style="background:var(--primary);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:6px;">📥 PDF İndir</button>';
+        let scanNameEl = document.getElementById('da-scan-name'); if(scanNameEl) scanNameEl.value = '';
+        let scanCustomEl = document.getElementById('da-scan-name-custom');
+        if(scanCustomEl) { scanCustomEl.value = ''; scanCustomEl.style.display = 'none'; }
+
+        // Sonuç
+        let mesaj = '';
+        if(yuklenenler.length > 0) {
+            mesaj += '<span style="color:var(--success);">✅ ' + yuklenenler.length + ' PDF yüklendi: ' + yuklenenler.join(', ') + '</span>';
+        }
+        if(hatali.length > 0) {
+            if(mesaj) mesaj += '<br>';
+            mesaj += '<span style="color:var(--danger);">❌ Hatalı: ' + hatali.join(' | ') + '</span>';
+        }
+        if(window._lastScanPdfBlob) {
+            mesaj += ' <button onclick="window.scanPdfIndir()" style="background:var(--primary);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:6px;">📥 Son PDF İndir</button>';
+        }
+        status.innerHTML = mesaj;
         btn.disabled = false;
         btn.innerHTML = '<i data-lucide="upload-cloud"></i> PDF Olarak Yükle';
         btn.style.display = 'none';
         if(window.lucide) lucide.createIcons();
-        setTimeout(function() { window.loadPhotoGallery(); }, 3000);
+        setTimeout(function() { if(typeof window.loadPhotoGallery === 'function') window.loadPhotoGallery(); }, 3000);
 
     } catch(err) {
-        console.error('Scan PDF hata:', err);
+        console.error('Scan PDF genel hata:', err);
         status.innerHTML = '<span style="color:var(--danger);">Hata: ' + err.message + '</span>' +
-            (window._lastScanPdfBlob ? ' <button onclick="window.scanPdfIndir()" style="background:var(--warning);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:6px;">📥 PDF İndir</button>' : '');
+            (window._lastScanPdfBlob ? ' <button onclick="window.scanPdfIndir()" style="background:var(--warning);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:6px;">📥 Son PDF İndir</button>' : '');
         btn.disabled = false;
         btn.innerHTML = '<i data-lucide="upload-cloud"></i> PDF Olarak Yükle';
         if(window.lucide) lucide.createIcons();
