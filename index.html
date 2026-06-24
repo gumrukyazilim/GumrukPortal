@@ -19348,21 +19348,37 @@ window.kcExportPDF = function() {
     let styleCSS = styleMatch ? styleMatch[1] : '';
     let bodyInner = bodyMatch ? bodyMatch[1] : pdfHTML;
 
+    // PDF-spesifik override CSS (taşmayı önle)
+    let fixCSS = `
+        .kc-pdf-root, .kc-pdf-root * { box-sizing: border-box; }
+        .kc-pdf-root .meta { flex-wrap: wrap; gap: 8px; }
+        .kc-pdf-root .meta span { word-break: break-all; }
+        .kc-pdf-root table { table-layout: fixed; width: 100%; word-wrap: break-word; }
+        .kc-pdf-root table td:last-child, .kc-pdf-root table th:last-child { width: 35%; text-align: right; }
+        .kc-pdf-root .toplam-box { flex-wrap: wrap; }
+        .kc-pdf-root .toplam-card { min-width: 0; }
+        .kc-pdf-root .toplam-card .val { word-break: break-word; }
+        .kc-pdf-root .hdr h1 { font-size: 18px; }
+    `;
+
+    // A4 genişliği 210mm ≈ 794px, 8mm margin'lerle iç içerik = 194mm ≈ 733px
+    const PDF_WIDTH_PX = 730;
+
     let tempDiv = document.createElement('div');
-    tempDiv.innerHTML = '<style>' + styleCSS + '</style>' +
-        '<div class="kc-pdf-root" style="width:794px;padding:24px;background:#fff;color:#000;font-family:Arial,sans-serif;">' +
+    tempDiv.innerHTML = '<style>' + styleCSS + fixCSS + '</style>' +
+        '<div class="kc-pdf-root" style="width:' + PDF_WIDTH_PX + 'px;padding:0;background:#fff;color:#000;font-family:Arial,sans-serif;">' +
         bodyInner + '</div>';
-    tempDiv.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;background:#fff;';
+    tempDiv.style.cssText = 'position:fixed;left:-99999px;top:0;width:' + PDF_WIDTH_PX + 'px;background:#fff;';
     document.body.appendChild(tempDiv);
     let renderTarget = tempDiv.querySelector('.kc-pdf-root');
 
     let dosyaAdi = ('Kiymet_Ceza_' + (dosya || tarih).replace(/[^a-zA-Z0-9_-]/g, '_')).substring(0, 80) + '.pdf';
 
     html2pdf().set({
-        margin: [10, 10, 10, 10],
+        margin: [8, 8, 8, 8],
         filename: dosyaAdi,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: PDF_WIDTH_PX },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     }).from(renderTarget).save().then(() => {
         tempDiv.remove();
