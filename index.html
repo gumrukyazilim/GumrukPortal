@@ -12464,7 +12464,12 @@ document.addEventListener('click', function(e) {
             <td>${evBadge}</td>
             <td class="firma-readonly">${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
             <td style="text-align:center;"><button class="btn-sm admin-only" style="padding:4px 10px;font-size:11px;color:var(--danger);border-color:rgba(239,68,68,0.3);" onclick="event.stopPropagation(); window.ardiyeUret(${i})" title="Ardiye Excel+PDF üret">${window.formatNumber(m.ardiye)} ₺</button></td>
-            <td style="text-align:center;" class="admin-only"><button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button></td>
+            <td style="text-align:center;" class="admin-only">
+                <div style="display:inline-flex;gap:4px;">
+                    <button class="btn-sm" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation(); window.openVehicleCalc(${i})" title="Bu araç için vergi hesapla"><i data-lucide="calculator" style="width:12px;height:12px;"></i></button>
+                    <button class="btn-sm" style="padding:4px 10px;font-size:11px;color:var(--danger);border-color:rgba(239,68,68,0.35);" onclick="event.stopPropagation(); window.openKiymetCezaFor(${i})" title="Kıymet Ceza Hesapla (beyanname tarihindeki TCMB EUR kuru)"><i data-lucide="alert-triangle" style="width:12px;height:12px;"></i></button>
+                </div>
+            </td>
             <td style="text-align:center;">
                 <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
 				${(function(){
@@ -19329,7 +19334,6 @@ window.kcExportPDF = function() {
         '<div class="det">' + tasarruf + '</div></div></div>' +
         '<div class="note"><strong>Yasal Dayanak:</strong> Kabahatler Kanunu Madde 17/6 - ' +
         'Idari para cezasi, tebligden itibaren 15 gun icinde odenirse %25 indirim uygulanir (1/4 indirim).</div>' +
-        '<div class="footer">Bu belge GumrukPortal sistemi tarafindan otomatik uretilmistir - ' + tarih + '</div>' +
         '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print();setTimeout(function(){window.close();},800);},400);};</scr' + 'ipt>' +
         '</body></html>';
     
@@ -19353,6 +19357,245 @@ window._kcInit = function() {
             }
         }
     }, 200);
+};
+
+// ---- TCMB tarihli EUR kuru (beyanname tarihine göre) ----
+// Cache: localStorage'da gün bazlı saklanır (TCMB geçmiş kuru değişmez).
+window._kcParseNum = function(s) {
+    if (s == null) return 0;
+    let str = String(s).trim();
+    if (!str) return 0;
+    let hasDot = str.indexOf('.') !== -1;
+    let hasComma = str.indexOf(',') !== -1;
+    if (hasDot && hasComma) str = str.replace(/\./g, '').replace(',', '.');
+    else if (hasComma) str = str.replace(',', '.');
+    // Sadece nokta varsa: binlik mi ondalık mı? — 3 haneli grup mantığı
+    else if (hasDot) {
+        let m = str.match(/^\d{1,3}(\.\d{3})+$/);
+        if (m) str = str.replace(/\./g, '');
+    }
+    let n = parseFloat(str);
+    return isNaN(n) ? 0 : n;
+};
+
+// Tek bir gün için paralel yarış (tüm proxy'ler aynı anda → ilk dönen kazanır)
+window._fetchTCMBOneDay = async function(yyyy, mm, dd) {
+    let tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${yyyy}${mm}/${dd}${mm}${yyyy}.xml`;
+    let attempts = [];
+
+    // 1. Kendi Apps Script proxy'niz (en hızlı, CORS yok) — ?date=DDMMYYYY destekliyorsa kullanır
+    if (typeof TCMB_PROXY_URL !== 'undefined' && TCMB_PROXY_URL && !TCMB_PROXY_URL.includes('BURAYA_KENDI')) {
+        attempts.push((async () => {
+            const r = await fetch(`${TCMB_PROXY_URL}?date=${dd}${mm}${yyyy}`, { signal: AbortSignal.timeout(6000) });
+            if (!r.ok) throw new Error(`apps-script ${r.status}`);
+            const data = await r.json();
+            if (!data || !data.success || !data.rates || !data.rates.EUR) throw new Error('apps-script no data');
+            // Doğru tarih döndü mü? (apps script date param desteklemiyorsa today döner — atla)
+            let returnedDate = String(data.date || '').replace(/[^0-9]/g,'');
+            let askedKey = `${dd}${mm}${yyyy}`;
+            if (returnedDate && returnedDate !== askedKey && returnedDate !== `${yyyy}${mm}${dd}`) {
+                throw new Error(`apps-script tarih uyuşmadı (${data.date})`);
+            }
+            return { eur: data.rates.EUR.forexSelling, src: 'apps-script' };
+        })());
+    }
+
+    // 2. CORS proxy'leri paralel
+    let proxyTemplates = [
+        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+        (u) => `https://thingproxy.freeboard.io/fetch/${u}`,
+        (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}` // JSON wrapper
+    ];
+
+    proxyTemplates.forEach((fn) => {
+        attempts.push((async () => {
+            let purl = fn(tcmbUrl);
+            const r = await fetch(purl, { signal: AbortSignal.timeout(6000) });
+            if (!r.ok) throw new Error(`${purl} → ${r.status}`);
+            let text = await r.text();
+            // allorigins JSON wrapper'ı için
+            if (purl.includes('allorigins.win/get')) {
+                try { let j = JSON.parse(text); text = j.contents || ''; } catch(e){}
+            }
+            if (!text || text.length < 50) throw new Error(`boş yanıt: ${purl}`);
+            if (!text.includes('<Currency') || !text.includes('ForexSelling')) {
+                throw new Error(`NO_RATE:${purl}`); // Bu özel — gün için kur yok demek
+            }
+            const m = text.match(/<Currency[^>]*CurrencyCode="EUR"[^>]*>[\s\S]*?<ForexSelling>([\d.,]+)<\/ForexSelling>/i);
+            if (!m) throw new Error(`EUR bulunamadı: ${purl}`);
+            let eur = parseFloat(m[1].replace(',', '.'));
+            if (!eur || isNaN(eur)) throw new Error(`parse hatası: ${m[1]}`);
+            return { eur: eur, src: purl };
+        })());
+    });
+
+    try {
+        let winner = await Promise.any(attempts);
+        return { ok: true, eur: winner.eur, src: winner.src };
+    } catch (agg) {
+        // AggregateError — gün için kur yok mu yoksa tüm proxy'ler mi düştü?
+        let errs = (agg.errors || []).map(e => e.message || String(e));
+        let allNoRate = errs.length > 0 && errs.some(e => e.startsWith('NO_RATE:'));
+        return { ok: false, noRateDay: allNoRate, errors: errs };
+    }
+};
+
+window.fetchTCMBKurForDate = async function(trDate) {
+    if (!trDate) return null;
+    let parts = String(trDate).trim().split(/[.\/\-]/);
+    if (parts.length < 3) return null;
+    let dd0 = parts[0].padStart(2,'0');
+    let mm0 = parts[1].padStart(2,'0');
+    let yyyy0 = parts[2].length === 2 ? ('20'+parts[2]) : parts[2];
+
+    let cache = JSON.parse(localStorage.getItem('gumruk_tcmb_hist_kur') || '{}');
+    let baseDate = new Date(parseInt(yyyy0), parseInt(mm0)-1, parseInt(dd0));
+
+    for (let back = 0; back < 6; back++) {
+        let cur = new Date(baseDate);
+        cur.setDate(cur.getDate() - back);
+        let cy = cur.getFullYear();
+        let cm = String(cur.getMonth()+1).padStart(2,'0');
+        let cd = String(cur.getDate()).padStart(2,'0');
+        let curKey = `${cy}${cm}${cd}`;
+
+        if (cache[curKey] && cache[curKey].eur) {
+            console.log(`[KC] cache: ${cd}.${cm}.${cy} = ${cache[curKey].eur}`);
+            return { eur: cache[curKey].eur, date: `${cd}.${cm}.${cy}`, fromCache: true, exact: back === 0 };
+        }
+
+        console.log(`[KC] ⏱ TCMB paralel sorgu: ${cd}.${cm}.${cy}`);
+        let t0 = performance.now();
+        let res = await window._fetchTCMBOneDay(cy, cm, cd);
+        let ms = Math.round(performance.now() - t0);
+
+        if (res.ok) {
+            cache[curKey] = { eur: res.eur };
+            try { localStorage.setItem('gumruk_tcmb_hist_kur', JSON.stringify(cache)); } catch(e){}
+            console.log(`[KC] ✅ ${cd}.${cm}.${cy} = ${res.eur} (${ms}ms, ${res.src})`);
+            return { eur: res.eur, date: `${cd}.${cm}.${cy}`, fromCache: false, exact: back === 0 };
+        }
+
+        // Sadece "o gün için XML yok" net olarak tespit edildiyse geri sar
+        if (res.noRateDay) {
+            console.log(`[KC] ⚠️ ${cd}.${cm}.${cy} için TCMB'de kur yok (hafta sonu/tatil), önceki güne sarılıyor...`);
+            continue;
+        }
+        // Proxy'ler düştü — geri sarma, hata dön
+        console.error(`[KC] ❌ ${cd}.${cm}.${cy} için tüm kaynaklar başarısız (${ms}ms)`, res.errors);
+        return null;
+    }
+    console.error('[KC] 6 gün geri sarıldı, TCMB kuru bulunamadı.');
+    return null;
+};
+
+// Araç satırından Kıymet Ceza sayfasına geç + otomatik doldur
+window.openKiymetCezaFor = async function(idx) {
+    let d = window.declarationsData[idx];
+    if (!d) { alert('Araç bulunamadı.'); return; }
+
+    // Beyanname tarihi kontrolü
+    let beynmTarih = (d.beynmCif || '').trim();
+    if (!beynmTarih || beynmTarih === '-') {
+        if (typeof window.showToast === 'function') {
+            window.showToast('⚠️ Beyanname CIF tarihi yok — kur otomatik çekilemiyor. Araç detayını açın.', 'warn');
+        }
+    }
+
+    // Eksik beyan = Gelen Kıymet − Fatura Tutarı
+    let kiymetNum = window._kcParseNum(d.kiymet);
+    let faturaNum = window._kcParseNum(d.fatura);
+    let eksikNum = kiymetNum - faturaNum;
+    let eksikStr = '';
+    if (kiymetNum > 0 && faturaNum > 0) {
+        if (eksikNum <= 0) {
+            if (typeof window.showToast === 'function') {
+                window.showToast(`ℹ️ Eksik beyan yok — Kıymet (${kiymetNum}€) ≤ Fatura (${faturaNum}€). Ceza hesaplanmaz.`, 'warn');
+            }
+            eksikStr = '0';
+        } else {
+            // Türkçe ondalık formatta yaz (kc-eksik virgüllü parse edebiliyor)
+            eksikStr = eksikNum.toFixed(2).replace('.', ',');
+        }
+    } else if (kiymetNum > 0 && faturaNum === 0) {
+        if (typeof window.showToast === 'function') {
+            window.showToast('⚠️ Fatura tutarı boş — eksik beyan = gelen kıymet kabul edildi. Fatura girilirse otomatik düşülür.', 'warn');
+        }
+        eksikStr = kiymetNum.toFixed(2).replace('.', ',');
+    } else if (kiymetNum === 0) {
+        if (typeof window.showToast === 'function') {
+            window.showToast('⚠️ Bu aracın gelen Kıymet Tutarı (€) boş — sadece sayfa açılıyor.', 'warn');
+        }
+    }
+
+    // Sayfayı aç
+    window.renderView('kiymetCeza');
+
+    // Alanları doldur (template DOM'a girdikten sonra)
+    setTimeout(async function() {
+        let dosyaEl = document.getElementById('kc-dosya');
+        let eksikEl = document.getElementById('kc-eksik');
+        let kurEl   = document.getElementById('kc-kur');
+        if (!dosyaEl || !eksikEl || !kurEl) return;
+
+        // Dosya açıklaması
+        let dosyaTxt = [d.firma||'', d.marka||'', d.model||'', d.sasi||''].filter(Boolean).join(' · ');
+        if (beynmTarih) dosyaTxt += ` (Beyanname: ${beynmTarih})`;
+        if (kiymetNum && faturaNum) dosyaTxt += ` · Kıymet ${kiymetNum}€ − Fatura ${faturaNum}€`;
+        dosyaEl.value = dosyaTxt;
+
+        // Eksik beyan (kıymet - fatura)
+        if (eksikStr) eksikEl.value = eksikStr;
+
+        // Kur — beyanname tarihinde "bir önceki iş gününün" TCMB kuru geçerli
+        // (Gümrük Yönetmeliği: TCMB kuru 15:30'da yayınlanır, ertesi iş günü için geçerlidir)
+        if (beynmTarih) {
+            kurEl.value = '';
+            kurEl.placeholder = 'TCMB kuru yükleniyor...';
+            window.kcHesapla();
+
+            // Beyanname tarihinden 1 iş günü geri git
+            let bp = String(beynmTarih).split(/[.\/\-]/);
+            let bd = new Date(
+                parseInt(bp[2].length === 2 ? '20'+bp[2] : bp[2]),
+                parseInt(bp[1]) - 1,
+                parseInt(bp[0])
+            );
+            bd.setDate(bd.getDate() - 1);
+            while (bd.getDay() === 0 || bd.getDay() === 6) {
+                bd.setDate(bd.getDate() - 1); // Pazar/Cumartesi atla
+            }
+            let kurTarih = `${String(bd.getDate()).padStart(2,'0')}.${String(bd.getMonth()+1).padStart(2,'0')}.${bd.getFullYear()}`;
+            console.log(`[KC] Beyanname: ${beynmTarih} → Kur tarihi (önceki iş günü): ${kurTarih}`);
+
+            let r = await window.fetchTCMBKurForDate(kurTarih);
+            if (r && r.eur) {
+                kurEl.value = r.eur.toFixed(4).replace('.', ',');
+                kurEl.placeholder = '52,79620';
+                if (typeof window.showToast === 'function') {
+                    let kaynak = r.fromCache ? ' [cache]' : '';
+                    if (r.exact) {
+                        window.showToast(`✅ TCMB EUR: ${r.eur.toFixed(4)} — Beyanname ${beynmTarih} için ${kurTarih} kuru${kaynak}`, 'success');
+                    } else {
+                        // Tatile denk geldi, daha da geri sarıldı
+                        kurEl.style.borderColor = 'var(--warning)';
+                        kurEl.style.background = 'rgba(245,158,11,0.08)';
+                        kurEl.title = `Beyanname: ${beynmTarih} — Beklenen kur tarihi ${kurTarih} ama o gün TCMB kur yayınlamamış (tatil). En yakın iş günü ${r.date} kuru kullanıldı.`;
+                        window.showToast(`⚠️ ${kurTarih} tatil — ${r.date} kuru (${r.eur.toFixed(4)}) kullanıldı`, 'warn');
+                    }
+                }
+            } else {
+                kurEl.placeholder = '52,79620';
+                kurEl.style.borderColor = 'var(--danger)';
+                if (typeof window.showToast === 'function') {
+                    window.showToast(`❌ ${kurTarih} için TCMB kuru çekilemedi — F12 Console'a bakın, manuel girin.`, 'warn');
+                }
+            }
+        }
+        window.kcHesapla();
+    }, 250);
 };
 // ============================================
 
