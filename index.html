@@ -4592,6 +4592,31 @@ div[style*="position: relative"] > input {
                 </div>
             </div>
 
+            <!-- BEYANNAME KDV ETKİ HESABI -->
+            <div style="margin-bottom:14px;padding:14px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.25);border-radius:10px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed rgba(59,130,246,0.3);">
+                    <i data-lucide="file-text" style="width:18px;height:18px;color:#3b82f6;"></i>
+                    <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Beyanname KDV Etki Hesabı</div>
+                    <span style="margin-left:auto;font-size:11px;color:var(--text-muted);">Eksik beyan yurt dışı gibi matraha eklenir</span>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">MEVCUT KDV MATRAHI (TL) — beyannameden</label>
+                    <input type="text" inputmode="decimal" id="kc-mevcut-kdvm" placeholder="3.361.072,29" oninput="window.formatCurrencyInput(this); window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:12px;">
+                        <div style="font-size:11px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">YENİ KDV MATRAHI</div>
+                        <strong id="kc-yeni-kdvm" style="font-size:18px;font-weight:800;color:#3b82f6;letter-spacing:-0.3px;word-break:break-word;">0,00 TL</strong>
+                        <div id="kc-yeni-kdvm-detay" style="font-size:10px;color:var(--text-muted);margin-top:4px;">— + —</div>
+                    </div>
+                    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:12px;">
+                        <div style="font-size:11px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">YENİ KDV TUTARI</div>
+                        <strong id="kc-yeni-kdv" style="font-size:18px;font-weight:800;color:#3b82f6;letter-spacing:-0.3px;word-break:break-word;">0,00 TL</strong>
+                        <div id="kc-yeni-kdv-detay" style="font-size:10px;color:var(--text-muted);margin-top:4px;">— × KDV %</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ERKEN ÖDEME TOGGLE -->
             <div id="kc-erken-row" style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;cursor:pointer;" onclick="window.kcErkenToggle()">
                 <div style="display:flex;align-items:center;gap:10px;">
@@ -19219,6 +19244,21 @@ window.kcHesapla = function() {
     if (dosya && dosyaHdr) {
         dosyaHdr.innerText = dosya.value || '4458/234-1b';
     }
+
+    // --- BEYANNAME KDV ETKİ HESABI ---
+    let mevcutKdvm = window.kcSayiOku('kc-mevcut-kdvm');
+    let eksikBeyanTL = adim1; // eksik × kur (zaten yukarıda hesaplandı)
+    let yeniKdvm = mevcutKdvm + eksikBeyanTL;
+    let yeniKdv = yeniKdvm * (kdv / 100);
+
+    let yKdvmEl = document.getElementById('kc-yeni-kdvm');
+    let yKdvmDetEl = document.getElementById('kc-yeni-kdvm-detay');
+    let yKdvEl = document.getElementById('kc-yeni-kdv');
+    let yKdvDetEl = document.getElementById('kc-yeni-kdv-detay');
+    if (yKdvmEl) yKdvmEl.innerText = window.kcFormat(yeniKdvm) + ' TL';
+    if (yKdvmDetEl) yKdvmDetEl.innerText = window.kcFormat(mevcutKdvm) + ' + ' + window.kcFormat(eksikBeyanTL);
+    if (yKdvEl) yKdvEl.innerText = window.kcFormat(yeniKdv) + ' TL';
+    if (yKdvDetEl) yKdvDetEl.innerText = window.kcFormat(yeniKdvm) + ' × %' + kdv;
 };
 
 window.kcTemizle = function() {
@@ -19278,6 +19318,12 @@ window.kcExportPDF = async function() {
     let adim4 = t('kc-adim4'), adim5 = t('kc-adim5'), adim6 = t('kc-adim6');
     let toplam = t('kc-toplam'), erken = t('kc-erken-tutar'), tasarruf = t('kc-tasarruf');
     let showIndirim = !!window._kcErken;
+
+    // Beyanname KDV Etki Hesabı verileri
+    let mevcutKdvm = v('kc-mevcut-kdvm') || '-';
+    let yeniKdvm = t('kc-yeni-kdvm');
+    let yeniKdv = t('kc-yeni-kdv');
+    let showKdvEtki = mevcutKdvm !== '-' && mevcutKdvm !== '' && mevcutKdvm !== '0';
 
     // Container: GERÇEKTEN görünür konumda + üstüne "yükleniyor" overlay
     // (opacity:0 / offscreen → html2canvas painted DOM bulamıyor, boş PDF veriyor)
@@ -19346,6 +19392,19 @@ window.kcExportPDF = async function() {
       </td>
     </tr>
   </table>
+
+  ${showKdvEtki ? `
+  <div style="margin-top:14px;padding:10px;background:#eff6ff;">
+    <div style="font-size:11px;font-weight:700;color:#1e40af;text-transform:uppercase;margin-bottom:8px;">Beyanname KDV Etki Hesabı</div>
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+      <colgroup><col style="width:55%"><col style="width:45%"></colgroup>
+      <tr><td style="padding:5px 8px;color:#555;">Mevcut KDV Matrahı</td><td style="padding:5px 8px;text-align:left;font-weight:600;">${escapeHtml(mevcutKdvm)} TL</td></tr>
+      <tr><td style="padding:5px 8px;color:#555;">+ Eksik Beyan TL Karşılığı</td><td style="padding:5px 8px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
+      <tr style="background:#dbeafe;"><td style="padding:6px 8px;color:#1e40af;font-weight:700;">YENİ KDV MATRAHI</td><td style="padding:6px 8px;text-align:left;font-weight:800;color:#1e40af;">${escapeHtml(yeniKdvm)}</td></tr>
+      <tr style="background:#dbeafe;"><td style="padding:6px 8px;color:#1e40af;font-weight:700;">YENİ KDV TUTARI (%${escapeHtml(kdv)})</td><td style="padding:6px 8px;text-align:left;font-weight:800;color:#1e40af;">${escapeHtml(yeniKdv)}</td></tr>
+    </table>
+  </div>
+  ` : ''}
 
   <div style="margin-top:10px;padding:8px 0;font-size:9.5px;color:#92400e;line-height:1.35;">
     <strong>Yasal Dayanak:</strong> Kabahatler Kanunu Madde 17/6 — İdari para cezası, tebliğden itibaren 15 gün içinde ödenirse %25 indirim uygulanır (1/4 indirim).
@@ -19442,6 +19501,45 @@ window._kcInit = function() {
             }
         }
     }, 200);
+};
+
+// ---- BEYANNAME KDV MATRAHI OCR ÇIKARICI (Drive'dan otomatik) ----
+const KC_BEYANNAME_URL = "https://script.google.com/macros/s/AKfycbwv4bD5HIBQeL10cf4fQzG9MXOq4O5dv7kQUNEt6xcr-XO5mnsXjtEy6DBf935c2lVaJA/exec";
+
+window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
+    if (!firma || !marka || !sasi) return null;
+
+    // Cache: aynı şasi için bir kez OCR yap, sonra cache'den oku
+    let cache = JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}');
+    let key = `${firma}|${marka}|${sasi}`;
+    if (cache[key] && cache[key].kdvm) {
+        console.log(`[KC] Beyanname KDVM cache: ${cache[key].kdvm} (${cache[key].dosyaAdi})`);
+        return { ...cache[key], fromCache: true };
+    }
+
+    try {
+        let url = `${KC_BEYANNAME_URL}?firma=${encodeURIComponent(firma)}&marka=${encodeURIComponent(marka)}&sasi=${encodeURIComponent(sasi)}`;
+        console.log(`[KC] Beyanname OCR isteniyor: ${firma}/${marka}/${sasi}`);
+        let t0 = performance.now();
+        const r = await fetch(url, { signal: AbortSignal.timeout(45000) }); // OCR yavaş olabilir
+        let ms = Math.round(performance.now() - t0);
+        if (!r.ok) {
+            console.warn(`[KC] Beyanname endpoint ${r.status} (${ms}ms)`);
+            return null;
+        }
+        const data = await r.json();
+        if (!data.success || !data.kdvm) {
+            console.warn(`[KC] Beyanname OCR başarısız (${ms}ms):`, data.error || 'kdvm yok', data);
+            return null;
+        }
+        console.log(`[KC] ✅ Beyanname KDVM: ${data.kdvm} TL — ${data.dosyaAdi} (${ms}ms)`);
+        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, dosyaAdi: data.dosyaAdi };
+        try { localStorage.setItem('gumruk_beyanname_kdvm_cache', JSON.stringify(cache)); } catch(e){}
+        return { ...cache[key], fromCache: false };
+    } catch (err) {
+        console.error('[KC] Beyanname OCR hata:', err);
+        return null;
+    }
 };
 
 // ---- TCMB tarihli EUR kuru (beyanname tarihine göre) ----
@@ -19680,6 +19778,34 @@ window.openKiymetCezaFor = async function(idx) {
             }
         }
         window.kcHesapla();
+
+        // Beyannameden KDV Matrahını OCR ile çek (arka planda, paralel)
+        let kdvmEl = document.getElementById('kc-mevcut-kdvm');
+        if (kdvmEl && !kdvmEl.value && d.firma && d.marka && d.sasi) {
+            kdvmEl.placeholder = 'Beyanname OCR yükleniyor...';
+            kdvmEl.style.opacity = '0.6';
+            window.fetchBeyannameKDVM(d.firma, d.marka, d.sasi).then(res => {
+                kdvmEl.style.opacity = '1';
+                if (res && res.kdvm) {
+                    // TR formatta yaz: 6.672.602,97
+                    let formatted = res.kdvm.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    kdvmEl.value = formatted;
+                    kdvmEl.placeholder = '3.361.072,29';
+                    kdvmEl.style.borderColor = 'var(--success)';
+                    kdvmEl.title = `Beyannameden otomatik (${res.dosyaAdi})`;
+                    if (typeof window.showToast === 'function') {
+                        let kaynak = res.fromCache ? ' [cache]' : '';
+                        window.showToast(`✅ Beyanname KDV Matrahı: ${formatted} TL${kaynak}`, 'success');
+                    }
+                    window.kcHesapla();
+                } else {
+                    kdvmEl.placeholder = '3.361.072,29';
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(`⚠️ Beyanname OCR başarısız — Mevcut KDV Matrahı'nı elle girin (F12 Console'a bakın)`, 'warn');
+                    }
+                }
+            });
+        }
     }, 250);
 };
 // ============================================
