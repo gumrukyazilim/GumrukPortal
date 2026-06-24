@@ -4599,20 +4599,46 @@ div[style*="position: relative"] > input {
                     <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Beyanname KDV Etki Hesabı</div>
                     <span style="margin-left:auto;font-size:11px;color:var(--text-muted);">Eksik beyan yurt dışı gibi matraha eklenir</span>
                 </div>
-                <div style="margin-bottom:12px;">
-                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">MEVCUT KDV MATRAHI (TL) — beyannameden</label>
-                    <input type="text" inputmode="decimal" id="kc-mevcut-kdvm" placeholder="3.361.072,29" oninput="window.formatCurrencyInput(this); window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:12px;">
-                        <div style="font-size:11px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">YENİ KDV MATRAHI</div>
-                        <strong id="kc-yeni-kdvm" style="font-size:18px;font-weight:800;color:#3b82f6;letter-spacing:-0.3px;word-break:break-word;">0,00 TL</strong>
-                        <div id="kc-yeni-kdvm-detay" style="font-size:10px;color:var(--text-muted);margin-top:4px;">— + —</div>
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div>
+                        <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">MEVCUT KDV MATRAHI (TL) — beyannameden</label>
+                        <input type="text" inputmode="decimal" id="kc-mevcut-kdvm" placeholder="3.361.072,29" oninput="window.formatCurrencyInput(this); window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                     </div>
-                    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:12px;">
-                        <div style="font-size:11px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">YENİ KDV TUTARI</div>
-                        <strong id="kc-yeni-kdv" style="font-size:18px;font-weight:800;color:#3b82f6;letter-spacing:-0.3px;word-break:break-word;">0,00 TL</strong>
-                        <div id="kc-yeni-kdv-detay" style="font-size:10px;color:var(--text-muted);margin-top:4px;">— × KDV %</div>
+                    <div>
+                        <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">ÖTV %</label>
+                        <select id="kc-otv-oran" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                            <option value="0" selected>0 (yok)</option>
+                            <option value="4">%4</option>
+                            <option value="45">%45</option>
+                            <option value="50">%50</option>
+                            <option value="80">%80</option>
+                            <option value="100">%100</option>
+                            <option value="130">%130</option>
+                            <option value="150">%150</option>
+                            <option value="170">%170</option>
+                            <option value="220">%220</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">MEVCUT TOPLAM VERGİ (TL) — beyannameden (KDV+ÖTV+TRT+Damga)</label>
+                    <input type="text" inputmode="decimal" id="kc-mevcut-toplam-vergi" placeholder="828.033,88" oninput="window.formatCurrencyInput(this); window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:10px;">
+                        <div style="font-size:10px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px;">YENİ KDV MATRAHI</div>
+                        <strong id="kc-yeni-kdvm" style="font-size:15px;font-weight:800;color:#3b82f6;letter-spacing:-0.3px;word-break:break-word;line-height:1.2;">0,00 TL</strong>
+                        <div id="kc-yeni-kdvm-detay" style="font-size:9.5px;color:var(--text-muted);margin-top:4px;">— + —</div>
+                    </div>
+                    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:10px;">
+                        <div style="font-size:10px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px;">YENİ KDV TUTARI</div>
+                        <strong id="kc-yeni-kdv" style="font-size:15px;font-weight:800;color:#3b82f6;letter-spacing:-0.3px;word-break:break-word;line-height:1.2;">0,00 TL</strong>
+                        <div id="kc-yeni-kdv-detay" style="font-size:9.5px;color:var(--text-muted);margin-top:4px;">— × KDV %</div>
+                    </div>
+                    <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.35);border-radius:10px;padding:10px;">
+                        <div style="font-size:10px;font-weight:600;color:#16a34a;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px;">YENİ TOPLAM VERGİ</div>
+                        <strong id="kc-yeni-toplam-vergi" style="font-size:15px;font-weight:800;color:#16a34a;letter-spacing:-0.3px;word-break:break-word;line-height:1.2;">0,00 TL</strong>
+                        <div id="kc-yeni-toplam-vergi-detay" style="font-size:9.5px;color:var(--text-muted);margin-top:4px;">Mevcut + Ek vergiler</div>
                     </div>
                 </div>
             </div>
@@ -19246,19 +19272,48 @@ window.kcHesapla = function() {
     }
 
     // --- BEYANNAME KDV ETKİ HESABI ---
+    // Eksik beyan TL → Ek ÖTV + Ek TRT + Ek KDV → Yeni Toplam Vergi
     let mevcutKdvm = window.kcSayiOku('kc-mevcut-kdvm');
-    let eksikBeyanTL = adim1; // eksik × kur (zaten yukarıda hesaplandı)
-    let yeniKdvm = mevcutKdvm + eksikBeyanTL;
+    let mevcutToplamVergi = window.kcSayiOku('kc-mevcut-toplam-vergi');
+    let otvOran = parseFloat(document.getElementById('kc-otv-oran')?.value || 0) || 0;
+    let eksikBeyanTL = adim1; // eksik × kur
+
+    let ekOtv = eksikBeyanTL * (otvOran / 100);
+    let ekTrt = eksikBeyanTL * (trt / 100); // TRT %0,8 zincirde
+    let ekKdvMatrah = eksikBeyanTL + ekOtv + ekTrt;
+    let yeniKdvm = mevcutKdvm + ekKdvMatrah;
     let yeniKdv = yeniKdvm * (kdv / 100);
+
+    let mevcutKdv = mevcutKdvm * (kdv / 100);
+    let ekKdv = yeniKdv - mevcutKdv;
+    let ekVergiToplam = ekOtv + ekTrt + ekKdv;
+    let yeniToplamVergi = mevcutToplamVergi + ekVergiToplam;
 
     let yKdvmEl = document.getElementById('kc-yeni-kdvm');
     let yKdvmDetEl = document.getElementById('kc-yeni-kdvm-detay');
     let yKdvEl = document.getElementById('kc-yeni-kdv');
     let yKdvDetEl = document.getElementById('kc-yeni-kdv-detay');
+    let yTvEl = document.getElementById('kc-yeni-toplam-vergi');
+    let yTvDetEl = document.getElementById('kc-yeni-toplam-vergi-detay');
+
     if (yKdvmEl) yKdvmEl.innerText = window.kcFormat(yeniKdvm) + ' TL';
-    if (yKdvmDetEl) yKdvmDetEl.innerText = window.kcFormat(mevcutKdvm) + ' + ' + window.kcFormat(eksikBeyanTL);
+    if (yKdvmDetEl) {
+        let detay = window.kcFormat(mevcutKdvm) + ' + ' + window.kcFormat(eksikBeyanTL);
+        if (otvOran > 0) detay += ' + ÖTV ' + window.kcFormat(ekOtv) + ' (%' + otvOran + ')';
+        if (ekTrt > 0) detay += ' + TRT ' + window.kcFormat(ekTrt) + ' (%' + trt + ')';
+        yKdvmDetEl.innerText = detay;
+    }
     if (yKdvEl) yKdvEl.innerText = window.kcFormat(yeniKdv) + ' TL';
     if (yKdvDetEl) yKdvDetEl.innerText = window.kcFormat(yeniKdvm) + ' × %' + kdv;
+
+    if (yTvEl) yTvEl.innerText = window.kcFormat(yeniToplamVergi) + ' TL';
+    if (yTvDetEl) {
+        if (mevcutToplamVergi > 0) {
+            yTvDetEl.innerText = 'Mevcut ' + window.kcFormat(mevcutToplamVergi) + ' + Ek ' + window.kcFormat(ekVergiToplam);
+        } else {
+            yTvDetEl.innerText = 'Mevcut Toplam Vergi alanını doldur';
+        }
+    }
 };
 
 window.kcTemizle = function() {
