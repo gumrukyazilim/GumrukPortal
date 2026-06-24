@@ -4622,7 +4622,7 @@ div[style*="position: relative"] > input {
                 </div>
                 <div style="margin-bottom:12px;">
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">MEVCUT TOPLAM VERGİ (TL) — beyannameden (KDV+ÖTV+TRT+Damga)</label>
-                    <input type="text" inputmode="decimal" id="kc-mevcut-toplam-vergi" placeholder="828.033,88" oninput="window.formatCurrencyInput(this); window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                    <input type="text" inputmode="decimal" id="kc-mevcut-toplam-vergi" placeholder="Beyannameden gir (örn 828033,88)" oninput="window.formatCurrencyInput(this); window.kcHesapla()" onblur="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                     <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:10px;">
@@ -19376,9 +19376,12 @@ window.kcExportPDF = async function() {
 
     // Beyanname KDV Etki Hesabı verileri
     let mevcutKdvm = v('kc-mevcut-kdvm') || '-';
+    let mevcutToplamV = v('kc-mevcut-toplam-vergi') || '-';
     let yeniKdvm = t('kc-yeni-kdvm');
     let yeniKdv = t('kc-yeni-kdv');
+    let yeniToplamV = t('kc-yeni-toplam-vergi');
     let showKdvEtki = mevcutKdvm !== '-' && mevcutKdvm !== '' && mevcutKdvm !== '0';
+    let showToplamV = mevcutToplamV !== '-' && mevcutToplamV !== '' && mevcutToplamV !== '0';
 
     // Container: GERÇEKTEN görünür konumda + üstüne "yükleniyor" overlay
     // (opacity:0 / offscreen → html2canvas painted DOM bulamıyor, boş PDF veriyor)
@@ -19407,9 +19410,12 @@ window.kcExportPDF = async function() {
     <div style="font-size:11px;color:#444;">4458 Sayılı Gümrük Kanunu — Madde 234/1-b — Eksik beyan ceza hesabı</div>
   </div>
 
-  <div style="font-size:11px;margin-bottom:14px;padding:8px 0;">
-    <div style="margin-bottom:4px;"><strong>Dosya:</strong> ${escapeHtml(dosya)}</div>
-    <div><strong>Tarih:</strong> ${tarih}</div>
+  <div style="font-size:10px;margin-bottom:14px;padding:8px 0;line-height:1.5;max-width:100%;overflow:hidden;">
+    <strong style="font-size:10px;">Dosya:</strong>
+    <div style="margin:3px 0 6px 0;padding-left:8px;font-size:10px;">
+      ${escapeHtml(dosya).split(' · ').map(p => `<div style="word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;max-width:680px;">• ${p}</div>`).join('')}
+    </div>
+    <div style="font-size:10px;"><strong>Tarih:</strong> ${tarih}</div>
   </div>
 
   <table style="width:100%;border-collapse:collapse;margin-bottom:10px;table-layout:fixed;">
@@ -19457,6 +19463,10 @@ window.kcExportPDF = async function() {
       <tr><td style="padding:5px 8px;color:#555;">+ Eksik Beyan TL Karşılığı</td><td style="padding:5px 8px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
       <tr style="background:#dbeafe;"><td style="padding:6px 8px;color:#1e40af;font-weight:700;">YENİ KDV MATRAHI</td><td style="padding:6px 8px;text-align:left;font-weight:800;color:#1e40af;">${escapeHtml(yeniKdvm)}</td></tr>
       <tr style="background:#dbeafe;"><td style="padding:6px 8px;color:#1e40af;font-weight:700;">YENİ KDV TUTARI (%${escapeHtml(kdv)})</td><td style="padding:6px 8px;text-align:left;font-weight:800;color:#1e40af;">${escapeHtml(yeniKdv)}</td></tr>
+      ${showToplamV ? `
+      <tr><td style="padding:5px 8px;color:#555;padding-top:10px;">Mevcut Toplam Vergi</td><td style="padding:5px 8px;text-align:left;font-weight:600;padding-top:10px;">${escapeHtml(mevcutToplamV)} TL</td></tr>
+      <tr style="background:#dcfce7;"><td style="padding:6px 8px;color:#166534;font-weight:700;">YENİ TOPLAM VERGİ</td><td style="padding:6px 8px;text-align:left;font-weight:800;color:#166534;">${escapeHtml(yeniToplamV)}</td></tr>
+      ` : ''}
     </table>
   </div>
   ` : ''}
@@ -19567,9 +19577,13 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
     // Cache: aynı şasi için bir kez OCR yap, sonra cache'den oku
     let cache = JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}');
     let key = `${firma}|${marka}|${sasi}`;
-    if (cache[key] && cache[key].kdvm) {
-        console.log(`[KC] Beyanname KDVM cache: ${cache[key].kdvm} (${cache[key].dosyaAdi})`);
+    // Cache geçerli mi? hem kdvm hem toplamVergi varsa cache'den ver, yoksa yeniden çek
+    if (cache[key] && cache[key].kdvm && cache[key].toplamVergi != null) {
+        console.log(`[KC] Beyanname KDVM cache: ${cache[key].kdvm} + Toplam ${cache[key].toplamVergi} (${cache[key].dosyaAdi})`);
         return { ...cache[key], fromCache: true };
+    }
+    if (cache[key]) {
+        console.log(`[KC] Cache eksik (toplamVergi yok), yeniden çekiliyor: ${key}`);
     }
 
     try {
@@ -19587,8 +19601,8 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
             console.warn(`[KC] Beyanname OCR başarısız (${ms}ms):`, data.error || 'kdvm yok', data);
             return null;
         }
-        console.log(`[KC] ✅ Beyanname KDVM: ${data.kdvm} TL — ${data.dosyaAdi} (${ms}ms)`);
-        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, dosyaAdi: data.dosyaAdi };
+        console.log(`[KC] ✅ Beyanname KDVM: ${data.kdvm} TL — Toplam Vergi: ${data.toplamVergi} TL — ${data.dosyaAdi} (${ms}ms)`);
+        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, dosyaAdi: data.dosyaAdi };
         try { localStorage.setItem('gumruk_beyanname_kdvm_cache', JSON.stringify(cache)); } catch(e){}
         return { ...cache[key], fromCache: false };
     } catch (err) {
@@ -19842,15 +19856,25 @@ window.openKiymetCezaFor = async function(idx) {
             window.fetchBeyannameKDVM(d.firma, d.marka, d.sasi).then(res => {
                 kdvmEl.style.opacity = '1';
                 if (res && res.kdvm) {
-                    // TR formatta yaz: 6.672.602,97
                     let formatted = res.kdvm.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     kdvmEl.value = formatted;
                     kdvmEl.placeholder = '3.361.072,29';
                     kdvmEl.style.borderColor = 'var(--success)';
                     kdvmEl.title = `Beyannameden otomatik (${res.dosyaAdi})`;
+
+                    // Toplam Vergi alanı da varsa doldur
+                    let tvEl = document.getElementById('kc-mevcut-toplam-vergi');
+                    if (tvEl && res.toplamVergi) {
+                        let tvFormatted = res.toplamVergi.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        tvEl.value = tvFormatted;
+                        tvEl.style.borderColor = 'var(--success)';
+                        tvEl.title = `Beyannameden otomatik (${res.dosyaAdi})`;
+                    }
+
                     if (typeof window.showToast === 'function') {
                         let kaynak = res.fromCache ? ' [cache]' : '';
-                        window.showToast(`✅ Beyanname KDV Matrahı: ${formatted} TL${kaynak}`, 'success');
+                        let tvMsg = res.toplamVergi ? ` + Toplam Vergi ${res.toplamVergi.toLocaleString('tr-TR')} TL` : '';
+                        window.showToast(`✅ Beyanname KDVM: ${formatted} TL${tvMsg}${kaynak}`, 'success');
                     }
                     window.kcHesapla();
                 } else {
