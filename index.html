@@ -19334,16 +19334,36 @@ window.kcExportPDF = function() {
         '<div class="det">' + tasarruf + '</div></div></div>' +
         '<div class="note"><strong>Yasal Dayanak:</strong> Kabahatler Kanunu Madde 17/6 - ' +
         'Idari para cezasi, tebligden itibaren 15 gun icinde odenirse %25 indirim uygulanir (1/4 indirim).</div>' +
-        '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print();setTimeout(function(){window.close();},800);},400);};</scr' + 'ipt>' +
         '</body></html>';
-    
-    let win = window.open('', '_blank', 'width=900,height=700');
-    if (!win) {
-        alert('Pop-up engellendi! Lutfen tarayicida pop-up izni verin.');
+
+    // html2pdf ile gerçek PDF dosyası üret (browser print header/footer'ı olmaz)
+    if (typeof html2pdf === 'undefined') {
+        alert('PDF kütüphanesi yüklenemedi. Internet bağlantınızı kontrol edin.');
         return;
     }
-    win.document.write(pdfHTML);
-    win.document.close();
+
+    // Geçici container — DOM'a görünmez şekilde ekle
+    let tempDiv = document.createElement('div');
+    tempDiv.innerHTML = pdfHTML.replace(/^[\s\S]*?<body>/, '').replace(/<\/body>[\s\S]*$/, '');
+    tempDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;color:#000;';
+    document.body.appendChild(tempDiv);
+
+    let dosyaAdi = ('Kiymet_Ceza_' + (dosya || tarih).replace(/[^a-zA-Z0-9_-]/g, '_')).substring(0, 80) + '.pdf';
+
+    html2pdf().set({
+        margin: [10, 10, 10, 10],
+        filename: dosyaAdi,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(tempDiv).save().then(() => {
+        tempDiv.remove();
+        if (typeof showSyncToast === 'function') showSyncToast('PDF indirildi: ' + dosyaAdi, true);
+    }).catch((err) => {
+        tempDiv.remove();
+        console.error('PDF hata:', err);
+        alert('PDF üretiminde hata: ' + err.message);
+    });
 };
 
 window._kcInit = function() {
