@@ -19342,11 +19342,19 @@ window.kcExportPDF = function() {
         return;
     }
 
-    // Geçici container — DOM'a görünmez şekilde ekle
+    // Geçici container — hem <style> bloğunu hem body içeriğini al
+    let styleMatch = pdfHTML.match(/<style>([\s\S]*?)<\/style>/i);
+    let bodyMatch = pdfHTML.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    let styleCSS = styleMatch ? styleMatch[1] : '';
+    let bodyInner = bodyMatch ? bodyMatch[1] : pdfHTML;
+
     let tempDiv = document.createElement('div');
-    tempDiv.innerHTML = pdfHTML.replace(/^[\s\S]*?<body>/, '').replace(/<\/body>[\s\S]*$/, '');
-    tempDiv.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;color:#000;';
+    tempDiv.innerHTML = '<style>' + styleCSS + '</style>' +
+        '<div class="kc-pdf-root" style="width:794px;padding:24px;background:#fff;color:#000;font-family:Arial,sans-serif;">' +
+        bodyInner + '</div>';
+    tempDiv.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;background:#fff;';
     document.body.appendChild(tempDiv);
+    let renderTarget = tempDiv.querySelector('.kc-pdf-root');
 
     let dosyaAdi = ('Kiymet_Ceza_' + (dosya || tarih).replace(/[^a-zA-Z0-9_-]/g, '_')).substring(0, 80) + '.pdf';
 
@@ -19356,7 +19364,7 @@ window.kcExportPDF = function() {
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(tempDiv).save().then(() => {
+    }).from(renderTarget).save().then(() => {
         tempDiv.remove();
         if (typeof showSyncToast === 'function') showSyncToast('PDF indirildi: ' + dosyaAdi, true);
     }).catch((err) => {
