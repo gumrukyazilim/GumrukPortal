@@ -6833,7 +6833,7 @@ window.analizRender = function() {
         modal.onclick = function(e){ if(e.target === modal) modal.remove(); };
 
         let toplam = liste.length;
-        let html = '<div style="background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;width:100%;max-width:760px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,0.6);">';
+        let html = '<div style="background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;width:100%;max-width:794px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,0.6);">';
         html += '<div style="padding:18px 22px;border-bottom:1px solid var(--border,#333);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,' + cfg.renk + '22,transparent);">';
         html += '<div><h3 style="margin:0;color:var(--text-primary,#fff);font-size:17px;font-weight:800;">' + cfg.ico + ' ' + cfg.title + '</h3>';
         html += '<p style="margin:4px 0 0;color:var(--text-muted,#888);font-size:12px;">Toplam <strong style="color:' + cfg.renk + ';">' + toplam + '</strong> araç &nbsp;•&nbsp; <strong>' + firmaSirali.length + '</strong> firma</p></div>';
@@ -19279,65 +19279,75 @@ window.kcExportPDF = async function() {
     let toplam = t('kc-toplam'), erken = t('kc-erken-tutar'), tasarruf = t('kc-tasarruf');
     let showIndirim = !!window._kcErken;
 
-    // Container: GÖRÜNÜR offscreen (opacity:0) — html2canvas layout için
+    // Container: GERÇEKTEN görünür konumda + üstüne "yükleniyor" overlay
+    // (opacity:0 / offscreen → html2canvas painted DOM bulamıyor, boş PDF veriyor)
     let wrap = document.createElement('div');
     wrap.id = 'kc-pdf-wrap-' + Date.now();
     wrap.style.cssText = [
-        'position:fixed','top:0','left:0','width:760px',
-        'background:#ffffff','color:#000','opacity:0.001','pointer-events:none',
-        'z-index:-99999','overflow:visible','font-family:Arial,Helvetica,sans-serif'
+        'position:fixed','top:0','left:0','width:794px',
+        'background:#ffffff','color:#000',
+        'z-index:99998','overflow:visible',
+        'font-family:Arial,Helvetica,sans-serif'
     ].join(';') + ';';
 
-    let html = `
-<div style="width:760px;padding:20px;box-sizing:border-box;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;">
+    let overlay = document.createElement('div');
+    overlay.style.cssText = [
+        'position:fixed','inset:0','background:rgba(15,23,42,0.92)',
+        'z-index:99999','display:flex','align-items:center','justify-content:center',
+        'flex-direction:column','gap:14px','color:#fff','font-family:Arial,Helvetica,sans-serif'
+    ].join(';') + ';';
+    overlay.innerHTML = '<div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="font-size:16px;font-weight:600;">PDF üretiliyor...</div>';
 
-  <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px;">
+    let html = `
+<div style="width:794px;padding:32px;box-sizing:border-box;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;">
+
+  <div style="text-align:center;padding-bottom:10px;margin-bottom:14px;">
     <div style="font-size:20px;font-weight:700;margin:0 0 4px;">Kıymet Ceza Hesaplama</div>
     <div style="font-size:11px;color:#444;">4458 Sayılı Gümrük Kanunu — Madde 234/1-b — Eksik beyan ceza hesabı</div>
   </div>
 
-  <div style="font-size:11px;margin-bottom:14px;padding:10px 12px;background:#f5f5f5;border-radius:4px;">
+  <div style="font-size:11px;margin-bottom:14px;padding:8px 0;">
     <div style="margin-bottom:4px;"><strong>Dosya:</strong> ${escapeHtml(dosya)}</div>
     <div><strong>Tarih:</strong> ${tarih}</div>
   </div>
 
   <table style="width:100%;border-collapse:collapse;margin-bottom:10px;table-layout:fixed;">
     <colgroup><col style="width:65%"><col style="width:35%"></colgroup>
-    <tr><th colspan="2" style="background:#f0f0f0;font-weight:700;font-size:11px;text-transform:uppercase;padding:8px 10px;border:1px solid #ccc;text-align:left;">Girdi Değerleri</th></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">Eksik Beyan (EUR)</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">${escapeHtml(eksik)} EUR</td></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">Döviz Kuru (TL/EUR)</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">${escapeHtml(kur)}</td></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">TRT Bandrolü</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">% ${escapeHtml(trt)}</td></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">KDV Oranı</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">% ${escapeHtml(kdv)}</td></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">Ceza Katsayısı</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">${escapeHtml(katsayi)} kat</td></tr>
+    <tr><th colspan="2" style="font-weight:700;font-size:11px;text-transform:uppercase;padding:8px 10px;text-align:left;">Girdi Değerleri</th></tr>
+    <tr><td style="padding:7px 10px;">Eksik Beyan (EUR)</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(eksik)} EUR</td></tr>
+    <tr><td style="padding:7px 10px;">Döviz Kuru (TL/EUR)</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(kur)}</td></tr>
+    <tr><td style="padding:7px 10px;">TRT Bandrolü</td><td style="padding:7px 10px;text-align:left;font-weight:600;">% ${escapeHtml(trt)}</td></tr>
+    <tr><td style="padding:7px 10px;">KDV Oranı</td><td style="padding:7px 10px;text-align:left;font-weight:600;">% ${escapeHtml(kdv)}</td></tr>
+    <tr><td style="padding:7px 10px;">Ceza Katsayısı</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(katsayi)} kat</td></tr>
   </table>
 
   <table style="width:100%;border-collapse:collapse;margin-bottom:10px;table-layout:fixed;">
     <colgroup><col style="width:65%"><col style="width:35%"></colgroup>
-    <tr><th colspan="2" style="background:#f0f0f0;font-weight:700;font-size:11px;text-transform:uppercase;padding:8px 10px;border:1px solid #ccc;text-align:left;">Hesaplama Adımları</th></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">1. Eksik beyan TL karşılığı (EUR × Kur)</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">${escapeHtml(adim1)}</td></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">2. TRT bandrolü (1 × %${escapeHtml(trt)})</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">${escapeHtml(adim2)}</td></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">3. KDV matrahı (1 + 2)</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">${escapeHtml(adim3)}</td></tr>
-    <tr><td style="padding:7px 10px;border:1px solid #ccc;">4. KDV (3 × %${escapeHtml(kdv)})</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;font-weight:600;">${escapeHtml(adim4)}</td></tr>
-    <tr style="background:#ffe5e5;"><td style="padding:7px 10px;border:1px solid #ccc;color:#991b1b;font-weight:700;">5. Ceza (4 × ${escapeHtml(katsayi)} kat)</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;color:#991b1b;font-weight:700;">${escapeHtml(adim5)}</td></tr>
-    ${showIndirim ? `<tr style="background:#e6f4ea;"><td style="padding:7px 10px;border:1px solid #ccc;color:#166534;font-weight:700;">6. Erken ödeme indirimi (5 ÷ 4)</td><td style="padding:7px 10px;border:1px solid #ccc;text-align:right;color:#166534;font-weight:700;">${escapeHtml(adim6)}</td></tr>` : ''}
+    <tr><th colspan="2" style="font-weight:700;font-size:11px;text-transform:uppercase;padding:8px 10px;text-align:left;">Hesaplama Adımları</th></tr>
+    <tr><td style="padding:7px 10px;">1. Eksik beyan TL karşılığı (EUR × Kur)</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
+    <tr><td style="padding:7px 10px;">2. TRT bandrolü (1 × %${escapeHtml(trt)})</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim2)}</td></tr>
+    <tr><td style="padding:7px 10px;">3. KDV matrahı (1 + 2)</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim3)}</td></tr>
+    <tr><td style="padding:7px 10px;">4. KDV (3 × %${escapeHtml(kdv)})</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim4)}</td></tr>
+    <tr style="background:#ffe5e5;"><td style="padding:7px 10px;color:#991b1b;font-weight:700;">5. Ceza (4 × ${escapeHtml(katsayi)} kat)</td><td style="padding:7px 10px;text-align:left;color:#991b1b;font-weight:700;">${escapeHtml(adim5)}</td></tr>
+    ${showIndirim ? `<tr style="background:#e6f4ea;"><td style="padding:7px 10px;color:#166534;font-weight:700;">6. Erken ödeme indirimi (5 ÷ 4)</td><td style="padding:7px 10px;text-align:left;color:#166534;font-weight:700;">${escapeHtml(adim6)}</td></tr>` : ''}
   </table>
 
-  <table style="width:100%;border-collapse:separate;border-spacing:10px 0;margin-top:14px;table-layout:fixed;">
+  <table style="width:100%;border-collapse:separate;border-spacing:8px 0;margin-top:12px;table-layout:fixed;">
     <tr>
-      <td style="width:50%;padding:14px;border:2px solid #dc2626;background:#fef2f2;border-radius:6px;vertical-align:top;">
-        <div style="font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:6px;color:#dc2626;">Toplam Ceza</div>
-        <div style="font-size:18px;font-weight:800;color:#991b1b;word-break:break-word;">${escapeHtml(toplam)}</div>
-        <div style="font-size:10px;color:#666;margin-top:4px;">${escapeHtml(katsayi)} kat × KDV matrahı</div>
+      <td style="width:50%;padding:10px;vertical-align:top;">
+        <div style="font-size:9px;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;margin-bottom:4px;color:#dc2626;">Toplam Ceza</div>
+        <div style="font-size:14px;font-weight:800;color:#991b1b;word-break:break-word;line-height:1.2;">${escapeHtml(toplam)}</div>
+        <div style="font-size:9px;color:#666;margin-top:3px;">${escapeHtml(katsayi)} kat × KDV matrahı</div>
       </td>
-      <td style="width:50%;padding:14px;border:2px solid #16a34a;background:#f0fdf4;border-radius:6px;vertical-align:top;">
-        <div style="font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:6px;color:#16a34a;">Erken Ödeme Tutarı</div>
-        <div style="font-size:18px;font-weight:800;color:#166534;word-break:break-word;">${escapeHtml(erken)}</div>
-        <div style="font-size:10px;color:#666;margin-top:4px;">${escapeHtml(tasarruf)}</div>
+      <td style="width:50%;padding:10px;vertical-align:top;">
+        <div style="font-size:9px;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;margin-bottom:4px;color:#16a34a;">Erken Ödeme Tutarı</div>
+        <div style="font-size:14px;font-weight:800;color:#166534;word-break:break-word;line-height:1.2;">${escapeHtml(erken)}</div>
+        <div style="font-size:9px;color:#666;margin-top:3px;">${escapeHtml(tasarruf)}</div>
       </td>
     </tr>
   </table>
 
-  <div style="margin-top:14px;padding:10px 14px;background:#fffbeb;border-left:3px solid #f59e0b;font-size:11px;color:#92400e;">
+  <div style="margin-top:10px;padding:8px 0;font-size:9.5px;color:#92400e;line-height:1.35;">
     <strong>Yasal Dayanak:</strong> Kabahatler Kanunu Madde 17/6 — İdari para cezası, tebliğden itibaren 15 gün içinde ödenirse %25 indirim uygulanır (1/4 indirim).
   </div>
 
@@ -19345,27 +19355,75 @@ window.kcExportPDF = async function() {
 
     wrap.innerHTML = html;
     document.body.appendChild(wrap);
+    document.body.appendChild(overlay);
 
-    // Layout settle olsun
-    await new Promise(r => setTimeout(r, 150));
+    // Layout settle olsun (paint frame'i bekle)
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise(r => setTimeout(r, 250));
 
     let dosyaAdi = ('Kiymet_Ceza_' + (dosya || tarih).replace(/[^a-zA-Z0-9_-]/g, '_')).substring(0, 80) + '.pdf';
 
     try {
-        await html2pdf().set({
-            margin: [10, 10, 10, 10],
-            filename: dosyaAdi,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        }).from(wrap.firstElementChild).save();
+        // html2pdf.bundle.min.js → window.html2canvas + window.jspdf.jsPDF expose eder
+        const h2c = window.html2canvas;
+        const JsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+
+        if (!h2c || !JsPDFCtor) {
+            // Fallback: html2pdf wrapper
+            await html2pdf().set({
+                margin: 10,
+                filename: dosyaAdi,
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(wrap.firstElementChild).save();
+        } else {
+            // Manuel: html2canvas → canvas, jsPDF → tam A4'e oranlı yerleştirme
+            const target = wrap.firstElementChild;
+            const canvas = await h2c(target, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                scrollX: 0,
+                scrollY: -window.scrollY
+            });
+            console.log('[KC PDF] canvas:', canvas.width, 'x', canvas.height);
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const pdf = new JsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+            const pageW = pdf.internal.pageSize.getWidth();   // 210
+            const pageH = pdf.internal.pageSize.getHeight();  // 297
+
+            // Canvas'ı A4 genişliğine sığdır, yükseklik orantılı
+            const imgW = pageW;
+            const imgH = (canvas.height * imgW) / canvas.width;
+
+            if (imgH <= pageH) {
+                // Tek sayfa
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH, undefined, 'FAST');
+            } else {
+                // Multi-page: aynı imgi farklı y-pozisyonunda yerleştir
+                let heightLeft = imgH;
+                let position = 0;
+                pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH, undefined, 'FAST');
+                heightLeft -= pageH;
+                while (heightLeft > 0) {
+                    position -= pageH;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH, undefined, 'FAST');
+                    heightLeft -= pageH;
+                }
+            }
+            pdf.save(dosyaAdi);
+        }
         if (typeof showSyncToast === 'function') showSyncToast('PDF indirildi: ' + dosyaAdi, true);
     } catch (err) {
         console.error('[KC PDF] hata:', err);
         alert('PDF üretiminde hata: ' + (err.message || err));
     } finally {
         wrap.remove();
+        overlay.remove();
     }
 
     function escapeHtml(s) {
