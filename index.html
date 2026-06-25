@@ -3577,6 +3577,15 @@ div[style*="position: relative"] > input {
         <button class="analiz-period" data-period="6ay" onclick="window.analizSetPeriod('6ay')">Son 6 Ay</button>
         <button class="analiz-period" data-period="yil" onclick="window.analizSetPeriod('yil')">Son 12 Ay</button>
         <button class="analiz-period" data-period="tumu" onclick="window.analizSetPeriod('tumu')">Tümü</button>
+
+        <!-- Özel Tarih Aralığı -->
+        <span style="width:1px;height:24px;background:var(--border);margin:0 6px;"></span>
+        <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;">📆 ÖZEL:</span>
+        <input type="date" id="analiz-bas-tarih" style="padding:6px 10px;border-radius:8px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-primary);font-size:12px;">
+        <span style="font-size:11px;color:var(--text-muted);">—</span>
+        <input type="date" id="analiz-bit-tarih" style="padding:6px 10px;border-radius:8px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-primary);font-size:12px;">
+        <button class="analiz-period" data-period="ozel" onclick="window.analizSetCustomRange()" style="background:var(--primary);color:#fff;border-color:var(--primary);">Uygula</button>
+
         <div style="flex:1;"></div>
         <span id="analiz-donem-info" style="font-size:12px;color:var(--text-muted);"></span>
     </div>
@@ -3698,6 +3707,28 @@ div[style*="position: relative"] > input {
                 <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">🏆 Dikkat Çekici İstatistikler</h3>
             </div>
             <div id="rekor-area" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+    </div>
+
+    <!-- FİRMA BAZLI FİNANSAL KIRILIM -->
+    <div class="fade-in" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px;">
+        <div style="margin-bottom:14px;">
+            <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">FİNANSAL</div>
+            <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">💼 Firma Bazlı Mali Kırılım</h3>
+            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">Seçili dönemdeki araçların firma firma toplamları (KDV ve Vergi, kıymet ceza sayfası açılmış araçlardan)</p>
+        </div>
+        <div style="overflow:auto;">
+            <table id="firma-finansal-tablo" style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead><tr style="background:rgba(120,140,170,.1);text-align:left;">
+                    <th style="padding:8px;">FİRMA</th>
+                    <th style="padding:8px;text-align:right;">ARAÇ</th>
+                    <th style="padding:8px;text-align:right;">FATURA (€)</th>
+                    <th style="padding:8px;text-align:right;">ARDİYE (₺)</th>
+                    <th style="padding:8px;text-align:right;">KDV (₺)</th>
+                    <th style="padding:8px;text-align:right;">TOPLAM VERGİ (₺)</th>
+                </tr></thead>
+                <tbody id="firma-finansal-body"></tbody>
+            </table>
         </div>
     </div>
 
@@ -6691,11 +6722,31 @@ window.cariSeciliPDF = function() {
 // ═══════════════════════════════════════════════════════════════════
 window._analizPeriod = 'hafta';
 window._analizCharts = {};
+window._analizOzelBas = null;
+window._analizOzelBit = null;
 
 window.analizSetPeriod = function(p) {
     window._analizPeriod = p;
     document.querySelectorAll('.analiz-period').forEach(b => {
         b.classList.toggle('active', b.dataset.period === p);
+    });
+    window.analizRender();
+};
+
+window.analizSetCustomRange = function() {
+    let basEl = document.getElementById('analiz-bas-tarih');
+    let bitEl = document.getElementById('analiz-bit-tarih');
+    let bas = basEl ? basEl.value : '';
+    let bit = bitEl ? bitEl.value : '';
+    if(!bas || !bit) { alert('Lütfen başlangıç ve bitiş tarihlerini seçin.'); return; }
+    let basD = new Date(bas + 'T00:00:00');
+    let bitD = new Date(bit + 'T23:59:59');
+    if(basD > bitD) { alert('Başlangıç tarihi bitiş tarihinden büyük olamaz.'); return; }
+    window._analizOzelBas = basD;
+    window._analizOzelBit = bitD;
+    window._analizPeriod = 'ozel';
+    document.querySelectorAll('.analiz-period').forEach(b => {
+        b.classList.toggle('active', b.dataset.period === 'ozel');
     });
     window.analizRender();
 };
@@ -6728,6 +6779,9 @@ window._periodRange = function(period) {
         baslangic = new Date(now); baslangic.setMonth(baslangic.getMonth() - 6);
     } else if(period === 'yil') {
         baslangic = new Date(now); baslangic.setMonth(baslangic.getMonth() - 12);
+    } else if(period === 'ozel' && window._analizOzelBas && window._analizOzelBit) {
+        baslangic = new Date(window._analizOzelBas);
+        bitis = new Date(window._analizOzelBit);
     } else { // tumu
         baslangic = new Date(2000, 0, 1);
     }
@@ -6742,7 +6796,8 @@ window._periodLabel = function(period) {
         '3ay': 'Son 3 Ay',
         '6ay': 'Son 6 Ay',
         'yil': 'Son 12 Ay',
-        'tumu': 'Tüm Zamanlar'
+        'tumu': 'Tüm Zamanlar',
+        'ozel': 'Özel Aralık'
     };
     return map[period] || period;
 };
@@ -7318,20 +7373,66 @@ window.analizRender = function() {
         // En çok marka
         let cokMarka = markaSir[0];
 
-        // En karlı firma (fatura toplam)
-        let firmaFatura = {};
+        // ───── FİNANSAL TOPLAMLAR ─────
+        // Gelen Fatura Toplam (EUR)
+        let toplamFatura = 0;
         donemAraclari.forEach(d => {
-            let f = d.firma || 'Bilinmiyor';
             let v = parseFloat(String(d.fatura||'').replace(/\./g,'').replace(',','.')) || 0;
-            firmaFatura[f] = (firmaFatura[f] || 0) + v;
+            toplamFatura += v;
         });
-        let karli = Object.entries(firmaFatura).sort((a,b) => b[1] - a[1])[0];
+
+        // Ödenen Ardiye Toplam (TL) — kapanmış araçlar dahil (tarihsel hesap)
+        let _ardiyeTL = function(gun){
+            if(gun<=0) return 0;
+            if(gun<=20) return gun*145;
+            if(gun<=50) return 2900+(gun-20)*725;
+            if(gun<=80) return 24650+(gun-50)*1160;
+            return 59450+(gun-80)*1450;
+        };
+        // Sadece KAPANMIŞ dosyalar için: geliş tarihi → kapanış tarihi arası
+        // (Eski kayıtlarda kapanisTarih yoksa kiymGt'ye düş)
+        let toplamArdiye = 0;
+        donemAraclari.forEach(d => {
+            try {
+                let evrakDur = (d.evrak||'').toLocaleLowerCase('tr');
+                if(evrakDur !== 'kapalı' && evrakDur !== 'kapali') return;
+                let E = window.parseTRDate(d.tarih);
+                let K = window.parseTRDate(d.kapanisTarih) || window.parseTRDate(d.kiymGt);
+                if(!E || !K) return;
+                let gun = window.diffDaysSigned(K, E) + 1;
+                toplamArdiye += _ardiyeTL(gun);
+            } catch(e){}
+        });
+
+        // Ödenen KDV ve Toplam Vergi (TL) — kıymet ceza beyanname cache'inden
+        let toplamKDV = 0, toplamVergi = 0, kdvSayilan = 0;
+        try {
+            let kcCache = JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}');
+            donemAraclari.forEach(d => {
+                if(!d.firma || !d.marka || !d.sasi) return;
+                let key = d.firma + '|' + d.marka + '|' + d.sasi;
+                let c = kcCache[key];
+                if(c) {
+                    if(c.kdvTutari)   toplamKDV   += parseFloat(c.kdvTutari) || 0;
+                    if(c.toplamVergi) toplamVergi += parseFloat(c.toplamVergi) || 0;
+                    if(c.kdvTutari || c.toplamVergi) kdvSayilan++;
+                }
+            });
+        } catch(e){}
+
+        let fmtTL = n => Math.round(n).toLocaleString('tr-TR') + ' ₺';
+        let fmtEUR = n => Math.round(n).toLocaleString('tr-TR') + ' €';
 
         let rekorlar = [];
         if(hizliArac) rekorlar.push({ico:'⚡', lbl:'En Hızlı Çekilen', val:hizliArac.marka + ' ' + hizliArac.model + ' — ' + hizliSure + ' gün'});
         if(uzunArac)  rekorlar.push({ico:'🐢', lbl:'En Uzun Bekleyen', val:uzunArac.marka + ' ' + uzunArac.model + ' — ' + uzunSure + ' gün'});
         if(cokMarka)  rekorlar.push({ico:'🚙', lbl:'En Çok Marka', val:cokMarka[0] + ' (' + cokMarka[1] + ' araç)'});
-        if(karli)     rekorlar.push({ico:'💎', lbl:'En Karlı Firma', val:karli[0] + ' (' + Math.round(karli[1]).toLocaleString('tr-TR') + ' €)'});
+        rekorlar.push({ico:'💰', lbl:'Gelen Fatura Toplamı', val:fmtEUR(toplamFatura)});
+        rekorlar.push({ico:'🏬', lbl:'Ödenen Ardiye Toplamı', val:fmtTL(toplamArdiye)});
+        if(kdvSayilan > 0) {
+            rekorlar.push({ico:'🧾', lbl:'Ödenen KDV Toplamı', val:fmtTL(toplamKDV) + ' (' + kdvSayilan + ' araç)'});
+            rekorlar.push({ico:'💸', lbl:'Ödenen Toplam Vergi', val:fmtTL(toplamVergi)});
+        }
         rekorlar.push({ico:'📊', lbl:'Tamamlanma Oranı', val:'%' + (gelen ? Math.round((cekilen/gelen)*100) : 0) + ' (' + cekilen + '/' + gelen + ')'});
 
         rekor.innerHTML = rekorlar.map(r =>
@@ -7343,6 +7444,68 @@ window.analizRender = function() {
                 '</div>' +
             '</div>'
         ).join('');
+    }
+
+    // ═══════ FİRMA BAZLI FİNANSAL KIRILIM (seçili dönem) ═══════
+    let firmaFinBody = document.getElementById('firma-finansal-body');
+    if(firmaFinBody) {
+        let kcCache2 = {};
+        try { kcCache2 = JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}'); } catch(e){}
+        let firmaFin = {}; // firma → {arac, fatura, ardiye, kdv, vergi}
+        donemAraclari.forEach(d => {
+            let f = d.firma || 'Bilinmiyor';
+            if(!firmaFin[f]) firmaFin[f] = {arac:0, fatura:0, ardiye:0, kdv:0, vergi:0};
+            firmaFin[f].arac++;
+            firmaFin[f].fatura += parseFloat(String(d.fatura||'').replace(/\./g,'').replace(',','.')) || 0;
+            // Ardiye — sadece KAPANMIŞ dosyalar (geliş → kapanış tarihi)
+            // Eski kayıtlarda kapanisTarih yoksa kiymGt'ye düş
+            try {
+                let evrakDur = (d.evrak||'').toLocaleLowerCase('tr');
+                if(evrakDur === 'kapalı' || evrakDur === 'kapali') {
+                    let E = window.parseTRDate(d.tarih);
+                    let K = window.parseTRDate(d.kapanisTarih) || window.parseTRDate(d.kiymGt);
+                    if(E && K) {
+                        let gun = window.diffDaysSigned(K, E) + 1;
+                        firmaFin[f].ardiye += _ardiyeTL(gun);
+                    }
+                }
+            } catch(e){}
+            // KDV/Vergi
+            if(d.firma && d.marka && d.sasi) {
+                let key2 = d.firma + '|' + d.marka + '|' + d.sasi;
+                let c2 = kcCache2[key2];
+                if(c2) {
+                    if(c2.kdvTutari)   firmaFin[f].kdv   += parseFloat(c2.kdvTutari)   || 0;
+                    if(c2.toplamVergi) firmaFin[f].vergi += parseFloat(c2.toplamVergi) || 0;
+                }
+            }
+        });
+        let firmaSatirlari = Object.entries(firmaFin)
+            .sort((a,b) => b[1].fatura - a[1].fatura)
+            .map(([fn, v]) =>
+                '<tr style="border-bottom:1px solid var(--border);">' +
+                    '<td style="padding:8px;font-weight:600;">' + fn + '</td>' +
+                    '<td style="padding:8px;text-align:right;">' + v.arac + '</td>' +
+                    '<td style="padding:8px;text-align:right;">' + Math.round(v.fatura).toLocaleString('tr-TR') + ' €</td>' +
+                    '<td style="padding:8px;text-align:right;color:#f59e0b;">' + Math.round(v.ardiye).toLocaleString('tr-TR') + ' ₺</td>' +
+                    '<td style="padding:8px;text-align:right;color:#10b981;">' + Math.round(v.kdv).toLocaleString('tr-TR') + ' ₺</td>' +
+                    '<td style="padding:8px;text-align:right;color:#ef4444;font-weight:700;">' + Math.round(v.vergi).toLocaleString('tr-TR') + ' ₺</td>' +
+                '</tr>'
+            ).join('');
+        // Toplam satırı
+        let tArac=0, tFat=0, tArd=0, tKdv=0, tVer=0;
+        Object.values(firmaFin).forEach(v => { tArac+=v.arac; tFat+=v.fatura; tArd+=v.ardiye; tKdv+=v.kdv; tVer+=v.vergi; });
+        if(firmaSatirlari) {
+            firmaSatirlari += '<tr style="background:rgba(59,130,246,.08);font-weight:800;">' +
+                '<td style="padding:10px;">📊 TOPLAM</td>' +
+                '<td style="padding:10px;text-align:right;">' + tArac + '</td>' +
+                '<td style="padding:10px;text-align:right;">' + Math.round(tFat).toLocaleString('tr-TR') + ' €</td>' +
+                '<td style="padding:10px;text-align:right;color:#f59e0b;">' + Math.round(tArd).toLocaleString('tr-TR') + ' ₺</td>' +
+                '<td style="padding:10px;text-align:right;color:#10b981;">' + Math.round(tKdv).toLocaleString('tr-TR') + ' ₺</td>' +
+                '<td style="padding:10px;text-align:right;color:#ef4444;">' + Math.round(tVer).toLocaleString('tr-TR') + ' ₺</td>' +
+            '</tr>';
+        }
+        firmaFinBody.innerHTML = firmaSatirlari || '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">Bu dönemde veri yok</td></tr>';
     }
 
     // ═══════ AYLIK FİRMA × ARAÇ DETAYI (Son 6 Ay) ═══════
@@ -14326,16 +14489,37 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
     let val=id=>document.getElementById(id)?.value.trim()||'';
     let fD=iso=>{if(!iso)return'';let p=iso.split('-');return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso;};
     
-    // Mevcut aracın evraklar objesini koru (veri kaybını önlemek için)
+    // Mevcut aracın evraklar objesini ve kapanış tarihini koru (veri kaybını önlemek için)
     let mevcutEvraklar = {};
+    let mevcutKapanis = '';
+    let mevcutEvrak = '';
     if(i !== -1) {
         if(window.currentModalContext === 'decl' && window.declarationsData[i]) {
             mevcutEvraklar = window.declarationsData[i].evrakler || {};
+            mevcutKapanis = window.declarationsData[i].kapanisTarih || '';
+            mevcutEvrak = window.declarationsData[i].evrak || '';
         } else if(window.firmData[window.currentFirm]?.[i]) {
             mevcutEvraklar = window.firmData[window.currentFirm][i].evrakler || {};
+            mevcutKapanis = window.firmData[window.currentFirm][i].kapanisTarih || '';
+            mevcutEvrak = window.firmData[window.currentFirm][i].evrak || '';
         }
     }
-    
+
+    // Kapanış tarihi otomatik damgalama:
+    //  - Yeni "Kapalı" işaretlenmişse ve önceden Kapalı değilse → bugünün tarihini at
+    //  - Kapalı'dan Açık'a dönerse → temizle
+    //  - Zaten Kapalı ve mevcutKapanis varsa → koru
+    let yeniEvrak = val('da-evrak');
+    let kapanisTarih = mevcutKapanis;
+    if(yeniEvrak === 'Kapalı') {
+        if(!mevcutKapanis) {
+            let t = new Date();
+            kapanisTarih = String(t.getDate()).padStart(2,'0') + '.' + String(t.getMonth()+1).padStart(2,'0') + '.' + t.getFullYear();
+        }
+    } else {
+        kapanisTarih = '';
+    }
+
     let r={
         firma:val('da-firma'),
         marka:val('da-marka').toUpperCase(),
@@ -14349,7 +14533,8 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
         beynmCif:fD(val('da-beynmCif')),
         kiymVv:fD(val('da-kiymVv')),
         kiymGt:fD(val('da-kiymGt')),
-        evrak:val('da-evrak'), 
+        kapanisTarih:kapanisTarih,
+        evrak:yeniEvrak,
         teslim:val('da-teslim'), 
         beyanname:val('da-beyanname'),
         ozetBeyan:val('da-ozetBeyan'),
