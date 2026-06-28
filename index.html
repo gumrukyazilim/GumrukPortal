@@ -2650,6 +2650,7 @@ div[style*="position: relative"] > input {
             <div class="header-right">
                 <button class="hdr-icon-btn" onclick="window.toggleTheme()" title="Gece/Gündüz Modu"><i data-lucide="moon"></i></button>
                 <button class="hdr-icon-btn admin-only" onclick="window.exportBackup()" title="Yedek İndir"><i data-lucide="download"></i></button>
+                <button class="hdr-icon-btn admin-only" onclick="window._cocTrBackfill.runBatch()" title="Eski Araçlardan CoC TR Tara (Toplu TSE Backfill)"><i data-lucide="file-scan"></i></button>
                 <div class="divider-v"></div>
                 <div class="user-pill" onclick="window.doLogout()">
                     <img src="https://ui-avatars.com/api/?name=Bayram&background=1e3a5f&color=60a5fa&rounded=true" class="user-avatar" id="header-avatar">
@@ -13283,6 +13284,806 @@ window._TSE_ALANLAR = [
     'tse-uretildigiUlke','tse-ithalatUlkesi','tse-gtipNo'
 ];
 
+/* ═══════════════════════════════════════════════════════════════
+   AKILLI DOLDURMA MODÜLÜ — TSE Şablonu
+   Üç bağımsız kaynak: VIN(WMI) + GTIP + Tip Onay No (geçmiş veri)
+   Hiçbir zaman dolu alanı ezmez, sadece boş alanları doldurur.
+   ═══════════════════════════════════════════════════════════════ */
+window._tseSmartFill = (function() {
+
+    // ── 1) WMI tablosu: VIN'in ilk 3 hanesi → Marka + Üretildiği Ülke
+    // En yaygın markalar (genişletilebilir). Ülke adları select option'larıyla birebir.
+    var WMI = {
+        // Almanya
+        'WDB':['MERCEDES-BENZ','ALMANYA'], 'WDC':['MERCEDES-BENZ','AMERİKA'], 'WDD':['MERCEDES-BENZ','ALMANYA'],
+        'WDF':['MERCEDES-BENZ','ALMANYA'], 'WME':['SMART','ALMANYA'], 'WMW':['MINI','ALMANYA'],
+        'W1K':['MERCEDES-BENZ','ALMANYA'], 'W1N':['MERCEDES-BENZ','AMERİKA'], 'W1V':['MERCEDES-BENZ','ALMANYA'],
+        'W1Y':['MERCEDES-BENZ','ALMANYA'], 'WAU':['AUDI','ALMANYA'], 'WA1':['AUDI','ALMANYA'],
+        'WUA':['AUDI','ALMANYA'], 'TRU':['AUDI','MACARİSTAN'],
+        'WBA':['BMW','ALMANYA'], 'WBS':['BMW','ALMANYA'], 'WBX':['BMW','AMERİKA'],
+        'WBY':['BMW','ALMANYA'], '4US':['BMW','AMERİKA'], '5UX':['BMW','AMERİKA'], '5YM':['BMW','AMERİKA'],
+        'WVW':['VOLKSWAGEN','ALMANYA'], 'WVG':['VOLKSWAGEN','ALMANYA'], 'WV1':['VOLKSWAGEN','ALMANYA'],
+        'WV2':['VOLKSWAGEN','ALMANYA'], 'WV3':['VOLKSWAGEN','ALMANYA'], '1VW':['VOLKSWAGEN','AMERİKA'],
+        '3VW':['VOLKSWAGEN','MEKSİKA'], 'LSV':['VOLKSWAGEN','ÇİN'], 'LFV':['VOLKSWAGEN','ÇİN'],
+        'WP0':['PORSCHE','ALMANYA'], 'WP1':['PORSCHE','ALMANYA'],
+        'WF0':['FORD','ALMANYA'], 'WF1':['FORD','ALMANYA'],
+        // İngiltere
+        'SAJ':['JAGUAR','İNGİLTERE'], 'SAL':['LAND ROVER','İNGİLTERE'], 'SCA':['ROLLS-ROYCE','İNGİLTERE'],
+        'SCB':['BENTLEY','İNGİLTERE'], 'SCC':['LOTUS','İNGİLTERE'], 'SCF':['ASTON MARTIN','İNGİLTERE'],
+        'SAR':['ROVER','İNGİLTERE'], 'SHS':['HONDA','İNGİLTERE'], 'SJN':['NISSAN','İNGİLTERE'],
+        'SB1':['TOYOTA','İNGİLTERE'], 'SFA':['FORD','İNGİLTERE'],
+        // İtalya
+        'ZFA':['FIAT','İTALYA'], 'ZFC':['FIAT','İTALYA'], 'ZFF':['FERRARI','İTALYA'],
+        'ZHW':['LAMBORGHINI','İTALYA'], 'ZAM':['MASERATI','İTALYA'], 'ZAR':['ALFA ROMEO','İTALYA'],
+        'ZLA':['LANCIA','İTALYA'], 'ZAP':['PIAGGIO','İTALYA'], 'ZD3':['IVECO','İTALYA'],
+        'ZD4':['IVECO','İTALYA'], 'ZCF':['IVECO','İTALYA'],
+        // Fransa
+        'VF1':['RENAULT','FRANSA'], 'VF2':['RENAULT','FRANSA'], 'VF6':['RENAULT','FRANSA'],
+        'VF8':['MATRA','FRANSA'], 'VF3':['PEUGEOT','FRANSA'], 'VF7':['CITROEN','FRANSA'],
+        'VF9':['BUGATTI','FRANSA'], 'VSY':['FORD','FRANSA'],
+        // İspanya
+        'VSS':['SEAT','İSPANYA'], 'VS5':['SEAT','İSPANYA'], 'VS6':['FORD','İSPANYA'],
+        'VSK':['NISSAN','İSPANYA'], 'VSE':['SUZUKI','İSPANYA'], 'VSX':['OPEL','İSPANYA'],
+        'WMA':['MAN','ALMANYA'],
+        // Çek/Slovakya
+        'TMB':['SKODA','ÇEK CUMHURİYETİ'], 'TMP':['SKODA','ÇEK CUMHURİYETİ'], 'TM9':['SKODA','ÇEK CUMHURİYETİ'],
+        'TMK':['KIA','SLOVAKYA'], 'TMA':['HYUNDAI','ÇEK CUMHURİYETİ'],
+        // İsveç
+        'YV1':['VOLVO','İSVEÇ'], 'YV2':['VOLVO','İSVEÇ'], 'YV3':['VOLVO','İSVEÇ'],
+        'YV4':['VOLVO','İSVEÇ'], 'YS3':['SAAB','İSVEÇ'], 'YS4':['SAAB','İSVEÇ'],
+        'YK1':['SAAB','İSVEÇ'],
+        // Hollanda
+        'XLR':['DAF','HOLLANDA'], 'XL9':['DONKERVOORT','HOLLANDA'], 'XL4':['LYNX','HOLLANDA'],
+        // Japonya
+        'JT2':['TOYOTA','JAPONYA'], 'JT3':['TOYOTA','JAPONYA'], 'JT4':['TOYOTA','JAPONYA'],
+        'JT6':['LEXUS','JAPONYA'], 'JTE':['TOYOTA','JAPONYA'], 'JTH':['LEXUS','JAPONYA'],
+        'JTJ':['LEXUS','JAPONYA'], 'JTM':['TOYOTA','JAPONYA'], 'JTN':['TOYOTA','JAPONYA'],
+        'JHM':['HONDA','JAPONYA'], 'JHL':['HONDA','JAPONYA'], 'JHF':['HONDA','JAPONYA'],
+        'JHG':['HONDA','JAPONYA'], 'JHZ':['HONDA','JAPONYA'],
+        'JN1':['NISSAN','JAPONYA'], 'JN3':['NISSAN','JAPONYA'], 'JN6':['NISSAN','JAPONYA'],
+        'JN8':['NISSAN','JAPONYA'], 'JNK':['INFINITI','JAPONYA'], 'JNR':['INFINITI','JAPONYA'],
+        'JM1':['MAZDA','JAPONYA'], 'JM3':['MAZDA','JAPONYA'], 'JM6':['MAZDA','JAPONYA'],
+        'JM7':['MAZDA','JAPONYA'], 'JMZ':['MAZDA','JAPONYA'],
+        'JS1':['SUZUKI','JAPONYA'], 'JS2':['SUZUKI','JAPONYA'], 'JS3':['SUZUKI','JAPONYA'],
+        'JS4':['SUZUKI','JAPONYA'], 'JSA':['SUZUKI','JAPONYA'], 'JSL':['SUZUKI','JAPONYA'],
+        'JMA':['MITSUBISHI','JAPONYA'], 'JMB':['MITSUBISHI','JAPONYA'], 'JMY':['MITSUBISHI','JAPONYA'],
+        'JF1':['SUBARU','JAPONYA'], 'JF2':['SUBARU','JAPONYA'], 'JF3':['SUBARU','JAPONYA'],
+        'JF4':['SUBARU','JAPONYA'], 'JY3':['YAMAHA','JAPONYA'], 'JYA':['YAMAHA','JAPONYA'],
+        'JKA':['KAWASAKI','JAPONYA'], 'JKB':['KAWASAKI','JAPONYA'],
+        // Güney Kore
+        'KMH':['HYUNDAI','G.KORE'], 'KMF':['HYUNDAI','G.KORE'], 'KM8':['HYUNDAI','G.KORE'],
+        'KNA':['KIA','G.KORE'], 'KNB':['KIA','G.KORE'], 'KNC':['KIA','G.KORE'],
+        'KND':['KIA','G.KORE'], 'KNE':['KIA','G.KORE'], 'KNM':['RENAULT','G.KORE'],
+        'KLA':['DAEWOO','G.KORE'], 'KL1':['CHEVROLET','G.KORE'], 'KL2':['DAEWOO','G.KORE'],
+        'KPT':['SSANGYONG','G.KORE'], 'KPB':['SSANGYONG','G.KORE'],
+        // Çin
+        'LBV':['BMW','ÇİN'], 'LE4':['HONDA','ÇİN'], 'LGB':['BRILLIANCE','ÇİN'],
+        'LGX':['BYD','ÇİN'], 'LJD':['CHERY','ÇİN'], 'LFP':['FAW','ÇİN'],
+        'LDC':['DONGFENG','ÇİN'], 'LSG':['SAIC','ÇİN'], 'LSY':['BRILLIANCE','ÇİN'],
+        'LVS':['FORD','ÇİN'], 'LFM':['FORD','ÇİN'], 'LZW':['SAIC','ÇİN'],
+        'L6T':['GEELY','ÇİN'], 'LB3':['GEELY','ÇİN'], 'LYV':['VOLVO','ÇİN'],
+        // ABD
+        '1FA':['FORD','AMERİKA'], '1FB':['FORD','AMERİKA'], '1FC':['FORD','AMERİKA'],
+        '1FD':['FORD','AMERİKA'], '1FM':['FORD','AMERİKA'], '1FT':['FORD','AMERİKA'],
+        '1FU':['FREIGHTLINER','AMERİKA'],
+        '1G1':['CHEVROLET','AMERİKA'], '1GC':['CHEVROLET','AMERİKA'], '1GN':['CHEVROLET','AMERİKA'],
+        '1GT':['GMC','AMERİKA'], '1GK':['GMC','AMERİKA'],
+        '1HG':['HONDA','AMERİKA'], '19U':['HONDA','AMERİKA'], '1HD':['HARLEY-DAVIDSON','AMERİKA'],
+        '1J4':['JEEP','AMERİKA'], '1J8':['JEEP','AMERİKA'],
+        '1C3':['CHRYSLER','AMERİKA'], '1C4':['CHRYSLER','AMERİKA'], '1C6':['RAM','AMERİKA'],
+        '1N4':['NISSAN','AMERİKA'], '1N6':['NISSAN','AMERİKA'],
+        '1ZV':['FORD','AMERİKA'], '2T1':['TOYOTA','KANADA'], '2T2':['LEXUS','KANADA'],
+        '2T3':['TOYOTA','KANADA'], '2HG':['HONDA','KANADA'], '2HK':['HONDA','KANADA'],
+        '4T1':['TOYOTA','AMERİKA'], '4T3':['TOYOTA','AMERİKA'], '5TD':['TOYOTA','AMERİKA'],
+        '5TF':['TOYOTA','AMERİKA'], '5J6':['HONDA','AMERİKA'], '5N1':['NISSAN','AMERİKA'],
+        '5NM':['HYUNDAI','AMERİKA'], '5NP':['HYUNDAI','AMERİKA'],
+        // Türkiye
+        'NM0':['FORD','TÜRKİYE'], 'NM4':['FIAT','TÜRKİYE'], 'NMT':['TOYOTA','TÜRKİYE'],
+        'NLE':['BMW','TÜRKİYE'], 'NLH':['HYUNDAI','TÜRKİYE'], 'NMA':['MERCEDES-BENZ','TÜRKİYE'],
+        'NLA':['HONDA','TÜRKİYE'], 'NN1':['TOFAŞ-FIAT','TÜRKİYE'], 'NNA':['ISUZU','TÜRKİYE'],
+        // Hindistan
+        'MA1':['MAHINDRA','HİNDİSTAN'], 'MA3':['SUZUKI','HİNDİSTAN'], 'MA6':['CHEVROLET','HİNDİSTAN'],
+        'MAJ':['FORD','HİNDİSTAN'], 'MAK':['HONDA','HİNDİSTAN'], 'MAL':['HYUNDAI','HİNDİSTAN'],
+        'MAT':['TATA','HİNDİSTAN'],
+        // Tayland/Malezya/Endonezya
+        'MR0':['TOYOTA','TAYLAND'], 'MR2':['TOYOTA','TAYLAND'], 'MMB':['MITSUBISHI','TAYLAND'],
+        'MMC':['MITSUBISHI','TAYLAND'], 'MNB':['FORD','TAYLAND'], 'MNT':['NISSAN','TAYLAND'],
+        'MPA':['ISUZU','TAYLAND'], 'MHF':['TOYOTA','ENDENOZYA'], 'MHK':['DAIHATSU','ENDENOZYA'],
+        // Macaristan/Polonya/Romanya
+        'TSM':['SUZUKI','MACARİSTAN'], 'TMV':['SUZUKI','MACARİSTAN'], 'TW1':['STELLANTIS','POLONYA'],
+        'UU1':['DACIA','ROMANYA'], 'UU3':['DACIA','ROMANYA'], 'U5Y':['KIA','SLOVAKYA'],
+        // Rusya/Belarus
+        'XTA':['LADA','RUSYA'], 'XTT':['UAZ','RUSYA'], 'XTC':['KAMAZ','RUSYA'],
+        'X9L':['RENAULT','RUSYA'], 'XW7':['TOYOTA','RUSYA'], 'XW8':['VOLKSWAGEN','RUSYA'],
+        'X4X':['BMW','RUSYA'], 'Y6D':['ZAZ','UKRAYNA'],
+        // Diğer
+        'VG6':['CITROEN','PORTEKİZ'], 'VR1':['RENAULT','İSPANYA'], 'VR3':['CITROEN','İSPANYA'],
+        '9BD':['FIAT','BREZİLYA'], '9BG':['CHEVROLET','BREZİLYA'], '9BW':['VOLKSWAGEN','BREZİLYA'],
+        '8AG':['CHEVROLET','ARJANTİN'], '8AP':['FIAT','ARJANTİN'],
+        'AHT':['TOYOTA','GÜNEY AFRİKA'], 'AAV':['VOLKSWAGEN','GÜNEY AFRİKA'],
+        'TCC':['SMART','FRANSA'], 'VVV':['MERCEDES-BENZ','ALMANYA']
+    };
+
+    // ── 2) VIN 10. hane → Üretim Yılı (2010+ döngüsü, gümrük araçları yenidir)
+    var YEAR_MAP_NEW = {
+        'A':2010,'B':2011,'C':2012,'D':2013,'E':2014,'F':2015,'G':2016,'H':2017,
+        'J':2018,'K':2019,'L':2020,'M':2021,'N':2022,'P':2023,'R':2024,'S':2025,
+        'T':2026,'V':2027,'W':2028,'X':2029,'Y':2030,
+        '1':2031,'2':2032,'3':2033,'4':2034,'5':2035,'6':2036,'7':2037,'8':2038,'9':2039
+    };
+    // 1980-2009 döngüsü (eski araçlar için fallback)
+    var YEAR_MAP_OLD = {
+        'A':1980,'B':1981,'C':1982,'D':1983,'E':1984,'F':1985,'G':1986,'H':1987,
+        'J':1988,'K':1989,'L':1990,'M':1991,'N':1992,'P':1993,'R':1994,'S':1995,
+        'T':1996,'V':1997,'W':1998,'X':1999,'Y':2000,
+        '1':2001,'2':2002,'3':2003,'4':2004,'5':2005,'6':2006,'7':2007,'8':2008,'9':2009
+    };
+
+    // ── 3) GTIP prefix → {aracCinsi, kategori}
+    // Türk gümrük tarifesi → TSE select option değerleriyle birebir
+    var GTIP_MAP = {
+        '8701':['Traktör','T1'],     // tractors (kullanıcı T1-T5 arası düzeltir)
+        '8702':['Otobüs','M3'],      // bus
+        '8703':['Otomobil','M1'],    // passenger
+        '8704':['Kamyonet','N1'],    // goods vehicles (N1/N2/N3 - en sık N1)
+        '8705':['Kamyon','N3'],      // special purpose
+        '8711':['Motosiklet','L3e'], // motorcycle
+        '8716':['Römork','O1']       // trailers
+    };
+
+    // ── PUBLIC API ──────────────────────────────────────────────
+
+    // VIN'i çöz: ilk 3 hane → marka/ülke, 10. hane → yıl
+    function decodeVin(vin) {
+        if (!vin) return null;
+        vin = String(vin).trim().toUpperCase();
+        if (vin.length < 3) return null;
+        var result = {};
+        var wmi = vin.substring(0,3);
+        if (WMI[wmi]) {
+            result.marka = WMI[wmi][0];
+            result.uretildigiUlke = WMI[wmi][1];
+        }
+        if (vin.length >= 10) {
+            var yc = vin.charAt(9);
+            // Yeni döngü tercih edilir (içeri giren araç genelde son 10-15 yıl içinde)
+            if (YEAR_MAP_NEW[yc]) {
+                var y = YEAR_MAP_NEW[yc];
+                // Gelecek yıllarda yanlış çıkarsa eski döngüye düş
+                if (y > (new Date().getFullYear() + 1) && YEAR_MAP_OLD[yc]) {
+                    y = YEAR_MAP_OLD[yc];
+                }
+                result.imalYili = y;
+            }
+        }
+        return Object.keys(result).length ? result : null;
+    }
+
+    // GTIP kodu → aracCinsi + kategori
+    function decodeGtip(gtip) {
+        if (!gtip) return null;
+        var clean = String(gtip).replace(/[^0-9]/g,'').substring(0,4);
+        if (clean.length < 4) return null;
+        if (GTIP_MAP[clean]) {
+            return { aracCinsi: GTIP_MAP[clean][0], kategori: GTIP_MAP[clean][1] };
+        }
+        return null;
+    }
+
+    // Tip Onay No → geçmiş kayıtlardan eşleşmeler
+    // declarationsData + firmData içinde tseSablon.tipOnayNo === aranan olanları topla
+    function findTipOnayMatches(tipOnayNo) {
+        if (!tipOnayNo) return null;
+        var aranan = String(tipOnayNo).trim();
+        if (aranan.length < 4) return null;
+        var bulunan = [];
+        var ekleEgerVar = function(arr) {
+            (arr || []).forEach(function(d) {
+                var ts = d.tseSablon;
+                if (ts && (ts['tse-tipOnayNo']||'').trim() === aranan) bulunan.push(ts);
+            });
+        };
+        ekleEgerVar(window.declarationsData);
+        var f = window.firmData || {};
+        Object.keys(f).forEach(function(k){ ekleEgerVar(f[k]); });
+        ekleEgerVar(window.gelecekData);
+
+        if (!bulunan.length) return null;
+
+        // Sabit alanlar: yönetmelik gereği aynı (yalnızca ÇOĞUNLUK varsa al)
+        // Tip → kaldırıldı: Aynı tip onay no içinde Tip varyant'a göre değişebiliyor (Audi A8 vs A6 vs)
+        var sabitAlanlar = ['tse-marka','tse-kategori','tse-tipOnayTarihi'];
+        var sabit = {};
+        sabitAlanlar.forEach(function(alan) {
+            var sayim = {};
+            bulunan.forEach(function(b) {
+                var v = (b[alan]||'').trim();
+                if (!v) return;
+                sayim[v] = (sayim[v]||0) + 1;
+            });
+            var enCok = null, cmax = 0;
+            Object.keys(sayim).forEach(function(v) {
+                if (sayim[v] > cmax) { cmax = sayim[v]; enCok = v; }
+            });
+            if (enCok) sabit[alan] = enCok;
+        });
+
+        // Varyantlar: tekil kombo (tip + varyant + versiyon)
+        var varSet = {};
+        var varyantlar = [];
+        bulunan.forEach(function(b) {
+            var k = (b['tse-tip']||'') + '|' + (b['tse-varyant']||'') + '|' + (b['tse-versiyon']||'');
+            if (varSet[k]) return;
+            varSet[k] = true;
+            varyantlar.push({
+                tip: b['tse-tip']||'',
+                varyant: b['tse-varyant']||'',
+                versiyon: b['tse-versiyon']||'',
+                yakit: b['tse-yakitTuru']||'',
+                ticariAd: b['tse-ticariAd']||'',
+                marka: b['tse-marka']||''
+            });
+        });
+
+        return { sabit: sabit, varyantlar: varyantlar, kayitSayisi: bulunan.length };
+    }
+
+    // Dolu alanı EZME — sadece boşsa yaz, yazdıysan görsel ipucu ver.
+    // sourceKey: hangi smart-fill kaynağından doldu (örn. 'tipOnay:e1*2007/46*1751*37')
+    // Bu işaret sayesinde aynı kaynak değiştiğinde eski değer ezilebilir.
+    function setIfEmpty(id, value, sourceKey) {
+        if (!value) return false;
+        var el = document.getElementById(id);
+        if (!el) return false;
+        if ((el.value||'').trim()) return false;  // dolu — dokunma
+
+        // Tarih input'u için format normalize: DD.MM.YYYY → YYYY-MM-DD
+        if (el.type === 'date') {
+            var s = String(value).trim();
+            if (/^\d{2}\.\d{2}\.\d{4}$/.test(s)) {
+                var p = s.split('.');
+                value = p[2] + '-' + p[1] + '-' + p[0];
+            } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+                var p2 = s.split('/');
+                value = p2[2] + '-' + p2[1] + '-' + p2[0];
+            }
+        }
+
+        el.value = value;
+        if (sourceKey) el.dataset.smartFillSource = sourceKey;
+        el.style.outline = '2px solid var(--success, #10b981)';
+        setTimeout(function() { if (el) el.style.outline = ''; }, 1500);
+        var ev = new Event('input', { bubbles: true });
+        el.dispatchEvent(ev);
+        return true;
+    }
+
+    // Belirli bir kaynaktan (örn. eski Tip Onay) doldurulmuş alanları temizle
+    function clearFieldsFromSource(sourcePrefix) {
+        window._TSE_ALANLAR.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            if (el.dataset.smartFillSource && el.dataset.smartFillSource.indexOf(sourcePrefix) === 0) {
+                el.value = '';
+                delete el.dataset.smartFillSource;
+            }
+        });
+    }
+
+    // VIN değiştiğinde Marka/Ülke doldur. Yıl: doldurma, sadece bildir (gün/ay manuel).
+    function onVinChange() {
+        var vin = (document.getElementById('tse-aracTanitimNo')||{}).value || '';
+        var d = decodeVin(vin);
+        if (!d) return;
+        var doldurulan = [];
+        var bilgiler = [];
+        if (d.marka && setIfEmpty('tse-marka', d.marka)) doldurulan.push('Marka');
+        if (d.uretildigiUlke && setIfEmpty('tse-uretildigiUlke', d.uretildigiUlke)) doldurulan.push('Üretildiği Ülke');
+        // İmal yılı: tahmin doğru ama gün/ay değişir — auto-fill yapmıyoruz
+        if (d.imalYili) {
+            var imalEl = document.getElementById('tse-imalTarihi');
+            // Sadece tarih BOŞSA yıl bilgisini öner (kullanıcı kendi gün/ay'ı girmeli)
+            if (imalEl && !(imalEl.value||'').trim()) {
+                bilgiler.push('İmal yılı tahmini: <b>' + d.imalYili + '</b> (gün/ay manuel)');
+            }
+        }
+        var mesaj = [];
+        if (doldurulan.length) mesaj.push('🔍 VIN → ' + doldurulan.join(', ') + ' dolduruldu');
+        if (bilgiler.length)    mesaj.push('ℹ️ ' + bilgiler.join(' · '));
+        if (mesaj.length) gosterIpucu(mesaj.join(' · '));
+    }
+
+    // GTIP değiştiğinde Araç Cinsi/Kategori doldur
+    function onGtipChange() {
+        var gtip = (document.getElementById('tse-gtipNo')||{}).value || '';
+        var d = decodeGtip(gtip);
+        if (!d) return;
+        var doldurulan = [];
+        if (d.aracCinsi && setIfEmpty('tse-aracCinsi', d.aracCinsi)) doldurulan.push('Araç Cinsi');
+        if (d.kategori && setIfEmpty('tse-kategori', d.kategori)) doldurulan.push('Kategori');
+        if (doldurulan.length) gosterIpucu('📑 GTIP → ' + doldurulan.join(', ') + ' otomatik dolduruldu');
+    }
+
+    // Tip Onay No değiştiğinde geçmiş veriden öner
+    function onTipOnayChange() {
+        var no = ((document.getElementById('tse-tipOnayNo')||{}).value || '').trim();
+        var sourceKey = 'tipOnay:' + no;
+
+        // Önceki bir Tip Onay'dan smart-fill ile yazılan alanları temizle
+        // (Kullanıcının manuel yazdığı alanlara dokunulmaz — sadece dataset.smartFillSource olanlar)
+        clearFieldsFromSource('tipOnay:');
+
+        var m = findTipOnayMatches(no);
+        var panel = document.getElementById('tse-tipOnay-suggest');
+        if (!m) { if (panel) panel.style.display = 'none'; return; }
+
+        // Sabit alanları otomatik doldur (kaynak işareti ile)
+        var doldurulan = [];
+        Object.keys(m.sabit).forEach(function(alan) {
+            var etiket = { 'tse-marka':'Marka','tse-kategori':'Kategori','tse-tipOnayTarihi':'Tip Onay Tarihi' }[alan];
+            if (setIfEmpty(alan, m.sabit[alan], sourceKey)) doldurulan.push(etiket);
+        });
+
+        // Varyant öneri paneli oluştur
+        if (!panel) {
+            var inputEl = document.getElementById('tse-tipOnayNo');
+            if (!inputEl) return;
+            panel = document.createElement('div');
+            panel.id = 'tse-tipOnay-suggest';
+            panel.style.cssText = 'grid-column:span 2; background:var(--bg-elevated, #0f172a); border:1px solid var(--accent, #3b82f6); border-radius:8px; padding:10px 12px; margin-top:6px; font-size:12px; color:var(--text-primary, #e2e8f0);';
+            inputEl.closest('.input-group').parentNode.appendChild(panel);
+        }
+
+        var ozet = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+                 + '<span style="color:var(--accent);font-weight:600;">📋 Bu Tip Onay No\'da ' + m.kayitSayisi + ' geçmiş kayıt</span>'
+                 + (doldurulan.length ? '<span style="color:var(--success);font-size:11px;">✓ ' + doldurulan.join(', ') + '</span>' : '')
+                 + '</div>';
+
+        var varyantOzeti = function(v) {
+            var p = [];
+            if (v.tip)      p.push('Tip <b>' + v.tip + '</b>');
+            if (v.varyant)  p.push('Var <b>' + v.varyant + '</b>');
+            if (v.versiyon) p.push('Ver ' + v.versiyon);
+            if (v.yakit)    p.push(v.yakit);
+            return (v.marka||'') + ' ' + (v.ticariAd||'') + ' — ' + p.join(' / ');
+        };
+        if (m.varyantlar.length === 1) {
+            var v = m.varyantlar[0];
+            ozet += '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">'
+                  + '<span>' + varyantOzeti(v) + '</span>'
+                  + '<button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);" onclick="window._tseSmartFill._applyVaryant(' + 0 + ')">Tümünü Doldur</button>'
+                  + '</div>';
+            window._tseTipOnayVaryantlar = m.varyantlar;
+        } else {
+            ozet += '<div style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;">';
+            m.varyantlar.forEach(function(v, i) {
+                ozet += '<button type="button" onclick="window._tseSmartFill._applyVaryant(' + i + ')" '
+                      + 'style="text-align:left;padding:6px 8px;background:transparent;border:1px solid var(--border);border-radius:6px;color:inherit;cursor:pointer;font-size:12px;">'
+                      + varyantOzeti(v)
+                      + '</button>';
+            });
+            ozet += '</div>';
+            window._tseTipOnayVaryantlar = m.varyantlar;
+        }
+
+        panel.innerHTML = ozet;
+        panel.style.display = 'block';
+    }
+
+    function _applyVaryant(idx) {
+        var v = (window._tseTipOnayVaryantlar || [])[idx];
+        if (!v) return;
+        var no = ((document.getElementById('tse-tipOnayNo')||{}).value || '').trim();
+        var sourceKey = 'tipOnay:' + no + ':v' + idx;
+        var doldurulan = [];
+        if (setIfEmpty('tse-varyant', v.varyant, sourceKey)) doldurulan.push('Varyant');
+        if (setIfEmpty('tse-versiyon', v.versiyon, sourceKey)) doldurulan.push('Versiyon');
+        if (setIfEmpty('tse-yakitTuru', v.yakit, sourceKey)) doldurulan.push('Yakıt Türü');
+        if (setIfEmpty('tse-ticariAd', v.ticariAd, sourceKey)) doldurulan.push('Ticari Ad');
+        if (v.tip && setIfEmpty('tse-tip', v.tip, sourceKey)) doldurulan.push('Tip');
+        if (setIfEmpty('tse-marka', v.marka, sourceKey)) doldurulan.push('Marka');
+        gosterIpucu('🎯 Geçmiş veriden: ' + (doldurulan.join(', ')||'Hepsi zaten dolu'));
+    }
+
+    function gosterIpucu(mesaj) {
+        var st = document.getElementById('tse-sablon-status');
+        if (!st) return;
+        st.style.display = 'block';
+        st.style.color = 'var(--success, #10b981)';
+        st.innerHTML = mesaj;
+        clearTimeout(window._tseIpucuTimer);
+        window._tseIpucuTimer = setTimeout(function() {
+            if (st) { st.style.display = 'none'; st.innerHTML = ''; }
+        }, 3500);
+    }
+
+    // Modal her açıldığında event listener'ları bağla (tek sefer)
+    function attach() {
+        var modal = document.getElementById('tse-sablon-modal');
+        if (!modal || modal._smartFillAttached) return;
+        var vinEl = document.getElementById('tse-aracTanitimNo');
+        var gtipEl = document.getElementById('tse-gtipNo');
+        var toEl = document.getElementById('tse-tipOnayNo');
+        if (vinEl)  vinEl.addEventListener('input', debounce(onVinChange, 300));
+        if (vinEl)  vinEl.addEventListener('change', onVinChange);
+        if (gtipEl) gtipEl.addEventListener('input', debounce(onGtipChange, 300));
+        if (gtipEl) gtipEl.addEventListener('change', onGtipChange);
+        if (toEl)   toEl.addEventListener('input', debounce(onTipOnayChange, 300));
+        if (toEl)   toEl.addEventListener('change', onTipOnayChange);
+        modal._smartFillAttached = true;
+    }
+
+    // Modal açıldığında ön-doldurma alanı doluysa hemen analiz et
+    function analyzePrefilledFields() {
+        // setTimeout ile bekle — diğer prefill kodları (cache, APM) bitsin
+        setTimeout(function() {
+            onVinChange();
+            onGtipChange();
+            onTipOnayChange();
+        }, 400);
+    }
+
+    function debounce(fn, ms) {
+        var t;
+        return function() {
+            clearTimeout(t);
+            var args = arguments, self = this;
+            t = setTimeout(function() { fn.apply(self, args); }, ms);
+        };
+    }
+
+    return {
+        attach: attach,
+        analyze: analyzePrefilledFields,
+        decodeVin: decodeVin,
+        decodeGtip: decodeGtip,
+        findTipOnayMatches: findTipOnayMatches,
+        _applyVaryant: _applyVaryant
+    };
+})();
+/* ═══════════════ /AKILLI DOLDURMA MODÜLÜ ═══════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CoC TR PDF PARSER + TOPLU BACKFILL
+   Apps Script'ten ham PDF metnini alır → 16 TSE alanına ayrıştırır.
+   Toplu mod: tüm araçları gezer, eksik tseSablon'ları doldurur.
+   ═══════════════════════════════════════════════════════════════ */
+window._cocTrBackfill = (function() {
+
+    var GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+
+    // CoC TR metninden TSE alanlarını çıkar
+    function parseCocText(text) {
+        if (!text) return null;
+        var result = {};
+
+        // 1) VIN — 17 karakterli (I, O, Q olmaz). En güvenilir alan.
+        var vinMatch = text.match(/\b([A-HJ-NPR-Z0-9]{17})\b/);
+        if (vinMatch) result['tse-aracTanitimNo'] = vinMatch[1];
+
+        // 2) Tip Onay No — e1/e2/e3/e4...*tüzük*numara*uzantı (KS, 2018/858, vs.)
+        var toMatch = text.match(/\b(e\d+\*[A-Z0-9/]+\*\d+\*\d+)/);
+        if (toMatch) result['tse-tipOnayNo'] = toMatch[1];
+
+        // 3) Tip Onay Tarihi — Birden fazla format desteklenir:
+        //    a) "DD.MM.YYYY tarihinde yayımlanan ..." (Lamborghini stil)
+        //    b) "Verilen onayın tarihi DD.MM.YYYY olan ..." (Audi stil)
+        //    c) "onayın tarihi DD.MM.YYYY"
+        var toTarMatch =
+              text.match(/(\d{2}\.\d{2}\.\d{4})\s+tarihinde\s+yayımlanan/i)
+           || text.match(/(?:Verilen\s+)?onayın\s+tarihi[\s:]+(\d{2}\.\d{2}\.\d{4})/i)
+           || text.match(/tarihi\s+(\d{2}\.\d{2}\.\d{4})\s+olan\s+e\d+\*/i);
+        if (toTarMatch) result['tse-tipOnayTarihi'] = trToIsoDate(toTarMatch[1]);
+
+        // 4) İmal Tarihi — "Aracın üretim tarihi" sonrası ya da homologasyon tarihinden ÖNCEKİ tarih
+        //    a) "{imal_tarihi} {tip_onay_tarihi} tarihinde yayımlanan" (Lamborghini stil)
+        //    b) "Produktionsdatum des Fahrg: YYYY-MM-DD" (German fallback)
+        //    c) "üretim tarihi: DD.MM.YYYY" (Turkish etiketli)
+        var imalMatch =
+              text.match(/(\d{2}\.\d{2}\.\d{4})\s+\d{2}\.\d{2}\.\d{4}\s+tarihinde\s+yayımlanan/i)
+           || text.match(/üretim\s+tarihi[\s:]+(\d{2}\.\d{2}\.\d{4})/i)
+           || text.match(/Produktionsdatum[^\d]+(\d{4})-(\d{2})-(\d{2})/i);
+        if (imalMatch) {
+            if (imalMatch.length === 4) {
+                // YYYY-MM-DD formatı (German PDF)
+                result['tse-imalTarihi'] = imalMatch[1] + '-' + imalMatch[2] + '-' + imalMatch[3];
+            } else {
+                result['tse-imalTarihi'] = trToIsoDate(imalMatch[1]);
+            }
+        }
+
+        // 5) Varyant — "Varyant <değer>" (tek token, newline'da dur)
+        var varMatch = text.match(/Varyant[\s:\n]+([^\s\n]+)/i);
+        if (varMatch && !/^Versiyon$/i.test(varMatch[1])) result['tse-varyant'] = varMatch[1].trim();
+
+        // 6) Versiyon — "Versiyon" etiketi sonrası alfanumerik blok
+        var verMatch = text.match(/Versiyon[\s:\n]+([A-Z0-9]{4,})/i);
+        if (verMatch) result['tse-versiyon'] = verMatch[1].trim();
+
+        // 7) Ticari Ad — "Ticari ismi {değer}" — newline veya "0." (sonraki bölüm) ile bitir
+        var taMatch = text.match(/Ticari\s+ism[ie][\s:]+([^\n]+?)(?=\s*\n|\s+0\.|\s+CO2|\s+Sertifika)/i);
+        if (taMatch) result['tse-ticariAd'] = taMatch[1].replace(/\s+0$/,'').trim();
+
+        // 8) Yakıt Türü — "26. Yakıt {değer}" veya "Yakıt: {değer}"
+        var yakitMatch = text.match(/(?:26\.\s*)?Yakıt[\s:]+(\S+)/i);
+        if (yakitMatch) {
+            var y = yakitMatch[1].trim().toUpperCase();
+            var yakitMap = {
+                'BENZIN':'Benzin','BENZİN':'Benzin',
+                'DIZEL':'Dizel','DİZEL':'Dizel',
+                'ELEKTRIK':'Elektrikli','ELEKTRİK':'Elektrikli','ELEKTRIKLI':'Elektrikli','ELEKTRİKLİ':'Elektrikli',
+                'HIBRIT':'Hibrit','HİBRİT':'Hibrit','HYBRID':'Hibrit',
+                'LPG':'Benzin+LPG','CNG':'Benzin+CNG'
+            };
+            if (yakitMap[y]) result['tse-yakitTuru'] = yakitMap[y];
+            // OVC-HEV (hibrit göstergesi) — Yakıt benzin ama hibrit modu varsa
+            if (/OVC-HEV|Hibrit\s*\[elektrikli\]/i.test(text) && yakitMap[y] === 'Benzin') {
+                result['tse-yakitTuru'] = 'Hibrit';
+            }
+        }
+
+        // 9) Kategori — 3 katmanlı arama (öncelik sırası ile)
+        var katMatch =
+            // Katman 1: Etiketli — "Araç kategorisi: M1"
+            text.match(/Araç\s+kategorisi[\s:]*\n?\s*(M[1-3]G?|N[1-3]G?|L[1-7]e|O[1-4]|T[1-5])/i)
+            // Katman 2: Boşluklu — " M1 " (en güvenli, false positive yok)
+            || text.match(/(?:^|\s)(M[1-3]G?|N[1-3]G?|L[1-7]e|O[1-4]|T[1-5])(?:\s|$)/m)
+            // Katman 3: Esnek — PDF metni bozuksa "1M1 ..." gibi (lookbehind harf yasak)
+            || text.match(/(?<![A-Z])(M[1-3]G?|N[1-3]G?|L[1-7]e|O[1-4]|T[1-5])(?![A-Z0-9])/);
+        if (katMatch) result['tse-kategori'] = katMatch[1];
+
+        // 10) Tip — Frekans tabanlı: dosyada en sık tekrarlayan tip kodunu al
+        // Tipik patternler: "634 AA22", "634AA22", "W213", "F30" vb.
+        // Gerçek PDF'te tip kodu IP-/AT-/EV- prefix'leri ile çokça tekrar eder
+        var tipAdaylari = text.match(/\d{3}\s?[A-Z]{2}\d{2}/g) || [];
+        if (tipAdaylari.length) {
+            var sayim = {};
+            tipAdaylari.forEach(function(t){ sayim[t] = (sayim[t]||0)+1; });
+            var enCok = null, c = 0;
+            Object.keys(sayim).forEach(function(k){ if(sayim[k]>c){c=sayim[k]; enCok=k;} });
+            // En az 2 kez geçmiş olmalı (yanlış pozitif önle)
+            if (enCok && sayim[enCok] >= 2) result['tse-tip'] = enCok;
+            else if (enCok && tipAdaylari.length === 1) result['tse-tip'] = enCok;  // tek match
+        }
+
+        // 11) Marka — VIN'den çıkar (en güvenilir), sonra metinden doğrula
+        if (result['tse-aracTanitimNo'] && window._tseSmartFill) {
+            var vinD = window._tseSmartFill.decodeVin(result['tse-aracTanitimNo']);
+            if (vinD) {
+                if (vinD.marka) result['tse-marka'] = vinD.marka;
+                if (vinD.uretildigiUlke) result['tse-uretildigiUlke'] = vinD.uretildigiUlke;
+            }
+        }
+        // VIN yoksa metinden marka adını çekmeye çalış
+        if (!result['tse-marka']) {
+            var ureticiMatch = text.match(/(?:FİRMA|Üretici|Manufacturer)[\s\n]+([A-Z][A-Za-z\.\s]+?)(?:\s*S\.p\.a|\s*GmbH|\s*AG\b|\s*S\.A\.|\s*Ltd|\s*Inc|\n)/);
+            if (ureticiMatch) {
+                var raw = ureticiMatch[1].trim().toUpperCase();
+                // "AUTOMOBILI LAMBORGHINI" → "LAMBORGHINI"
+                raw = raw.replace(/^(AUTOMOBILI|AUTOMOBILE|MOTOREN-|MOTORS?\s)\s*/i,'').trim();
+                if (raw.length > 1 && raw.length < 40) result['tse-marka'] = raw;
+            }
+        }
+
+        // 12) Araç Cinsi — Kategori'den türet
+        var aracCinsiMap = {
+            'M1':'Otomobil', 'M2':'Minibüs', 'M3':'Otobüs',
+            'N1':'Kamyonet', 'N2':'Kamyon', 'N3':'Kamyon',
+            'L1e':'Motosiklet','L2e':'Motosiklet','L3e':'Motosiklet','L4e':'Motosiklet','L5e':'Motosiklet','L6e':'Motosiklet','L7e':'Motosiklet',
+            'O1':'Römork','O2':'Römork','O3':'Römork','O4':'Römork',
+            'T1':'Traktör','T2':'Traktör','T3':'Traktör','T4':'Traktör','T5':'Traktör'
+        };
+        if (result['tse-kategori']) {
+            var k = result['tse-kategori'].replace(/G$/,'');  // M1G → M1
+            if (aracCinsiMap[k]) result['tse-aracCinsi'] = aracCinsiMap[k];
+        }
+
+        // 13) İthalat Ülkesi — CoC'ta yok, fallback: Üretildiği Ülke ile aynı varsay
+        // (Çoğu durumda araç üretildiği ülkeden ithal edilir; kullanıcı farklıysa düzeltir)
+        if (result['tse-uretildigiUlke'] && !result['tse-ithalatUlkesi']) {
+            result['tse-ithalatUlkesi'] = result['tse-uretildigiUlke'];
+        }
+
+        // 14) Antrepo — Sistem varsayılanı
+        if (!result['tse-antrepoAdi']) result['tse-antrepoAdi'] = 'Y.O.İ.G.M';
+
+        // Sayım: kaç alan doldu?
+        var doluSayisi = Object.keys(result).filter(function(k){ return result[k]; }).length;
+        return { fields: result, doluSayisi: doluSayisi };
+    }
+
+    // "12.03.2026" → "2026-03-12"
+    function trToIsoDate(tr) {
+        if (!tr) return '';
+        var p = tr.split('.');
+        if (p.length !== 3) return '';
+        return p[2] + '-' + p[1] + '-' + p[0];
+    }
+
+    // Apps Script'ten CoC TR PDF metnini al
+    function fetchCocText(evrakLink) {
+        return new Promise(function(resolve) {
+            var cb = 'cocTrCb_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+            var timer = setTimeout(function() {
+                delete window[cb];
+                var s = document.getElementById(cb + '_script');
+                if (s) s.remove();
+                resolve({ success: false, error: 'timeout' });
+            }, 25000);
+
+            window[cb] = function(res) {
+                clearTimeout(timer);
+                delete window[cb];
+                var s = document.getElementById(cb + '_script');
+                if (s) s.remove();
+                resolve(res || { success: false, error: 'empty' });
+            };
+
+            var url = GAS_URL + '?action=readCocTrPdf&evrakLink=' + encodeURIComponent(evrakLink) + '&callback=' + cb;
+            var script = document.createElement('script');
+            script.id = cb + '_script';
+            script.src = url;
+            script.onerror = function() {
+                clearTimeout(timer);
+                delete window[cb];
+                if (script) script.remove();
+                resolve({ success: false, error: 'network' });
+            };
+            document.body.appendChild(script);
+        });
+    }
+
+    // TOPLU BACKFILL — tüm araçları gez, eksik tseSablon'ları CoC TR'den doldur
+    async function runBatch() {
+        var benzersiz = {};
+        var ekleEgerEvrakliBosTse = function(d) {
+            var sasi = (d.sasi||'').trim().toUpperCase();
+            if (!sasi || !((d.evrakLink||'').trim())) return;
+            // Eşik 12: CoC'tan beklediğimiz dolu alan sayısı 15. 12'den az olan = eksik = re-process
+            // (Önceki 8 eşiği APM-bazlı eski kayıtları atlıyordu, halbuki onlar da tarih içermiyor.)
+            if (d.tseSablon && Object.keys(d.tseSablon).filter(function(k){return d.tseSablon[k];}).length >= 12) return;
+            benzersiz[sasi] = d;
+        };
+        (window.declarationsData||[]).forEach(ekleEgerEvrakliBosTse);
+        var f = window.firmData || {};
+        Object.keys(f).forEach(function(k){ (f[k]||[]).forEach(ekleEgerEvrakliBosTse); });
+        (window.gelecekData||[]).forEach(ekleEgerEvrakliBosTse);
+
+        var hedefler = Object.values(benzersiz);
+        if (hedefler.length === 0) {
+            alert('🎉 Backfill için aday yok — tüm araçlarda TSE Şablonu zaten dolu (veya evrakLink yok).');
+            return;
+        }
+
+        if (!confirm('🔄 ' + hedefler.length + ' aracın klasöründe CoC TR PDF aranacak, bulunanlardan TSE bilgileri çıkarılacak.\n\n' +
+                     '⚠️ Mevcut TSE Şablonları KORUNUR — sadece BOŞ alanlara yazılır.\n' +
+                     'Tahmini süre: ~' + Math.ceil(hedefler.length * 2 / 60) + ' dakika.\n\nDevam edilsin mi?')) {
+            return;
+        }
+
+        // İlerleme modali
+        var modal = document.createElement('div');
+        modal.id = 'coc-batch-modal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);';
+        modal.innerHTML =
+            '<div style="background:var(--bg-surface);border-radius:12px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">' +
+            '  <h2 style="margin:0 0 12px 0;">🔄 CoC TR Toplu Tarama</h2>' +
+            '  <div id="coc-batch-progress" style="background:var(--bg-elevated);border-radius:8px;height:24px;margin:12px 0;overflow:hidden;">' +
+            '    <div id="coc-batch-bar" style="background:linear-gradient(90deg,#3b82f6,#06b6d4);height:100%;width:0%;transition:width 0.3s;"></div>' +
+            '  </div>' +
+            '  <div id="coc-batch-status" style="font-size:13px;margin-bottom:12px;"></div>' +
+            '  <div id="coc-batch-log" style="background:var(--bg-elevated);border-radius:8px;padding:10px;max-height:280px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.5;"></div>' +
+            '  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">' +
+            '    <button id="coc-batch-iptal" class="btn-sm">İptal Et</button>' +
+            '    <button id="coc-batch-kapat" class="btn-primary" style="display:none;">Kapat</button>' +
+            '  </div>' +
+            '</div>';
+        document.body.appendChild(modal);
+
+        var iptal = false;
+        document.getElementById('coc-batch-iptal').onclick = function() {
+            iptal = true;
+            log('⏹️ İptal edildi');
+        };
+        document.getElementById('coc-batch-kapat').onclick = function() { modal.remove(); };
+
+        var bar = document.getElementById('coc-batch-bar');
+        var status = document.getElementById('coc-batch-status');
+        var logEl = document.getElementById('coc-batch-log');
+        function log(msg) {
+            var line = document.createElement('div');
+            line.innerHTML = msg;
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        function setProg(i, total) {
+            bar.style.width = (i/total*100).toFixed(1) + '%';
+            status.textContent = i + ' / ' + total + ' işlendi';
+        }
+
+        var basari = 0, hata = 0, atlandi = 0;
+        for (var i = 0; i < hedefler.length; i++) {
+            if (iptal) break;
+            var d = hedefler[i];
+            var etiket = (d.firma||'?') + ' / ' + (d.marka||'?') + ' / ' + d.sasi;
+            setProg(i, hedefler.length);
+            status.innerHTML = '🔍 İşleniyor: <b>' + etiket + '</b>';
+
+            try {
+                var res = await fetchCocText(d.evrakLink);
+                if (!res.success) {
+                    log('⏭️ ' + etiket + ' — ' + (res.error === 'CoC TR PDF bulunamadi' ? 'CoC TR yok' : res.error));
+                    atlandi++;
+                    continue;
+                }
+                var parsed = parseCocText(res.text);
+                if (!parsed || parsed.doluSayisi === 0) {
+                    log('⚠️ ' + etiket + ' — PDF okundu (' + res.fileName + ') ama veri çıkmadı');
+                    hata++;
+                    continue;
+                }
+
+                // Tüm aynı şasi'li kayıtları güncelle (declarationsData + firmData)
+                guncelleAraciByShasi(d.sasi, parsed.fields);
+                log('✅ ' + etiket + ' → ' + parsed.doluSayisi + ' alan (' + res.fileName + ')');
+                basari++;
+            } catch (e) {
+                log('❌ ' + etiket + ' — ' + e.message);
+                hata++;
+            }
+
+            // Drive rate limit için kısa bekle
+            await new Promise(function(r){ setTimeout(r, 300); });
+        }
+
+        setProg(hedefler.length, hedefler.length);
+        status.innerHTML = '✅ <b>Tamamlandı</b> — ' + basari + ' başarılı · ' + atlandi + ' atlandı (CoC yok) · ' + hata + ' hata';
+        log('━━━━━━━━━━━━━━━━━━━━━━━━━');
+        log('💾 Veriler Firebase\'e kaydediliyor...');
+
+        // Firebase'e kaydet
+        if (window._firebaseSave && window._dataLoaded) {
+            window._firebaseSave({
+                decl: window.declarationsData,
+                firm: window.firmData,
+                kiymet: window.kiymetData,
+                firmMeta: window.firmMeta,
+                cariData: window.cariData
+            });
+            log('✅ Firebase\'e kaydedildi');
+        } else {
+            log('⚠️ Firebase kayıt fonksiyonu yok');
+        }
+
+        document.getElementById('coc-batch-iptal').style.display = 'none';
+        document.getElementById('coc-batch-kapat').style.display = '';
+    }
+
+    // Şasi numarasına sahip TÜM kayıtları (decl + firmData + gelecekData) güncelle
+    function guncelleAraciByShasi(sasi, yeniFields) {
+        sasi = (sasi||'').trim().toUpperCase();
+        if (!sasi) return;
+
+        var uygula = function(d) {
+            if ((d.sasi||'').trim().toUpperCase() !== sasi) return;
+            if (!d.tseSablon) d.tseSablon = {};
+            Object.keys(yeniFields).forEach(function(k) {
+                if (!d.tseSablon[k] && yeniFields[k]) d.tseSablon[k] = yeniFields[k];
+            });
+        };
+        (window.declarationsData||[]).forEach(uygula);
+        var f = window.firmData || {};
+        Object.keys(f).forEach(function(k){ (f[k]||[]).forEach(uygula); });
+        (window.gelecekData||[]).forEach(uygula);
+    }
+
+    return {
+        runBatch: runBatch,
+        parseCocText: parseCocText,
+        fetchCocText: fetchCocText
+    };
+})();
+
 // ── MEVCUT ARACI BULMA (şasiye göre) ────────────────────────────────
 window._tseMevcutAraciGetir = function(sasi) {
     if (!sasi) return null;
@@ -13399,6 +14200,12 @@ window.openTseSablonModal = function() {
         modal.addEventListener('input', window.tseSablonFormKaydet);
         modal.addEventListener('change', window.tseSablonFormKaydet);
         modal._autoSaveAttached = true;
+    }
+
+    // ── AKILLI DOLDURMA: VIN/GTIP/Tip Onay dinleyicileri + mevcut alanları analiz et
+    if (window._tseSmartFill) {
+        window._tseSmartFill.attach();
+        window._tseSmartFill.analyze();
     }
 
     // ── 2. ★ APM xls'ten otomatik çek (kesin doğru kaynak)
@@ -13596,6 +14403,12 @@ window.openTseSablonModalFromGelecek = function() {
         tseModal.addEventListener('input', window.tseSablonFormKaydet);
         tseModal.addEventListener('change', window.tseSablonFormKaydet);
         tseModal._autoSaveAttached = true;
+    }
+
+    // ── AKILLI DOLDURMA: VIN/GTIP/Tip Onay dinleyicileri + mevcut alanları analiz et
+    if (window._tseSmartFill) {
+        window._tseSmartFill.attach();
+        window._tseSmartFill.analyze();
     }
 
     // ★ APM Drive okuma yapılmaz — gelecek aracın henüz Drive klasörü yok
