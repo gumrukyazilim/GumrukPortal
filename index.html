@@ -5602,12 +5602,13 @@ window.openGelecekModal = function() {
             </div>
             <div class="modal-footer">
                 <button class="btn-sm" onclick="window.closeGelecekModal()">İptal</button>
+                <button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);" onclick="window.openTseSablonModalFromGelecek()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button>
                 <button class="btn-primary" onclick="window.saveGelecekEntry()"><i data-lucide="save"></i> Kaydet</button>
             </div>
         </div>`;
         document.body.appendChild(modal);
     }
-    
+
     let idx = window._gelecekEditIdx;
     if(idx >= 0 && window.gelecekData[idx]) {
         let d = window.gelecekData[idx];
@@ -5730,6 +5731,8 @@ window.gelecekAracGeldi = function(idx) {
         gonderici: d.gonderici || '',
         not: d.not || ''
     };
+    // Gelecek'te TSE Şablonu doldurulmuşsa Gelen kayıtlarına taşı
+    if (d.tseSablon) yeniKayit.tseSablon = d.tseSablon;
     
     // Declarations'a ekle
     if(!window.declarationsData.find(function(x){ return x.sasi === d.sasi; })) {
@@ -13289,6 +13292,9 @@ window._tseMevcutAraciGetir = function(sasi) {
         var bulunan = (firmalar[f] || []).find(function(x){ return x.sasi === sasi; });
         if (bulunan) return bulunan;
     }
+    // Gelecek araçlar listesinde ara (TSE Gelecek Araçlar entegrasyonu)
+    var gelecek = (window.gelecekData || []).find(function(x){ return x.sasi === sasi; });
+    if (gelecek) return gelecek;
     return null;
 };
 
@@ -13296,7 +13302,13 @@ window._tseMevcutAraciGetir = function(sasi) {
 // Her aracın TSE şablonu KENDİ şasi'si altında saklanır.
 // Önceki davranış: tek global cache → farklı araçta diğerinin verisi geliyordu.
 window._tseCacheKey = function() {
-    var sasi = ((document.getElementById('da-sase') || {}).value || '').trim().toUpperCase();
+    // Gelecek Araçlar'dan açıldıysa override şasi'yi kullan
+    var sasi;
+    if (window._tseActiveSasi) {
+        sasi = window._tseActiveSasi.trim().toUpperCase();
+    } else {
+        sasi = ((document.getElementById('da-sase') || {}).value || '').trim().toUpperCase();
+    }
     if (!sasi) return null;
     return 'gumruk_tse_sablon_' + sasi;
 };
@@ -13335,6 +13347,8 @@ window.tseSablonFormYukle = function() {
 };
 
 window.openTseSablonModal = function() {
+    // Gelen Araçlar akışı — gelecek override'ı temizle
+    window._tseActiveSasi = null;
     window.tseMarkaDatalistDoldur();
 
     var marka = (document.getElementById('da-marka') || {}).value || '';
@@ -13510,6 +13524,78 @@ window.tseSablonApmFromDrive = function(evrakLink, expectedSasi) {
         }
     };
     document.body.appendChild(script);
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// YENİ: TSE Şablonu - GELECEK ARAÇLAR'DAN AÇILDIĞINDA
+// Aynı şasi cache'i kullanır → araç Gelen Araçlar'a aktarıldığında
+// veri otomatik olarak orada da görünür.
+// ═══════════════════════════════════════════════════════════════
+window.openTseSablonModalFromGelecek = function() {
+    var sasi  = ((document.getElementById('gm-sasi')  || {}).value || '').trim();
+    var marka = ((document.getElementById('gm-marka') || {}).value || '').trim();
+    var gtip  = ((document.getElementById('gm-gtip')  || {}).value || '').trim();
+
+    if (!sasi) {
+        alert('⚠️ Şasi No girilmedi.\n\nTSE Şablonu doldurmak için önce Şasi No alanını doldurun (her aracın TSE verisi şasi numarasına bağlıdır).');
+        var el = document.getElementById('gm-sasi');
+        if (el) el.focus();
+        return;
+    }
+
+    // Aktif şasi'yi cache anahtarı için işaretle (Gelen Araçlar akışını etkilemez)
+    window._tseActiveSasi = sasi;
+
+    window.tseMarkaDatalistDoldur();
+
+    // Form temizle — başka aracın verisi sızmasın
+    window._TSE_ALANLAR.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    // Bu aracın kendi şasi'si için yerel cache var mı?
+    var yuklendiMi = window.tseSablonFormYukle();
+
+    // Gelecek formundan gelen bilgileri her zaman üzerine yaz
+    if (sasi)  document.getElementById('tse-aracTanitimNo').value = sasi;
+    if (marka) document.getElementById('tse-marka').value = marka;
+    if (gtip)  document.getElementById('tse-gtipNo').value = gtip;
+
+    // Antrepo varsayılan
+    var antrepoEl = document.getElementById('tse-antrepoAdi');
+    if (antrepoEl && !antrepoEl.value) antrepoEl.value = 'Y.O.İ.G.M';
+
+    var st = document.getElementById('tse-sablon-status');
+    if (st) {
+        if (yuklendiMi) {
+            st.style.display = 'block';
+            st.style.color = 'var(--success, #10b981)';
+            st.innerHTML = '✅ Bu araç için önceki veriler yüklendi.';
+            setTimeout(function(){ if(st) { st.style.display='none'; st.innerHTML=''; } }, 2500);
+        } else {
+            st.style.display = 'block';
+            st.style.color = 'var(--text-muted, #94a3b8)';
+            st.innerHTML = 'ℹ️ Gelecek araç — Drive klasörü henüz yok. Veriler sisteme kaydedilir, araç geldiğinde XLS otomatik üretilecek.';
+            setTimeout(function(){ if(st) { st.style.display='none'; st.innerHTML=''; } }, 4500);
+        }
+    }
+
+    var tseModal = document.getElementById('tse-sablon-modal');
+    tseModal.classList.remove('hidden');
+    // Gelecek Araç modali (z-index 9000) üstünde kalsın diye geçici boost
+    tseModal.style.zIndex = '10500';
+    if (window.lucide) lucide.createIcons();
+
+    // Her değişiklikte otomatik kaydet
+    if (tseModal && !tseModal._autoSaveAttached) {
+        tseModal.addEventListener('input', window.tseSablonFormKaydet);
+        tseModal.addEventListener('change', window.tseSablonFormKaydet);
+        tseModal._autoSaveAttached = true;
+    }
+
+    // ★ APM Drive okuma yapılmaz — gelecek aracın henüz Drive klasörü yok
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -14092,7 +14178,11 @@ if (saseInput && saseInput.value) {
 // TSE Şablonu modalini kapat
 window.closeTseSablonModal = function() {
     var m = document.getElementById('tse-sablon-modal');
-    if (m) m.classList.add('hidden');
+    if (m) {
+        m.classList.add('hidden');
+        m.style.zIndex = '';  // Gelecek'ten açıldığında verilen boost'u temizle
+    }
+    window._tseActiveSasi = null;
 };
 
 // Tarih formatla: YYYY-MM-DD  ->  DD.MM.YYYY
