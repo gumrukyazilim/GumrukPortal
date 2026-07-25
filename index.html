@@ -5020,9 +5020,27 @@ window._firebaseSave = async function(payload) {
             }
         }
 
-        // 3. HER ŞEY TAMAMSA BULUTA YAZ
+        // 3. ÇAKIŞMA KORUMASI: Sunucuda bu cihazın görmediği daha yeni bir kayıt var mı?
+        try {
+            const metaSnap = await get(ref(db, 'portal_data_test/_meta'));
+            if (metaSnap.exists()) {
+                const m = metaSnap.val() || {};
+                const bizdeki = window._sonYuklenenMeta || 0;
+                if (m.updatedAt && m.updatedAt > bizdeki && m.device && m.device !== window._cihazKimligi) {
+                    const zaman = new Date(m.updatedAt).toLocaleString('tr-TR');
+                    if (!confirm("⚠️ ÇAKIŞMA UYARISI!\n\nBaşka bir cihaz " + zaman + " tarihinde kayıt yapmış ve bu cihaz o veriyi henüz görmemiş olabilir.\n\nDevam ederseniz diğer cihazın değişiklikleri EZİLEBİLİR.\n\nYine de kaydedilsin mi?\n(Emin değilseniz İptal'e basıp sayfayı yenileyin.)")) {
+                        return false;
+                    }
+                }
+            }
+        } catch(e) { console.warn("Çakışma kontrolü yapılamadı (kayıt normal devam ediyor):", e.message); }
+
+        payload._meta = { updatedAt: Date.now(), device: window._cihazKimligi || 'bilinmiyor' };
+
+        // 4. HER ŞEY TAMAMSA BULUTA YAZ
         window._kendiYazma = true; // Listener'a "bu benim yazdım, geri yükleme" de
         await set(ref(db, 'portal_data_test'), payload);
+        window._sonYuklenenMeta = payload._meta.updatedAt;
         return true;
     }
     catch(e) { 
@@ -5045,6 +5063,12 @@ window._fbOrderByChild = orderByChild;
 window._fbStartAt = startAt;
 window._fbEndAt = endAt;
 window._fbOnValue = onValue;
+// Cihaz kimliği (çakışma koruması için) — cihaz başına bir kez üretilir
+window._cihazKimligi = localStorage.getItem('gumruk_cihaz_id');
+if (!window._cihazKimligi) {
+    window._cihazKimligi = 'chz_' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('gumruk_cihaz_id', window._cihazKimligi);
+}
 window._firebaseReady = true;
 if(typeof window._onFirebaseReady === 'function') window._onFirebaseReady();
 // Banka verisi cache
@@ -10558,6 +10582,10 @@ function loadFromLocal() {
                         if (typeof window.sheetseSenkronArkaPlanda === 'function') {
                             window.sheetseSenkronArkaPlanda();
                         }
+                        // ★ GÜNDE BİR OTOMATİK DRIVE YEDEĞİ (sessiz, ana akışı etkilemez)
+                        if (typeof window._gunlukOtoYedek === 'function') {
+                            window._gunlukOtoYedek();
+                        }
                     } else {
                         console.error("❌ Araç verisi buluta kaydedilemedi: Firebase yazma işlemi başarısız döndü.");
                         hideSyncToast("Kayıt başarısız!",false);
@@ -10622,6 +10650,7 @@ if(data.ekGonderici) {
     });
 }
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
+                window._sonYuklenenMeta = (data._meta && data._meta.updatedAt) || Date.now(); // çakışma koruması referansı
                 saveToLocal();
                 hideSyncToast("Firebase'den çekildi!",true);
                 // Dashboard istatistiklerini otomatik güncelle
@@ -10712,7 +10741,10 @@ if(data.ekGonderici) {
                 
                 let v = snapshot.val();
                 if(!v) return;
-                
+
+                // Çakışma koruması: diğer cihazın kaydını gördük, referansı güncelle
+                if (v._meta && v._meta.updatedAt) window._sonYuklenenMeta = v._meta.updatedAt;
+
                 console.log("📡 Diğer cihazdan veri geldi, güncelleniyor...");
                 
                 let degisti = false;
@@ -10768,6 +10800,10 @@ if(data.ekGonderici) {
     window._onFirebaseReady=function(){loadAllData();};
 
     window.exportBackup=function(){
+        // Yedek artık doğrudan Drive'daki GÜMRÜK ARŞİVİ/GÜMRÜK YEDEK klasörüne yazılır
+        // (GAS'a ulaşılamazsa eski davranış: dosya olarak indirilir)
+        if (typeof window.yedekAlGAS === 'function') { window.yedekAlGAS(false); return; }
+        if (typeof window.yedekIndirLokal === 'function') { window.yedekIndirLokal(); return; }
         let d={
             decl:window.declarationsData,
             firm:window.firmData,
@@ -20425,8 +20461,11 @@ window.kcSayiOku = function(id) {
     } else if (hasComma) {
         // "51,10690" → "51.10690"
         s = s.replace(',', '.');
+    } else if (hasDot && /^\d{1,3}(\.\d{3})+$/.test(s)) {
+        // Sadece nokta ve binlik kalıbı: "12.686" → 12686, "1.234.567" → 1234567
+        s = s.replace(/\./g, '');
     }
-    // Sadece nokta varsa olduğu gibi bırak (51.10690 doğru parse edilir)
+    // Diğer nokta halleri ondalık kabul edilir ("51.10690" doğru parse edilir)
     
     let n = parseFloat(s);
     return isNaN(n) ? 0 : n;
@@ -21418,6 +21457,101 @@ window._gtipInit = function() {
         document.addEventListener('touchend', yakala, true);
         document.addEventListener('click', yakala, true);
     }
+})();
+
+/* ═══════════════════════════════════════════════════════════════════
+   YEDEKLEME MODÜLÜ
+   "Yedek İndir" → veri JSON'u DILEKCE_GAS'a gider, Drive'daki
+   GÜMRÜK ARŞİVİ/GÜMRÜK YEDEK klasörüne tarihli dosya olarak yazılır
+   (Drive masaüstü senkronuyla G:\ klasöründe görünür).
+   Ayrıca her gün ilk başarılı kayıtta otomatik yedek alınır.
+   GAS'a ulaşılamazsa dosya tarayıcı indirmesi olarak iner (yedek yolu).
+   ═══════════════════════════════════════════════════════════════════ */
+window._yedekVerisiTopla = function() {
+    return {
+        decl: window.declarationsData || [],
+        firm: window.firmData || {},
+        kiymet: window.kiymetData || [],
+        firmMeta: window.firmMeta || {},
+        cariData: window.cariData || {},
+        gelecekData: window.gelecekData || [],
+        _yedekTarihi: new Date().toLocaleString('tr-TR'),
+        _cihaz: window._cihazKimligi || ''
+    };
+};
+
+window.yedekIndirLokal = function() {
+    try {
+        const veri = window._yedekVerisiTopla();
+        const n = new Date();
+        const pad = x => String(x).padStart(2, '0');
+        const ad = 'GumrukPortal_Yedek_' + n.getFullYear() + '-' + pad(n.getMonth()+1) + '-' + pad(n.getDate()) + '_' + pad(n.getHours()) + pad(n.getMinutes()) + '.json';
+        const blob = new Blob([JSON.stringify(veri, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = ad;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (typeof showSyncToast === 'function') showSyncToast('Yedek dosya olarak indirildi: ' + ad, true);
+    } catch (e) { alert('Yerel yedek indirilemedi: ' + e.message); }
+};
+
+window.yedekAlGAS = async function(sessiz) {
+    try {
+        if (!window._dataLoaded) { if (!sessiz) alert('Veriler henüz yüklenmedi, yedek alınamaz.'); return false; }
+        const veri = window._yedekVerisiTopla();
+        if (!sessiz && typeof showSyncToast === 'function') showSyncToast("Yedek Drive'a gönderiliyor...");
+        const result = await window.fetchGASWithRetry({ tip: 'YEDEK', veriJson: JSON.stringify(veri) });
+        if (!result || !result.ok) throw new Error((result && result.error) || 'GAS yedek hatası');
+        localStorage.setItem('gumruk_son_yedek_gunu', new Date().toISOString().slice(0, 10));
+        if (typeof hideSyncToast === 'function') hideSyncToast("✅ Yedek Drive'a kaydedildi: " + (result.filename || ''), true);
+        else if (!sessiz) alert('Yedek kaydedildi: ' + (result.filename || ''));
+        return true;
+    } catch (err) {
+        console.error('Drive yedeği başarısız:', err);
+        if (!sessiz) {
+            if (typeof hideSyncToast === 'function') hideSyncToast('Drive yedeği başarısız, dosya olarak indiriliyor...', false);
+            window.yedekIndirLokal();
+        }
+        return false;
+    }
+};
+
+// Günde bir otomatik yedek — ilk başarılı Firebase kaydından sonra çağrılır
+window._gunlukOtoYedek = function() {
+    try {
+        if ((localStorage.getItem('gumruk_role') || '') !== 'admin') return;
+        if (!window._dataLoaded) return;
+        const bugun = new Date().toISOString().slice(0, 10);
+        if (localStorage.getItem('gumruk_son_yedek_gunu') === bugun) return;
+        window.yedekAlGAS(true);
+    } catch (e) { /* otomatik yedek asla ana akışı bozmasın */ }
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   GENEL HATA BİLDİRİCİ — hatalar sessizce konsolda kaybolmasın
+   Ekranda toast gösterir + son 20 hatayı localStorage'da tutar
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+    var hataSayaci = 0;
+    function hataKaydet(mesaj, kaynak) {
+        try {
+            if (hataSayaci >= 5) return; // toast seli olmasın
+            // Firebase izin hataları gibi bilinen gürültüyü sayma ama logla
+            var kayit = { t: new Date().toLocaleString('tr-TR'), m: String(mesaj).substring(0, 300), k: kaynak || '' };
+            var log = [];
+            try { log = JSON.parse(localStorage.getItem('gumruk_hata_log') || '[]'); } catch(e) {}
+            log.unshift(kayit);
+            localStorage.setItem('gumruk_hata_log', JSON.stringify(log.slice(0, 20)));
+            if (/permission|Permission/.test(String(mesaj))) return; // bilinen firebase gürültüsü, toast yok
+            hataSayaci++;
+            if (typeof window.showToast === 'function') window.showToast('⚠️ Beklenmeyen hata: ' + String(mesaj).substring(0, 120), 'warn');
+        } catch(e) { /* bildirici kendisi hata üretmesin */ }
+    }
+    window.addEventListener('error', function(ev){ hataKaydet(ev.message || 'bilinmeyen hata', ev.filename ? (ev.filename.split('/').pop() + ':' + ev.lineno) : ''); });
+    window.addEventListener('unhandledrejection', function(ev){ hataKaydet((ev.reason && (ev.reason.message || ev.reason)) || 'promise hatası', 'promise'); });
+    // Hata log'unu görmek için: window.hataLogGoster()
+    window.hataLogGoster = function(){ try { return JSON.parse(localStorage.getItem('gumruk_hata_log') || '[]'); } catch(e){ return []; } };
 })();
 
 </script>
