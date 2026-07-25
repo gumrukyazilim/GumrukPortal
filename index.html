@@ -4607,6 +4607,22 @@ div[style*="position: relative"] > input {
                     <input type="text" inputmode="decimal" id="kc-trt" value="0,8" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                 </div>
                 <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">ÖTV ORANI (%)</label>
+                    <select id="kc-otv-oran" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                        <option value="0" selected>0 (yok)</option>
+                        <option value="4">%4</option>
+                        <option value="10">%10</option>
+                        <option value="45">%45</option>
+                        <option value="50">%50</option>
+                        <option value="80">%80</option>
+                        <option value="100">%100</option>
+                        <option value="130">%130</option>
+                        <option value="150">%150</option>
+                        <option value="170">%170</option>
+                        <option value="220">%220</option>
+                    </select>
+                </div>
+                <div>
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">KDV ORANI (%)</label>
                     <select id="kc-kdv" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                         <option value="20" selected>%20</option>
@@ -4632,26 +4648,9 @@ div[style*="position: relative"] > input {
                     <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Beyanname KDV Etki Hesabı</div>
                     <span style="margin-left:auto;font-size:11px;color:var(--text-muted);">Eksik beyan yurt dışı gibi matraha eklenir</span>
                 </div>
-                <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;">
-                    <div>
-                        <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">MEVCUT KDV MATRAHI (TL) — beyannameden</label>
-                        <input type="text" inputmode="decimal" id="kc-mevcut-kdvm" placeholder="3.361.072,29" oninput="window.formatCurrencyInput(this); window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
-                    </div>
-                    <div>
-                        <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">ÖTV %</label>
-                        <select id="kc-otv-oran" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
-                            <option value="0" selected>0 (yok)</option>
-                            <option value="4">%4</option>
-                            <option value="45">%45</option>
-                            <option value="50">%50</option>
-                            <option value="80">%80</option>
-                            <option value="100">%100</option>
-                            <option value="130">%130</option>
-                            <option value="150">%150</option>
-                            <option value="170">%170</option>
-                            <option value="220">%220</option>
-                        </select>
-                    </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">MEVCUT KDV MATRAHI (TL) — beyannameden</label>
+                    <input type="text" inputmode="decimal" id="kc-mevcut-kdvm" placeholder="3.361.072,29" oninput="window.formatCurrencyInput(this); window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                 </div>
                 <div style="margin-bottom:12px;">
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">MEVCUT TOPLAM VERGİ (TL) — beyannameden (KDV+ÖTV+TRT+Damga)</label>
@@ -4700,22 +4699,30 @@ div[style*="position: relative"] > input {
                 <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
                     <div>
                         <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">②</span> TRT bandrolü (<span id="kc-trt-disp">%0,8</span>)</div>
-                        <div id="kc-adim2-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">— × 0.008</div>
+                        <div id="kc-adim2-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">① × 0.008</div>
                     </div>
                     <strong id="kc-adim2" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
                 </div>
 
+                <div id="kc-otv-row" class="kc-step" style="display:none;justify-content:space-between;align-items:center;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:#a855f7;">③</span> ÖTV farkı (<span id="kc-otv-disp">%0</span>)</div>
+                        <div id="kc-adim-otv-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">(① + ②) × ÖTV %</div>
+                    </div>
+                    <strong id="kc-adim-otv" style="font-size:15px;font-weight:700;color:#a855f7;">0,00 TL</strong>
+                </div>
+
                 <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
                     <div>
-                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">③</span> KDV matrahı</div>
-                        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">① + ②</div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">④</span> KDV matrahı</div>
+                        <div id="kc-adim3-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">① + ②</div>
                     </div>
                     <strong id="kc-adim3" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
                 </div>
 
                 <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
                     <div>
-                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">④</span> KDV (<span id="kc-kdv-disp">%20</span>)</div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">⑤</span> KDV farkı (<span id="kc-kdv-disp">%20</span>)</div>
                         <div id="kc-adim4-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">— TL × 0.2</div>
                     </div>
                     <strong id="kc-adim4" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
@@ -4723,15 +4730,15 @@ div[style*="position: relative"] > input {
 
                 <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px 14px;">
                     <div>
-                        <div style="font-size:13px;font-weight:700;color:var(--danger);"><span>⑤</span> Ceza (<span id="kc-katsayi-disp">3 kat</span>)</div>
-                        <div id="kc-adim5-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">④ × 3</div>
+                        <div style="font-size:13px;font-weight:700;color:var(--danger);"><span>⑥</span> Ceza (<span id="kc-katsayi-disp">3 kat</span>)</div>
+                        <div id="kc-adim5-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">⑤ × 3</div>
                     </div>
                     <strong id="kc-adim5" style="font-size:15px;font-weight:700;color:var(--danger);">0,00 TL</strong>
                 </div>
 
                 <div id="kc-indirim-row" class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:12px 14px;">
                     <div>
-                        <div style="font-size:13px;font-weight:700;color:var(--success);"><span>⑥</span> 1/4 indirim (erken ödeme)</div>
+                        <div style="font-size:13px;font-weight:700;color:var(--success);"><span>⑦</span> 1/4 indirim (erken ödeme)</div>
                         <div id="kc-adim6-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">— TL ÷ 4</div>
                     </div>
                     <strong id="kc-adim6" style="font-size:15px;font-weight:700;color:var(--success);">- 0,00 TL</strong>
@@ -20364,36 +20371,63 @@ window.kcErkenToggle = function() {
 window.kcHesapla = function() {
     if (!document.getElementById('kc-eksik')) return;
     
+    // Resmi ceza kararı formülü (4458/234-1b) — gerçek kararla doğrulandı:
+    // TRT bandrolü = eksik TL × %0,8
+    // ÖTV farkı    = (eksik TL + TRT) × ÖTV%          (ÖTV matrahına TRT dahil)
+    // KDV farkı    = (eksik TL + TRT + ÖTV) × KDV%    (KDV matrahına ÖTV dahil)
+    // Ceza         = (ÖTV farkı + KDV farkı) × katsayı (TRT cezaya girmez)
     let eksik = window.kcSayiOku('kc-eksik');
     let kur = window.kcSayiOku('kc-kur');
     let trt = window.kcSayiOku('kc-trt');
     let kdv = parseFloat(document.getElementById('kc-kdv').value || 20);
     let katsayi = parseFloat(document.getElementById('kc-katsayi').value || 3);
+    let otvOranZincir = parseFloat(document.getElementById('kc-otv-oran')?.value || 0) || 0;
 
-    let adim1 = eksik * kur;
+    // Resmi tahakkuk gibi her kalem kuruşa yuvarlanır
+    let krs = function(n){ return Math.round(n * 100) / 100; };
+
+    let adim1 = krs(eksik * kur);
     document.getElementById('kc-adim1').innerText = window.kcFormat(adim1) + ' TL';
-    document.getElementById('kc-adim1-detay').innerText = 
+    document.getElementById('kc-adim1-detay').innerText =
         eksik.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' EUR x ' + kur.toFixed(4).replace('.', ',');
 
-    let adim2 = adim1 * (trt / 100);
+    let adim2 = krs(adim1 * (trt / 100));
     document.getElementById('kc-adim2').innerText = window.kcFormat(adim2) + ' TL';
-    document.getElementById('kc-adim2-detay').innerText = 
+    document.getElementById('kc-adim2-detay').innerText =
         window.kcFormat(adim1) + ' TL x ' + (trt/100).toFixed(3);
     document.getElementById('kc-trt-disp').innerText = '%' + String(trt).replace('.', ',');
 
-    let adim3 = adim1 + adim2;
-    document.getElementById('kc-adim3').innerText = window.kcFormat(adim3) + ' TL';
+    // ÖTV matrahı = eksik TL + TRT (resmi kararla birebir)
+    let otvFark = krs((adim1 + adim2) * (otvOranZincir / 100));
+    let otvRow = document.getElementById('kc-otv-row');
+    if (otvRow) otvRow.style.display = otvOranZincir > 0 ? 'flex' : 'none';
+    if (otvOranZincir > 0) {
+        let otvEl = document.getElementById('kc-adim-otv');
+        let otvDetEl = document.getElementById('kc-adim-otv-detay');
+        let otvDispEl = document.getElementById('kc-otv-disp');
+        if (otvEl) otvEl.innerText = window.kcFormat(otvFark) + ' TL';
+        if (otvDetEl) otvDetEl.innerText = window.kcFormat(adim1 + adim2) + ' TL x ' + (otvOranZincir/100).toFixed(2);
+        if (otvDispEl) otvDispEl.innerText = '%' + otvOranZincir;
+    }
 
-    let adim4 = adim3 * (kdv / 100);
+    let adim3 = adim1 + adim2 + otvFark;
+    document.getElementById('kc-adim3').innerText = window.kcFormat(adim3) + ' TL';
+    let adim3DetEl = document.getElementById('kc-adim3-detay');
+    if (adim3DetEl) adim3DetEl.innerText = otvOranZincir > 0 ? '① + ② + ③ ÖTV' : '① + ②';
+
+    let adim4 = krs(adim3 * (kdv / 100));
     document.getElementById('kc-adim4').innerText = window.kcFormat(adim4) + ' TL';
-    document.getElementById('kc-adim4-detay').innerText = 
+    document.getElementById('kc-adim4-detay').innerText =
         window.kcFormat(adim3) + ' TL x ' + (kdv/100).toFixed(2);
     document.getElementById('kc-kdv-disp').innerText = '%' + kdv;
 
-    let adim5 = adim4 * katsayi;
+    // Ceza matrahı = eksik alınan vergiler (ÖTV farkı + KDV farkı; TRT cezaya girmez)
+    let cezaMatrah = adim4 + otvFark;
+    let adim5 = krs(cezaMatrah * katsayi);
     document.getElementById('kc-adim5').innerText = window.kcFormat(adim5) + ' TL';
-    document.getElementById('kc-adim5-detay').innerText = 
-        window.kcFormat(adim4) + ' x ' + katsayi;
+    document.getElementById('kc-adim5-detay').innerText = otvOranZincir > 0
+        ? '(③ ÖTV + ⑤ KDV) = ' + window.kcFormat(cezaMatrah) + ' x ' + katsayi
+        : window.kcFormat(adim4) + ' x ' + katsayi;
     document.getElementById('kc-katsayi-disp').innerText = katsayi + ' kat';
 
     let indirim = adim5 / 4;
@@ -20402,7 +20436,7 @@ window.kcHesapla = function() {
         window.kcFormat(adim5) + ' TL / 4';
 
     document.getElementById('kc-toplam').innerText = window.kcFormat(adim5) + ' TL';
-    document.getElementById('kc-toplam-detay').innerText = katsayi + ' kat x KDV';
+    document.getElementById('kc-toplam-detay').innerText = katsayi + ' kat x ' + (otvOranZincir > 0 ? '(KDV + ÖTV)' : 'KDV');
 
     let erkenTutar = window._kcErken ? (adim5 - indirim) : adim5;
     document.getElementById('kc-erken-tutar').innerText = window.kcFormat(erkenTutar) + ' TL';
@@ -20416,21 +20450,21 @@ window.kcHesapla = function() {
     }
 
     // --- BEYANNAME KDV ETKİ HESABI ---
-    // Eksik beyan TL → Ek ÖTV + Ek TRT + Ek KDV → Yeni Toplam Vergi
+    // Eksik beyan TL → Ek TRT + Ek ÖTV + Ek KDV → Yeni Toplam Vergi
     let mevcutKdvm = window.kcSayiOku('kc-mevcut-kdvm');
     let mevcutToplamVergi = window.kcSayiOku('kc-mevcut-toplam-vergi');
-    let otvOran = parseFloat(document.getElementById('kc-otv-oran')?.value || 0) || 0;
+    let otvOran = otvOranZincir;
     let eksikBeyanTL = adim1; // eksik × kur
 
-    let ekOtv = eksikBeyanTL * (otvOran / 100);
-    let ekTrt = eksikBeyanTL * (trt / 100); // TRT %0,8 zincirde
-    let ekKdvMatrah = eksikBeyanTL + ekOtv + ekTrt;
+    let ekOtv = otvFark;
+    let ekTrt = adim2;
+    let ekKdvMatrah = eksikBeyanTL + ekTrt + ekOtv; // = adim3, ceza zinciriyle aynı matrah
     let yeniKdvm = mevcutKdvm + ekKdvMatrah;
     let yeniKdv = yeniKdvm * (kdv / 100);
 
     let mevcutKdv = mevcutKdvm * (kdv / 100);
     let ekKdv = yeniKdv - mevcutKdv;
-    let ekVergiToplam = ekOtv + ekTrt + ekKdv;
+    let ekVergiToplam = ekOtv + ekKdv; // resmi fark tahakkuku ÖTV+KDV (TRT tahakkuka girmez)
     let yeniToplamVergi = mevcutToplamVergi + ekVergiToplam;
 
     let yKdvmEl = document.getElementById('kc-yeni-kdvm');
@@ -20443,8 +20477,8 @@ window.kcHesapla = function() {
     if (yKdvmEl) yKdvmEl.innerText = window.kcFormat(yeniKdvm) + ' TL';
     if (yKdvmDetEl) {
         let detay = window.kcFormat(mevcutKdvm) + ' + ' + window.kcFormat(eksikBeyanTL);
+        if (ekTrt > 0) detay += ' + TRT ' + window.kcFormat(ekTrt);
         if (otvOran > 0) detay += ' + ÖTV ' + window.kcFormat(ekOtv) + ' (%' + otvOran + ')';
-        if (ekTrt > 0) detay += ' + TRT ' + window.kcFormat(ekTrt) + ' (%' + trt + ')';
         yKdvmDetEl.innerText = detay;
     }
     if (yKdvEl) yKdvEl.innerText = window.kcFormat(yeniKdv) + ' TL';
@@ -20467,6 +20501,7 @@ window.kcTemizle = function() {
     document.getElementById('kc-trt').value = '0,8';
     document.getElementById('kc-kdv').value = '20';
     document.getElementById('kc-katsayi').value = '3';
+    if(document.getElementById('kc-otv-oran')) document.getElementById('kc-otv-oran').value = '0';
     window.kcHesapla();
 };
 
@@ -20517,6 +20552,8 @@ window.kcExportPDF = async function() {
     let adim4 = t('kc-adim4'), adim5 = t('kc-adim5'), adim6 = t('kc-adim6');
     let toplam = t('kc-toplam'), erken = t('kc-erken-tutar'), tasarruf = t('kc-tasarruf');
     let showIndirim = !!window._kcErken;
+    let otvOranPdf = parseFloat(document.getElementById('kc-otv-oran')?.value || 0) || 0;
+    let adimOtv = t('kc-adim-otv');
 
     // Beyanname KDV Etki Hesabı verileri
     let mevcutKdvm = v('kc-mevcut-kdvm') || '-';
@@ -20568,6 +20605,7 @@ window.kcExportPDF = async function() {
     <tr><td style="padding:7px 10px;">Eksik Beyan (EUR)</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(eksik)} EUR</td></tr>
     <tr><td style="padding:7px 10px;">Döviz Kuru (TL/EUR)</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(kur)}</td></tr>
     <tr><td style="padding:7px 10px;">TRT Bandrolü</td><td style="padding:7px 10px;text-align:left;font-weight:600;">% ${escapeHtml(trt)}</td></tr>
+    ${otvOranPdf > 0 ? `<tr><td style="padding:7px 10px;">ÖTV Oranı</td><td style="padding:7px 10px;text-align:left;font-weight:600;">% ${otvOranPdf}</td></tr>` : ''}
     <tr><td style="padding:7px 10px;">KDV Oranı</td><td style="padding:7px 10px;text-align:left;font-weight:600;">% ${escapeHtml(kdv)}</td></tr>
     <tr><td style="padding:7px 10px;">Ceza Katsayısı</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(katsayi)} kat</td></tr>
   </table>
@@ -20577,10 +20615,11 @@ window.kcExportPDF = async function() {
     <tr><th colspan="2" style="font-weight:700;font-size:11px;text-transform:uppercase;padding:8px 10px;text-align:left;">Hesaplama Adımları</th></tr>
     <tr><td style="padding:7px 10px;">1. Eksik beyan TL karşılığı (EUR × Kur)</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
     <tr><td style="padding:7px 10px;">2. TRT bandrolü (1 × %${escapeHtml(trt)})</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim2)}</td></tr>
-    <tr><td style="padding:7px 10px;">3. KDV matrahı (1 + 2)</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim3)}</td></tr>
-    <tr><td style="padding:7px 10px;">4. KDV (3 × %${escapeHtml(kdv)})</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim4)}</td></tr>
-    <tr style="background:#ffe5e5;"><td style="padding:7px 10px;color:#991b1b;font-weight:700;">5. Ceza (4 × ${escapeHtml(katsayi)} kat)</td><td style="padding:7px 10px;text-align:left;color:#991b1b;font-weight:700;">${escapeHtml(adim5)}</td></tr>
-    ${showIndirim ? `<tr style="background:#e6f4ea;"><td style="padding:7px 10px;color:#166534;font-weight:700;">6. Erken ödeme indirimi (5 ÷ 4)</td><td style="padding:7px 10px;text-align:left;color:#166534;font-weight:700;">${escapeHtml(adim6)}</td></tr>` : ''}
+    ${otvOranPdf > 0 ? `<tr><td style="padding:7px 10px;">3. ÖTV farkı ((1 + 2) × %${otvOranPdf})</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adimOtv)}</td></tr>` : ''}
+    <tr><td style="padding:7px 10px;">4. KDV matrahı (${otvOranPdf > 0 ? '1 + 2 + 3' : '1 + 2'})</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim3)}</td></tr>
+    <tr><td style="padding:7px 10px;">5. KDV farkı (4 × %${escapeHtml(kdv)})</td><td style="padding:7px 10px;text-align:left;font-weight:600;">${escapeHtml(adim4)}</td></tr>
+    <tr style="background:#ffe5e5;"><td style="padding:7px 10px;color:#991b1b;font-weight:700;">6. Ceza (${otvOranPdf > 0 ? '(3 + 5)' : '5'} × ${escapeHtml(katsayi)} kat)</td><td style="padding:7px 10px;text-align:left;color:#991b1b;font-weight:700;">${escapeHtml(adim5)}</td></tr>
+    ${showIndirim ? `<tr style="background:#e6f4ea;"><td style="padding:7px 10px;color:#166534;font-weight:700;">7. Erken ödeme indirimi (6 ÷ 4)</td><td style="padding:7px 10px;text-align:left;color:#166534;font-weight:700;">${escapeHtml(adim6)}</td></tr>` : ''}
   </table>
 
   <table style="width:100%;border-collapse:separate;border-spacing:8px 0;margin-top:12px;table-layout:fixed;">
@@ -20588,7 +20627,7 @@ window.kcExportPDF = async function() {
       <td style="width:50%;padding:10px;vertical-align:top;">
         <div style="font-size:9px;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;margin-bottom:4px;color:#dc2626;">Toplam Ceza</div>
         <div style="font-size:14px;font-weight:800;color:#991b1b;word-break:break-word;line-height:1.2;">${escapeHtml(toplam)}</div>
-        <div style="font-size:9px;color:#666;margin-top:3px;">${escapeHtml(katsayi)} kat × KDV matrahı</div>
+        <div style="font-size:9px;color:#666;margin-top:3px;">${escapeHtml(katsayi)} kat × ${otvOranPdf > 0 ? '(KDV + ÖTV)' : 'KDV'}</div>
       </td>
       <td style="width:50%;padding:10px;vertical-align:top;">
         <div style="font-size:9px;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;margin-bottom:4px;color:#16a34a;">Erken Ödeme Tutarı</div>
