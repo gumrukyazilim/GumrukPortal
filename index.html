@@ -12148,6 +12148,37 @@ function hideSyncToast() {
 }
 // ================================================
 
+/* Kur alanları yalnızca "Hesapla" ekranı açıkken DOM'da bulunur.
+   Açılışta kur çekilirken Özet ekranındaysak alanlar yok → doğrudan
+   .value ataması "null is not an object" hatası veriyordu.
+   Bu yardımcı, alan yoksa sessizce geçer; değer zaten localStorage'a
+   yazıldığı için Hesapla ekranı açılınca uygulanır. */
+window.kurAlanaYaz = function(id, deger) {
+    var el = document.getElementById(id);
+    if (el) { el.value = deger; return true; }
+    return false;
+};
+
+// Hesapla ekranı açıldığında önbellekteki güncel kuru alanlara uygula
+window.kurAlanlariniTazele = function() {
+    try {
+        var ham = localStorage.getItem('gumruk_tcmb_last_kur');
+        if (!ham) return;
+        var k = JSON.parse(ham);
+        if (!k || !k.usd || !k.eur) return;
+        var usdEl = document.getElementById('calc-kur-usd');
+        var eurEl = document.getElementById('calc-kur-eur');
+        if (usdEl) usdEl.value = parseFloat(k.usd).toFixed(4).replace('.', ',');
+        if (eurEl) eurEl.value = parseFloat(k.eur).toFixed(4).replace('.', ',');
+        var st = document.getElementById('kur-status');
+        if (st && k.date) {
+            st.innerHTML = '✓ TCMB (' + k.date + ')';
+            st.className = 'kur-badge kur-live';
+            st.style.color = 'var(--success)';
+        }
+    } catch (e) { /* önbellek bozuksa sessiz geç */ }
+};
+
 window.fetchTCMBKur = async function(auto = false) {
     let st = document.getElementById('kur-status');
     let bugun = new Date().toLocaleDateString('tr-TR');
@@ -12173,9 +12204,9 @@ window.fetchTCMBKur = async function(auto = false) {
                     const usd = data.rates.USD.forexSelling;
                     const eur = data.rates.EUR.forexSelling;
                     
-                    document.getElementById('calc-kur-usd').value = usd.toFixed(4).replace('.', ',');
-                    document.getElementById('calc-kur-eur').value = eur.toFixed(4).replace('.', ',');
-                    
+                    window.kurAlanaYaz('calc-kur-usd', usd.toFixed(4).replace('.', ','));
+                    window.kurAlanaYaz('calc-kur-eur', eur.toFixed(4).replace('.', ','));
+
                     if(st){
                         st.innerHTML = `✓ TCMB Resmi (${data.date || bugun})`;
                         st.className = 'kur-badge kur-live';
@@ -12254,9 +12285,9 @@ window.fetchTCMBKur = async function(auto = false) {
             let eur = extractRate("EUR");
 
             if (usd && eur) {
-                document.getElementById('calc-kur-usd').value = usd.toFixed(4).replace('.', ',');
-                document.getElementById('calc-kur-eur').value = eur.toFixed(4).replace('.', ',');
-                
+                window.kurAlanaYaz('calc-kur-usd', usd.toFixed(4).replace('.', ','));
+                window.kurAlanaYaz('calc-kur-eur', eur.toFixed(4).replace('.', ','));
+
                 if(st){
                     st.innerHTML = `✓ TCMB Kurları (${bugun})`;
                     st.className = 'kur-badge kur-live';
@@ -12306,8 +12337,8 @@ function handleKurFailure(auto, bugun, st) {
             return;
         }
         
-        document.getElementById('calc-kur-usd').value = nUsd.toFixed(4).replace('.', ',');
-        document.getElementById('calc-kur-eur').value = nEur.toFixed(4).replace('.', ',');
+        window.kurAlanaYaz('calc-kur-usd', nUsd.toFixed(4).replace('.', ','));
+        window.kurAlanaYaz('calc-kur-eur', nEur.toFixed(4).replace('.', ','));
         
         if(st) {
             st.innerHTML = `⚠ Manuel Kur (${bugun})`;
@@ -12328,8 +12359,8 @@ function handleKurFailure(auto, bugun, st) {
 
 function useFallback(lastKur, st) {
     if (lastKur) {
-        document.getElementById('calc-kur-usd').value = parseFloat(lastKur.usd).toFixed(4).replace('.', ',');
-        document.getElementById('calc-kur-eur').value = parseFloat(lastKur.eur).toFixed(4).replace('.', ',');
+        window.kurAlanaYaz('calc-kur-usd', parseFloat(lastKur.usd).toFixed(4).replace('.', ','));
+        window.kurAlanaYaz('calc-kur-eur', parseFloat(lastKur.eur).toFixed(4).replace('.', ','));
         if(st) {
             st.innerHTML = `⚠ Önbellek (${lastKur.date})`;
             st.className = 'kur-badge';
@@ -12338,8 +12369,8 @@ function useFallback(lastKur, st) {
         if(typeof window.calculateTaxes === 'function') window.calculateTaxes();
     } else {
         // Son çare: Sabit değerler
-        document.getElementById('calc-kur-usd').value = "43,2500";
-        document.getElementById('calc-kur-eur').value = "49,5000";
+        window.kurAlanaYaz('calc-kur-usd', "43,2500");
+        window.kurAlanaYaz('calc-kur-eur', "49,5000");
         if(st) {
             st.innerHTML = `❌ Varsayılan Kur`;
             st.className = 'kur-badge';
@@ -16513,6 +16544,8 @@ if(vn==='cariKart'){
         if(vn==='calculator'){
             // DOM hazır olsun diye kısa gecikme
             setTimeout(function(){
+                // Açılışta çekilen kur, alanlar henüz yokken gelmiş olabilir → şimdi uygula
+                if(window.kurAlanlariniTazele) window.kurAlanlariniTazele();
                 window._isRestoring = true;
                 window.handleYakitChange(true);
                 window.handleMTVTuruChange(true);
