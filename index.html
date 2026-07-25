@@ -3353,6 +3353,7 @@ div[style*="position: relative"] > input {
             <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
             <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
 			<option value="KIYMET">💶 Kıymet Dilekçesi</option>
+			<option value="KTMCEVAP">📨 Kıymet Cevapsız Dilekçesi</option>
             </select>
         
         <button class="btn-sm" onclick="window.renderView('declarations')" style="min-height:48px; min-width:110px; font-size:15px; display:flex; align-items:center; justify-content:center;">
@@ -11069,6 +11070,8 @@ window.inlineEditDate = function(el, idx, field, source) {
         // Dışarı tıklarsa iptal (eski değer geri gelsin) — change tetiklenmediyse
         setTimeout(function() {
             let outsideHandler = function(ev) {
+                // Mobil tarih seçici içindeki dokunuşlar "dışarı" sayılmasın
+                if(ev.target && ev.target.closest && ev.target.closest('#tarih-picker-backdrop')) return;
                 if(!el.contains(ev.target)) {
                     document.removeEventListener('click', outsideHandler, true);
                     document.removeEventListener('touchstart', outsideHandler, true);
@@ -11081,10 +11084,14 @@ window.inlineEditDate = function(el, idx, field, source) {
             document.addEventListener('touchstart', outsideHandler, true);
         }, 300);
         
-        // Picker'ı aç — bu hücre tıklamasının parçası olduğu için iOS izin verir
-        inp.focus();
-        if(inp.showPicker) {
-            try { inp.showPicker(); } catch(e) {}
+        // Picker'ı aç — dokunmatikte özel takvim, masaüstünde native picker
+        if(window._tarihPickerCoarse && window.tarihPickerAc) {
+            window.tarihPickerAc(inp);
+        } else {
+            inp.focus();
+            if(inp.showPicker) {
+                try { inp.showPicker(); } catch(e) {}
+            }
         }
     };
     window.saveInlineDate=function(inp,idx,field){let iso=inp.value;let tr='';if(iso){let p=iso.split('-');if(p.length===3)tr=`${p[2]}.${p[1]}.${p[0]}`;}if(window.declarationsData[idx][field]!==tr){window.declarationsData[idx][field]=tr;saveData('decl');window.renderDeclarationsTable();}else{inp.parentElement.innerHTML=tr||'-';}};
@@ -13219,7 +13226,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         
         if(idx===-1||!d){
             ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
-            if(document.getElementById('da-tarih')) document.getElementById('da-tarih').value=new Date().toISOString().split('T')[0];
+            if(document.getElementById('da-tarih')){let _n=new Date();document.getElementById('da-tarih').value=`${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;}
             if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value='Açık';
             let defFirm=ctx==='firm'?window.currentFirm:(Object.keys(window.firmData)[0]||'');
             if(document.getElementById('da-firma')) document.getElementById('da-firma').value=defFirm;
@@ -18559,6 +18566,7 @@ window.renderDilekceContent = function() {
         distFound: found, // Distribütör listede bulundu mu?
         kiymetTarihi: ilkArac.kiymGt || "................", // KIYMETTEN GELİŞ TARİHİ
         tescilTarihi: ilkArac.tarih || "................",
+        beynmCifTarihi: ilkArac.beynmCif || "................", // BEYANNAME CIF TARİHİ
         gtip: ilkArac.gtip || "8704.21.31.00.00",
         yil: ilkArac.yil || "...."
     };
@@ -18667,6 +18675,41 @@ window.renderDilekceContent = function() {
             </div>
         `;
     } 
+    else if (tip === "KTMCEVAP") {
+        icerik = `
+            <div class="belge-kapsayici" style="margin-top: 90px;">
+                <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE</div>
+                <div style="font-weight: bold; margin-bottom: 18px;">
+                    Konu: Kıymet yazısına distribütör tarafından cevap verilmemesi nedeniyle ithalat işlemlerinin devam ettirilmesi talebi.
+                </div>
+                <p class="belge-paragraf">
+                    Şirketimiz <b>${veri.firmaAdi}</b> ithalatına konu olan aşağıdaki araçla ilgili Yeşilköy Gümrük Müdürlüğü'nüzce düzenlenen kıymet yazısına (Bilgi Belge talebi) İlgili distribütör tarafından cevap verilmemiştir.
+                </p>
+                <div style="font-weight: bold; margin: 15px 0 6px 0;">İşlem Bilgileri:</div>
+                <div style="margin-left: 20px; margin-bottom: 15px;">
+                    <div style="margin-bottom: 4px;">&bull; Gümrük Beyanname No: <b>${veri.beyanname}</b></div>
+                    <div style="margin-bottom: 4px;">&bull; Tarih: <b>${veri.beynmCifTarihi}</b></div>
+                    <div style="margin-bottom: 4px;">&bull; Şasi No: <b>${veri.sasi}</b></div>
+                </div>
+                <div style="font-weight: bold; margin: 15px 0 6px 0;">Kıymet Yazısı Numaraları:</div>
+                <div style="margin-left: 20px; margin-bottom: 15px;">
+                    <div style="margin-bottom: 4px;">&bull; <span contenteditable="true" class="editable-field">E-........................-100-........................ (..../..../........)</span></div>
+                    <div style="margin-bottom: 4px;">&bull; <span contenteditable="true" class="editable-field">E-........................-100-........................ (..../..../........)</span></div>
+                </div>
+                <p class="belge-paragraf">
+                    Distribütörün cevap vermemesi nedeniyle oluşan gecikmeden kaynaklanan her türlü ceza, faiz ve idari yaptırımı ve sonradan gelecek kıymete göre doğabilecek farklara ait sorumlulukları peşinen kabul ve taahhüt etmekteyiz.
+                </p>
+                <p class="belge-paragraf">
+                    Bu nedenle, ithalat işlemlerimizin bir an önce tamamlanmasını arz ederiz.
+                </p>
+                <div class="belge-imza-alani">
+                    <p style="margin-bottom: 10px;">Saygılarımızla,</p>
+                    <p class="imza-yetkili editable-field" contenteditable="true">${veri.imzaYetkilisi}</p>
+                    <p class="imza-isim">${veri.firmaAdi}</p>
+                </div>
+            </div>
+        `;
+    }
     else if (tip === "SURE") {
         let ozetGrup = {};
         items.forEach(item => {
@@ -21119,6 +21162,139 @@ window._gtipInit = function() {
     }, 100);
 };
 // ============================================
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBİL TARİH SEÇİCİ
+   Telefondaki native takvimde ay/yıl seçilince gün kaybolduğu için
+   dokunmatik cihazlarda tüm <input type="date"> alanları bu özel
+   takvimle açılır. Masaüstünde (mouse) native picker aynen çalışır.
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+    var AYLAR = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+    var GUNLER = ['Pt','Sa','Ça','Pe','Cu','Ct','Pz'];
+
+    window._tarihPickerCoarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+    var css = ''+
+    '#tarih-picker-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999998;display:flex;align-items:flex-end;justify-content:center;}'+
+    '#tarih-picker-sheet{background:var(--bg-elevated,#1e293b);color:var(--text-primary,#fff);border:1px solid var(--border,#334155);border-radius:18px 18px 0 0;width:100%;max-width:420px;padding:14px 16px 24px;box-shadow:0 -10px 40px rgba(0,0,0,0.5);}'+
+    '#tarih-picker-sheet .tp-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}'+
+    '#tarih-picker-sheet .tp-nav{width:42px;height:42px;border-radius:10px;border:1px solid var(--border,#334155);background:transparent;color:inherit;font-size:20px;cursor:pointer;flex-shrink:0;}'+
+    '#tarih-picker-sheet select{flex:1;height:42px;border-radius:10px;border:1px solid var(--border,#334155);background:var(--input-bg,#0f172a);color:inherit;font-size:15px;padding:0 8px;}'+
+    '#tarih-picker-sheet .tp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}'+
+    '#tarih-picker-sheet .tp-wd{font-size:11px;color:var(--text-muted,#94a3b8);padding:4px 0;font-weight:600;}'+
+    '#tarih-picker-sheet .tp-day{height:42px;border-radius:10px;border:none;background:transparent;color:inherit;font-size:15px;cursor:pointer;}'+
+    '#tarih-picker-sheet .tp-day.sec{background:var(--primary,#3b82f6);color:#fff;font-weight:700;}'+
+    '#tarih-picker-sheet .tp-day.bugun{border:1px solid var(--primary,#3b82f6);}'+
+    '#tarih-picker-sheet .tp-foot{display:flex;gap:8px;margin-top:12px;}'+
+    '#tarih-picker-sheet .tp-foot button{flex:1;height:44px;border-radius:10px;border:1px solid var(--border,#334155);background:transparent;color:inherit;font-size:14px;font-weight:600;cursor:pointer;}'+
+    '#tarih-picker-sheet .tp-foot .tp-bugun{border-color:var(--primary,#3b82f6);color:var(--primary,#3b82f6);}';
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+
+    var aktifInput = null, gorunumYil = 0, gorunumAy = 0; // gorunumAy: 0-11
+
+    function pad(n){ return String(n).padStart(2,'0'); }
+
+    function kapat(){
+        var b = document.getElementById('tarih-picker-backdrop');
+        if(b) b.remove();
+        aktifInput = null;
+    }
+
+    function degerYaz(iso){
+        if(!aktifInput) return;
+        var inp = aktifInput;
+        kapat();
+        inp.value = iso;
+        inp.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+
+    function ciz(){
+        var sheet = document.getElementById('tarih-picker-sheet');
+        if(!sheet) return;
+        var bugun = new Date();
+        var secIso = aktifInput && aktifInput.value ? aktifInput.value : '';
+        var by = bugun.getFullYear();
+        var yilOpts = '';
+        for(var y = by - 15; y <= by + 5; y++) yilOpts += '<option value="'+y+'"'+(y===gorunumYil?' selected':'')+'>'+y+'</option>';
+        var ayOpts = '';
+        for(var a = 0; a < 12; a++) ayOpts += '<option value="'+a+'"'+(a===gorunumAy?' selected':'')+'>'+AYLAR[a]+'</option>';
+
+        var html = '<div class="tp-head">'+
+            '<button type="button" class="tp-nav" data-tp="onceki">‹</button>'+
+            '<select data-tp="ay">'+ayOpts+'</select>'+
+            '<select data-tp="yil">'+yilOpts+'</select>'+
+            '<button type="button" class="tp-nav" data-tp="sonraki">›</button>'+
+        '</div><div class="tp-grid">';
+        for(var g = 0; g < 7; g++) html += '<div class="tp-wd">'+GUNLER[g]+'</div>';
+        var ilkGun = new Date(gorunumYil, gorunumAy, 1).getDay(); // 0=Pazar
+        var bos = (ilkGun + 6) % 7; // Pazartesi başlangıçlı hafta
+        var sonGun = new Date(gorunumYil, gorunumAy + 1, 0).getDate();
+        for(var b = 0; b < bos; b++) html += '<div></div>';
+        var bugunIso = by+'-'+pad(bugun.getMonth()+1)+'-'+pad(bugun.getDate());
+        for(var d = 1; d <= sonGun; d++){
+            var iso = gorunumYil+'-'+pad(gorunumAy+1)+'-'+pad(d);
+            var cls = 'tp-day' + (iso===secIso?' sec':'') + (iso===bugunIso?' bugun':'');
+            html += '<button type="button" class="'+cls+'" data-iso="'+iso+'">'+d+'</button>';
+        }
+        html += '</div><div class="tp-foot">'+
+            '<button type="button" data-tp="temizle">Temizle</button>'+
+            '<button type="button" class="tp-bugun" data-tp="bugun">Bugün</button>'+
+            '<button type="button" data-tp="kapat">Kapat</button>'+
+        '</div>';
+        sheet.innerHTML = html;
+    }
+
+    window.tarihPickerAc = function(inp){
+        if(!inp) return;
+        kapat();
+        aktifInput = inp;
+        var v = /^\d{4}-\d{2}-\d{2}$/.test(inp.value||'') ? inp.value.split('-') : null;
+        var simdi = new Date();
+        gorunumYil = v ? parseInt(v[0]) : simdi.getFullYear();
+        gorunumAy  = v ? parseInt(v[1]) - 1 : simdi.getMonth();
+
+        var backdrop = document.createElement('div');
+        backdrop.id = 'tarih-picker-backdrop';
+        backdrop.innerHTML = '<div id="tarih-picker-sheet"></div>';
+        document.body.appendChild(backdrop);
+        ciz();
+
+        backdrop.addEventListener('click', function(e){
+            if(e.target === backdrop){ kapat(); return; }
+            var t = e.target;
+            if(!t || !t.dataset) return;
+            if(t.dataset.iso){ degerYaz(t.dataset.iso); return; }
+            var islem = t.dataset.tp || '';
+            if(islem === 'onceki'){ gorunumAy--; if(gorunumAy < 0){ gorunumAy = 11; gorunumYil--; } ciz(); }
+            else if(islem === 'sonraki'){ gorunumAy++; if(gorunumAy > 11){ gorunumAy = 0; gorunumYil++; } ciz(); }
+            else if(islem === 'temizle'){ degerYaz(''); }
+            else if(islem === 'bugun'){ degerYaz(simdi.getFullYear()+'-'+pad(simdi.getMonth()+1)+'-'+pad(simdi.getDate())); }
+            else if(islem === 'kapat'){ kapat(); }
+        });
+        backdrop.addEventListener('change', function(e){
+            var t = e.target;
+            if(!t || !t.dataset || !t.dataset.tp) return;
+            if(t.dataset.tp === 'ay'){ gorunumAy = parseInt(t.value); ciz(); }
+            else if(t.dataset.tp === 'yil'){ gorunumYil = parseInt(t.value); ciz(); }
+        });
+    };
+
+    // Dokunmatik cihazda date input'a dokununca native takvim yerine bizimkini aç
+    if(window._tarihPickerCoarse){
+        var yakala = function(e){
+            var t = e.target;
+            if(t && t.tagName === 'INPUT' && t.type === 'date' && !t.disabled && !t.readOnly){
+                e.preventDefault();
+                e.stopPropagation();
+                if(t.blur) t.blur();
+                window.tarihPickerAc(t);
+            }
+        };
+        document.addEventListener('touchend', yakala, true);
+        document.addEventListener('click', yakala, true);
+    }
+})();
 
 </script>
 <script src="tse-baglanti.js"></script>
