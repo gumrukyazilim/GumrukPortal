@@ -3354,6 +3354,7 @@ div[style*="position: relative"] > input {
             <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
 			<option value="KIYMET">💶 Kıymet Dilekçesi</option>
 			<option value="KTMCEVAP">📨 Kıymet Cevapsız Dilekçesi</option>
+			<option value="MOTORNO">🔧 Motor Numarası Dilekçesi</option>
             </select>
         
         <button class="btn-sm" onclick="window.renderView('declarations')" style="min-height:48px; min-width:110px; font-size:15px; display:flex; align-items:center; justify-content:center;">
@@ -17428,6 +17429,82 @@ window.dilekceKTMCEVAPViaGAS = async function() {
     }
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// MOTOR NUMARASI (REDRESE) DİLEKÇESİ - GAS üzerinden PDF üretici
+// Beyanname no/tarih/firma sistemden, motor numarası ekrandan elle girilir
+// ═══════════════════════════════════════════════════════════════════
+window.dilekceMOTORNOViaGAS = async function() {
+    const items = window.currentDilekceItems || [];
+    if (items.length === 0) {
+        alert("Dilekçe verisi bulunamadı!");
+        return;
+    }
+
+    const ilkArac = items[0];
+
+    // Firma & imza yetkilisi (diğer dilekçelerle aynı eşleme)
+    let firmaAdi = ilkArac.firma || "........................";
+    let imzaYetkilisi = "........................";
+    let fUst = firmaAdi.toUpperCase();
+    if (fUst.includes("ŞAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
+    else if (fUst.includes("FF OTOMOTİV")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; }
+    else if (fUst.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
+    else if (fUst.includes("SANDIKÇI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+
+    // Motor numarası ekrandan (tek elle girilen alan)
+    const motorEl = document.querySelector('#dilekce-print-area .motor-no-alani');
+    let motorNo = motorEl ? (motorEl.textContent || '').trim() : '';
+    if (!motorNo || motorNo.includes("..........")) {
+        alert("Motor numarasını dilekçe üzerinde doldurun.");
+        if (motorEl) motorEl.focus();
+        return;
+    }
+
+    // İmza yetkilisi ekrandan değiştirilmiş olabilir
+    const imzaEl = document.querySelector('#dilekce-print-area .imza-yetkili.editable-field');
+    if (imzaEl) {
+        const t = imzaEl.textContent.trim();
+        if (t && !t.includes("..........")) imzaYetkilisi = t;
+    }
+
+    const payload = {
+        tip: "MOTORNO",
+        firmaAdi: firmaAdi,
+        imzaYetkilisi: imzaYetkilisi,
+        beyanname: ilkArac.beyanname || ilkArac.ozetBeyan || "...................",
+        tarih: ilkArac.beynmCif || ilkArac.tarih || "................",
+        sasi: ilkArac.sasi || "...................",
+        motorNo: motorNo
+    };
+
+    if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor (GAS)...");
+
+    try {
+        const result = await window.fetchGASWithRetry(payload);
+        if (!result.ok) throw new Error(result.error || "GAS hatası");
+
+        const byteChars = atob(result.pdfBase64);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = result.filename || "MOTOR_NO_DILEKCE.pdf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
+    } catch (err) {
+        console.error("MOTORNO GAS hatası:", err);
+        // GAS henüz bu tipi tanımıyorsa tarayıcı içi yedek üreticiyle devam et
+        if (typeof hideSyncToast === 'function') hideSyncToast("GAS yok, yedek PDF üretiliyor...", false);
+        return window.dilekceHtml2PdfIndir();
+    }
+};
+
 window.downloadPDF = function() {
     const tipEl = document.getElementById('dilekce-tipi');
     const tip = tipEl ? tipEl.value : 'BELGE';
@@ -17444,6 +17521,9 @@ window.downloadPDF = function() {
     }
     if (tip === "KTMCEVAP") {
         return window.dilekceKTMCEVAPViaGAS();
+    }
+    if (tip === "MOTORNO") {
+        return window.dilekceMOTORNOViaGAS();
     }
 
     return window.dilekceHtml2PdfIndir();
@@ -18867,6 +18947,30 @@ window.renderDilekceContent = function() {
                     <p style="margin-bottom: 10px;">Saygılarımızla,</p>
                     <p class="imza-yetkili editable-field" contenteditable="true">${veri.imzaYetkilisi}</p>
                     <p class="imza-isim">${veri.firmaAdi}</p>
+                </div>
+            </div>
+        `;
+    }
+    else if (tip === "MOTORNO") {
+        icerik = `
+            <div class="belge-kapsayici" style="margin-top: 110px;">
+                <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE</div>
+                <div style="font-weight: bold; margin-bottom: 18px;">
+                    Konu: ${veri.beyanname} Sayılı Gümrük Beyannamesinde Redrese Talebi.
+                </div>
+                <p class="belge-paragraf">
+                    Müdürlüğünüzde tescilli <b>${veri.beynmCifTarihi}</b> tarihli ve <b>${veri.beyanname}</b> sayılı gümrük beyannamesi kapsamı işlemimizde, beyannamenin "markalar" kısmında belirtilmesi gereken motor numarası bilgisi sehven girilmemiştir.
+                </p>
+                <p class="belge-paragraf">
+                    Söz konusu araca ait doğru motor numarası <span contenteditable="true" class="editable-field motor-no-alani">........................</span> şeklindedir.
+                </p>
+                <p class="belge-paragraf">
+                    İlgili beyannamenin "markalar" hanesine motor numarasının eklenmesi ve gerekli redrese işleminin yapılması hususunda gereğini arz ederim.
+                </p>
+                <div class="belge-imza-alani">
+                    <p style="margin-bottom: 10px;">Saygılarımızla,</p>
+                    <p class="imza-isim">${veri.firmaAdi}</p>
+                    <p class="imza-yetkili editable-field" contenteditable="true">${veri.imzaYetkilisi}</p>
                 </div>
             </div>
         `;
