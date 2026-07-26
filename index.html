@@ -3626,7 +3626,7 @@ div[style*="position: relative"] > input {
         <div class="analiz-kpi" style="background:linear-gradient(135deg,#ef4444,#991b1b);" onclick="window.kpiFirmaDetay('riskli')" title="Firma firma listele">
             <div class="analiz-kpi-lbl">RİSKLİ ARAÇ</div>
             <div class="analiz-kpi-val" id="kpi-riskli">0</div>
-            <div class="analiz-kpi-sub">≤ 5 gün kalan</div>
+            <div class="analiz-kpi-sub">≤ 5 gün kalan — anlık, dönemden bağımsız</div>
         </div>
     </div>
 
@@ -3650,6 +3650,7 @@ div[style*="position: relative"] > input {
             <div style="margin-bottom:14px;">
                 <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">FİRMA BAZLI</div>
                 <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">🏢 Firma Sıralaması</h3>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">Sayı = dönemde <b>gelen</b>, <span style="color:#10b981;font-weight:700;">(parantez)</span> = dönemde <b>çekilen</b></p>
             </div>
             <div id="firma-siralama" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
@@ -3673,6 +3674,7 @@ div[style*="position: relative"] > input {
             <div style="margin-bottom:14px;">
                 <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">AKTİVİTE</div>
                 <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">🗓️ Haftalık Aktivite Haritası</h3>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">Son 8 hafta — dönem seçiminden bağımsızdır. Çekiş işareti için aracın gerçek çekiş tarihi gerekir.</p>
             </div>
             <div id="heatmap-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
             <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:10px;color:var(--text-muted);">
@@ -3740,8 +3742,8 @@ div[style*="position: relative"] > input {
     <div class="fade-in" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px;">
         <div style="margin-bottom:14px;">
             <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">DETAY</div>
-            <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">📋 Aylık Firma Detayı (Son 6 Ay)</h3>
-            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">Sayı = o ay <b>gelen</b> araç, <span style="color:#10b981;font-weight:700;">(parantez)</span> = o ay <b>çekilen</b> araç</p>
+            <h3 id="detay-baslik" style="font-size:16px;font-weight:700;margin:2px 0 0;">📋 Aylık Firma Detayı</h3>
+            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">Seçili döneme göre aylara bölünür. Sayı = o ay <b>gelen</b> araç, <span style="color:#10b981;font-weight:700;">(parantez)</span> = o ay <b>çekilen</b> araç. Toplamlar üstteki KPI kartlarıyla birebir tutar.</p>
         </div>
         <div style="overflow:auto;">
             <table id="detay-tablo" style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -7133,21 +7135,33 @@ window.analizRender = function() {
         let uyarilar = [];
         if(riskli > 0) uyarilar.push('⚠️ <strong>' + riskli + ' araç</strong> 5 günden az kaldı — acil işlem gerekli');
 
+        // Çıkış yapmış ama ödenmemiş kayıtlar.
+        // gumrukBedeli EUR, tseBedeli TL — iki para birimi ayrı toplanır
+        // (eskiden sadece EUR sayılıyordu, TSE borcu görünmüyordu).
         let cikanOdemesiz = 0;
-        let cikanOdemesizMiktar = 0;
+        let cikanEUR = 0, cikanTL = 0;
+        let sayilanSasi = {};
         Object.keys(window.cariData || {}).forEach(firma => {
             (window.cariData[firma] || []).forEach(h => {
                 if(h.odendi || h.isTahsilat) return;
-                let sasi = (h.sasi||'').toUpperCase();
-                let arac = data.find(d => d.sasi && d.sasi.toUpperCase() === sasi);
-                if(arac && (arac.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')) {
-                    cikanOdemesiz++;
-                    cikanOdemesizMiktar += parseFloat(h.gumrukBedeli) || 0;
-                }
+                let sasi = (h.sasi||'').toLocaleUpperCase('tr');
+                if(!sasi) return;
+                let arac = data.find(d => d.sasi && String(d.sasi).toLocaleUpperCase('tr') === sasi);
+                if(!arac || !window._analizKapaliMi(arac)) return;
+                let b = (typeof window._cariBedellerGetir === 'function')
+                        ? window._cariBedellerGetir(h)
+                        : { gb: parseFloat(h.gumrukBedeli)||0, tb: parseFloat(h.tseBedeli)||0 };
+                if(b.gb > 0) cikanEUR += b.gb;
+                if(b.tb > 0) cikanTL  += b.tb;
+                if(!sayilanSasi[sasi]) { sayilanSasi[sasi] = true; cikanOdemesiz++; }
             });
         });
         if(cikanOdemesiz > 0) {
-            uyarilar.push('🚨 <strong>' + cikanOdemesiz + ' araç</strong> çıkış yaptı ama ödeme alınmadı (yaklaşık ' + Math.round(cikanOdemesizMiktar).toLocaleString('tr-TR') + ' €)');
+            let tutarlar = [];
+            if(cikanEUR > 0) tutarlar.push(Math.round(cikanEUR).toLocaleString('tr-TR') + ' €');
+            if(cikanTL  > 0) tutarlar.push(Math.round(cikanTL).toLocaleString('tr-TR') + ' ₺');
+            uyarilar.push('🚨 <strong>' + cikanOdemesiz + ' araç</strong> çıkış yaptı ama ödeme alınmadı' +
+                (tutarlar.length ? ' (' + tutarlar.join(' + ') + ')' : ''));
         }
 
         uyariBox.innerHTML = uyarilar.map(u => '<div class="analiz-uyari">' + u + '</div>').join('');
@@ -7284,6 +7298,7 @@ window.analizRender = function() {
     // ═══════ FİRMA SIRALAMASI ═══════
     let firmaMap = {};
     let firmaPrev = {};
+    let firmaCek = {};
     donemAraclari.forEach(d => {
         let f = d.firma || 'Bilinmiyor';
         firmaMap[f] = (firmaMap[f] || 0) + 1;
@@ -7292,11 +7307,20 @@ window.analizRender = function() {
         let f = d.firma || 'Bilinmiyor';
         firmaPrev[f] = (firmaPrev[f] || 0) + 1;
     });
+    // Dönemde çekilenler — sıralamada ikinci gösterge olarak yer alır
+    cekilenAraclari.forEach(d => {
+        let f = d.firma || 'Bilinmiyor';
+        firmaCek[f] = (firmaCek[f] || 0) + 1;
+    });
+    // Dönemde hiç aracı gelmemiş ama araç çekmiş firmalar da listede görünsün
+    Object.keys(firmaCek).forEach(f => { if(!(f in firmaMap)) firmaMap[f] = 0; });
 
     let firmaSiralama = document.getElementById('firma-siralama');
     if(firmaSiralama) {
-        let firmalar = Object.entries(firmaMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
-        let maxCount = firmalar[0] ? firmalar[0][1] : 1;
+        let firmalar = Object.entries(firmaMap)
+            .sort((a,b) => (b[1] - a[1]) || ((firmaCek[b[0]]||0) - (firmaCek[a[0]]||0)))
+            .slice(0, 8);
+        let maxCount = Math.max(1, ...firmalar.map(x => x[1]));
         if(firmalar.length === 0) {
             firmaSiralama.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:13px;">Bu dönemde veri yok</div>';
         } else {
@@ -7313,7 +7337,9 @@ window.analizRender = function() {
                         '<div class="firma-bar-wrap"><div class="firma-bar" style="width:' + pct + '%"></div></div>' +
                     '</div>' +
                     '<div class="firma-stats">' +
-                        '<div class="firma-count">' + c + '</div>' +
+                        '<div class="firma-count">' + c +
+                            ((firmaCek[f] || 0) > 0 ? ' <span style="color:#10b981;font-size:13px;">(' + firmaCek[f] + ')</span>' : '') +
+                        '</div>' +
                         '<div class="firma-change ' + degClass + '">' + degIco + ' %' + Math.abs(degisim) + '</div>' +
                     '</div>' +
                 '</div>';
@@ -7628,17 +7654,56 @@ window.analizRender = function() {
         firmaFinBody.innerHTML = firmaSatirlari || '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">Bu dönemde veri yok</td></tr>';
     }
 
-    // ═══════ AYLIK FİRMA × ARAÇ DETAYI (Son 6 Ay) ═══════
+    // ═══════ AYLIK FİRMA × ARAÇ DETAYI (seçili döneme göre) ═══════
     let detayHead = document.getElementById('detay-head');
     let detayBody = document.getElementById('detay-body');
     if(detayHead && detayBody) {
+        // Aylar SEÇİLİ DÖNEMDEN türetilir (eskiden sabit son 6 aydı; "Son 3 Ay"
+        // seçilse bile 6 ay gösteriyor, başlıkla ve KPI'larla çelişiyordu).
         let aylar = [];
-        for(let i = 5; i >= 0; i--) {
-            // setHours(0,0,0,0) şart: yoksa ay başı "01.07 15:42" olur ve
-            // ayın 1'inde gelen/çekilen araçlar o aya sayılmaz.
-            let ay = new Date(); ay.setDate(1); ay.setMonth(ay.getMonth() - i); ay.setHours(0,0,0,0);
-            aylar.push({ d:ay, lbl:ay.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}) });
+        // Dönem başı verinin başlangıcından eskiyse (ör. "Tümü" 2000'de başlar)
+        // ilk veri ayına çekilir — yoksa "319 ay" gibi anlamsız bir aralık çıkar.
+        let ilkVeri = null;
+        data.forEach(d => {
+            let dt = window._parsTR(d && d.tarih);
+            if(dt && (!ilkVeri || dt < ilkVeri)) ilkVeri = dt;
+        });
+        let tabloBas = (ilkVeri && ilkVeri > baslangic) ? ilkVeri : baslangic;
+        let curAy = new Date(tabloBas.getFullYear(), tabloBas.getMonth(), 1, 0, 0, 0, 0);
+        let sonAy = new Date(bitis.getFullYear(), bitis.getMonth(), 1, 0, 0, 0, 0);
+        let guvenlik = 0;
+        while(curAy <= sonAy && guvenlik++ < 400) {
+            aylar.push({ d: new Date(curAy), lbl: curAy.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}) });
+            curAy.setMonth(curAy.getMonth() + 1);
         }
+        if(aylar.length === 0) {
+            let tekAy = new Date(baslangic.getFullYear(), baslangic.getMonth(), 1, 0, 0, 0, 0);
+            aylar.push({ d: tekAy, lbl: tekAy.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}) });
+        }
+        // "Tümü" gibi çok uzun dönemlerde tablo okunmaz hale gelmesin:
+        // son 24 ay sütun sütun gösterilir, öncesi tek "ÖNCESİ" sütununda toplanır
+        // (böylece tablo toplamı yine KPI kartlarıyla birebir tutar).
+        let kirpildi = false;
+        let toplamAySayisi = aylar.length;
+        if(aylar.length > 24) {
+            let ilkGorunen = aylar[aylar.length - 24].d;
+            aylar = aylar.slice(-24);
+            aylar.unshift({
+                d: new Date(baslangic),
+                lbl: '◀ ÖNCESİ',
+                oncesi: true,
+                bas: new Date(baslangic),
+                bit: new Date(ilkGorunen.getTime() - 1)
+            });
+            kirpildi = true;
+        }
+
+        let detayBaslikEl = document.getElementById('detay-baslik');
+        if(detayBaslikEl) {
+            detayBaslikEl.textContent = '📋 Aylık Firma Detayı — ' + window._periodLabel(window._analizPeriod) +
+                ' (' + toplamAySayisi + ' ay' + (kirpildi ? ' — son 24 ay ayrı, öncesi tek sütunda' : '') + ')';
+        }
+
         detayHead.innerHTML = '<th style="text-align:left;">FİRMA</th>' +
             aylar.map(a => '<th>' + a.lbl + '</th>').join('') +
             '<th>TOPLAM</th>';
@@ -7652,14 +7717,25 @@ window.analizRender = function() {
             let firmaToplam = 0;
             let firmaCekToplam = 0;
             aylar.forEach((a, i) => {
-                let aySonu = new Date(a.d.getFullYear(), a.d.getMonth() + 1, 0, 23, 59, 59);
+                // Hücre aralığı dönemle KIRPILIR — böylece tablo toplamları
+                // KPI kartlarıyla birebir tutar (ör. "Son 3 Ay" ilk ayın
+                // tamamını değil, sadece dönem içinde kalan günlerini sayar).
+                let ayBasi, aySonu;
+                if(a.oncesi) {
+                    ayBasi = a.bas; aySonu = a.bit;
+                } else {
+                    ayBasi = new Date(a.d.getFullYear(), a.d.getMonth(), 1, 0, 0, 0, 0);
+                    aySonu = new Date(a.d.getFullYear(), a.d.getMonth() + 1, 0, 23, 59, 59, 999);
+                    if(ayBasi < baslangic) ayBasi = baslangic;
+                    if(aySonu > bitis)     aySonu = bitis;
+                }
                 let say = data.filter(d => {
                     if(d.firma !== f || !d.tarih) return false;
                     let dt = window._parsTR(d.tarih);
-                    return dt && dt >= a.d && dt <= aySonu;
+                    return dt && dt >= ayBasi && dt <= aySonu;
                 }).length;
                 // O ay çekilen (kapanan) araçlar — parantez içinde gösterilir
-                let cek = data.filter(d => d.firma === f && _donemdeKapandi(d, a.d, aySonu)).length;
+                let cek = data.filter(d => d.firma === f && _donemdeKapandi(d, ayBasi, aySonu)).length;
                 aylikToplam[i] += say;
                 aylikCekToplam[i] += cek;
                 firmaToplam += say;
@@ -7682,7 +7758,7 @@ window.analizRender = function() {
             ' <span style="color:#10b981;">(' + aylikCekToplam.reduce((s,v) => s+v, 0) + ')</span></td>' +
         '</tr>';
 
-        detayBody.innerHTML = satirlar || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">Veri yok</td></tr>';
+        detayBody.innerHTML = satirlar || '<tr><td colspan="' + (aylar.length + 2) + '" style="text-align:center;padding:30px;color:var(--text-muted);">Bu dönemde veri yok</td></tr>';
     }
 
     if(window.lucide) lucide.createIcons();
