@@ -3470,35 +3470,46 @@ div[style*="position: relative"] > input {
 </template>
 
 <template id="tpl-mevzuat">
-    <div class="page-hdr fade-in"><div><div class="page-eyebrow">Bilgi Bankası</div><h1 class="page-title">2026 Mart Gümrük Mevzuatı Rehberi</h1></div></div>
-    <div class="card card-pad fade-in mevzuat-container">
-        <p>Aşağıdaki bilgiler, <strong>Mart 2026</strong> itibarıyla sıfır otomobil ithalatı süreçleri için en güncel gümrük düzenlemelerini ve vergi oranlarını içermektedir.</p>
-        
-        <h2>1. İthalat Rejimi Kararı ve Tarife Cetveli (2026)</h2>
-        <p>30 Aralık 2025 tarihli Resmi Gazete'de yayımlanan <strong>2026 İthalat Rejimi Kararı (Karar No: 10790)</strong> ile Türk Gümrük Tarife Cetveli güncellenmiştir.</p>
-        <ul>
-            <li><strong>Yürürlük:</strong> 1 Ocak 2026</li>
-            <li><strong>GTİP Değişiklikleri:</strong> Elektrikli ve hibrit araçların tarife alt pozisyonları daha spesifik hale getirilmiştir.</li>
-        </ul>
-        
-        <h2>2. İlave Gümrük Vergisi (İGV) ve Ek Mali Yükümlülükler</h2>
+    <div class="page-hdr fade-in">
+        <div>
+            <div class="page-eyebrow">Bilgi Bankası</div>
+            <h1 class="page-title" id="mevzuat-baslik">Gümrük Mevzuatı Rehberi</h1>
+            <p class="page-sub" id="mevzuat-altbilgi">Oranlar yükleniyor...</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn-sm" onclick="window.mevzuatRehberiRender(true)" style="border-color:var(--primary);color:var(--primary);">
+                <i data-lucide="refresh-cw"></i> Oranları Yenile
+            </button>
+        </div>
+    </div>
+
+    <!-- CANLI ÖTV TABLOLARI — Firebase mevzuat_ayarlari düğümünden üretilir.
+         Hesap makinesi de aynı düğümü okur; ikisi çelişemez. -->
+    <div id="mevzuat-canli" class="card card-pad fade-in mevzuat-container">
+        <div style="text-align:center;padding:30px;color:var(--text-muted);">
+            <div class="spinner" style="margin:0 auto 10px;"></div>Vergi kuralları yükleniyor...
+        </div>
+    </div>
+
+    <div class="card card-pad fade-in mevzuat-container" style="margin-top:24px;">
+        <h2>İlave Gümrük Vergisi (İGV) ve Ek Mali Yükümlülükler</h2>
         <div class="mevzuat-warn">
-            <strong>⚠️ Önemli:</strong> AB ve STA dışı ülkelerden ithalatlarda katı ek mali yükümlülükler getirilmiştir.
+            <strong>⚠️ Bu tablo elle girilmiştir, kaynağı doğrulanmamıştır.</strong>
+            Bağlayıcı oranlar için Ticaret Bakanlığı'nın konsolide
+            <a href="https://ticaret.gov.tr/ithalat/ithalat-mevzuati/ithalat-rejimi-karari-igv-karari-ve-ithalat-tebligleri" target="_blank" style="color:var(--primary);">İthalat Rejimi / İGV Kararı</a>
+            sayfasına bakın.
         </div>
         <table class="mevzuat-table">
             <thead>
                 <tr><th>Araç Tipi</th><th>İlave Gümrük Vergisi (İGV)</th><th>Minimum Tutar</th></tr>
             </thead>
             <tbody>
-                <tr><td>İçten Yanmalı & Tam Hibrit</td><td>%25 (veya %40 Çin)</td><td>6.000 USD</td></tr>
+                <tr><td>İçten Yanmalı &amp; Tam Hibrit</td><td>%25 (veya %40 Çin)</td><td>6.000 USD</td></tr>
                 <tr><td>Plug-in Hibrit</td><td>%30</td><td>7.000 USD</td></tr>
                 <tr><td>Tam Elektrikli (BEV)</td><td>%30</td><td>8.500 USD</td></tr>
             </tbody>
         </table>
         <p><em>Not:</em> Standart Gümrük Vergisi binek araç için <strong>%10</strong> uygulanmaya devam etmektedir.</p>
-        
-        <h2>3. ÖTV Oranları ve Matrah Güncellemeleri</h2>
-        <p>İçten yanmalı araçlarda motor hacmine göre (1600cc altı %80, 2000cc üstü %220) sistem devam ederken, Elektrikli Araçlar için motor gücüne göre hesaplama yapılmaktadır.</p>
         <div class="mevzuat-info">
             <strong>Kümülatif KDV Hesabı:</strong> KDV oranı <strong>%20</strong> olup, (CIF + Gümrük V. + İGV + ÖTV) matrahının tamamı üzerinden hesaplanır.
         </div>
@@ -4146,6 +4157,7 @@ div[style*="position: relative"] > input {
             <option value="PICKUP_4X2">🛻 Pickup 4x2</option>
             <option value="PICKUP_4X4">🛻 Pickup 4x4 (Arazi)</option>
             <option value="PANELVAN">🚐 Panelvan / Van</option>
+            <option value="MOTOSIKLET">🏍️ Motosiklet (87.11)</option>
         </select>
     </div>
     <div class="input-group" style="margin:0;">
@@ -4195,7 +4207,9 @@ div[style*="position: relative"] > input {
                         <label>ÖTV %</label>
                         <select id="calc-otv-oran" onchange="window._otvManuel=true; window.calculateTaxes()" style="background:var(--input-bg);">
                             <option value="0">%0</option>
+                            <option value="3">%3</option>
 							<option value="4">%4</option>
+                            <option value="8">%8</option>
                             <option value="25">%25</option>
 							<option value="37">%37</option>
                             <option value="45">%45</option>
@@ -16369,7 +16383,12 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     let yakit = document.getElementById('calc-yakit')?.value || 'BENZİNLİ';
     let motor = document.getElementById('calc-motor')?.value || '1600-2000';
     if (!window._otvManuel) {
-        if (yakit === 'ELEKTRİK') {
+        // MOTOSİKLET (87.11): oran matraha değil, silindir hacmine/kW'a bağlı.
+        // Aşağıdaki otomobil dilimleri motosiklete uymadığı için ayrı dal.
+        if (window._motoSeciliMi && window._motoSeciliMi()) {
+            let _md = window._motoDilimBul ? window._motoDilimBul() : null;
+            otvO = _md ? _md.otv : 37;
+        } else if (yakit === 'ELEKTRİK') {
             if (motor === '<=160') { otvO = (otvM <= 1650000) ? 25 : 55; }
             else { otvO = (otvM <= 1650000) ? 65 : 75; }
         } else if (yakit === 'PLUG-IN') {
@@ -16496,96 +16515,184 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     window.saveCalcState();
 };
 
-    // ============ RESMİ GAZETE CANLI DUYURU ÇEKİCİ ============
-    window._RESMI_GAZETE_GAS_URL = "https://script.google.com/macros/s/AKfycbydNZ89b-opGeHGeWX4v0z63Zdp4E66msP8lwaW2M3jzRPVZzZjZQ_VomYeOLl_YBcm/exec";
-
-    window.resmiGazeteCek = function(zorla) {
-        let liste = document.getElementById('rg-duyuru-liste');
-        let ustBilgi = document.getElementById('rg-son-guncelleme');
-        if(!liste) return;
-
-        // Cache kontrolü (zorla değilse son 12 saat içinde çekildiyse tekrar çekme)
-        if(!zorla) {
-            let cache = localStorage.getItem('rg_cache');
-            if(cache) {
-                try {
-                    let parsed = JSON.parse(cache);
-                    let yas = (Date.now() - parsed.zaman) / (1000*60*60);
-                    if(yas < 12) {
-                        window.resmiGazeteRender(parsed.veri, parsed.zaman);
-                        return;
-                    }
-                } catch(e){}
-            }
-        }
-
-        liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);"><div class="spinner" style="margin:0 auto 10px;"></div>Resmi Gazete kontrol ediliyor...</div>';
-        ustBilgi.innerText = 'Yükleniyor...';
-
-        let callbackName = 'rgCallback_' + Date.now();
-        window[callbackName] = function(data) {
-            delete window[callbackName];
-            let s = document.getElementById(callbackName + '_script');
-            if(s) s.remove();
-
-            if(!data || !data.success) {
-                liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">⚠️ Veri çekilemedi. Lütfen resmigazete.gov.tr adresinden kontrol edin.</div>';
-                ustBilgi.innerText = 'Bağlantı hatası';
-                return;
-            }
-
-            // Cache'e kaydet
-            localStorage.setItem('rg_cache', JSON.stringify({
-                veri: data,
-                zaman: Date.now()
-            }));
-
-            window.resmiGazeteRender(data, Date.now());
-        };
-
-        let script = document.createElement('script');
-        script.id = callbackName + '_script';
-        script.src = window._RESMI_GAZETE_GAS_URL + '?callback=' + callbackName;
-        script.onerror = function() {
-            delete window[callbackName];
-            script.remove();
-            liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">⚠️ Bağlantı kurulamadı. İnternetinizi kontrol edin.</div>';
-            ustBilgi.innerText = 'Bağlantı yok';
-        };
-        document.body.appendChild(script);
+    // ============ MEVZUAT REHBERİ — CANLI ORAN TABLOLARI ============
+    // Rehber artık elle yazılmış metin değil; hesap makinesinin okuduğu
+    // mevzuat_ayarlari düğümünden üretiliyor. Böylece rehber ile hesap
+    // birbiriyle çelişemez. Firebase yoksa dosya içi varsayılanlara düşer.
+    window._mvzTabloYap = function(baslik, satirlar, not) {
+        if(!satirlar || !satirlar.length) return '';
+        let h = '<h2>' + baslik + '</h2>';
+        if(not) h += '<p style="font-size:12.5px;color:var(--text-muted);margin:-6px 0 10px;">' + not + '</p>';
+        h += '<table class="mevzuat-table"><thead><tr><th>Kapsam</th><th>Matrah dilimi</th><th style="text-align:right;">ÖTV</th></tr></thead><tbody>';
+        satirlar.forEach(function(s){
+            h += '<tr><td>' + s.kapsam + '</td><td>' + (s.dilim || '—') + '</td>' +
+                 '<td style="text-align:right;font-weight:700;">%' + s.oran + '</td></tr>';
+        });
+        return h + '</tbody></table>';
     };
 
-    window.resmiGazeteRender = function(data, zaman) {
-        let liste = document.getElementById('rg-duyuru-liste');
-        let ustBilgi = document.getElementById('rg-son-guncelleme');
-        if(!liste) return;
+    // Bir kural grubunu (brackets dizisi) tablo satırlarına çevirir
+    window._mvzGrupSatirlari = function(grup, kapsamEtiketi, hedef) {
+        if(!grup || !grup.brackets) return;
+        grup.brackets.forEach(function(b){
+            hedef.push({ kapsam: kapsamEtiketi, dilim: b.etiket || '—', oran: b.otv_orani });
+        });
+    };
 
-        let d = new Date(zaman);
-        let saat = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-        let tarih = String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
-        ustBilgi.innerText = 'Son güncelleme: ' + tarih + ' ' + saat + '  ·  ' + (data.adet || 0) + ' duyuru bulundu';
+    window.mevzuatRehberiRender = async function(zorla) {
+        let kap = document.getElementById('mevzuat-canli');
+        if(!kap) return;
+        try {
+            if(zorla && window.mevzuatCacheSifirla) window.mevzuatCacheSifirla();
+            let mv = (window.mevzuatYukle) ? await window.mevzuatYukle() : null;
 
-        if(!data.duyurular || !data.duyurular.length) {
-            liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">📭 Son günlerde otomotivle ilgili yeni duyuru yok.</div>';
-            return;
+            // Firebase yoksa en azından motosiklet varsayılanını göster
+            if(!mv) {
+                mv = { _meta: { versiyon: 'yerel varsayılan', kaynak_belgeler: ['Firebase okunamadı — dosya içi varsayılanlar'] },
+                       vergi_kurallari: { kategori_87_11: window._F1_VARSAYILAN_8711 } };
+            }
+            let vk = mv.vergi_kurallari || {};
+            let html = '';
+
+            // Başlık / kaynak bilgisi
+            let meta = mv._meta || {};
+            let bas = document.getElementById('mevzuat-baslik');
+            let alt = document.getElementById('mevzuat-altbilgi');
+            if(bas) bas.textContent = 'Gümrük Mevzuatı Rehberi';
+            if(alt) {
+                alt.innerHTML = 'Sürüm: <b>' + (meta.versiyon || '—') + '</b>' +
+                    (meta.olusturulma ? ' · Güncellenme: <b>' + meta.olusturulma + '</b>' : '') +
+                    ' · Kaynak: ' + ((meta.kaynak_belgeler || []).join(' | ') || '—');
+            }
+
+            // 87.03 BİNEK
+            let k03 = vk.kategori_87_03;
+            if(k03) {
+                let satirlar = [];
+                if(k03.icten_yanmali) {
+                    let m = k03.icten_yanmali;
+                    window._mvzGrupSatirlari(m.motor_0_1400cc,    'İçten yanmalı ≤1400 cc',      satirlar);
+                    window._mvzGrupSatirlari(m.motor_1400_1600cc, 'İçten yanmalı 1400–1600 cc',  satirlar);
+                    window._mvzGrupSatirlari(m.motor_1600_2000cc, 'İçten yanmalı 1600–2000 cc',  satirlar);
+                    window._mvzGrupSatirlari(m.motor_2000_ust,    'İçten yanmalı >2000 cc',      satirlar);
+                }
+                if(k03.bev) {
+                    window._mvzGrupSatirlari(k03.bev.kw_0_160,   'Tam elektrik (BEV) ≤160 kW', satirlar);
+                    window._mvzGrupSatirlari(k03.bev.kw_160_ust, 'Tam elektrik (BEV) >160 kW', satirlar);
+                }
+                if(k03.phev) {
+                    window._mvzGrupSatirlari(k03.phev.motor_0_1600cc,    'Plug-in hibrit ≤1600 cc',     satirlar);
+                    window._mvzGrupSatirlari(k03.phev.motor_1600_1800cc, 'Plug-in hibrit 1600–1800 cc', satirlar);
+                }
+                html += window._mvzTabloYap('87.03 — Binek Otomobil', satirlar,
+                    'Oran matraha bağlıdır; matrah = ÖTV öncesi vergilendirilebilir tutar.');
+            }
+
+            // 87.04 TİCARİ
+            let k04 = vk.kategori_87_04;
+            if(k04) {
+                let satirlar = [];
+                window._mvzGrupSatirlari(k04.arazi_4x4, 'Arazi taşıtı (4x4, çift kabin, açık kasa, ≤3500 kg)', satirlar);
+                window._mvzGrupSatirlari(k04.diger,     'Diğer 87.04 (4x2 pickup, kapalı kasa vb.)',           satirlar);
+                html += window._mvzTabloYap('87.04 — Yük Taşıma Araçları', satirlar, k04._aciklama || '');
+            }
+
+            // 87.11 MOTOSİKLET
+            let k11 = vk.kategori_87_11 || window._F1_VARSAYILAN_8711;
+            if(k11) {
+                let satirlar = [];
+                if(k11.icten_yanmali) {
+                    window._mvzGrupSatirlari(k11.icten_yanmali.motor_0_250cc, 'İçten yanmalı ≤250 cm³', satirlar);
+                    window._mvzGrupSatirlari(k11.icten_yanmali.motor_250_ust, 'İçten yanmalı >250 cm³', satirlar);
+                }
+                if(k11.elektrikli) {
+                    window._mvzGrupSatirlari(k11.elektrikli.pedal_yardimli, 'Pedal yardımlı ≤250 W (8711.60.10)', satirlar);
+                    window._mvzGrupSatirlari(k11.elektrikli.kw_0_20,        'Elektrikli ≤20 kW (8711.60.90.00.12)', satirlar);
+                    window._mvzGrupSatirlari(k11.elektrikli.kw_20_ust,      'Elektrikli >20 kW (8711.60.90.00.11)', satirlar);
+                }
+                html += window._mvzTabloYap('87.11 — Motosiklet (mopedler dahil)', satirlar,
+                    'Motosiklette oran matraha değil, silindir hacmine / motor gücüne bağlıdır. ' + (k11._kaynak || ''));
+            }
+
+            // ENGELLİ MUAFİYETİ
+            let em = mv.engelli_muafiyet;
+            if(em) {
+                html += '<h2>Engelli Muafiyeti</h2><ul>';
+                if(em.kategori_87_03 && em.kategori_87_03.vergiler_dahil_max_tl) {
+                    html += '<li><b>87.03 binek:</b> vergiler dahil fiyat ≤ ' +
+                        Number(em.kategori_87_03.vergiler_dahil_max_tl).toLocaleString('tr-TR') + ' TL ise ÖTV %0</li>';
+                }
+                if(em.kategori_87_04 && em.kategori_87_04.motor_cc_max) {
+                    html += '<li><b>87.04 ticari:</b> motor hacmi ≤ ' + em.kategori_87_04.motor_cc_max + ' cc ise ÖTV %0</li>';
+                }
+                html += '<li><b>87.11 motosiklet:</b> hacim sınırı olmaksızın ÖTV %0</li></ul>';
+            }
+
+            html += '<div class="mevzuat-info" style="margin-top:16px;">Bu tablolar hesap makinesinin kullandığı ' +
+                    'kural motorundan üretilir. Oran değişikliği Firebase <code>mevzuat_ayarlari</code> düğümünden ' +
+                    'yapılır; hem rehber hem hesaplama aynı anda güncellenir.</div>';
+
+            kap.innerHTML = html || '<div style="padding:20px;color:var(--text-muted);">Kural tablosu bulunamadı.</div>';
+        } catch(e) {
+            console.error('[Mevzuat] rehber render hatası:', e);
+            kap.innerHTML = '<div style="padding:20px;color:var(--warning);">⚠️ Oranlar yüklenemedi: ' +
+                            (e.message || e) + '</div>';
         }
-
-        liste.innerHTML = data.duyurular.map(function(duyuru) {
-            return '<div style="padding:14px 16px;background:var(--input-bg);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
-                '<div style="flex:1;min-width:200px;">' +
-                    '<div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:4px;">📅 ' + duyuru.tarih + '</div>' +
-                    '<div style="font-size:13px;color:var(--text-primary);line-height:1.5;">' + duyuru.baslik + '</div>' +
-                '</div>' +
-                '<a href="' + duyuru.link + '" target="_blank" class="btn-sm" style="border-color:var(--primary);color:var(--primary);text-decoration:none;white-space:nowrap;">Oku <i data-lucide="external-link" style="width:12px;height:12px;"></i></a>' +
-            '</div>';
-        }).join('');
-
-        if(window.lucide) lucide.createIcons();
     };
     // ============================================================
 
     // ============ RESMİ GAZETE CANLI DUYURU ÇEKİCİ ============
+    // 2026-07-26 revizyonu:
+    //  • JSONP çağrısına zaman aşımı eklendi (script.onerror timeout'ta tetiklenmiyor,
+    //    panel sonsuza kadar spinner'da kalıyordu)
+    //  • Sunucu cevap vermezse en son başarılı liste "eski veri" notuyla gösterilir
+    //  • Sonuçlar Firebase'e yazılır → her cihaz aynı listeyi görür, geçmiş birikir
+    //  • Okunmamış duyuru sayısı menüde rozet olarak çıkar
     window._RESMI_GAZETE_GAS_URL = "https://script.google.com/macros/s/AKfycbydNZ89b-opGeHGeWX4v0z63Zdp4E66msP8lwaW2M3jzRPVZzZjZQ_VomYeOLl_YBcm/exec";
+    window._RG_TIMEOUT_MS = 20000;
+
+    // Duyuru için tekil anahtar (tarih + başlık) — okundu takibi ve tekilleştirme için
+    window._rgAnahtar = function(d) {
+        return ((d && d.tarih) || '') + '|' + (((d && d.baslik) || '').substring(0, 80));
+    };
+
+    window._rgCacheOku = function() {
+        try { return JSON.parse(localStorage.getItem('rg_cache') || 'null'); } catch(e) { return null; }
+    };
+
+    // Otomatik tarama çalışmadığında tek tıkla resmî kaynaklara gitme paneli.
+    // resmigazete.gov.tr veri merkezi IP'lerine (Google/Apps Script dahil) yanıt
+    // vermiyor; sayfa senin bilgisayarından açılıyor. Bu yüzden otomatik tarama
+    // yerine doğru sayfaya doğrudan link veriyoruz.
+    window._rgKaynakLinkleri = function(sebep) {
+        let bugun = new Date();
+        let g = function(d) {
+            return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
+        };
+        let dun = new Date(bugun); dun.setDate(dun.getDate() - 1);
+        let kaynaklar = [
+            { ad: '📰 Resmî Gazete — bugün (' + g(bugun) + ')', url: 'https://www.resmigazete.gov.tr/' + g(bugun) },
+            { ad: '📰 Resmî Gazete — dün (' + g(dun) + ')',     url: 'https://www.resmigazete.gov.tr/' + g(dun) },
+            { ad: '🔎 Resmî Gazete arşiv arama',                 url: 'https://www.resmigazete.gov.tr/arsiv' },
+            { ad: '🚗 Ticaret Bakanlığı — İthalat Rejimi / İGV Kararı', url: 'https://ticaret.gov.tr/ithalat/ithalat-mevzuati/ithalat-rejimi-karari-igv-karari-ve-ithalat-tebligleri' },
+            { ad: '🧾 ÖTV Kanunu (II) sayılı liste — mevzuat.gov.tr', url: 'https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=4760&MevzuatTur=1&MevzuatTertip=5' },
+            { ad: '🏍️ GTİP Arama (87. Fasıl — portal içi)', url: '#', tik: "window.renderView('gtipArama')" }
+        ];
+        let html = '<div style="padding:16px 18px;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:10px;margin-bottom:12px;">' +
+            '<div style="font-weight:700;color:var(--warning);margin-bottom:6px;">⚠️ Otomatik tarama yapılamadı</div>' +
+            '<div style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;">' + (sebep || '') +
+            '.<br>Resmî Gazete sitesi bulut sunucularından gelen isteklere yanıt vermiyor, bu yüzden liste otomatik ' +
+            'çekilemiyor. Aşağıdaki bağlantılar doğru sayfayı doğrudan açar — senin bağlantından site sorunsuz açılıyor.' +
+            '</div></div>';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;">';
+        kaynaklar.forEach(function(k) {
+            html += '<a href="' + k.url + '"' + (k.tik ? ' onclick="' + k.tik + ';return false;"' : ' target="_blank"') +
+                ' style="display:block;padding:12px 14px;background:var(--input-bg);border:1px solid var(--border);' +
+                'border-left:3px solid var(--primary);border-radius:8px;color:var(--text-primary);text-decoration:none;font-size:13px;font-weight:600;">' +
+                k.ad + '</a>';
+        });
+        return html + '</div>';
+    };
 
     window.resmiGazeteCek = function(zorla) {
         let liste = document.getElementById('rg-duyuru-liste');
@@ -16594,56 +16701,130 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
 
         // Cache kontrolü (zorla değilse son 12 saat içinde çekildiyse tekrar çekme)
         if(!zorla) {
-            let cache = localStorage.getItem('rg_cache');
-            if(cache) {
-                try {
-                    let parsed = JSON.parse(cache);
-                    let yas = (Date.now() - parsed.zaman) / (1000*60*60);
-                    if(yas < 12) {
-                        window.resmiGazeteRender(parsed.veri, parsed.zaman);
-                        return;
-                    }
-                } catch(e){}
+            let parsed = window._rgCacheOku();
+            if(parsed && parsed.zaman) {
+                let yas = (Date.now() - parsed.zaman) / (1000*60*60);
+                if(yas < 12) { window.resmiGazeteRender(parsed.veri, parsed.zaman); return; }
             }
         }
 
         liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);"><div class="spinner" style="margin:0 auto 10px;"></div>Resmi Gazete kontrol ediliyor...</div>';
-        ustBilgi.innerText = 'Yükleniyor...';
+        if(ustBilgi) ustBilgi.innerText = 'Yükleniyor...';
 
         let callbackName = 'rgCallback_' + Date.now();
-        window[callbackName] = function(data) {
+        let bitti = false;
+        let zamanlayici = null;
+
+        // Sunucu cevap vermezse: eldeki en son listeyi göster, kullanıcıyı boşuna bekletme
+        let basarisiz = function(sebep) {
+            if(bitti) return;
+            bitti = true;
+            clearTimeout(zamanlayici);
             delete window[callbackName];
             let s = document.getElementById(callbackName + '_script');
             if(s) s.remove();
 
-            if(!data || !data.success) {
-                liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">⚠️ Veri çekilemedi. Lütfen resmigazete.gov.tr adresinden kontrol edin.</div>';
-                ustBilgi.innerText = 'Bağlantı hatası';
-                return;
+            let parsed = window._rgCacheOku();
+            if(parsed && parsed.veri) {
+                window.resmiGazeteRender(parsed.veri, parsed.zaman, sebep);
+            } else {
+                liste.innerHTML = window._rgKaynakLinkleri(sebep);
+                if(ustBilgi) { ustBilgi.innerText = sebep; ustBilgi.style.color = 'var(--warning)'; }
             }
+        };
 
-            // Cache'e kaydet
-            localStorage.setItem('rg_cache', JSON.stringify({
-                veri: data,
-                zaman: Date.now()
-            }));
+        window[callbackName] = function(data) {
+            if(bitti) return;
+            bitti = true;
+            clearTimeout(zamanlayici);
+            delete window[callbackName];
+            let s = document.getElementById(callbackName + '_script');
+            if(s) s.remove();
 
+            if(!data || !data.success) { basarisiz('Sunucu veri döndüremedi'); return; }
+
+            localStorage.setItem('rg_cache', JSON.stringify({ veri: data, zaman: Date.now() }));
+            window._rgFirebaseYaz(data);
             window.resmiGazeteRender(data, Date.now());
+            window.rgRozetGuncelle();
         };
 
         let script = document.createElement('script');
         script.id = callbackName + '_script';
         script.src = window._RESMI_GAZETE_GAS_URL + '?callback=' + callbackName;
-        script.onerror = function() {
-            delete window[callbackName];
-            script.remove();
-            liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">⚠️ Bağlantı kurulamadı. İnternetinizi kontrol edin.</div>';
-            ustBilgi.innerText = 'Bağlantı yok';
-        };
+        script.onerror = function() { basarisiz('Bağlantı kurulamadı'); };
+        zamanlayici = setTimeout(function() {
+            basarisiz('Resmî Gazete servisi yanıt vermiyor (' + Math.round(window._RG_TIMEOUT_MS/1000) + ' sn)');
+        }, window._RG_TIMEOUT_MS);
         document.body.appendChild(script);
     };
 
-    window.resmiGazeteRender = function(data, zaman) {
+    // Duyuruları Firebase'e yaz — sadece admin, sadece ekleme (mevcut kayıtlar korunur)
+    window._rgFirebaseYaz = function(data) {
+        try {
+            if((localStorage.getItem('gumruk_role') || '') !== 'admin') return;
+            if(!window._db || !window._dbRef || !window._dbSet || !window._dbGet) return;
+            if(!data || !data.duyurular || !data.duyurular.length) return;
+            window._dbGet(window._dbRef(window._db, 'rg_duyurular')).then(function(snap) {
+                let mevcut = snap.exists() ? (snap.val() || {}) : {};
+                let eklendi = 0;
+                data.duyurular.forEach(function(d) {
+                    let anahtar = window._rgAnahtar(d).replace(/[.#$/\[\]]/g, '_').substring(0, 180);
+                    if(!mevcut[anahtar]) {
+                        mevcut[anahtar] = { tarih: d.tarih, baslik: d.baslik, link: d.link, eklendi: Date.now() };
+                        eklendi++;
+                    }
+                });
+                if(eklendi > 0) {
+                    window._dbSet(window._dbRef(window._db, 'rg_duyurular'), mevcut)
+                        .then(function(){ console.log('[RG] Firebase\'e ' + eklendi + ' yeni duyuru yazıldı'); })
+                        .catch(function(e){ console.warn('[RG] Firebase yazılamadı:', e.message); });
+                }
+            }).catch(function(e){ console.warn('[RG] Firebase okunamadı:', e.message); });
+        } catch(e) { console.warn('[RG] Firebase adımı atlandı:', e.message); }
+    };
+
+    // Okunmamış duyuru sayısını menüdeki rozete yansıt
+    window.rgRozetGuncelle = function() {
+        try {
+            let parsed = window._rgCacheOku();
+            let duyurular = (parsed && parsed.veri && parsed.veri.duyurular) || [];
+            let gorulen = {};
+            try { gorulen = JSON.parse(localStorage.getItem('rg_gorulen') || '{}'); } catch(e) {}
+            let yeni = duyurular.filter(function(d){ return !gorulen[window._rgAnahtar(d)]; }).length;
+
+            let btn = document.querySelector('.nav-btn[data-view="mevzuat"]');
+            if(!btn) return;
+            let rozet = btn.querySelector('.rg-rozet');
+            if(yeni > 0) {
+                if(!rozet) {
+                    rozet = document.createElement('span');
+                    rozet.className = 'rg-rozet';
+                    rozet.style.cssText = 'margin-left:auto;background:var(--danger,#ef4444);color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;';
+                    btn.appendChild(rozet);
+                }
+                rozet.textContent = yeni > 99 ? '99+' : String(yeni);
+                rozet.title = yeni + ' okunmamış mevzuat duyurusu';
+            } else if(rozet) {
+                rozet.remove();
+            }
+        } catch(e) { /* rozet asla ana akışı bozmasın */ }
+    };
+
+    // Mevzuat ekranı açıldığında listedekiler "görüldü" sayılır
+    window.rgGorulduIsaretle = function() {
+        try {
+            let parsed = window._rgCacheOku();
+            let duyurular = (parsed && parsed.veri && parsed.veri.duyurular) || [];
+            let gorulen = {};
+            try { gorulen = JSON.parse(localStorage.getItem('rg_gorulen') || '{}'); } catch(e) {}
+            duyurular.forEach(function(d){ gorulen[window._rgAnahtar(d)] = Date.now(); });
+            localStorage.setItem('rg_gorulen', JSON.stringify(gorulen));
+            window.rgRozetGuncelle();
+        } catch(e) {}
+    };
+
+    window.resmiGazeteRender = function(data, zaman, uyari) {
         let liste = document.getElementById('rg-duyuru-liste');
         let ustBilgi = document.getElementById('rg-son-guncelleme');
         if(!liste) return;
@@ -16651,17 +16832,33 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
         let d = new Date(zaman);
         let saat = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
         let tarih = String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
-        ustBilgi.innerText = 'Son güncelleme: ' + tarih + ' ' + saat + '  ·  ' + (data.adet || 0) + ' duyuru bulundu';
+        if(ustBilgi) {
+            ustBilgi.innerText = (uyari ? '⚠️ ' + uyari + ' — gösterilen liste eski: ' : 'Son güncelleme: ') +
+                tarih + ' ' + saat + '  ·  ' + (data.adet || (data.duyurular||[]).length || 0) + ' duyuru';
+            ustBilgi.style.color = uyari ? 'var(--warning)' : 'var(--text-muted)';
+        }
 
         if(!data.duyurular || !data.duyurular.length) {
-            liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">📭 Son günlerde otomotivle ilgili yeni duyuru yok.</div>';
+            // Sunucu cevap verdi ama hiç kayıt yok: erişim hatası mı, gerçekten boş mu?
+            if(data.erisim_hatasi || (data.taranan_gun === 0)) {
+                liste.innerHTML = window._rgKaynakLinkleri(data.erisim_hatasi || 'Hiçbir gün taranamadı');
+            } else {
+                liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">📭 Son ' +
+                    (data.taranan_gun || '') + ' günde otomotivle ilgili yeni duyuru yok.</div>';
+            }
             return;
         }
 
+        let gorulen = {};
+        try { gorulen = JSON.parse(localStorage.getItem('rg_gorulen') || '{}'); } catch(e) {}
+
         liste.innerHTML = data.duyurular.map(function(duyuru) {
-            return '<div style="padding:14px 16px;background:var(--input-bg);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
+            let yeniMi = !gorulen[window._rgAnahtar(duyuru)];
+            return '<div style="padding:14px 16px;background:var(--input-bg);border:1px solid var(--border);border-left:3px solid ' + (yeniMi ? 'var(--danger,#ef4444)' : 'var(--primary)') + ';border-radius:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
                 '<div style="flex:1;min-width:200px;">' +
-                    '<div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:4px;">📅 ' + duyuru.tarih + '</div>' +
+                    '<div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:4px;">📅 ' + duyuru.tarih +
+                        (yeniMi ? ' <span style="background:var(--danger,#ef4444);color:#fff;padding:1px 6px;border-radius:6px;font-size:9px;margin-left:6px;">YENİ</span>' : '') +
+                    '</div>' +
                     '<div style="font-size:13px;color:var(--text-primary);line-height:1.5;">' + duyuru.baslik + '</div>' +
                 '</div>' +
                 '<a href="' + duyuru.link + '" target="_blank" class="btn-sm" style="border-color:var(--primary);color:var(--primary);text-decoration:none;white-space:nowrap;">Oku <i data-lucide="external-link" style="width:12px;height:12px;"></i></a>' +
@@ -16767,6 +16964,13 @@ if(vn==='analiz'){
     setTimeout(function(){
         if(window.analizRender) window.analizRender();
     }, 150);
+}
+if(vn==='mevzuat'){
+    setTimeout(function(){
+        if(window.mevzuatRehberiRender) window.mevzuatRehberiRender(); // canlı oranlar
+        if(window.resmiGazeteCek) window.resmiGazeteCek(false);        // duyurular (cache'li)
+        if(window.rgGorulduIsaretle) setTimeout(window.rgGorulduIsaretle, 1500); // rozeti sıfırla
+    }, 100);
 }
 if(vn==='beyanname'){
     setTimeout(function(){
@@ -19569,7 +19773,13 @@ window.kuralCozumle = async function(input) {
             return _f1_ictenYanmaliHesapla(k87, cc, matrah, sonuc);
         }
         
-        if (gtip_kat === '87_11') { sonuc.hata = "87.11 motosiklet Faz 1'de desteklenmiyor"; return sonuc; }
+        // 87.11 MOTOSİKLET
+        if (gtip_kat === '87_11') {
+            sonuc.kategori = "87_11";
+            return _f1_motosikletHesapla(vk.kategori_87_11 || window._F1_VARSAYILAN_8711, {
+                gtip: input.gtip, yakit: yakit, cc: cc, kw: kw
+            }, sonuc);
+        }
         sonuc.hata = "Bilinmeyen GTIP: " + gtip_kat;
         return sonuc;
     } catch (e) {
@@ -19578,6 +19788,73 @@ window.kuralCozumle = async function(input) {
         return sonuc;
     }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// 87.11 MOTOSİKLET — ÖTV kuralları
+// Kaynak: GİB "Özel Tüketim Vergisi Oranları — (II) Sayılı Liste"
+// Firebase'de mevzuat_ayarlari/vergi_kurallari/kategori_87_11 varsa O kullanılır;
+// yoksa aşağıdaki varsayılan tabloya düşülür (motor hiç çalışmadan kalmasın).
+// Oran güncellenirse tek yer: Firebase düğümü.
+// ═══════════════════════════════════════════════════════════════════
+window._F1_VARSAYILAN_8711 = {
+    _aciklama: "Motosikletler (mopedler dahil). Silindir hacmi bazlı; sadece elektrik motorlu olanlar ayrı.",
+    _kaynak: "GİB (II) Sayılı Liste — ÖTV Kanunu 4760",
+    icten_yanmali: {
+        motor_0_250cc:  { etiket: "≤250 cm³", brackets: [{ etiket: "tüm matrahlar", matrah_max_tl: null, otv_orani: 8 }] },
+        motor_250_ust:  { etiket: ">250 cm³", brackets: [{ etiket: "tüm matrahlar", matrah_max_tl: null, otv_orani: 37 }] }
+    },
+    elektrikli: {
+        pedal_yardimli: { etiket: "pedal yardımlı, sürekli nominal güç ≤250 W (8711.60.10)", brackets: [{ etiket: "tüm matrahlar", matrah_max_tl: null, otv_orani: 3 }] },
+        kw_0_20:        { etiket: "≤20 kW (8711.60.90.00.12)", brackets: [{ etiket: "tüm matrahlar", matrah_max_tl: null, otv_orani: 3 }] },
+        kw_20_ust:      { etiket: ">20 kW (8711.60.90.00.11)", brackets: [{ etiket: "tüm matrahlar", matrah_max_tl: null, otv_orani: 37 }] }
+    }
+};
+
+function _f1_motosikletHesapla(k11, g, sonuc) {
+    if (!k11) { sonuc.hata = "87.11 kural tablosu bulunamadı"; return sonuc; }
+    sonuc.mevzuat_ref = k11._kaynak || "GİB (II) Sayılı Liste — ÖTV Kanunu 4760";
+
+    let gtip = String(g.gtip || '').replace(/\D/g, '');
+    let elektrikliGtip = gtip.indexOf('871160') === 0;
+    let elektrikli = elektrikliGtip || g.yakit === 'ELEKTRIK';
+
+    if (elektrikli) {
+        const e = k11.elektrikli || {};
+        // Pedal yardımlı (8711.60.10) — sürekli nominal güç ≤250 W
+        if (gtip.indexOf('87116010') === 0) {
+            const b = _f1_bracketSec(e.pedal_yardimli.brackets, 0);
+            sonuc.basarili = true; sonuc.otv_orani = b.otv_orani; sonuc.alt_kategori = "8711_pedal_yardimli";
+            sonuc.kanit = `87.11 Elektrikli — pedal yardımlı (8711.60.10)\n  Sürekli nominal güç ≤250 W\n→ ÖTV %${b.otv_orani}`;
+            return sonuc;
+        }
+        if (!g.kw) {
+            sonuc.hata = "Elektrikli motosiklette ÖTV motor gücüne (kW) bağlı — kW girilmedi";
+            sonuc.uyarilar.push("20 kW sınırı: ≤20 kW → %3, >20 kW → %37");
+            return sonuc;
+        }
+        const grup = (g.kw <= 20) ? e.kw_0_20 : e.kw_20_ust;
+        const b = _f1_bracketSec(grup.brackets, 0);
+        sonuc.basarili = true; sonuc.otv_orani = b.otv_orani;
+        sonuc.alt_kategori = (g.kw <= 20) ? "8711_elektrik_0_20kw" : "8711_elektrik_20_ust";
+        sonuc.kanit = `87.11 Elektrikli motosiklet:\n  Motor gücü ${g.kw} kW (${grup.etiket || ''})\n→ ÖTV %${b.otv_orani}`;
+        return sonuc;
+    }
+
+    // İçten yanmalı — silindir hacmi
+    if (!g.cc) {
+        sonuc.hata = "Motosiklette ÖTV silindir hacmine bağlı — motor cc girilmedi";
+        sonuc.uyarilar.push("250 cm³ sınırı: ≤250 → %8, >250 → %37");
+        return sonuc;
+    }
+    const i = k11.icten_yanmali || {};
+    const grup = (g.cc <= 250) ? i.motor_0_250cc : i.motor_250_ust;
+    const b = _f1_bracketSec(grup.brackets, 0);
+    sonuc.basarili = true; sonuc.otv_orani = b.otv_orani;
+    sonuc.alt_kategori = (g.cc <= 250) ? "8711_0_250cc" : "8711_250_ust";
+    sonuc.kanit = `87.11 Motosiklet (içten yanmalı):\n  Silindir hacmi ${g.cc} cm³ (${grup.etiket || ''})\n→ ÖTV %${b.otv_orani}`;
+    if (g.cc > 250 && g.cc <= 260) sonuc.uyarilar.push("250 cm³ sınırına çok yakın — ruhsat/CoC değerini teyit edin");
+    return sonuc;
+}
 
 function _f1_ictenYanmaliHesapla(k87, cc, matrah, sonuc) {
     let grup, alt_kat, grup_etiket;
@@ -19930,6 +20207,15 @@ window.handleYakitChange = function() {
     if (typeof _orig_handleYakitChange === 'function') {
         try { _orig_handleYakitChange.apply(this, arguments); } catch(e) { console.error("[Faz1] orig yakit change:", e); }
     }
+    // Motosiklet seçiliyken yakıt değişimi: orijinal fonksiyon otomobil listesini
+    // yazdı, motosiklet dilimleriyle geri değiştir (elektrik ↔ içten yanmalı)
+    if (window._motoSeciliMi && window._motoSeciliMi()) {
+        try {
+            window._motoSecenekleriUygula();
+            window._motoGtipUygula();
+            if (typeof window.calculateTaxes === 'function') window.calculateTaxes();
+        } catch(e) { console.error('[Moto] yakıt değişimi:', e); }
+    }
     setTimeout(() => {
         window._f1_kartGoster();
         window._f1_otvOnerHesapla();
@@ -19948,11 +20234,15 @@ window._f1_aracCinsiChange = function() {
         'PANELVAN':   '8704.21.91.0000'  // panelvan
     };
     
+    // Motosiklete geçildiyse Motor Hacmi listesini 87.11 dilimleriyle değiştir
+    // (otomobile dönülünce orijinal liste geri yüklenir)
+    try { window._motoSecenekleriUygula(); } catch(e) { console.error('[Moto] seçenekler:', e); }
+
     // Önce orijinal updateGTIP çalışsın (8703 üretsin)
     if (typeof _orig_updateGTIP === 'function') {
         try { _orig_updateGTIP(); } catch(e) {}
     }
-    
+
     // Sonra cins 8704 ailesindeyse GTIP'i değiştir
     if (cins === 'PICKUP_4X2' || cins === 'PICKUP_4X4' || cins === 'PANELVAN') {
         const gtipDisplay = document.getElementById('gtip-display');
@@ -19960,7 +20250,15 @@ window._f1_aracCinsiChange = function() {
             gtipDisplay.textContent = 'GTİP: ' + gtipMap[cins];
         }
     }
-    
+
+    // Motosiklette GTİP + ÖTV 87.11 tablosundan gelir
+    if (cins === 'MOTOSIKLET') {
+        try {
+            window._motoGtipUygula();
+            if (typeof window.calculateTaxes === 'function') window.calculateTaxes();
+        } catch(e) { console.error('[Moto] cins değişimi:', e); }
+    }
+
     setTimeout(() => {
         window._f1_kartGoster();
         window._f1_otvOnerHesapla();
@@ -19969,9 +20267,97 @@ window._f1_aracCinsiChange = function() {
 
 // Motor değişiminde öneri yenile
 const _orig_updateGTIP = window.updateGTIP;
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOTOSİKLET (87.11) — hesap makinesi entegrasyonu
+   GTİP kodları portalın kendi gtip/87 veritabanından alındı.
+   ÖTV oranları: GİB (II) Sayılı Liste — ≤250cc %8, >250cc %37, elektrik ≤20kW %3.
+   Otomobil akışına dokunulmaz; sadece cins=MOTOSIKLET seçiliyken devreye girer.
+   ═══════════════════════════════════════════════════════════════════════════ */
+window._MOTO_DILIMLER = [
+    { deger: 'moto-0-50',      etiket: '≤50 cc (moped)',      cc: 50,   gtip: '8711.10.00.00.11', otv: 8 },
+    { deger: 'moto-50-125',    etiket: '50–125 cc',           cc: 125,  gtip: '8711.20.92.00.19', otv: 8 },
+    { deger: 'moto-125-250',   etiket: '125–250 cc',          cc: 250,  gtip: '8711.20.98.00.00', otv: 8 },
+    { deger: 'moto-skuter',    etiket: 'Skuter (50–250 cc)',  cc: 250,  gtip: '8711.20.10.00.00', otv: 8 },
+    { deger: 'moto-250-380',   etiket: '250–380 cc',          cc: 380,  gtip: '8711.30.10.00.00', otv: 37 },
+    { deger: 'moto-380-500',   etiket: '380–500 cc',          cc: 500,  gtip: '8711.30.90.00.00', otv: 37 },
+    { deger: 'moto-500-800',   etiket: '500–800 cc',          cc: 800,  gtip: '8711.40.00.00.00', otv: 37 },
+    { deger: 'moto-800-ust',   etiket: '>800 cc',             cc: 1000, gtip: '8711.50.00.00.00', otv: 37 }
+];
+window._MOTO_ELEKTRIK = [
+    { deger: 'moto-el-pedal',  etiket: 'Pedal yardımlı ≤250 W', kw: 0,  gtip: '8711.60.10.00.00', otv: 3 },
+    { deger: 'moto-el-0-20',   etiket: 'Elektrikli ≤20 kW',     kw: 20, gtip: '8711.60.90.00.12', otv: 3 },
+    { deger: 'moto-el-20-ust', etiket: 'Elektrikli >20 kW',     kw: 50, gtip: '8711.60.90.00.11', otv: 37 }
+];
+window._motoOrijinalMotorSecenekleri = null;
+
+window._motoSeciliMi = function() {
+    return (document.getElementById('calc-arac-cinsi')?.value || '') === 'MOTOSIKLET';
+};
+
+// Motor Hacmi listesini motosiklet dilimleriyle değiştirir / geri alır
+window._motoSecenekleriUygula = function() {
+    const motorSel = document.getElementById('calc-motor');
+    if (!motorSel) return;
+    const moto = window._motoSeciliMi();
+
+    if (moto) {
+        if (window._motoOrijinalMotorSecenekleri === null) {
+            window._motoOrijinalMotorSecenekleri = motorSel.innerHTML; // otomobil listesini sakla
+        }
+        const yakit = (document.getElementById('calc-yakit')?.value || '').toLocaleUpperCase('tr');
+        const liste = yakit.includes('ELEKTR') ? window._MOTO_ELEKTRIK : window._MOTO_DILIMLER;
+        const eskiDeger = motorSel.value;
+        motorSel.innerHTML = liste.map(function(d){
+            return '<option value="' + d.deger + '">' + d.etiket + '</option>';
+        }).join('');
+        if (liste.some(function(d){ return d.deger === eskiDeger; })) motorSel.value = eskiDeger;
+    } else if (window._motoOrijinalMotorSecenekleri !== null) {
+        // Otomobile dönüş: listeyi orijinal fonksiyona yeniden kurdur.
+        // (Saklanan HTML'i geri yazmak yakıt değişmişse yanlış liste bırakırdı.)
+        window._motoOrijinalMotorSecenekleri = null;
+        if (typeof _orig_handleYakitChange === 'function') {
+            try { _orig_handleYakitChange(); return; } catch(e) { console.error('[Moto] liste geri yükleme:', e); }
+        }
+        motorSel.innerHTML = '<option value="1600-2000">1600–2000</option>'; // son çare
+    }
+};
+
+// Seçili motosiklet dilimini döndürür (GTİP + ÖTV + cc/kW bilgisi bir arada)
+window._motoDilimBul = function() {
+    if (!window._motoSeciliMi()) return null;
+    const motorSel = document.getElementById('calc-motor');
+    if (!motorSel) return null;
+    const tum = window._MOTO_DILIMLER.concat(window._MOTO_ELEKTRIK);
+    let d = tum.find(function(x){ return x.deger === motorSel.value; });
+    if (!d) {
+        const yakit = (document.getElementById('calc-yakit')?.value || '').toLocaleUpperCase('tr');
+        d = yakit.includes('ELEKTR') ? window._MOTO_ELEKTRIK[1] : window._MOTO_DILIMLER[2];
+    }
+    return d;
+};
+
+// GTİP ve ÖTV'yi motosiklet seçimine göre ezer (orijinal updateGTIP'ten SONRA çalışır)
+window._motoGtipUygula = function() {
+    const d = window._motoDilimBul();
+    if (!d) return null;
+    const gd = document.getElementById('gtip-display'); if (gd) gd.innerText = 'GTİP: ' + d.gtip;
+    const gm = document.getElementById('res-gtip-mini'); if (gm) gm.innerText = d.gtip;
+    if (!window._otvManuel) {
+        const otvSel = document.getElementById('calc-otv-oran');
+        if (otvSel) otvSel.value = String(d.otv);
+    }
+    return d;
+};
+
 window.updateGTIP = function() {
     if (typeof _orig_updateGTIP === 'function') {
         try { _orig_updateGTIP.apply(this, arguments); } catch(e) { console.error("[Faz1] orig updateGTIP:", e); }
+    }
+    // Motosiklet seçiliyse otomobil tablosundan gelen GTİP/ÖTV'yi ez
+    let motoSecim = null;
+    try { motoSecim = window._motoGtipUygula(); } catch(e) { console.error('[Moto] GTİP uygulanamadı:', e); }
+    if (motoSecim && typeof window.calculateTaxes === 'function') {
+        setTimeout(function(){ window.calculateTaxes(); }, 0);
     }
     setTimeout(() => {
         window._f1_kartGoster();
