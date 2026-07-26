@@ -9875,6 +9875,10 @@ function saveCariData() {
         });
     }
 }
+// Bu blok <script type="module"> — modül içi tanımlar window'a çıkmaz.
+// Cari kart butonları (çıkış yaptır / ödeme al) ayrı script bloğunda olduğu
+// için saveCariData'yı global'e taşıyoruz. Modül içi çağrılar aynen çalışır.
+window.saveCariData = saveCariData;
 </script>
 <script>
 
