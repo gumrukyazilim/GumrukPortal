@@ -3718,13 +3718,14 @@ div[style*="position: relative"] > input {
         <div style="margin-bottom:14px;">
             <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">FİNANSAL</div>
             <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">💼 Firma Bazlı Mali Kırılım</h3>
-            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">Seçili dönemdeki araçların firma firma toplamları (KDV ve Vergi, kıymet ceza sayfası açılmış araçlardan)</p>
+            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">GELEN ve FATURA seçili dönemde <b>gelen</b> araçlardan; ÇEKİLEN, ARDİYE, KDV ve VERGİ seçili dönemde <b>çekilen</b> araçlardan hesaplanır (bu kalemler çekişte ödenir). KDV/Vergi için beyannamenin Kıymet Ceza ekranında okutulmuş olması gerekir.</p>
         </div>
         <div style="overflow:auto;">
             <table id="firma-finansal-tablo" style="width:100%;border-collapse:collapse;font-size:12px;">
                 <thead><tr style="background:rgba(120,140,170,.1);text-align:left;">
                     <th style="padding:8px;">FİRMA</th>
-                    <th style="padding:8px;text-align:right;">ARAÇ</th>
+                    <th style="padding:8px;text-align:right;">GELEN</th>
+                    <th style="padding:8px;text-align:right;">ÇEKİLEN</th>
                     <th style="padding:8px;text-align:right;">FATURA (€)</th>
                     <th style="padding:8px;text-align:right;">ARDİYE (₺)</th>
                     <th style="padding:8px;text-align:right;">KDV (₺)</th>
@@ -3740,6 +3741,7 @@ div[style*="position: relative"] > input {
         <div style="margin-bottom:14px;">
             <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px;">DETAY</div>
             <h3 style="font-size:16px;font-weight:700;margin:2px 0 0;">📋 Aylık Firma Detayı (Son 6 Ay)</h3>
+            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">Sayı = o ay <b>gelen</b> araç, <span style="color:#10b981;font-weight:700;">(parantez)</span> = o ay <b>çekilen</b> araç</p>
         </div>
         <div style="overflow:auto;">
             <table id="detay-tablo" style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -6797,6 +6799,73 @@ window._parsTR = function(s) {
     return null;
 };
 
+// ═══════ ANALİZ ORTAK YARDIMCILARI ═══════
+// Dosya kapalı mı? (evrak "Kapalı", "kapali", "Kapalı ✔" gibi varyasyonlara toleranslı)
+window._analizKapaliMi = function(d) {
+    return !!(d && (d.evrak || '').toLocaleLowerCase('tr').startsWith('kapal'));
+};
+
+// KESİN kapanış (çekiş) tarihi — sadece gerçek çekiş sinyalleri.
+// kapanisTarih alanı 2026'da eklendi, eski kayıtlarda yok; sırayla düşülür.
+window._analizKapanisKesin = function(d) {
+    if(!d) return null;
+    return window._parsTR(d.kapanisTarih) || window._parsTR(d.kiymGt) || window._parsTR(d.beynmCif) || null;
+};
+
+// Dönem ataması için kapanış tarihi — kesin tarih yoksa geliş tarihine düşer.
+// (Eski kayıtların çoğunda hiçbir çekiş tarihi yok; geliş tarihine düşmezsek
+//  "Tümü" dönemindeki çekilen sayısı 171'den 37'ye düşerdi.)
+window._analizKapanisTarihi = function(d) {
+    return window._analizKapanisKesin(d) || window._parsTR(d && d.tarih) || null;
+};
+
+// Ardiye tarifesi (kademeli, gün bazlı) — birden fazla yerden kullanılıyor
+window._analizArdiyeTL = function(gun) {
+    if(gun <= 0) return 0;
+    if(gun <= 20) return gun * 145;
+    if(gun <= 50) return 2900 + (gun - 20) * 725;
+    if(gun <= 80) return 24650 + (gun - 50) * 1160;
+    return 59450 + (gun - 80) * 1450;
+};
+
+// Bir aracın ödenen ardiyesi (geliş → kapanış). Kapalı değilse veya tarih yoksa 0.
+window._analizArdiyeTutari = function(d) {
+    try {
+        if(!window._analizKapaliMi(d)) return 0;
+        let E = window._parsTR(d.tarih);
+        let K = window._analizKapanisKesin(d);
+        if(!E || !K) return 0;
+        let gun = Math.round((K - E) / 86400000) + 1;
+        return window._analizArdiyeTL(gun);
+    } catch(e) { return 0; }
+};
+
+// KDV / toplam vergi çözücü.
+// 1) Araç kaydına yazılmış değer (Firebase ile senkron, her cihazda görünür)
+// 2) Bu tarayıcıdaki beyanname OCR cache'i (eski kayıtlar için)
+// Firma/marka yazımı değişmişse şasi ile esnek eşleşme yapılır.
+window._analizVergi = function(d, cache) {
+    let bos = { kdv: 0, vergi: 0, varMi: false };
+    if(!d) return bos;
+    let k = parseFloat(d.kdvTutari) || 0;
+    let v = parseFloat(d.toplamVergi) || 0;
+    if(k || v) return { kdv: k, vergi: v, varMi: true };
+    cache = cache || {};
+    let c = cache[(d.firma || '') + '|' + (d.marka || '') + '|' + (d.sasi || '')];
+    if(!c && d.sasi) {
+        let sasi = String(d.sasi).toLocaleUpperCase('tr');
+        for(let kk in cache) {
+            if(kk.toLocaleUpperCase('tr').endsWith('|' + sasi)) { c = cache[kk]; break; }
+        }
+    }
+    if(c) {
+        k = parseFloat(c.kdvTutari) || 0;
+        v = parseFloat(c.toplamVergi) || 0;
+        if(k || v) return { kdv: k, vergi: v, varMi: true };
+    }
+    return bos;
+};
+
 window._periodRange = function(period) {
     let now = new Date(); now.setHours(0,0,0,0);
     let baslangic, bitis;
@@ -6848,11 +6917,26 @@ window.analizRender = function() {
     }
 
     let { baslangic, bitis } = window._periodRange(window._analizPeriod);
+    // Önceki dönem: takvim dönemlerinde bir önceki TAM takvim dönemi,
+    // diğerlerinde aynı uzunlukta kayan pencere.
+    // (Eskiden "Bu Ay" için 26 günlük kayan pencere alınıyordu; ayın kaçında
+    //  bakıldığına göre karşılaştırma değişiyor, haksız kıyas oluyordu.)
     let prevRange = (function(){
+        let p = window._analizPeriod;
+        if(p === 'ay' || p === 'gecenAy') {
+            let ref = new Date(baslangic.getFullYear(), baslangic.getMonth() - 1, 1);
+            return {
+                baslangic: ref,
+                bitis: new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59, 999)
+            };
+        }
+        if(p === 'hafta') {
+            let pb = new Date(baslangic); pb.setDate(pb.getDate() - 7);
+            let pe = new Date(baslangic); pe.setDate(pe.getDate() - 1); pe.setHours(23,59,59,999);
+            return { baslangic: pb, bitis: pe };
+        }
         let len = bitis - baslangic;
-        let pb = new Date(baslangic.getTime() - len);
-        let pe = new Date(baslangic.getTime() - 1);
-        return { baslangic: pb, bitis: pe };
+        return { baslangic: new Date(baslangic.getTime() - len), bitis: new Date(baslangic.getTime() - 1) };
     })();
 
     let donemEl = document.getElementById('analiz-donem-info');
@@ -6880,21 +6964,38 @@ window.analizRender = function() {
     // ═══════ KPI HESABI ═══════
     let gelen = donemAraclari.length;
     let oncekiGelen = oncekiAraclar.length;
-    let cekilen = donemAraclari.filter(d => (d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')).length;
-    let bekleyen = donemAraclari.filter(d => !((d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal'))).length;
+
+    // ÇEKİLEN = dönemde KAPANAN dosyalar (geliş tarihi başka aya düşse bile).
+    // Eskiden geliş tarihine göre sayılıyordu; geçen ay gelip bu ay çekilen araçlar
+    // hiçbir dönemde "çekilen" görünmüyordu (bu ay 0 çıkmasının sebebi buydu).
+    let _donemdeKapandi = function(d, bas, bit) {
+        if(!window._analizKapaliMi(d)) return false;
+        let k = window._analizKapanisTarihi(d);
+        return !!(k && k >= bas && k <= bit);
+    };
+    let cekilenAraclari = data.filter(d => _donemdeKapandi(d, baslangic, bitis));
+    let cekilen = cekilenAraclari.length;
+    let oncekiCekilen = data.filter(d => _donemdeKapandi(d, prevRange.baslangic, prevRange.bitis)).length;
+
+    // Dönemde gelenlerden hâlâ açık olanlar + sistemdeki toplam açık dosya
+    let bekleyen = donemAraclari.filter(d => !window._analizKapaliMi(d)).length;
+    let toplamAcik = data.filter(d => d && d.tarih && !window._analizKapaliMi(d)).length;
+    // Funnel için: dönemde GELEN kohortundan kapananlar (oran %100'ü aşmasın)
+    let kohortKapali = donemAraclari.filter(d => window._analizKapaliMi(d)).length;
 
     let toplamFatura = donemAraclari.reduce((s, d) => {
         let f = parseFloat(String(d.fatura||'').replace(/\./g,'').replace(',','.')) || 0;
         return s + f;
     }, 0);
 
-    // Ortalama işlem süresi
+    // Ortalama işlem süresi — dönemde ÇEKİLEN araçların geliş → kapanış farkı
     let sureler = [];
-    donemAraclari.forEach(d => {
-        if((d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal') && d.tarih && d.kiymGt) {
-            let a = window._parsTR(d.tarih);
-            let b = window._parsTR(d.kiymGt);
-            if(a && b) sureler.push((b - a) / 86400000);
+    cekilenAraclari.forEach(d => {
+        let a = window._parsTR(d.tarih);
+        let b = window._analizKapanisKesin(d);
+        if(a && b) {
+            let fark = (b - a) / 86400000;
+            if(fark >= 0) sureler.push(fark);
         }
     });
     let ortSure = sureler.length ? Math.round(sureler.reduce((s,v) => s + v, 0) / sureler.length) : 0;
@@ -6918,9 +7019,10 @@ window.analizRender = function() {
     let degisimIco = gelen > oncekiGelen ? '↗' : (gelen < oncekiGelen ? '↘' : '→');
     set('kpi-gelen-sub', oncekiGelen + ' önceki dönem ' + degisimIco + ' %' + Math.abs(degisim));
     set('kpi-cekilen', cekilen);
-    set('kpi-cekilen-sub', '%' + (gelen ? Math.round((cekilen/gelen)*100) : 0) + ' tamamlanma');
+    let cekIco = cekilen > oncekiCekilen ? '↗' : (cekilen < oncekiCekilen ? '↘' : '→');
+    set('kpi-cekilen-sub', 'dönemde kapanan — önceki dönem ' + oncekiCekilen + ' ' + cekIco);
     set('kpi-bekleyen', bekleyen);
-    set('kpi-bekleyen-sub', '%' + (gelen ? Math.round((bekleyen/gelen)*100) : 0) + ' açık');
+    set('kpi-bekleyen-sub', 'dönemde gelen, hâlâ açık (toplam açık: ' + toplamAcik + ')');
     set('kpi-fatura', toplamFatura.toLocaleString('tr-TR', {maximumFractionDigits:0}));
     set('kpi-fatura-sub', gelen ? '~' + Math.round(toplamFatura/gelen).toLocaleString('tr-TR') + ' €/araç' : '-');
     set('kpi-ortSure', ortSure);
@@ -6929,8 +7031,8 @@ window.analizRender = function() {
     // KPI Detay tıklama için listeleri sakla
     window._kpiListeleri = {
         gelen: donemAraclari.slice(),
-        cekilen: donemAraclari.filter(d => (d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')),
-        bekleyen: donemAraclari.filter(d => !((d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal'))),
+        cekilen: cekilenAraclari.slice(),
+        bekleyen: donemAraclari.filter(d => !window._analizKapaliMi(d)),
         riskli: (function(){
             let arr = [];
             data.forEach(d => {
@@ -7093,7 +7195,7 @@ window.analizRender = function() {
     } else if(period === '3ay') {
         // Son 12 hafta — haftalık
         trendBaslik = 'Haftalık Hareket (Son 3 Ay)';
-        let basla = new Date(); basla.setDate(basla.getDate() - 12*7);
+        let basla = new Date(); basla.setHours(0,0,0,0); basla.setDate(basla.getDate() - 12*7);
         for(let i = 0; i < 12; i++) {
             let g = new Date(basla); g.setDate(basla.getDate() + i*7);
             let gSonu = new Date(g); gSonu.setDate(g.getDate() + 6); gSonu.setHours(23,59,59,999);
@@ -7124,8 +7226,9 @@ window.analizRender = function() {
             if(!dt) return min;
             return (!min || dt < min) ? dt : min;
         }, null);
-        if(!enEski) enEski = new Date(); enEski.setDate(1);
-        let bugAy = new Date(); bugAy.setDate(1);
+        if(!enEski) enEski = new Date();
+        enEski.setDate(1); enEski.setHours(0,0,0,0);
+        let bugAy = new Date(); bugAy.setDate(1); bugAy.setHours(0,0,0,0);
         let cur = new Date(enEski.getFullYear(), enEski.getMonth(), 1);
         while(cur <= bugAy) {
             let aySonu = new Date(cur.getFullYear(), cur.getMonth() + 1, 0, 23, 59, 59);
@@ -7145,8 +7248,9 @@ window.analizRender = function() {
         });
         trendLabels.push(dil.label);
         trendGelen.push(donemAraclar.length);
-        trendCekilen.push(donemAraclar.filter(d => (d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')).length);
-        trendBekleyen.push(donemAraclar.filter(d => !(d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')).length);
+        // Çekilen = o dilimde KAPANAN dosyalar (KPI ile aynı mantık)
+        trendCekilen.push(data.filter(d => _donemdeKapandi(d, dil.baslangic, dil.bitis)).length);
+        trendBekleyen.push(donemAraclar.filter(d => !window._analizKapaliMi(d)).length);
     });
 
     // Başlığı güncelle
@@ -7272,8 +7376,10 @@ window.analizRender = function() {
                 }
             }
             // Çekilen (kiymGt = çekiş tarihi varsa)
-            if(d.kiymGt && (d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal')) {
-                let ct = window._parsTR(d.kiymGt);
+            // Isı haritasında sadece GERÇEK çekiş tarihi olanlar işaretlenir
+            // (geliş tarihine düşülürse eski kayıtlar geldiği güne "çekildi" yazar)
+            if(window._analizKapaliMi(d)) {
+                let ct = window._analizKapanisKesin(d);
                 if(ct && ct >= basla && ct <= now) {
                     let key = ct.getFullYear() + '-' + ct.getMonth() + '-' + ct.getDate();
                     if(!gunDetay[key]) gunDetay[key] = { gelen: [], cekilen: [] };
@@ -7356,7 +7462,8 @@ window.analizRender = function() {
         let tseTamam = donemAraclari.filter(d => d.evrakler && (d.evrakler.TSE === true || d.evrakler.TSE === 2)).length;
         let beyVar = donemAraclari.filter(d => d.beyanname && d.beyanname !== 'undefined').length;
         let kiymVar = donemAraclari.filter(d => d.kiymVv).length;
-        let kapali = cekilen;
+        // Huni, dönemde GELEN araçların akışını gösterir → kohort içi kapananlar
+        let kapali = kohortKapali;
 
         let steps = [
             {lbl:'GELEN', val:gelen},
@@ -7380,17 +7487,15 @@ window.analizRender = function() {
     // ═══════ REKORLAR ═══════
     let rekor = document.getElementById('rekor-area');
     if(rekor) {
-        // En hızlı çekilen
+        // En hızlı çekilen — dönemde kapanan araçlar arasından
         let hizliArac = null;
         let hizliSure = Infinity;
-        donemAraclari.forEach(d => {
-            if((d.evrak||'').toLocaleLowerCase('tr').startsWith('kapal') && d.tarih && d.kiymGt) {
-                let a = window._parsTR(d.tarih);
-                let b = window._parsTR(d.kiymGt);
-                if(a && b) {
-                    let s = Math.round((b-a)/86400000);
-                    if(s > 0 && s < hizliSure) { hizliSure = s; hizliArac = d; }
-                }
+        cekilenAraclari.forEach(d => {
+            let a = window._parsTR(d.tarih);
+            let b = window._analizKapanisKesin(d);
+            if(a && b) {
+                let s = Math.round((b-a)/86400000);
+                if(s > 0 && s < hizliSure) { hizliSure = s; hizliArac = d; }
             }
         });
 
@@ -7419,42 +7524,22 @@ window.analizRender = function() {
             toplamFatura += v;
         });
 
-        // Ödenen Ardiye Toplam (TL) — kapanmış araçlar dahil (tarihsel hesap)
-        let _ardiyeTL = function(gun){
-            if(gun<=0) return 0;
-            if(gun<=20) return gun*145;
-            if(gun<=50) return 2900+(gun-20)*725;
-            if(gun<=80) return 24650+(gun-50)*1160;
-            return 59450+(gun-80)*1450;
-        };
-        // Sadece KAPANMIŞ dosyalar için: geliş tarihi → kapanış tarihi arası
-        // (Eski kayıtlarda kapanisTarih yoksa kiymGt'ye düş)
+        // Ödenen Ardiye Toplam (TL) — dönemde ÇEKİLEN araçlar (ardiye çekişte ödenir)
         let toplamArdiye = 0;
-        donemAraclari.forEach(d => {
-            try {
-                let evrakDur = (d.evrak||'').toLocaleLowerCase('tr');
-                if(evrakDur !== 'kapalı' && evrakDur !== 'kapali') return;
-                let E = window.parseTRDate(d.tarih);
-                let K = window.parseTRDate(d.kapanisTarih) || window.parseTRDate(d.kiymGt);
-                if(!E || !K) return;
-                let gun = window.diffDaysSigned(K, E) + 1;
-                toplamArdiye += _ardiyeTL(gun);
-            } catch(e){}
+        let ardiyeSayilan = 0;
+        cekilenAraclari.forEach(d => {
+            let t = window._analizArdiyeTutari(d);
+            if(t > 0) { toplamArdiye += t; ardiyeSayilan++; }
         });
 
-        // Ödenen KDV ve Toplam Vergi (TL) — kıymet ceza beyanname cache'inden
+        // Ödenen KDV ve Toplam Vergi (TL) — dönemde çekilen araçlardan
+        // (önce araç kaydındaki değer, yoksa beyanname OCR cache'i)
         let toplamKDV = 0, toplamVergi = 0, kdvSayilan = 0;
         try {
             let kcCache = JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}');
-            donemAraclari.forEach(d => {
-                if(!d.firma || !d.marka || !d.sasi) return;
-                let key = d.firma + '|' + d.marka + '|' + d.sasi;
-                let c = kcCache[key];
-                if(c) {
-                    if(c.kdvTutari)   toplamKDV   += parseFloat(c.kdvTutari) || 0;
-                    if(c.toplamVergi) toplamVergi += parseFloat(c.toplamVergi) || 0;
-                    if(c.kdvTutari || c.toplamVergi) kdvSayilan++;
-                }
+            cekilenAraclari.forEach(d => {
+                let r = window._analizVergi(d, kcCache);
+                if(r.varMi) { toplamKDV += r.kdv; toplamVergi += r.vergi; kdvSayilan++; }
             });
         } catch(e){}
 
@@ -7466,12 +7551,15 @@ window.analizRender = function() {
         if(uzunArac)  rekorlar.push({ico:'🐢', lbl:'En Uzun Bekleyen', val:uzunArac.marka + ' ' + uzunArac.model + ' — ' + uzunSure + ' gün'});
         if(cokMarka)  rekorlar.push({ico:'🚙', lbl:'En Çok Marka', val:cokMarka[0] + ' (' + cokMarka[1] + ' araç)'});
         rekorlar.push({ico:'💰', lbl:'Gelen Fatura Toplamı', val:fmtEUR(toplamFatura)});
-        rekorlar.push({ico:'🏬', lbl:'Ödenen Ardiye Toplamı', val:fmtTL(toplamArdiye)});
+        rekorlar.push({ico:'🏬', lbl:'Ödenen Ardiye Toplamı', val:fmtTL(toplamArdiye) + ' (' + ardiyeSayilan + '/' + cekilen + ' araç)'});
         if(kdvSayilan > 0) {
-            rekorlar.push({ico:'🧾', lbl:'Ödenen KDV Toplamı', val:fmtTL(toplamKDV) + ' (' + kdvSayilan + ' araç)'});
+            rekorlar.push({ico:'🧾', lbl:'Ödenen KDV Toplamı', val:fmtTL(toplamKDV) + ' (' + kdvSayilan + '/' + cekilen + ' araç)'});
             rekorlar.push({ico:'💸', lbl:'Ödenen Toplam Vergi', val:fmtTL(toplamVergi)});
+        } else if(cekilen > 0) {
+            rekorlar.push({ico:'🧾', lbl:'Ödenen KDV Toplamı', val:'Veri yok — Kıymet Ceza ekranında beyanname okutulmamış'});
         }
-        rekorlar.push({ico:'📊', lbl:'Tamamlanma Oranı', val:'%' + (gelen ? Math.round((cekilen/gelen)*100) : 0) + ' (' + cekilen + '/' + gelen + ')'});
+        rekorlar.push({ico:'📥', lbl:'Dönemde Gelen / Çekilen', val:gelen + ' geldi · ' + cekilen + ' çekildi'});
+        rekorlar.push({ico:'📊', lbl:'Kohort Tamamlanma', val:'%' + (gelen ? Math.round((kohortKapali/gelen)*100) : 0) + ' (' + kohortKapali + '/' + gelen + ' — dönemde gelenlerden)'});
 
         rekor.innerHTML = rekorlar.map(r =>
             '<div class="rekor-row">' +
@@ -7489,41 +7577,34 @@ window.analizRender = function() {
     if(firmaFinBody) {
         let kcCache2 = {};
         try { kcCache2 = JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}'); } catch(e){}
-        let firmaFin = {}; // firma → {arac, fatura, ardiye, kdv, vergi}
+        let firmaFin = {}; // firma → {gelen, cekilen, fatura, ardiye, kdv, vergi}
+        let _fbGet = function(f) {
+            if(!firmaFin[f]) firmaFin[f] = {gelen:0, cekilen:0, fatura:0, ardiye:0, kdv:0, vergi:0};
+            return firmaFin[f];
+        };
+        // GELEN + FATURA → dönemde gelen araçlardan
         donemAraclari.forEach(d => {
-            let f = d.firma || 'Bilinmiyor';
-            if(!firmaFin[f]) firmaFin[f] = {arac:0, fatura:0, ardiye:0, kdv:0, vergi:0};
-            firmaFin[f].arac++;
-            firmaFin[f].fatura += parseFloat(String(d.fatura||'').replace(/\./g,'').replace(',','.')) || 0;
-            // Ardiye — sadece KAPANMIŞ dosyalar (geliş → kapanış tarihi)
-            // Eski kayıtlarda kapanisTarih yoksa kiymGt'ye düş
-            try {
-                let evrakDur = (d.evrak||'').toLocaleLowerCase('tr');
-                if(evrakDur === 'kapalı' || evrakDur === 'kapali') {
-                    let E = window.parseTRDate(d.tarih);
-                    let K = window.parseTRDate(d.kapanisTarih) || window.parseTRDate(d.kiymGt);
-                    if(E && K) {
-                        let gun = window.diffDaysSigned(K, E) + 1;
-                        firmaFin[f].ardiye += _ardiyeTL(gun);
-                    }
-                }
-            } catch(e){}
-            // KDV/Vergi
-            if(d.firma && d.marka && d.sasi) {
-                let key2 = d.firma + '|' + d.marka + '|' + d.sasi;
-                let c2 = kcCache2[key2];
-                if(c2) {
-                    if(c2.kdvTutari)   firmaFin[f].kdv   += parseFloat(c2.kdvTutari)   || 0;
-                    if(c2.toplamVergi) firmaFin[f].vergi += parseFloat(c2.toplamVergi) || 0;
-                }
-            }
+            let v = _fbGet(d.firma || 'Bilinmiyor');
+            v.gelen++;
+            v.fatura += parseFloat(String(d.fatura||'').replace(/\./g,'').replace(',','.')) || 0;
+        });
+        // ÇEKİLEN + ARDİYE + KDV + VERGİ → dönemde ÇEKİLEN araçlardan
+        // (bu kalemler çekişte ödenir; geliş ayına değil çekiş ayına yazılır)
+        cekilenAraclari.forEach(d => {
+            let v = _fbGet(d.firma || 'Bilinmiyor');
+            v.cekilen++;
+            v.ardiye += window._analizArdiyeTutari(d);
+            let r = window._analizVergi(d, kcCache2);
+            v.kdv   += r.kdv;
+            v.vergi += r.vergi;
         });
         let firmaSatirlari = Object.entries(firmaFin)
-            .sort((a,b) => b[1].fatura - a[1].fatura)
+            .sort((a,b) => (b[1].fatura - a[1].fatura) || (b[1].cekilen - a[1].cekilen))
             .map(([fn, v]) =>
                 '<tr style="border-bottom:1px solid var(--border);">' +
                     '<td style="padding:8px;font-weight:600;">' + fn + '</td>' +
-                    '<td style="padding:8px;text-align:right;">' + v.arac + '</td>' +
+                    '<td style="padding:8px;text-align:right;">' + v.gelen + '</td>' +
+                    '<td style="padding:8px;text-align:right;color:#10b981;font-weight:700;">' + v.cekilen + '</td>' +
                     '<td style="padding:8px;text-align:right;">' + Math.round(v.fatura).toLocaleString('tr-TR') + ' €</td>' +
                     '<td style="padding:8px;text-align:right;color:#f59e0b;">' + Math.round(v.ardiye).toLocaleString('tr-TR') + ' ₺</td>' +
                     '<td style="padding:8px;text-align:right;color:#10b981;">' + Math.round(v.kdv).toLocaleString('tr-TR') + ' ₺</td>' +
@@ -7531,19 +7612,20 @@ window.analizRender = function() {
                 '</tr>'
             ).join('');
         // Toplam satırı
-        let tArac=0, tFat=0, tArd=0, tKdv=0, tVer=0;
-        Object.values(firmaFin).forEach(v => { tArac+=v.arac; tFat+=v.fatura; tArd+=v.ardiye; tKdv+=v.kdv; tVer+=v.vergi; });
+        let tGel=0, tCek=0, tFat=0, tArd=0, tKdv=0, tVer=0;
+        Object.values(firmaFin).forEach(v => { tGel+=v.gelen; tCek+=v.cekilen; tFat+=v.fatura; tArd+=v.ardiye; tKdv+=v.kdv; tVer+=v.vergi; });
         if(firmaSatirlari) {
             firmaSatirlari += '<tr style="background:rgba(59,130,246,.08);font-weight:800;">' +
                 '<td style="padding:10px;">📊 TOPLAM</td>' +
-                '<td style="padding:10px;text-align:right;">' + tArac + '</td>' +
+                '<td style="padding:10px;text-align:right;">' + tGel + '</td>' +
+                '<td style="padding:10px;text-align:right;color:#10b981;">' + tCek + '</td>' +
                 '<td style="padding:10px;text-align:right;">' + Math.round(tFat).toLocaleString('tr-TR') + ' €</td>' +
                 '<td style="padding:10px;text-align:right;color:#f59e0b;">' + Math.round(tArd).toLocaleString('tr-TR') + ' ₺</td>' +
                 '<td style="padding:10px;text-align:right;color:#10b981;">' + Math.round(tKdv).toLocaleString('tr-TR') + ' ₺</td>' +
                 '<td style="padding:10px;text-align:right;color:#ef4444;">' + Math.round(tVer).toLocaleString('tr-TR') + ' ₺</td>' +
             '</tr>';
         }
-        firmaFinBody.innerHTML = firmaSatirlari || '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">Bu dönemde veri yok</td></tr>';
+        firmaFinBody.innerHTML = firmaSatirlari || '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">Bu dönemde veri yok</td></tr>';
     }
 
     // ═══════ AYLIK FİRMA × ARAÇ DETAYI (Son 6 Ay) ═══════
@@ -7552,7 +7634,9 @@ window.analizRender = function() {
     if(detayHead && detayBody) {
         let aylar = [];
         for(let i = 5; i >= 0; i--) {
-            let ay = new Date(); ay.setDate(1); ay.setMonth(ay.getMonth() - i);
+            // setHours(0,0,0,0) şart: yoksa ay başı "01.07 15:42" olur ve
+            // ayın 1'inde gelen/çekilen araçlar o aya sayılmaz.
+            let ay = new Date(); ay.setDate(1); ay.setMonth(ay.getMonth() - i); ay.setHours(0,0,0,0);
             aylar.push({ d:ay, lbl:ay.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}) });
         }
         detayHead.innerHTML = '<th style="text-align:left;">FİRMA</th>' +
@@ -7562,9 +7646,11 @@ window.analizRender = function() {
         let firmaListesi = [...new Set(data.filter(d => d.firma).map(d => d.firma))];
         let satirlar = '';
         let aylikToplam = aylar.map(() => 0);
+        let aylikCekToplam = aylar.map(() => 0);
         firmaListesi.forEach(f => {
             let satirHtml = '<td class="firma-cell">' + f + '</td>';
             let firmaToplam = 0;
+            let firmaCekToplam = 0;
             aylar.forEach((a, i) => {
                 let aySonu = new Date(a.d.getFullYear(), a.d.getMonth() + 1, 0, 23, 59, 59);
                 let say = data.filter(d => {
@@ -7572,19 +7658,28 @@ window.analizRender = function() {
                     let dt = window._parsTR(d.tarih);
                     return dt && dt >= a.d && dt <= aySonu;
                 }).length;
+                // O ay çekilen (kapanan) araçlar — parantez içinde gösterilir
+                let cek = data.filter(d => d.firma === f && _donemdeKapandi(d, a.d, aySonu)).length;
                 aylikToplam[i] += say;
+                aylikCekToplam[i] += cek;
                 firmaToplam += say;
-                satirHtml += '<td>' + (say > 0 ? '<strong>'+say+'</strong>' : '<span style="color:var(--text-muted);">-</span>') + '</td>';
+                firmaCekToplam += cek;
+                let hucre = say > 0 ? '<strong>'+say+'</strong>' : '<span style="color:var(--text-muted);">-</span>';
+                if(cek > 0) hucre += ' <span style="color:#10b981;font-weight:700;">(' + cek + ')</span>';
+                satirHtml += '<td>' + hucre + '</td>';
             });
-            satirHtml += '<td class="total-cell">' + firmaToplam + '</td>';
-            if(firmaToplam > 0) satirlar += '<tr>' + satirHtml + '</tr>';
+            satirHtml += '<td class="total-cell">' + firmaToplam +
+                (firmaCekToplam > 0 ? ' <span style="color:#10b981;">(' + firmaCekToplam + ')</span>' : '') + '</td>';
+            if(firmaToplam > 0 || firmaCekToplam > 0) satirlar += '<tr>' + satirHtml + '</tr>';
         });
 
         // Toplam satırı
         satirlar += '<tr style="background:rgba(59,130,246,.08);font-weight:800;">' +
             '<td class="firma-cell">📊 TOPLAM</td>' +
-            aylikToplam.map(a => '<td style="color:var(--primary);"><strong>' + a + '</strong></td>').join('') +
-            '<td class="total-cell" style="font-size:14px;">' + aylikToplam.reduce((s,v) => s+v, 0) + '</td>' +
+            aylikToplam.map((a, i) => '<td style="color:var(--primary);"><strong>' + a + '</strong>' +
+                (aylikCekToplam[i] > 0 ? ' <span style="color:#10b981;">(' + aylikCekToplam[i] + ')</span>' : '') + '</td>').join('') +
+            '<td class="total-cell" style="font-size:14px;">' + aylikToplam.reduce((s,v) => s+v, 0) +
+            ' <span style="color:#10b981;">(' + aylikCekToplam.reduce((s,v) => s+v, 0) + ')</span></td>' +
         '</tr>';
 
         detayBody.innerHTML = satirlar || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">Veri yok</td></tr>';
@@ -21019,6 +21114,44 @@ window._kcInit = function() {
 // ---- BEYANNAME KDV MATRAHI OCR ÇIKARICI (Drive'dan otomatik) ----
 const KC_BEYANNAME_URL = "https://script.google.com/macros/s/AKfycbwv4bD5HIBQeL10cf4fQzG9MXOq4O5dv7kQUNEt6xcr-XO5mnsXjtEy6DBf935c2lVaJA/exec";
 
+// Beyanname OCR sonucunu ARAÇ KAYDINA yaz — böylece Firebase ile senkronlanır ve
+// Analiz Dashboard'da her cihazda görünür. (Eskiden sadece bu tarayıcının
+// localStorage cache'inde duruyordu; başka cihazda KDV sütunu hep 0 çıkıyordu.)
+window._kdvAracKaydinaYaz = function(sasi, veri) {
+    try {
+        if (!sasi || !veri) return false;
+        let hedefSasi = String(sasi).toLocaleUpperCase('tr');
+        let kdv = parseFloat(veri.kdvTutari) || 0;
+        let vergi = parseFloat(veri.toplamVergi) || 0;
+        if (!kdv && !vergi) return false;
+
+        let degisti = false;
+        let uygula = function(kayit) {
+            if (!kayit || !kayit.sasi) return;
+            if (String(kayit.sasi).toLocaleUpperCase('tr') !== hedefSasi) return;
+            if ((parseFloat(kayit.kdvTutari) || 0) === kdv && (parseFloat(kayit.toplamVergi) || 0) === vergi) return;
+            kayit.kdvTutari   = kdv;
+            kayit.toplamVergi = vergi;
+            if (veri.kdvm) kayit.kdvm = veri.kdvm;
+            degisti = true;
+        };
+
+        (window.declarationsData || []).forEach(uygula);
+        Object.keys(window.firmData || {}).forEach(function(f) {
+            (window.firmData[f] || []).forEach(uygula);
+        });
+        (window.gelecekData || []).forEach(uygula);
+
+        if (degisti && typeof window.saveData === 'function') {
+            window.saveData('decl'); // admin + veri yüklendi kontrolleri saveData içinde
+        }
+        return degisti;
+    } catch (e) {
+        console.warn('[KC] KDV araç kaydına yazılamadı:', e.message);
+        return false;
+    }
+};
+
 window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
     if (!firma || !marka || !sasi) return null;
 
@@ -21028,6 +21161,8 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
     // Cache geçerli mi? hem kdvm hem toplamVergi varsa cache'den ver, yoksa yeniden çek
     if (cache[key] && cache[key].kdvm && cache[key].toplamVergi != null) {
         console.log(`[KC] Beyanname KDVM cache: ${cache[key].kdvm} + Toplam ${cache[key].toplamVergi} (${cache[key].dosyaAdi})`);
+        // Eski cache kayıtlarını araç kaydına taşı (bir kez; sonra sessiz kalır)
+        window._kdvAracKaydinaYaz(sasi, cache[key]);
         return { ...cache[key], fromCache: true };
     }
     if (cache[key]) {
@@ -21052,6 +21187,7 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
         console.log(`[KC] ✅ Beyanname KDVM: ${data.kdvm} TL — Toplam Vergi: ${data.toplamVergi} TL — ${data.dosyaAdi} (${ms}ms)`);
         cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, dosyaAdi: data.dosyaAdi };
         try { localStorage.setItem('gumruk_beyanname_kdvm_cache', JSON.stringify(cache)); } catch(e){}
+        window._kdvAracKaydinaYaz(sasi, cache[key]); // kalıcı + senkron
         return { ...cache[key], fromCache: false };
     } catch (err) {
         console.error('[KC] Beyanname OCR hata:', err);
