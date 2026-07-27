@@ -13548,6 +13548,20 @@ window.tseMarkaDatalistDoldur = function() {
 
 // TSE Şablonu modalini aç
 // ── TSE ALAN ID LİSTESİ ──────────────────────────────────────────────
+// GTİP değerinden açıklamayı ayıklar — APMGumrukSablon.xls'e SADECE kod yazılmalı.
+// "8703.60.10.00.00 - Benzinli + elektrik hibrit" → "8703.60.10.00.00"
+// (Gelecek Araçlar formunda GTİP seçilince koda açıklama ekleniyor, o değer
+//  araç kaydına ve TSE şablonuna taşınıyordu; XLS formatı bu yüzden bozuldu.)
+window._gtipSadeceKod = function(deger) {
+    var s = String(deger == null ? '' : deger).trim();
+    if (!s) return '';
+    var m = s.match(/^\s*(\d{4}(?:[.\s]?\d{2}){0,4})/);   // 8703.60.10.00.00 / 87036010 vb.
+    if (m) return m[1].replace(/\s+/g, '');
+    // Kod yakalanamadıysa ilk ayraçtan önceki parçayı al, en kötü ihtimalle olduğu gibi bırak
+    var p = s.split(/\s+[-–—]\s+/)[0].trim();
+    return p || s;
+};
+
 window._TSE_ALANLAR = [
     'tse-aracCinsi','tse-marka','tse-tip','tse-varyant','tse-versiyon',
     'tse-kategori','tse-imalTarihi','tse-ticariAd','tse-aracTanitimNo',
@@ -14415,7 +14429,9 @@ window.tseSablonFormYukle = function() {
         if (!kayit) return false;
         window._TSE_ALANLAR.forEach(function(id) {
             var el = document.getElementById(id);
-            if (el && kayit[id] !== undefined) el.value = kayit[id];
+            if (!el || kayit[id] === undefined) return;
+            // Eski kayıtlarda GTİP "kod - açıklama" olarak saklanmış olabilir
+            el.value = (id === 'tse-gtipNo') ? window._gtipSadeceKod(kayit[id]) : kayit[id];
         });
         return true;
     } catch(e) { return false; }
@@ -14443,7 +14459,7 @@ window.openTseSablonModal = function() {
     // Araçtan gelen bilgiler her zaman üzerine yaz (şasi, marka, gtip)
     if (sasi)  document.getElementById('tse-aracTanitimNo').value = sasi;
     if (marka) document.getElementById('tse-marka').value = marka;
-    if (gtip)  document.getElementById('tse-gtipNo').value = gtip;
+    if (gtip)  document.getElementById('tse-gtipNo').value = window._gtipSadeceKod(gtip);
 
     // Antrepo sadece hiç girilmemişse varsayılanı koy
     var antrepoEl = document.getElementById('tse-antrepoAdi');
@@ -14558,7 +14574,7 @@ window.tseSablonApmFromDrive = function(evrakLink, expectedSasi) {
             'tse-antrepoAdi':      apm['Antrepo Adı'],
             'tse-uretildigiUlke':  apm['Üretildiği Ülke'],
             'tse-ithalatUlkesi':   apm['İthalatın Yapıldığı Ülke'],
-            'tse-gtipNo':          apm['GTIP No']
+            'tse-gtipNo':          window._gtipSadeceKod(apm['GTIP No'])
         };
         var dolduruldu = 0, atlandi = 0;
         Object.keys(alanMap).forEach(function(id) {
@@ -14640,9 +14656,10 @@ window.openTseSablonModalFromGelecek = function() {
     var yuklendiMi = window.tseSablonFormYukle();
 
     // Gelecek formundan gelen bilgileri her zaman üzerine yaz
+    // (Gelecek formu GTİP'i "kod - açıklama" olarak tutuyor, koda indirgenir)
     if (sasi)  document.getElementById('tse-aracTanitimNo').value = sasi;
     if (marka) document.getElementById('tse-marka').value = marka;
-    if (gtip)  document.getElementById('tse-gtipNo').value = gtip;
+    if (gtip)  document.getElementById('tse-gtipNo').value = window._gtipSadeceKod(gtip);
 
     // Antrepo varsayılan
     var antrepoEl = document.getElementById('tse-antrepoAdi');
@@ -15366,7 +15383,7 @@ window.tseSablonKaydet = function() {
         v('tse-antrepoAdi'),
         v('tse-uretildigiUlke'),
         v('tse-ithalatUlkesi'),
-        v('tse-gtipNo')
+        window._gtipSadeceKod(v('tse-gtipNo'))   // XLS'e SADECE kod (açıklama değil)
     ];
 
     try {
