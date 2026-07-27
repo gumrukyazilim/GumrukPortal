@@ -2620,7 +2620,8 @@ div[style*="position: relative"] > input {
 			<button class="nav-btn admin-only" data-view="uyelikler" id="nav-uyelikler"><i data-lucide="user-check"></i><span>Üyelikler</span><span id="uyelik-badge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:auto;">0</span></button>
             <button class="nav-btn admin-only" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
             <button class="nav-btn admin-only" data-view="beyanname"><i data-lucide="file-text"></i><span>Beyanname Özet</span></button>
-            
+            <button class="nav-btn admin-only" onclick="window.openAracKayitListesi()" title="Google Drive'daki Araç Kayıt Listesi tablosunu yeni sekmede açar"><i data-lucide="table"></i><span>Araç Kayıt Listesi</span><i data-lucide="external-link" style="width:13px;height:13px;margin-left:auto;opacity:.55;"></i></button>
+
             <div class="sidebar-section-label admin-only" style="margin-top:8px;">Araçlar & Bilgi</div>
             <button class="nav-btn admin-only" data-view="calculator"><i data-lucide="calculator"></i><span>Vergi Hesaplama</span></button>
             <button class="nav-btn admin-only" data-view="kiymetCeza"><i data-lucide="alert-triangle"></i><span>Kıymet Ceza Hesaplama</span></button>
@@ -10665,6 +10666,14 @@ window.saveCariData = saveCariData;
     
     if(window.checkBottomNav) window.checkBottomNav();
 };
+
+    // ARAÇ KAYIT LİSTESİ (Google Drive) — sol menü kısayolu
+    window.ARAC_KAYIT_LISTESI_URL = 'https://docs.google.com/spreadsheets/d/10o1wd6jA2-7unY_9tNoPutBwEDGrT9pf6eHQkgbG970/edit';
+    window.openAracKayitListesi = function(){
+        // Link değişirse kod düzenlemeden localStorage ile güncellenebilir
+        const url = localStorage.getItem('arac_kayit_listesi_url') || window.ARAC_KAYIT_LISTESI_URL;
+        window.open(url, '_blank', 'noopener');
+    };
 
     window.declarationsData=[]; window.firmData={}; window.firmMeta={}; window.cariData={}; window.gelecekData=[]; window.kiymetData=[];
     
