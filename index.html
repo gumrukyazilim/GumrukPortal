@@ -3795,6 +3795,7 @@ div[style*="position: relative"] > input {
             <div>
                 <div id="cari-bakiye-baslik" style="font-size:11px;font-weight:700;letter-spacing:1px;opacity:.85;">KALAN BAKİYE</div>
                 <div id="cari-bakiye-firma" style="font-size:16px;font-weight:700;margin-top:4px;"></div>
+                <div id="cari-bakiye-detay" style="font-size:11.5px;font-weight:600;opacity:.9;margin-top:6px;line-height:1.6;"></div>
             </div>
             <div style="display:flex;gap:24px;flex-wrap:wrap;">
                 <div style="text-align:right;">
@@ -5373,14 +5374,36 @@ window._cariAvanstanMahsupEt = function(firma, borcG, borcT, notMetni) {
     return { kullanilanG: kullanilanG, kullanilanT: kullanilanT, kalanBorcG: kalanG, kalanBorcT: kalanT };
 };
 
+// "GG.AA.YYYY" → YYYYAAGG sayısı (karşılaştırma için). Boş/bozuksa 0.
+window._cariTarihSayi = function(s) {
+    let p = String(s || '').trim().split('.');
+    if(p.length !== 3) return 0;
+    let g = parseInt(p[0]), a = parseInt(p[1]), y = parseInt(p[2]);
+    if(isNaN(g) || isNaN(a) || isNaN(y)) return 0;
+    return y * 10000 + a * 100 + g;
+};
+
 // Eski (mahsup motoru öncesi) kapanış satırları — avans varken kapatıldıysa
 // avans tüketilmemiş demektir; bakiye olduğundan fazla/az görünür.
+// ★ SADECE ön ödemenin ALINDIĞI TARİHTEN SONRAKİ kapanışlar şüphelidir.
+//   Ön ödemeden önce kapatılmış borçlar o parayla ödenmiş olamaz; onları
+//   mahsup etmek gerçekten var olan alacağı yok eder.
 window._cariSupheliKapanislar = function(firma) {
     let liste = window.cariData[firma] || [];
+    // En eski AÇIK ön ödemenin tarihi — eşik budur
+    let esik = null;
+    window._cariAcikAvanslar(firma).forEach(function(a) {
+        let t = window._cariTarihSayi(a.h.tarih);
+        if(t && (esik === null || t < esik)) esik = t;
+    });
     let sonuc = [];
     liste.forEach(function(h, idx) {
         if(!h || h.isTahsilat !== true || h.odendi !== true) return;
         if(h.avansKontrol === true) return;   // yeni motorla zaten işlenmiş
+        if(esik !== null) {
+            let ht = window._cariTarihSayi(h.tarih);
+            if(!ht || ht < esik) return;      // ön ödemeden ÖNCE kapanmış → ilgisiz
+        }
         let b = window._cariBedellerGetir(h);
         let g = -b.gb, t = -b.tb;
         if(g <= 0.009 && t <= 0.009) return;
@@ -5536,10 +5559,41 @@ window.renderCariTable = function() {
         let eurEl   = document.getElementById('cari-bakiye-eur');
         let tryEl   = document.getElementById('cari-bakiye-try');
         let baslikEl = document.getElementById('cari-bakiye-baslik');
-        if(baslikEl) baslikEl.textContent = alacakliDurum ? 'KALAN ÖN ÖDEME (FİRMA ALACAKLI)' : 'KALAN BAKİYE (FİRMA BORÇLU)';
+        // ★ Bu rakam NET bakiye: ön ödeme − açık araç borçları. "Kalan ön ödeme"
+        //   demek yanıltıcıydı; açık borçlar zaten içinden düşülmüş oluyor.
+        if(baslikEl) baslikEl.textContent = alacakliDurum ? 'NET BAKİYE — FİRMA ALACAKLI' : 'NET BAKİYE — FİRMA BORÇLU';
         if(firmaEl) firmaEl.textContent = firma;
         if(eurEl)   eurEl.textContent = window.formatNumber(gercekGumruk, true) + ' €';
         if(tryEl)   tryEl.textContent = window.formatNumber(gercekTse, true) + ' ₺';
+
+        // Bakiyenin nasıl oluştuğunu aç: kullanılmamış ön ödeme − açık araç borcu
+        let detayEl = document.getElementById('cari-bakiye-detay');
+        if(detayEl) {
+            let av = window._cariAvansToplam(firma);
+            let borcG = 0, borcT = 0, acikArac = 0;
+            hareketler.forEach(function(h) {
+                if(h.odendi === true || h.isTahsilat === true) return;
+                let b = window._cariBedellerGetir(h);
+                if(b.gb > 0 || b.tb > 0) acikArac++;
+                if(b.gb > 0) borcG += b.gb;
+                if(b.tb > 0) borcT += b.tb;
+            });
+            let ik = function(g, t) {
+                let s = '';
+                if(g > 0.009) s += window.formatNumber(g, true) + ' €';
+                if(t > 0.009) s += (s ? ' + ' : '') + window.formatNumber(t, true) + ' ₺';
+                return s || '0';
+            };
+            if(av.g > 0.009 || av.t > 0.009) {
+                detayEl.innerHTML = '💰 Kullanılmamış ön ödeme: <b>' + ik(av.g, av.t) + '</b>' +
+                    '<br>🚗 Açık araç borcu (' + acikArac + ' araç): <b>' + ik(borcG, borcT) + '</b>' +
+                    '<br><span style="opacity:.85;">Net bakiye = ön ödeme − açık borç</span>';
+            } else if(acikArac > 0) {
+                detayEl.innerHTML = '🚗 Açık araç borcu (' + acikArac + ' araç): <b>' + ik(borcG, borcT) + '</b>';
+            } else {
+                detayEl.innerHTML = '';
+            }
+        }
         ozetKart.style.background = alacakliDurum
             ? 'linear-gradient(135deg,#047857,#0e7490)'
             : 'linear-gradient(135deg,#1e40af,#7c3aed)';
@@ -5569,8 +5623,8 @@ window.renderCariTable = function() {
                     '<div style="flex:1;min-width:260px;">' +
                         '<div style="font-weight:800;color:var(--warning);font-size:13px;margin-bottom:4px;">⚖️ Ön ödeme mahsup edilmemiş olabilir</div>' +
                         '<div style="font-size:12.5px;color:var(--text-secondary);line-height:1.5;">' +
-                            'Açık ön ödeme <b>' + fu(avansD.g, avansD.t) + '</b>, ama daha önce <b>' + fu(supheliG, supheliT) + '</b> tutarında kapanış yapılmış. ' +
-                            'Bu kapanışlar ön ödemeden karşılandıysa avans düşülmediği için bakiye olduğundan yüksek görünür.' +
+                            'Açık ön ödeme <b>' + fu(avansD.g, avansD.t) + '</b>. Ön ödemenin alındığı tarihten SONRA <b>' + fu(supheliG, supheliT) + '</b> tutarında kapanış yapılmış. ' +
+                            'Bu kapanışlar nakit/havale ile ayrıca tahsil edildiyse <u>dokunmayın</u>; sadece ön ödemeden karşılananları işaretleyin.' +
                         '</div>' +
                     '</div>' +
                     '<button class="btn-sm" style="background:var(--warning);color:#fff;border:none;font-weight:800;padding:10px 16px;white-space:nowrap;" onclick="window.cariMahsupModal()">⚖️ Denetle & Düzelt</button>' +
