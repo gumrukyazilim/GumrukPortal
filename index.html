@@ -3785,6 +3785,7 @@ div[style*="position: relative"] > input {
                 <option value="">Tüm Firmalar</option>
             </select>
             <button class="btn-sm" style="background:var(--success);color:#fff;border:none;" onclick="window.cariTahsilatModal()"><i data-lucide="hand-coins"></i> Tahsilat Al</button>
+            <button class="btn-sm" id="cari-bakiye-duzelt-btn" style="display:none;background:#7c3aed;color:#fff;border:none;" onclick="window.cariBakiyeDuzelt()"><i data-lucide="scale"></i> Bakiye Düzelt</button>
             <button class="btn-primary" onclick="window.cariHareketEkle()"><i data-lucide="plus"></i> Hareket Ekle</button>
         </div>
     </div>
@@ -5425,6 +5426,8 @@ window.renderCariTable = function() {
         if(bOzet) bOzet.style.display='none';
         let uyariKapat = document.getElementById('cari-avans-uyari');
         if(uyariKapat) { uyariKapat.style.display='none'; uyariKapat.innerHTML=''; }
+        let bdBtnKapat = document.getElementById('cari-bakiye-duzelt-btn');
+        if(bdBtnKapat) bdBtnKapat.style.display='none';
         let geriBtn = document.getElementById('cari-geri-btn');
         if(geriBtn) geriBtn.style.display='none';
         let tableHead = document.querySelector('#cari-tbody')?.closest('table')?.querySelector('thead');
@@ -5477,6 +5480,8 @@ window.renderCariTable = function() {
     let tableHead2 = document.querySelector('#cari-tbody')?.closest('table')?.querySelector('thead');
     if(tableHead2) tableHead2.style.display = '';
     if(geriBtn) geriBtn.style.display='flex';
+    let bdBtn = document.getElementById('cari-bakiye-duzelt-btn');
+    if(bdBtn) bdBtn.style.display='flex';
     if(!tbody) return;
     
     let hareketler = window.cariData[firma] || [];
@@ -21598,6 +21603,159 @@ window._cariMahsupUygula = function() {
         showSyncToast('Mahsup edildi: ' + ikili(sonuc.kullanilanG, sonuc.kullanilanT) +
                       ' — Kalan ön ödeme: ' + ikili(kalan.g, kalan.t), true);
     }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  ⚖️ BAKİYE DÜZELT / DEVİR GİR
+//  Geçmiş hareketleri tek satıra indirir: mevcut açık satırlar kapanır,
+//  yerine elle girilen doğru bakiye "Devir bakiyesi" olarak açılır.
+//  Para birimi başına yön ayrı seçilir (firma alacaklı = ön ödeme).
+// ═══════════════════════════════════════════════════════════════════
+window.cariBakiyeDuzelt = function() {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) { alert('Önce bir firma seçin!'); return; }
+
+    let hareketler = window.cariData[firma] || [];
+    let mevcutG = 0, mevcutT = 0, acikSatir = 0;
+    hareketler.forEach(function(h) {
+        if(!h || h.odendi === true) return;
+        let b = window._cariBedellerGetir(h);
+        mevcutG += b.gb; mevcutT += b.tb;
+        acikSatir++;
+    });
+
+    // Pozitif = firma borçlu, negatif = firma alacaklı (ön ödeme)
+    window._cbdYon = { eur: mevcutG < 0 ? 'alacakli' : 'borclu', try: mevcutT < 0 ? 'alacakli' : 'borclu' };
+    let f = function(v) { return window.formatNumber(Math.abs(v), true); };
+
+    let birimBlok = function(kod, sembol, mevcut, renk) {
+        let yon = window._cbdYon[kod === 'EUR' ? 'eur' : 'try'];
+        return '<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+                '<span style="font-weight:800;font-size:13px;color:' + renk + ';">' + sembol + ' ' + (kod === 'EUR' ? 'GÜMRÜK' : 'TSE') + '</span>' +
+                '<span style="font-size:11px;color:var(--text-muted);">Şu anki: ' + f(mevcut) + ' ' + sembol + ' (' + (mevcut < 0 ? 'firma alacaklı' : 'firma borçlu') + ')</span>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
+                '<button type="button" id="cbd-' + kod + '-alacakli" onclick="window._cbdYonSec(\'' + kod + '\',\'alacakli\')" style="padding:10px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;' + (yon === 'alacakli' ? 'background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:2px solid #10b981;' : 'background:transparent;color:var(--text-secondary);border:2px solid var(--border);') + '">Firma ALACAKLI<br><small style="font-weight:600;opacity:.85;">(ön ödemesi var)</small></button>' +
+                '<button type="button" id="cbd-' + kod + '-borclu" onclick="window._cbdYonSec(\'' + kod + '\',\'borclu\')" style="padding:10px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;' + (yon === 'borclu' ? 'background:linear-gradient(135deg,#f59e0b,#b45309);color:#fff;border:2px solid #f59e0b;' : 'background:transparent;color:var(--text-secondary);border:2px solid var(--border);') + '">Firma BORÇLU<br><small style="font-weight:600;opacity:.85;">(bize ödeyecek)</small></button>' +
+            '</div>' +
+            '<div style="position:relative;">' +
+                '<input id="cbd-' + kod + '-tutar" type="number" step="0.01" value="' + (Math.abs(mevcut) > 0.009 ? Math.abs(mevcut).toFixed(2) : '') + '" placeholder="0.00" style="width:100%;padding:13px 44px 13px 13px;background:var(--bg-surface);border:2px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:19px;font-weight:800;box-sizing:border-box;">' +
+                '<span style="position:absolute;right:15px;top:50%;transform:translateY(-50%);color:' + renk + ';font-size:19px;font-weight:800;">' + sembol + '</span>' +
+            '</div>' +
+        '</div>';
+    };
+
+    let modal = document.createElement('div');
+    modal.id = 'cari-bakiye-duzelt-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);';
+    modal.innerHTML =
+    '<div style="background:var(--bg-surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;width:92%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.6);">' +
+        '<div style="padding:18px 22px;background:linear-gradient(135deg,#7c3aed,#4338ca);display:flex;justify-content:space-between;align-items:center;">' +
+            '<div><h3 style="margin:0;color:#fff;font-size:17px;font-weight:800;">⚖️ Bakiye Düzelt</h3>' +
+            '<p style="margin:4px 0 0;color:rgba(255,255,255,.9);font-size:12px;">' + firma + '</p></div>' +
+            '<button onclick="document.getElementById(\'cari-bakiye-duzelt-modal\').remove()" style="background:rgba(255,255,255,.25);color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;">×</button>' +
+        '</div>' +
+        '<div style="padding:14px 22px;background:rgba(120,140,170,.08);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text-secondary);line-height:1.55;">' +
+            'Doğru bakiyeyi elle yaz. Kaydedince mevcut <b>' + acikSatir + ' açık satır kapatılır</b> (silinmez, geçmişte kalır) ve yerine tek bir <b>“Devir bakiyesi”</b> satırı açılır. Bundan sonraki araçlar bu bakiyeden düşer.' +
+        '</div>' +
+        '<div style="flex:1;overflow-y:auto;padding:16px 22px;">' +
+            birimBlok('EUR', '€', mevcutG, 'var(--primary)') +
+            birimBlok('TRY', '₺', mevcutT, 'var(--warning)') +
+        '</div>' +
+        '<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;background:var(--bg-elevated);">' +
+            '<button onclick="document.getElementById(\'cari-bakiye-duzelt-modal\').remove()" style="flex:1;padding:13px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;">İPTAL</button>' +
+            '<button onclick="window._cbdKaydet()" style="flex:2;padding:13px;background:linear-gradient(135deg,#7c3aed,#4338ca);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:800;box-shadow:0 4px 15px rgba(124,58,237,.35);">✅ BAKİYEYİ YAZ</button>' +
+        '</div>' +
+    '</div>';
+    modal.addEventListener('click', function(e) { if(e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+};
+
+window._cbdYonSec = function(kod, yon) {
+    window._cbdYon[kod === 'EUR' ? 'eur' : 'try'] = yon;
+    let al = document.getElementById('cbd-' + kod + '-alacakli');
+    let bo = document.getElementById('cbd-' + kod + '-borclu');
+    let secili = 'padding:10px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;';
+    let pasif  = secili + 'background:transparent;color:var(--text-secondary);border:2px solid var(--border);';
+    if(yon === 'alacakli') {
+        al.style.cssText = secili + 'background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:2px solid #10b981;';
+        bo.style.cssText = pasif;
+    } else {
+        bo.style.cssText = secili + 'background:linear-gradient(135deg,#f59e0b,#b45309);color:#fff;border:2px solid #f59e0b;';
+        al.style.cssText = pasif;
+    }
+};
+
+window._cbdKaydet = function() {
+    let firma = document.getElementById('cari-firma-sec')?.value;
+    if(!firma) return;
+
+    let oku = function(kod) {
+        let v = Math.abs(parseFloat(document.getElementById('cbd-' + kod + '-tutar')?.value) || 0);
+        let yon = window._cbdYon[kod === 'EUR' ? 'eur' : 'try'];
+        return yon === 'alacakli' ? -v : v;   // negatif = firma alacaklı (ön ödeme)
+    };
+    let yeniG = oku('EUR');
+    let yeniT = oku('TRY');
+
+    let f = function(v) { return window.formatNumber(Math.abs(v), true); };
+    let ozet = '';
+    if(Math.abs(yeniG) > 0.009) ozet += '   ' + f(yeniG) + ' € — firma ' + (yeniG < 0 ? 'ALACAKLI (ön ödeme)' : 'BORÇLU') + '\n';
+    if(Math.abs(yeniT) > 0.009) ozet += '   ' + f(yeniT) + ' ₺ — firma ' + (yeniT < 0 ? 'ALACAKLI (ön ödeme)' : 'BORÇLU') + '\n';
+    if(!ozet) ozet = '   0 (bakiye sıfırlanacak)\n';
+
+    let acik = (window.cariData[firma] || []).filter(function(h) { return h && h.odendi !== true; }).length;
+    if(!confirm('BAKİYE ELLE YAZILACAK\n\n' + firma + ' yeni bakiyesi:\n' + ozet +
+                '\nMevcut ' + acik + ' açık satır kapatılacak (silinmez, "Tüm Geçmiş" filtresinde görünür).\n\nOnaylıyor musunuz?')) return;
+
+    let bugun = window.formatTRDate(new Date());
+
+    // 1) Mevcut açık satırları kapat
+    (window.cariData[firma] || []).forEach(function(h) {
+        if(!h || h.odendi === true) return;
+        h.odendi = true;
+        h.avansKontrol = true;              // mahsup denetimi bunları sormasın
+        h.devirIleKapandi = bugun;
+    });
+
+    // 2) Yeni bakiyeyi yaz — alacaklı ve borçlu taraflar AYRI satır olur ki
+    //    ekstrede biri "Alınan Ödemeler"e, diğeri "Cari Hareketleri"ne düşsün.
+    let alacakG = yeniG < -0.009 ? yeniG : 0;
+    let alacakT = yeniT < -0.009 ? yeniT : 0;
+    if(alacakG < 0 || alacakT < 0) {
+        window.cariData[firma].unshift({
+            tarih: bugun,
+            aciklama: 'Devir bakiyesi — ön ödeme',
+            sasi: '',
+            gumrukBedeli: alacakG,
+            tseBedeli: alacakT,
+            tur: 'borc',
+            isTahsilat: true,
+            odendi: false,
+            devirKaydi: true,
+            avansKontrol: true
+        });
+    }
+    let borcG = yeniG > 0.009 ? yeniG : 0;
+    let borcT = yeniT > 0.009 ? yeniT : 0;
+    if(borcG > 0 || borcT > 0) {
+        window.cariData[firma].unshift({
+            tarih: bugun,
+            aciklama: 'Devir bakiyesi — açık borç',
+            sasi: '',
+            gumrukBedeli: borcG,
+            tseBedeli: borcT,
+            tur: 'alacak',
+            odendi: false,
+            devirKaydi: true
+        });
+    }
+
+    saveCariData();
+    document.getElementById('cari-bakiye-duzelt-modal')?.remove();
+    window.renderCariTable();
+    if(typeof showSyncToast === 'function') showSyncToast('Bakiye yazıldı: ' + ozet.trim().replace(/\n\s*/g, ' | '), true);
 };
 
 // ============================================
