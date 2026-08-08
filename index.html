@@ -6793,55 +6793,56 @@ window.cariSeciliPDF = function() {
     let checked = document.querySelectorAll('.cari-cb:checked');
     if(!checked.length) { alert('En az bir hareket seçin!'); return; }
     
-    let hareketler = [];
+    // ── SADECE SEÇİLEN ve AÇIK İŞLEMLER ────────────────────────────
+    // Ekstre yalnızca işaretlenen araçları kapsar; firmanın seçilmeyen
+    // araçları bu döküme girmez. Kapanmış (ödendi) satırlar da alınmaz.
     let secilenIdxler = new Set();
+    let borclar = [];            // seçilen açık araç borçları
+    let seciliTahsilatlar = [];  // seçilen açık tahsilat satırları
     checked.forEach(function(cb) {
         // ★ Bir satır birden çok kaydın grubu olabilir (gümrük + TSE ayrı girilmişse).
         //   Sadece ilk index alınırsa PDF'e tutarın yarısı yazılıyordu.
         let idxs = (cb.dataset.idxs || cb.value).split(',').map(Number).filter(function(n){ return !isNaN(n); });
         idxs.forEach(function(idx) {
             if(secilenIdxler.has(idx)) return;
+            let h = (window.cariData[firma] || [])[idx];
+            if(!h) return;
+            if(h.odendi === true) return;   // kapanmış işlem açık cariye girmez
             secilenIdxler.add(idx);
-            let h = window.cariData[firma][idx];
-            if(h) hareketler.push(h);
+            let b = window._cariBedellerGetir(h);
+            if(h.isTahsilat === true || b.gb < 0 || b.tb < 0) seciliTahsilatlar.push(h);
+            else if(b.gb > 0.009 || b.tb > 0.009) borclar.push({ h: h, gb: b.gb, tb: b.tb });
         });
     });
 
-    if(!hareketler.length) return;
-
-    // ── TAHSİLATLARI OTOMATİK EKLE ─────────────────────────────────
-    // Seçilen satırlar arasında zaten tahsilat var mı kontrol et
-    let seciliTahsilatVar = hareketler.some(h => h.isTahsilat === true);
-
-    // Eğer kullanıcı tahsilat seçmediyse, firmaya ait AÇIK tahsilatları ekle
-    // (Kapanmış / odendi:true olan tahsilatlar ekstreyi kirletmesin)
-    if(!seciliTahsilatVar) {
-        (window.cariData[firma] || []).forEach(function(h, idx) {
-            if(!h) return;
-            if(secilenIdxler.has(idx)) return; // zaten seçilmiş
-            if(h.odendi === true) return;       // kapanmış kayıtları atla
-            let _b = window._cariBedellerGetir(h);
-            let isTahsilat = h.isTahsilat === true || _b.gb < 0 || _b.tb < 0;
-            if(isTahsilat) {
-                secilenIdxler.add(idx);
-                hareketler.push(h);
-            }
-        });
+    if(!borclar.length && !seciliTahsilatlar.length) {
+        alert('Seçilen satırların tamamı kapanmış (ödenmiş) görünüyor.\nEkstre için açık işlemleri seçin.');
+        return;
     }
 
-    // ★ DÖKÜMDE OLMAYAN AÇIK BORÇLAR ───────────────────────────────
-    // Ön ödeme TAMAMI ekstreye giriyor ama borçların sadece seçilenleri
-    // giriyordu → kalan bakiye firmanın gerçek bakiyesini tutmuyor, avans
-    // her seferinde baştan sayılıyordu. Dökümde olmayan açık borçları
-    // ayrı bir özet satırında gösterip mutabakatı kapatıyoruz.
-    let digerBorcEur = 0, digerBorcTry = 0;
+    // ── FİRMANIN AÇIK ÖN ÖDEMESİ (FİRMA ALACAĞI) ───────────────────
+    // Şasiye bağlı olmayan açık tahsilatlar firmanın bizde duran parasıdır
+    // (ör. 80.000 ₺). Seçilen araçların borcu bu tutardan düşülür.
+    let odemeler = [];
+    let odemeSeti = new Set();
+    window._cariAcikAvanslar(firma).forEach(function(a) {
+        odemeSeti.add(a.h);
+        odemeler.push({ h: a.h, g: a.kalanG, t: a.kalanT });
+    });
+    // Seçilenler arasındaki şasili kısmi tahsilatlar da düşülür
+    seciliTahsilatlar.forEach(function(h) {
+        if(odemeSeti.has(h)) return;
+        odemeSeti.add(h);
+        let b = window._cariBedellerGetir(h);
+        odemeler.push({ h: h, g: b.gb < 0 ? -b.gb : 0, t: b.tb < 0 ? -b.tb : 0 });
+    });
+
+    // Ekstrede yer almayan başka açık araç var mı? (tutarı yazılmaz, sadece not)
+    let digerAcikSayi = 0;
     (window.cariData[firma] || []).forEach(function(h, idx) {
-        if(!h) return;
-        if(secilenIdxler.has(idx)) return;
-        if(h.odendi === true) return;
-        let _b = window._cariBedellerGetir(h);
-        if(_b.gb > 0) digerBorcEur += _b.gb;
-        if(_b.tb > 0) digerBorcTry += _b.tb;
+        if(!h || h.odendi === true || secilenIdxler.has(idx) || odemeSeti.has(h)) return;
+        let b = window._cariBedellerGetir(h);
+        if(b.gb > 0.009 || b.tb > 0.009) digerAcikSayi++;
     });
 
     // PDF oluştur
@@ -6852,70 +6853,64 @@ window.cariSeciliPDF = function() {
     let meta = window.firmMeta[firma] || {};
     let vergiNo = meta.vergiNo || meta.tcNo || '-';
     
-    // ===== Borç + Tahsilat AYRI hesapla =====
+    // ===== Seçilen araç borçları + firmanın ön ödemesi =====
     let toplamBorcEur = 0, toplamBorcTry = 0;
     let toplamAlinanEur = 0, toplamAlinanTry = 0;
     let borcRows = '', tahsilatRows = '';
     let borcSayac = 0, tahsilatSayac = 0;
 
-    hareketler.forEach(function(h) {
-        let temizAciklama = (h.aciklama || '')
+    let aciklamaYaz = function(h) {
+        let temiz = (h.aciklama || '')
             .replace(/\s*TSE\s*H[İI]ZMET[İI]\s*/gi, '')
             .replace(/\s*G[ÜU]MR[ÜU]K\s*H[İI]ZMET[İI]\s*/gi, '')
             .replace(/\s*H[İI]ZMET[İI]\s*/gi, '')
             .trim() || (h.aciklama || '-');
         let sasi = (h.sasi || '').trim().toUpperCase();
-        let aciklamaPDF = temizAciklama;
-        if(sasi && sasi.length > 6) aciklamaPDF += ' (...' + sasi.slice(-6) + ')';
+        if(sasi && sasi.length > 6) temiz += ' (...' + sasi.slice(-6) + ')';
+        return temiz;
+    };
 
-        let gb = parseFloat(h.gumrukBedeli) || 0;
-        let tb = parseFloat(h.tseBedeli)    || 0;
-        if(!gb && !tb && h.tutar) {
-            let t = parseFloat(h.tutar) || 0;
-            if(h.tur === 'borc') t = -t;
-            let b = (h.birim || 'EUR').toUpperCase();
-            if(b === 'EUR' || b === 'USD') gb = t; else tb = t;
-        }
-
-        let isTahsilat = h.isTahsilat === true || gb < 0 || tb < 0;
-
-        if(isTahsilat) {
-            tahsilatSayac++;
-            let eMin = gb < 0 ? Math.abs(gb) : 0;
-            let tMin = tb < 0 ? Math.abs(tb) : 0;
-            toplamAlinanEur += eMin;
-            toplamAlinanTry += tMin;
-            let eShow = eMin > 0 ? '<span style="font-weight:700;color:#059669;">−'+ window.formatNumber(eMin,true) +' €</span>' : '-';
-            let tShow = tMin > 0 ? '<span style="font-weight:700;color:#059669;">−'+ window.formatNumber(tMin,true) +' ₺</span>' : '-';
-            tahsilatRows += '<tr style="background:rgba(16,185,129,.05);">' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ tahsilatSayac +'</td>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ (h.tarih||'-') +'</td>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;color:#059669;">✅ '+ aciklamaPDF +'</td>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ eShow +'</td>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ tShow +'</td>' +
-            '</tr>';
-        } else {
-            borcSayac++;
-            toplamBorcEur += gb;
-            toplamBorcTry += tb;
-            let eShow = gb > 0 ? '<span style="font-weight:700;color:#1e40af;">+'+ window.formatNumber(gb,true) +' €</span>' : '-';
-            let tShow = tb > 0 ? '<span style="font-weight:700;color:#b45309;">+'+ window.formatNumber(tb,true) +' ₺</span>' : '-';
-            borcRows += '<tr>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ borcSayac +'</td>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;">'+ (h.tarih||'-') +'</td>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+ aciklamaPDF +'</td>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ eShow +'</td>' +
-                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ tShow +'</td>' +
-            '</tr>';
-        }
+    borclar.forEach(function(x) {
+        borcSayac++;
+        toplamBorcEur += x.gb;
+        toplamBorcTry += x.tb;
+        let eShow = x.gb > 0.009 ? '<span style="font-weight:700;color:#1e40af;">+'+ window.formatNumber(x.gb,true) +' €</span>' : '-';
+        let tShow = x.tb > 0.009 ? '<span style="font-weight:700;color:#b45309;">+'+ window.formatNumber(x.tb,true) +' ₺</span>' : '-';
+        borcRows += '<tr>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;">'+ borcSayac +'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;">'+ (x.h.tarih||'-') +'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">'+ aciklamaYaz(x.h) +'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ eShow +'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ tShow +'</td>' +
+        '</tr>';
     });
 
-    // KALAN = seçilen borçlar + dökümde olmayan açık borçlar − alınan ödeme
-    // → firmanın cari ekranındaki gerçek bakiyesiyle BİREBİR aynı çıkar.
-    let kalanEur = toplamBorcEur + digerBorcEur - toplamAlinanEur;
-    let kalanTry = toplamBorcTry + digerBorcTry - toplamAlinanTry;
-    let digerVar = (digerBorcEur > 0.009 || digerBorcTry > 0.009);
+    odemeler.forEach(function(o) {
+        if(o.g <= 0.009 && o.t <= 0.009) return;
+        tahsilatSayac++;
+        toplamAlinanEur += o.g;
+        toplamAlinanTry += o.t;
+        let eShow = o.g > 0.009 ? '<span style="font-weight:700;color:#059669;">−'+ window.formatNumber(o.g,true) +' €</span>' : '-';
+        let tShow = o.t > 0.009 ? '<span style="font-weight:700;color:#059669;">−'+ window.formatNumber(o.t,true) +' ₺</span>' : '-';
+        tahsilatRows += '<tr style="background:rgba(16,185,129,.05);">' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;">'+ tahsilatSayac +'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;">'+ (o.h.tarih||'-') +'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;color:#059669;">'+ aciklamaYaz(o.h) +'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ eShow +'</td>' +
+            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+ tShow +'</td>' +
+        '</tr>';
+    });
+
+    // KALAN = SADECE seçilen araçların borcu − firmanın açık ön ödemesi
+    // Seçilmeyen araçlar bu hesaba girmez (kullanıcı isteği).
+    let kalanEur = toplamBorcEur - toplamAlinanEur;
+    let kalanTry = toplamBorcTry - toplamAlinanTry;
     let fmt = (v, sembol) => window.formatNumber(v, true) + ' ' + sembol;
+    let fmtAbs = (v, sembol) => window.formatNumber(Math.abs(v), true) + ' ' + sembol;
+    let kalanAlacak = (kalanEur < -0.009 || kalanTry < -0.009);
+    let kalanBorc   = (kalanEur > 0.009 || kalanTry > 0.009);
+    let kalanBaslik = (kalanAlacak && !kalanBorc) ? 'KALAN ÖN ÖDEME (FİRMA ALACAĞI)'
+                    : ((kalanBorc && !kalanAlacak) ? 'KALAN BORÇ' : 'KALAN BAKİYE');
 
     // Tahsilat satırlarındaki ✅ işaretini kaldır (kurumsal görünüm)
     let tahsilatRowsClean = tahsilatRows.replace(/✅\s/g, '');
@@ -6926,10 +6921,11 @@ window.cariSeciliPDF = function() {
             <h1 style="color:#1e3a8a;font-size:22px;margin:0 0 6px;letter-spacing:1px;">CARİ EKSTRE</h1>
             <h2 style="color:#475569;font-size:14px;margin:0;font-weight:600;">${firma}</h2>
             <p style="font-size:11px;color:#64748b;margin-top:6px;">Tarih: ${tarih} &nbsp;&nbsp;|&nbsp;&nbsp; VKN/TC: ${vergiNo}</p>
+            <p style="font-size:10.5px;color:#64748b;margin-top:3px;">Kapsam: seçilen ${borcSayac} açık araç işlemi</p>
         </div>
 
         ${borcSayac > 0 ? `
-        <h3 style="color:#1e40af;font-size:13px;margin:10px 0 6px;padding:8px 12px;background:#f1f5f9;border-left:3px solid #1e40af;letter-spacing:.5px;font-weight:700;">CARİ HAREKETLERİ</h3>
+        <h3 style="color:#1e40af;font-size:13px;margin:10px 0 6px;padding:8px 12px;background:#f1f5f9;border-left:3px solid #1e40af;letter-spacing:.5px;font-weight:700;">SEÇİLEN ARAÇLAR — AÇIK İŞLEMLER</h3>
         <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10.5px;">
             <tr style="background:#f1f5f9;">
                 <th style="padding:7px;border:1px solid #ddd;width:28px;">#</th>
@@ -6942,7 +6938,7 @@ window.cariSeciliPDF = function() {
         </table>` : ''}
 
         ${tahsilatSayac > 0 ? `
-        <h3 style="color:#059669;font-size:13px;margin:14px 0 6px;padding:8px 12px;background:#f0fdf4;border-left:3px solid #059669;letter-spacing:.5px;font-weight:700;">ALINAN ÖDEMELER</h3>
+        <h3 style="color:#059669;font-size:13px;margin:14px 0 6px;padding:8px 12px;background:#f0fdf4;border-left:3px solid #059669;letter-spacing:.5px;font-weight:700;">FİRMA ÖN ÖDEMESİ / ALINAN ÖDEMELER</h3>
         <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10.5px;">
             <tr style="background:#f1f5f9;">
                 <th style="padding:7px;border:1px solid #ddd;width:28px;">#</th>
@@ -6961,27 +6957,23 @@ window.cariSeciliPDF = function() {
                 <th style="padding:10px;border:1px solid #1e40af;text-align:right;width:140px;">TSE (₺)</th>
             </tr>
             <tr>
-                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#1e40af;">${digerVar ? 'BU DÖKÜMDEKİ BORÇ' : 'TOPLAM BORÇ'}</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#1e40af;">SEÇİLEN ARAÇ BORCU<div style="font-weight:600;font-size:10px;color:#64748b;margin-top:3px;">(${borcSayac} işlem)</div></td>
                 <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#1e40af;font-size:13px;">${fmt(toplamBorcEur, '€')}</td>
                 <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#b45309;font-size:13px;">${fmt(toplamBorcTry, '₺')}</td>
             </tr>
-            ${digerVar ? `
-            <tr>
-                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#1e40af;">DİĞER AÇIK BORÇLAR<div style="font-weight:600;font-size:10px;color:#64748b;margin-top:3px;">(bu dökümde listelenmeyen açık araçlar)</div></td>
-                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#1e40af;font-size:13px;">${fmt(digerBorcEur, '€')}</td>
-                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#b45309;font-size:13px;">${fmt(digerBorcTry, '₺')}</td>
-            </tr>` : ''}
             <tr style="background:#f0fdf4;">
-                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#059669;">ALINAN ÖDEME / ÖN ÖDEME</td>
-                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#059669;font-size:13px;">${toplamAlinanEur > 0 ? '− ' : ''}${fmt(toplamAlinanEur, '€')}</td>
-                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#059669;font-size:13px;">${toplamAlinanTry > 0 ? '− ' : ''}${fmt(toplamAlinanTry, '₺')}</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;font-weight:700;color:#059669;">FİRMA ÖN ÖDEMESİ / ALINAN ÖDEME<div style="font-weight:600;font-size:10px;color:#64748b;margin-top:3px;">(firmanın bizde duran açık alacağı)</div></td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#059669;font-size:13px;">${toplamAlinanEur > 0.009 ? '− ' : ''}${fmt(toplamAlinanEur, '€')}</td>
+                <td style="padding:10px 12px;border:1px solid #ddd;text-align:right;font-weight:700;color:#059669;font-size:13px;">${toplamAlinanTry > 0.009 ? '− ' : ''}${fmt(toplamAlinanTry, '₺')}</td>
             </tr>
             <tr style="background:#fef3c7;">
-                <td style="padding:14px 12px;border:2px solid #b45309;font-weight:800;color:#92400e;font-size:14px;letter-spacing:.5px;">KALAN BAKİYE${(kalanEur < -0.009 || kalanTry < -0.009) ? '<div style="font-weight:600;font-size:10px;color:#166534;margin-top:3px;">(eksi bakiye = lehinize duran ön ödeme)</div>' : ''}</td>
-                <td style="padding:14px 12px;border:2px solid #b45309;text-align:right;font-weight:900;color:${kalanEur > 0 ? '#dc2626' : '#059669'};font-size:16px;">${fmt(kalanEur, '€')}</td>
-                <td style="padding:14px 12px;border:2px solid #b45309;text-align:right;font-weight:900;color:${kalanTry > 0 ? '#dc2626' : '#059669'};font-size:16px;">${fmt(kalanTry, '₺')}</td>
+                <td style="padding:14px 12px;border:2px solid #b45309;font-weight:800;color:#92400e;font-size:14px;letter-spacing:.5px;">${kalanBaslik}${kalanAlacak ? '<div style="font-weight:600;font-size:10px;color:#166534;margin-top:3px;">(seçilen araçlar düşüldükten sonra firmanın kalan alacağı)</div>' : ''}</td>
+                <td style="padding:14px 12px;border:2px solid #b45309;text-align:right;font-weight:900;color:${kalanEur > 0.009 ? '#dc2626' : '#059669'};font-size:16px;">${fmtAbs(kalanEur, '€')}</td>
+                <td style="padding:14px 12px;border:2px solid #b45309;text-align:right;font-weight:900;color:${kalanTry > 0.009 ? '#dc2626' : '#059669'};font-size:16px;">${fmtAbs(kalanTry, '₺')}</td>
             </tr>
         </table>
+        ${digerAcikSayi > 0 ? `
+        <p style="font-size:10px;color:#64748b;margin-top:10px;font-style:italic;">Not: Bu ekstre yalnızca seçilen araçları kapsar. Firmanın ${digerAcikSayi} adet daha açık işlemi bulunmaktadır; bu dökümde yer almamaktadır.</p>` : ''}
     `;
 
     document.body.appendChild(div);
