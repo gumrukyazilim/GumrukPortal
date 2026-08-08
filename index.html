@@ -19413,6 +19413,11 @@ window.autoSaveArdiyeToDrive = function(r) {
         "&birim4=" + encodeURIComponent((r.adet || 1) * 1450) +
         "&birimGiris=" + encodeURIComponent((r.adet || 1) * 240) +
         "&birimYukleme=" + encodeURIComponent((r.adet || 1) * 160) +
+        // ★ Güncel birim ücretler (GAS'ın eski 240/160 varsayılanını ezer).
+        //   Bu satırlarda adet 0 gönderildiği için TOPLAMI etkilemez; tabloda
+        //   yalnızca birim fiyat hücresi güncel değeri gösterir.
+        "&ucretGiris=366" +
+        "&ucretYukleme=240" +
         "&gun1=" + encodeURIComponent(r.gun1 || 0) +
         "&tutar1=" + encodeURIComponent(r.tutar1 || 0) +
         "&gun2=" + encodeURIComponent(r.gun2 || 0) +
