@@ -3356,6 +3356,7 @@ div[style*="position: relative"] > input {
 			<option value="KIYMET">💶 Kıymet Dilekçesi</option>
 			<option value="KTMCEVAP">📨 Kıymet Cevapsız Dilekçesi</option>
 			<option value="MOTORNO">🔧 Motor Numarası Dilekçesi</option>
+			<option value="TASFIYE">⚖️ Tasfiye (CIF %1) Dilekçesi</option>
             </select>
         
         <button class="btn-sm" onclick="window.renderView('declarations')" style="min-height:48px; min-width:110px; font-size:15px; display:flex; align-items:center; justify-content:center;">
@@ -18132,6 +18133,76 @@ window.dilekceMOTORNOViaGAS = async function() {
     }
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// TASFİYE (CIF %1) DİLEKÇESİ - GAS üzerinden PDF üretici
+// Özet beyan / geliş tarihi / şasi / firma sistemden gelir, elle alan yok
+// ═══════════════════════════════════════════════════════════════════
+window.dilekceTASFIYEViaGAS = async function() {
+    const items = window.currentDilekceItems || [];
+    if (items.length === 0) {
+        alert("Dilekçe verisi bulunamadı!");
+        return;
+    }
+
+    const ilkArac = items[0];
+
+    // Firma & imza yetkilisi (diğer dilekçelerle aynı eşleme)
+    let firmaAdi = ilkArac.firma || "........................";
+    let imzaYetkilisi = "........................";
+    let fUst = firmaAdi.toUpperCase();
+    if (fUst.includes("ŞAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
+    else if (fUst.includes("FF OTOMOTİV")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; }
+    else if (fUst.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
+    else if (fUst.includes("SANDIKÇI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+
+    // İmza yetkilisi ekrandan değiştirilmiş olabilir
+    const imzaEl = document.querySelector('#dilekce-print-area .imza-yetkili.editable-field');
+    if (imzaEl) {
+        const t = imzaEl.textContent.trim();
+        if (t && !t.includes("..........")) imzaYetkilisi = t;
+    }
+
+    const payload = {
+        tip: "TASFIYE",
+        firmaAdi: firmaAdi,
+        imzaYetkilisi: imzaYetkilisi,
+        araclar: items.map(function(x) {
+            return {
+                ozetBeyan: x.ozetBeyan || x.beyanname || "......................",
+                gelisTarihi: x.tarih || "................",
+                sasi: x.sasi || "..................."
+            };
+        })
+    };
+
+    if (typeof showSyncToast === 'function') showSyncToast("PDF Hazırlanıyor (GAS)...");
+
+    try {
+        const result = await window.fetchGASWithRetry(payload);
+        if (!result.ok) throw new Error(result.error || "GAS hatası");
+
+        const byteChars = atob(result.pdfBase64);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = result.filename || "TASFIYE_DILEKCE.pdf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
+    } catch (err) {
+        console.error("TASFIYE GAS hatası:", err);
+        // GAS henüz bu tipi tanımıyorsa tarayıcı içi yedek üreticiyle devam et
+        if (typeof hideSyncToast === 'function') hideSyncToast("GAS yok, yedek PDF üretiliyor...", false);
+        return window.dilekceHtml2PdfIndir();
+    }
+};
+
 window.downloadPDF = function() {
     const tipEl = document.getElementById('dilekce-tipi');
     const tip = tipEl ? tipEl.value : 'BELGE';
@@ -18151,6 +18222,9 @@ window.downloadPDF = function() {
     }
     if (tip === "MOTORNO") {
         return window.dilekceMOTORNOViaGAS();
+    }
+    if (tip === "TASFIYE") {
+        return window.dilekceTASFIYEViaGAS();
     }
 
     return window.dilekceHtml2PdfIndir();
@@ -19434,6 +19508,8 @@ window.renderDilekceContent = function() {
         distFound: found, // Distribütör listede bulundu mu?
         kiymetTarihi: ilkArac.kiymGt || "................", // KIYMETTEN GELİŞ TARİHİ
         tescilTarihi: ilkArac.tarih || "................",
+        gelisTarihi: ilkArac.tarih || "................",   // AMBARA GELİŞ TARİHİ
+        ozetBeyan: ilkArac.ozetBeyan || ilkArac.beyanname || "......................",
         beynmCifTarihi: ilkArac.beynmCif || "................", // BEYANNAME CIF TARİHİ
         gtip: ilkArac.gtip || "8704.21.31.00.00",
         yil: ilkArac.yil || "...."
@@ -19596,6 +19672,48 @@ window.renderDilekceContent = function() {
                 </p>
                 <div class="belge-imza-alani">
                     <p style="margin-bottom: 10px;">Saygılarımızla,</p>
+                    <p class="imza-isim">${veri.firmaAdi}</p>
+                    <p class="imza-yetkili editable-field" contenteditable="true">${veri.imzaYetkilisi}</p>
+                </div>
+            </div>
+        `;
+    }
+    else if (tip === "TASFIYE") {
+        // Seçilen her araç için özet beyan / geliş tarihi / şasi listelenir.
+        // Tek araç seçildiğinde tek blok, çoklu seçimde özet beyana göre gruplanır.
+        let tOzetGrup = {};
+        items.forEach(item => {
+            let oz = item.ozetBeyan || item.beyanname || '......................';
+            if(!tOzetGrup[oz]) tOzetGrup[oz] = [];
+            tOzetGrup[oz].push(item);
+        });
+        let tListeHTML = "";
+        Object.keys(tOzetGrup).forEach(oz => {
+            let grp = tOzetGrup[oz];
+            let adet = grp.length > 1 ? ` / ${grp.length} ARAÇ` : "";
+            tListeHTML += `<div style="margin-bottom:4px;">&bull; Özet Beyan No: <b>${oz}${adet}</b></div>`;
+            grp.forEach(item => {
+                tListeHTML += `<div style="margin-bottom:4px;">&bull; Geliş Tarihi: <b>${item.tarih || '................'}</b></div>`;
+                tListeHTML += `<div style="margin-bottom:4px;">&bull; Şasi No: <b>${item.sasi || '...................'}</b></div>`;
+            });
+            tListeHTML += `<div style="margin-bottom:10px;"></div>`;
+        });
+        icerik = `
+            <div class="belge-kapsayici" style="margin-top: 100px;">
+                <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE</div>
+                <div style="font-weight: bold; margin-bottom: 18px;">
+                    Konu: CIF bedelinin %1'i tahsil edilerek serbest dolaşıma giriş işlemleri hk.
+                </div>
+                <div style="font-weight: bold; margin: 15px 0 6px 0;">İşlem Bilgileri:</div>
+                <div style="margin-left: 20px; margin-bottom: 18px;">
+                    <div style="margin-bottom:4px;">&bull; Firma: <b>${veri.firmaAdi}</b></div>
+                    ${tListeHTML}
+                </div>
+                <p class="belge-paragraf">
+                    Gümrük Kanunu ve Tasfiye Tüzüğü'nün ilgili maddeleri gereğince, CIF bedelinin %1'inin tahsil edilerek serbest dolaşıma giriş işlemlerinin yapılması hususunda gereğini emir ve müsaadelerinize arz ederiz.
+                </p>
+                <div class="belge-imza-alani">
+                    <p style="margin-bottom: 10px;">Saygılarımla,</p>
                     <p class="imza-isim">${veri.firmaAdi}</p>
                     <p class="imza-yetkili editable-field" contenteditable="true">${veri.imzaYetkilisi}</p>
                 </div>
