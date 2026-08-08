@@ -19511,7 +19511,9 @@ window.ardiyeUret = function(idx) {
         gun2: g2, tutar2: t2,
         gun3: g3, tutar3: t3,
         gun4: g4, tutar4: t4,
-        vergiNo: (window.firmMeta[d.firma]||{}).vergiNo || (window.firmMeta[d.firma]||{}).tcNo || "4110376484"
+        // Firmanın vergi/TC no'su kayıtlı değilse BOŞ gider. Eskiden burada
+        // sabit bir numara vardı; kayıtsız firmalarda yanlış numara yazıyordu.
+        vergiNo: (window.firmMeta[d.firma]||{}).vergiNo || (window.firmMeta[d.firma]||{}).tcNo || ""
     });
 
 };
