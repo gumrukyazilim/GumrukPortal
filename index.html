@@ -4238,13 +4238,13 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0;">
                         <label>Gümrük V. %</label>
                         <select id="calc-gv-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
-                            <option value="0">%0</option><option value="6">%6</option><option value="10" selected>%10</option><option value="22">%22</option>
+                            <option value="0" selected>%0</option><option value="6">%6</option><option value="10">%10</option><option value="22">%22</option>
                         </select>
                     </div>
                     <div class="input-group" style="margin:0;">
                         <label>İlave G.V. %</label>
                         <select id="calc-ilave-gv-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);">
-                            <option value="0">%0</option><option value="10">%10</option><option value="25" selected>%25</option><option value="30">%30</option><option value="40">%40 (Çin)</option><option value="60">%60</option>
+                            <option value="0" selected>%0</option><option value="10">%10</option><option value="25">%25</option><option value="30">%30</option><option value="40">%40 (Çin)</option><option value="60">%60</option>
                         </select>
                     </div>
                     <div class="input-group" style="margin:0;"><label>KKDF %</label><select id="calc-kkdf-oran" onchange="window.calculateTaxes()" style="background:var(--input-bg);"><option value="0" selected>%0</option><option value="6">%6</option></select></div>
@@ -4259,7 +4259,7 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0;"><label>Almanya (€)</label><input id="calc-almanya" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
                     <div class="input-group" style="margin:0;"><label>Ardiye (₺)</label><input id="calc-ardiye-tl" type="text" value="0" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
                     <div class="input-group" style="margin:0;"><label>TSE Müh. (₺)</label><input id="calc-tse-muh-tl" type="text" value="13.000" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
-                    <div class="input-group" style="margin:0;"><label>TSE Harcı (₺)</label><input id="calc-tse-harci-manual" type="text" value="5.412" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
+                    <div class="input-group" style="margin:0;"><label>TSE Harcı (₺)</label><input id="calc-tse-harci-manual" type="text" value="22.080" oninput="window.formatCurrencyInput(this);window.calculateTaxes()"></div>
                 </div>
             </div>
 
@@ -17515,26 +17515,29 @@ window.setTeslimCalc = function(tip) {
     let btnEu = document.getElementById('tip-avrupa-btn');
     let btnUs = document.getElementById('tip-amerikan-btn');
     let igvSelect = document.getElementById('calc-ilave-gv-oran');
-    
+    let gvSelect = document.getElementById('calc-gv-oran');
+
     if (tip === 'AVRUPA') {
         // Avrupa butonunu aktif yap
         btnEu.style.background = 'var(--primary)';
         btnEu.style.color = '#fff';
         btnUs.style.background = 'transparent';
         btnUs.style.color = 'var(--text-secondary)';
-        
-        // AVRUPA seçildiğinde İG.V'yi %0'a çek (Mevzuata uygun olarak)
+
+        // AVRUPA menşede İlave G.V. ve Gümrük V. otomatik uygulanmaz (kullanıcı gerekirse manuel seçer)
         if(igvSelect) igvSelect.value = "0";
-        
+        if(gvSelect) gvSelect.value = "0";
+
     } else {
         // Amerikan butonunu aktif yap
         btnUs.style.background = 'var(--primary)';
         btnUs.style.color = '#fff';
         btnEu.style.background = 'transparent';
         btnEu.style.color = 'var(--text-secondary)';
-        
-        // AMERİKAN seçildiğinde İG.V'yi %25'e çek
+
+        // AMERİKAN seçildiğinde İG.V %25 ve Gümrük V. %10 uygulanır
         if(igvSelect) igvSelect.value = "25";
+        if(gvSelect) gvSelect.value = "10";
     }
     
     // Vergi oranları değiştiği için hesaplamayı anında tetikle
