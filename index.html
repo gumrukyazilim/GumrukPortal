@@ -4373,7 +4373,7 @@ div[style*="position: relative"] > input {
             <span style="font-size:14px;font-weight:700;color:#fff;"> ÖTV'Lİ FİNAL</span>
             <div style="text-align:right;">
                 <div id="res-genel-eur" style="font-size:11px;color:rgba(255,255,255,0.8);">0 €</div>
-                <strong id="res-genel-maliyet" style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;">0 ₺</strong>
+                <strong id="res-genel-maliyet" style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;">0 ₺</strong>
             </div>
         </div>
     </div>
@@ -16622,7 +16622,8 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
 
         let resEl = document.getElementById('res-mtv-sonuc');
         if(resEl) resEl.innerText = window.formatNumber(mtv) + " ₺";
-        
+        window._sonMTV = mtv; // ÖTV'li final toplamına eklemek için sakla
+
         window.saveCalcState();
     };
 
@@ -16815,6 +16816,13 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
         if(mtvDegerInput) { mtvDegerInput.value = window.formatNumber(kdvM); }
     }
     window.calculateMTV();
+
+    // --- MTV'yi ÖTV'li final toplamına dahil et ---
+    // calculateMTV() az önce çalıştığı için _sonMTV güncel MTV tutarını taşır.
+    let sonMTV = window._sonMTV || 0;
+    sH("res-genel-eur", aEUR + dEUR + (kur ? sonMTV / kur : 0), true);
+    sH("res-genel-maliyet", (aEUR + dEUR) * kur + sonMTV);
+
     window.saveCalcState();
 };
 
