@@ -3539,6 +3539,28 @@ div[style*="position: relative"] > input {
             ⚠️ Bu liste yalnızca bilgilendirme amaçlıdır. Resmi ve bağlayıcı metinler için mevzuat.gov.tr ve resmigazete.gov.tr adreslerini kullanın.
         </div>
     </div>
+
+    <div class="card card-pad fade-in" style="margin-top:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div>
+                <div style="font-size:11px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">📢 GGM / İGMD RADARI</div>
+                <h2 style="font-size:20px;font-weight:700;color:var(--text-primary);margin:0;">GGM Genelgeleri & Dağıtımlı Yazılar</h2>
+                <div id="mevzuat-radar-guncelleme" style="font-size:11px;color:var(--text-muted);margin-top:4px;">Yükleniyor...</div>
+            </div>
+            <button class="btn-sm" onclick="window.mevzuatRadarRender(true)" style="border-color:var(--primary);color:var(--primary);">
+                <i data-lucide="refresh-cw"></i> Yenile
+            </button>
+        </div>
+        <div id="mevzuat-radar-liste" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="text-align:center;padding:30px;color:var(--text-muted);">
+                <div class="spinner" style="margin:0 auto 10px;"></div>
+                Mevzuat radarı yükleniyor...
+            </div>
+        </div>
+        <div style="margin-top:14px;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;font-size:11px;color:var(--text-muted);">
+            ℹ️ Kaynak: İGMD (İstanbul Gümrük Müşavirleri Derneği) — Gümrükler Genel Müdürlüğü iç genelge/dağıtımlı yazıları + Resmî Gazete. Gümrük Asistan botu tarar, otomotiv/gümrük filtresiyle buraya aktarır (09:15 ve 14:30).
+        </div>
+    </div>
 </template>
 <template id="tpl-bankaListesi">
     <div class="page-hdr fade-in">
@@ -17180,6 +17202,45 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
     };
     // ============================================================
 
+    // MEVZUAT RADAR paneli: bot'un Firebase 'mevzuat_radar' düğümüne yazdığı
+    // İGMD/GGM + Resmî Gazete otomotiv/gümrük yazılarını gösterir. Salt-okur.
+    window.mevzuatRadarRender = async function(zorla){
+        let liste = document.getElementById('mevzuat-radar-liste');
+        let ust = document.getElementById('mevzuat-radar-guncelleme');
+        if(!liste) return;
+        try {
+            let snap = await window._dbGet(window._dbRef(window._db, 'mevzuat_radar'));
+            let veri = (snap && snap.exists && snap.exists()) ? snap.val() : (snap ? snap.val() : null);
+            let kayitlar = [];
+            let guncelleme = '';
+            if(Array.isArray(veri)) kayitlar = veri;
+            else if(veri && typeof veri === 'object') { kayitlar = veri.kayitlar || []; guncelleme = veri.guncelleme || ''; }
+            kayitlar = (kayitlar || []).filter(Boolean);
+            if(ust) ust.innerText = (guncelleme ? 'Son tarama: ' + guncelleme + '  ·  ' : '') + kayitlar.length + ' kayıt';
+            if(!kayitlar.length){
+                liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">📭 Henüz otomotiv/gümrük ile ilgili GGM genelgesi/duyurusu aktarılmadı.<br><span style="font-size:11px;">(Gümrük Asistan botu 09:15 ve 14:30\'da tarar.)</span></div>';
+                return;
+            }
+            liste.innerHTML = kayitlar.slice(0,40).map(function(k){
+                var etk = (k.etiketler && k.etiketler.length) ? k.etiketler.join(', ') : '';
+                var ust2 = '🏛️ ' + (k.kaynak||'') + (k.tarih ? '  ·  📅 ' + k.tarih : '') + (k.sayi ? '  ·  No: ' + k.sayi : '');
+                return '<div style="padding:14px 16px;background:var(--input-bg);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
+                    '<div style="flex:1;min-width:200px;">' +
+                        '<div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:4px;">' + ust2 + '</div>' +
+                        '<div style="font-size:13px;color:var(--text-primary);line-height:1.5;">' + (k.baslik||'') + '</div>' +
+                        (etk ? '<div style="font-size:10px;color:var(--text-muted);margin-top:3px;">🏷️ ' + etk + '</div>' : '') +
+                    '</div>' +
+                    (k.url ? '<a href="' + k.url + '" target="_blank" class="btn-sm" style="border-color:var(--primary);color:var(--primary);text-decoration:none;white-space:nowrap;">Aç <i data-lucide="external-link" style="width:12px;height:12px;"></i></a>' : '') +
+                '</div>';
+            }).join('');
+            if(window.lucide) lucide.createIcons();
+        } catch(e){
+            if(ust) ust.innerText = '';
+            liste.innerHTML = '<div style="text-align:center;padding:20px;color:var(--warning);">Mevzuat radarı okunamadı: ' + (e && e.message ? e.message : e) + '</div>';
+        }
+    };
+    // ============================================================
+
     window.renderView=function(vn){
         // Yetki kontrolü: Firma kullanıcısı veya Süper İzleyici izinsiz sayfa açmaya çalışıyorsa engelle
         const _role = localStorage.getItem('gumruk_role') || 'admin';
@@ -17280,6 +17341,7 @@ if(vn==='mevzuat'){
     setTimeout(function(){
         if(window.mevzuatRehberiRender) window.mevzuatRehberiRender(); // canlı oranlar
         if(window.resmiGazeteCek) window.resmiGazeteCek(false);        // duyurular (cache'li)
+        if(window.mevzuatRadarRender) window.mevzuatRadarRender();     // GGM/İGMD radar (Firebase)
         if(window.rgGorulduIsaretle) setTimeout(window.rgGorulduIsaretle, 1500); // rozeti sıfırla
     }, 100);
 }
