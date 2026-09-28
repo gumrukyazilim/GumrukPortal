@@ -926,6 +926,11 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
     .modal-box [style*="grid-template-columns"] {
         grid-template-columns: 1fr !important; /* Yan yana duran kutuları alt alta atar */
     }
+    /* "grid-column: span 2" alanları tek sütunda hayalet 2. sütun yaratıp
+       kutuları dengesiz (dar/geniş) bölüyordu; mobilde hepsini tek sütuna sabitle */
+    .modal-box [style*="grid-template-columns"] > [style*="grid-column"] {
+        grid-column: auto !important;
+    }
     .modal-body { padding: 15px !important; }
 
     /* Yazdırma ve PDF ayarları */
@@ -3890,7 +3895,7 @@ div[style*="position: relative"] > input {
 
             <div class="modal-section">
                 <div class="modal-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span>Temel Bilgiler</span><button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);white-space:nowrap;" onclick="window.openTseSablonModalOrMulti()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button></div>
-                <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="input-group" style="margin:0;">
                         <label>Firma</label>
                         <div class="firm-search-wrap">
@@ -3913,7 +3918,7 @@ div[style*="position: relative"] > input {
 
                 <div class="modal-section">
                 <div class="modal-section-title">Gümrük & Tarihler</div>
-                <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap:12px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
                     <div class="input-group" style="margin:0;"><label>Geliş Tarihi</label><input type="date" id="da-tarih" onchange="window.declAutoCalc()"></div>
                     <div class="input-group" style="margin:0;"><label>Ek Süre T.</label><input type="date" id="da-ekSure" onchange="window.declAutoCalc()"></div>
                     <div class="input-group" style="margin:0;"><label>Antrepo T.</label><input type="date" id="da-antTarih" onchange="window.declAutoCalc()"></div>
@@ -3925,7 +3930,7 @@ div[style*="position: relative"] > input {
 
             <div class="modal-section">
                 <div class="modal-section-title">Beyanname / GTİP Detayları</div>
-                <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="input-group" style="margin:0; grid-column:span 2;">
                         <label>Gönderici / İhracatçı <button type="button" class="icon-btn" style="display:inline-flex; width:20px; height:20px; margin-left:10px;" onclick="window.addGondericiPrompt()"><i data-lucide="plus"></i></button></label>
                         <div class="firm-search-wrap">
