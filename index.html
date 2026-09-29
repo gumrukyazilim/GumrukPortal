@@ -3442,7 +3442,7 @@ div[style*="position: relative"] > input {
 
         <!-- SAĞ: Canlı A4 önizleme -->
         <div class="dlk-preview-wrap" style="overflow:auto;">
-            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#111; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.65; font-weight:600; white-space:pre-wrap; text-align:justify; padding:48px 56px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
+            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#111; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.5; font-weight:400; white-space:normal; text-align:left; padding:56px 64px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
         </div>
     </div>
 </template>
@@ -18826,10 +18826,17 @@ window.dilekceSablonSec = function(key){
     window.dilekceOnizleGuncelle();
 };
 
-window.dilekceOnizleGuncelle = function(){
-    const key = window._dlkAktifSablon;
-    if(!key) return;
+// HTML kaçış
+window._dlkEsc = function(s){ return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+// Para biçimi: 100.000,00
+window._dlkPara = function(v){ return window._dlkNum(v).toLocaleString('tr-TR', { minimumFractionDigits:2, maximumFractionDigits:2 }); };
+// Bugünün tarihi GG.AA.YYYY
+window._dlkBugun = function(){ var d=new Date(); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); };
+
+// Resmî dilekçe HTML'i üretir (canlı önizleme + PDF ortak kullanır)
+window.dilekceHtmlUret = function(key){
     const s = window.DILEKCE_SABLONLARI[key];
+    if(!s) return '';
     const alanTip = {};
     s.alanlar.forEach(function(a){ alanTip[a.id] = a; });
 
@@ -18839,27 +18846,68 @@ window.dilekceOnizleGuncelle = function(){
         raw[a.id] = el ? (el.value || '').trim() : '';
     });
 
-    // Hesaplanan: fark = tespit kıymet - beyan fatura
+    // Hesaplanan: fark = tespit kıymet - beyan fatura (para biçimi)
     if(alanTip.fark && alanTip.fark.hesaplanan){
         const fark = window._dlkNum(raw.kiymet) - window._dlkNum(raw.fatura);
-        raw.fark = fark ? fark.toLocaleString('tr-TR') : '';
+        raw.fark = fark ? window._dlkPara(fark) : '';
         const fe = document.getElementById('dlk-f-fark');
         if(fe) fe.value = raw.fark;
     }
 
-    // Görüntü değerleri (tarih biçimlendir)
+    // Görüntü değerleri: tarih -> GG.AA.YYYY, para (€ etiketli) -> 100.000,00
     const disp = {};
     Object.keys(raw).forEach(function(id){
-        disp[id] = (alanTip[id] && alanTip[id].tip === 'date') ? window._dlkDate(raw[id]) : raw[id];
+        const a = alanTip[id];
+        let v = raw[id];
+        if(a && a.tip === 'date') v = window._dlkDate(v);
+        else if(a && a.etiket && a.etiket.indexOf('€') > -1 && v && id !== 'fark') v = window._dlkPara(v);
+        disp[id] = v;
+    });
+    const sub = function(text){
+        return text.replace(/\{\{(\w+)\}\}/g, function(m, p){
+            const id = p.toLowerCase(); const v = disp[id];
+            return (v !== undefined && v !== '') ? v : '..........';
+        });
+    };
+
+    // Gövde: ilk satırı (makam) ve "Saygılarımızla..."dan sonrasını çıkar
+    let govde = s.metin.replace(/^[^\n]*\n/, '');           // makam satırı
+    govde = govde.replace(/\n?Saygılarımızla[\s\S]*$/i, ''); // imza bloğu (kendimiz koyacağız)
+    govde = sub(govde).trim();
+
+    const bloklar = govde.split(/\n\s*\n/).map(function(b){ return b.trim(); }).filter(Boolean);
+    let govdeHtml = '';
+    bloklar.forEach(function(b){
+        if(/^\.{3,}$/.test(b)) return;                       // boş "........."
+        if(/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(b)) return;       // salt tarih (üstte var)
+        if(/^konu\s*:/i.test(b)){
+            const rest = b.replace(/^konu\s*:/i, '').trim();
+            govdeHtml += '<div style="font-weight:bold; text-align:left; margin:0 0 16px; line-height:1.5;">KONU: ' + window._dlkEsc(rest) + '</div>';
+        } else if(b.indexOf('●') > -1 || /(^|\n)\s*ekler\s*:/i.test(b) || (b.indexOf('\n') > -1 && b.split('\n').every(function(l){ return !l.trim() || l.indexOf(':') > -1; }))){
+            govdeHtml += '<div style="white-space:pre-line; text-align:left; margin:0 0 12px; line-height:1.5;">' + window._dlkEsc(b) + '</div>';
+        } else {
+            govdeHtml += '<p style="text-align:justify; text-indent:30px; line-height:1.5; margin:0 0 12px;">' + window._dlkEsc(b.replace(/\n/g, ' ')) + '</p>';
+        }
     });
 
-    const metin = s.metin.replace(/\{\{(\w+)\}\}/g, function(m, p){
-        const id = p.toLowerCase();
-        const v = disp[id];
-        return (v !== undefined && v !== '') ? v : '..........';
-    });
+    // İmza bloğu (sağ alt): firma alanı olan şablonlarda firma + imza
+    const firmaVar = !!alanTip.firma;
+    const firmaVal = (disp.firma && disp.firma !== '..........') ? disp.firma : '';
+    const imzaVal  = (disp.imza  && disp.imza  !== '..........') ? disp.imza  : '..........';
+    let imzaHtml = '<div style="margin-top:50px; display:flex; justify-content:flex-end; text-align:center;"><div style="width:250px; line-height:1.4;">Saygılarımızla,<br><br>';
+    if(firmaVar && firmaVal) imzaHtml += '<strong>' + window._dlkEsc(firmaVal) + '</strong><br>';
+    imzaHtml += '<span>' + window._dlkEsc(imzaVal) + '</span><br><small style="color:#666;">(İmza / Kaşe)</small></div></div>';
 
-    document.getElementById('dlk-preview').innerText = metin;
+    return '<div style="text-align:right; margin-bottom:10px;">Tarih: ' + window._dlkBugun() + '</div>' +
+           '<div style="text-align:center; font-weight:bold; font-size:15px; margin:30px 0 25px 0;">' + window._dlkEsc(s.makam) + '</div>' +
+           govdeHtml + imzaHtml;
+};
+
+window.dilekceOnizleGuncelle = function(){
+    const key = window._dlkAktifSablon;
+    if(!key) return;
+    const prev = document.getElementById('dlk-preview');
+    if(prev) prev.innerHTML = window.dilekceHtmlUret(key);
 };
 
 window.dilekceTemizle = function(){
@@ -18876,13 +18924,13 @@ window.dilekcelerPdfIndir = async function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     if(typeof html2pdf === 'undefined'){ alert('PDF kütüphanesi yüklenemedi.'); return; }
     const s = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
-    const metin = (document.getElementById('dlk-preview').innerText || '').trim();
-    if(!metin){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
+    const html = window.dilekceHtmlUret(window._dlkAktifSablon);
+    if(!html){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
 
     // Export edilecek A4 node (viewport içinde, sol üstte)
     const node = document.createElement('div');
-    node.style.cssText = "position:fixed; top:0; left:0; width:794px; box-sizing:border-box; margin:0; padding:70px 80px; background:#ffffff; color:#000000; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.7; font-weight:600; white-space:pre-wrap; text-align:justify; overflow:visible; z-index:2147483646;";
-    node.innerText = metin;
+    node.style.cssText = "position:fixed; top:0; left:0; width:794px; box-sizing:border-box; margin:0; padding:75px 85px; background:#ffffff; color:#000000; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.5; font-weight:400; text-align:left; overflow:visible; z-index:2147483646;";
+    node.innerHTML = html;
     document.body.appendChild(node);
 
     // Kullanıcı ham node'u görmesin diye opak katman
