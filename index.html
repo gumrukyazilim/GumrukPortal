@@ -5141,6 +5141,16 @@ window._firebaseSave = async function(payload) {
 
         payload._meta = { updatedAt: Date.now(), device: window._cihazKimligi || 'bilinmiyor' };
 
+        // 3.5 KRİTİK: Firebase BOŞ dizi/nesneyi 'null' sayıp SAKLAMAZ. Bu yüzden
+        // yeni açılan (henüz aracı olmayan) firmalar firmData'da {} → kayboluyordu.
+        // Firma adlarını her zaman kalıcı ayrı bir listede tutuyoruz; yüklerken
+        // eksik (boş) firmalar bu listeden geri kurulur.
+        try {
+            if (payload.firm && typeof payload.firm === 'object') {
+                payload.firmNames = Object.keys(payload.firm);
+            }
+        } catch(e) {}
+
         // 4. TEMİZLE: Firebase set() içeride 'undefined' bir değer görürse TÜM
         // yazmayı reddeder. JSON tur-turu undefined alanları güvenle atar.
         let temizPayload;
@@ -6185,23 +6195,25 @@ window.saveGelecekData = function() {
         return;
     }
     
-    // localStorage'a kaydet (gelecekData hariç - sadece buluta yazılıyor)
-    // NOT: gelecekData localStorage'a kaydedilmez, sadece Firebase'e yazılıyor
-    
+    // YEREL YEDEK: gelecekData'yı her zaman localStorage'a yaz (Firebase boş
+    // diziyi saklamaz + yazma hatasına karşı kayıp olmasın). Kullanıcının her
+    // ekleme/silme işlemi burada da güncel tutulur.
+    try { localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData || [])); } catch(e){}
+
     if(window._firebaseSave) {
-        try {
-            window._firebaseSave({
-                decl: window.declarationsData,
-                firm: window.firmData,
-                kiymet: window.kiymetData,
-                firmMeta: window.firmMeta,
-                cariData: window.cariData,
-                gelecekData: window.gelecekData
-            });
-            console.log("✅ Araç verisi buluta başarıyla kaydedildi.");
-        } catch(error) {
-            console.error("❌ Araç verisi buluta kaydedilemedi:", error);
-        }
+        window._firebaseSave({
+            decl: window.declarationsData,
+            firm: window.firmData,
+            kiymet: window.kiymetData,
+            firmMeta: window.firmMeta,
+            cariData: window.cariData,
+            gelecekData: window.gelecekData
+        }).then(function(ok){
+            if(ok){ console.log("✅ Gelecek araç verisi buluta kaydedildi."); }
+            else { console.error("❌ Gelecek araç buluta yazılamadı:", window._fbSonHata||''); if(typeof showSyncToast==='function') showSyncToast('⚠️ Buluta yazılamadı ('+(window._fbSonHata||'')+') — yerel yedek alındı', false); }
+        }).catch(function(error){
+            console.error("❌ Gelecek araç buluta kaydedilemedi:", error);
+        });
     }
 };
 
@@ -11056,7 +11068,9 @@ window.saveCariData = saveCariData;
         localStorage.setItem('gumrukFirmMeta', JSON.stringify(window.firmMeta));
         // DIŞARIDA KALAN KODLAR İÇERİ ALINDI:
         localStorage.setItem('gumrukCariData', JSON.stringify(window.cariData));
-        // NOT: gelecekData artık localStorage'a kaydedilmiyor, sadece buluta yazılıyor
+        // gelecekData yerel yedeği (Firebase boş diziyi saklamaz + yazma hatasına
+        // karşı kayıp olmasın). Yükleme buluta öncelik verir, bulut boşsa buradan kurtarır.
+        if(Array.isArray(window.gelecekData)) localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData));
     } catch(e) {}
 }
 
@@ -11185,6 +11199,10 @@ function loadFromLocal() {
                     window.firmData[fn] = (Array.isArray(fRaw) ? fRaw : Object.values(fRaw)).filter(x=>x);
                     window.firmData[fn].forEach(p=>{if(p)p.tarih=window.fixExcelDate(p.tarih);});
                 });
+                // Firebase boş firmayı saklamaz → firmNames'ten boş firmaları geri kur
+                if(Array.isArray(data.firmNames)) {
+                    data.firmNames.forEach(function(fn){ if(fn && !(fn in window.firmData)) window.firmData[fn] = []; });
+                }
                 
                 window.declarationsData.forEach(d=>{
                     if(d){
@@ -11205,7 +11223,14 @@ Object.keys(varsayilanMeta).forEach(function(fn){
     else if(!window.firmMeta[fn].vergiNo) window.firmMeta[fn].vergiNo = varsayilanMeta[fn].vergiNo;
 });
                 if(data.cariData) window.cariData = data.cariData;
-		if(data.gelecekData) window.gelecekData = data.gelecekData;
+		// Gelecek araçlar: bulutta varsa onu kullan (normalize), yoksa yerel yedekten kurtar
+		if(data.gelecekData) {
+		    window.gelecekData = Array.isArray(data.gelecekData) ? data.gelecekData : Object.values(data.gelecekData);
+		} else {
+		    try { var _lg = localStorage.getItem('gumrukGelecekData'); window.gelecekData = (_lg && _lg !== 'null') ? JSON.parse(_lg) : []; }
+		    catch(e) { window.gelecekData = []; }
+		}
+		if(!Array.isArray(window.gelecekData)) window.gelecekData = [];
 if(data.ekGonderici) {
     localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(data.ekGonderici));
     data.ekGonderici.forEach(function(g) {
@@ -11252,33 +11277,21 @@ if(data.ekGonderici) {
             window._gelecekListener = window._fbOnValue(gelecekRef, function(snapshot) {
                 console.log("📡 Firebase dinleyicisi aktif: Veriler tüm cihazlar arasında anlık senkronize ediliyor.");
                 
-                if(snapshot.exists()) {
+                if(snapshot.exists() && snapshot.val() !== null) {
                     let gelenVeri = snapshot.val();
-                    
-                    // Null kontrolü
-                    if(gelenVeri === null) {
-                        window.gelecekData = [];
-                    } else {
-                        // Array veya Object kontrolü
-                        window.gelecekData = Array.isArray(gelenVeri) ? gelenVeri : Object.values(gelenVeri);
-                    }
-                    
-                    // Arayüzü otomatik güncelle
-                    if(typeof window.renderGelecekTable === 'function') {
-                        window.renderGelecekTable();
-                    }
-                    
-                    // Dashboard istatistiklerini güncelle
-                    if(typeof window.updateDashboardStats === 'function') {
-                        window.updateDashboardStats();
-                    }
+                    window.gelecekData = Array.isArray(gelenVeri) ? gelenVeri : Object.values(gelenVeri);
+                    // Yerel yedeği güncel tut
+                    try { localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData)); } catch(e){}
+
+                    if(typeof window.renderGelecekTable === 'function') window.renderGelecekTable();
+                    if(typeof window.updateDashboardStats === 'function') window.updateDashboardStats();
                 } else {
-                    // Veri null veya silinmiş
-                    window.gelecekData = [];
-                    
-                    if(typeof window.renderGelecekTable === 'function') {
-                        window.renderGelecekTable();
-                    }
+                    // Bulutta gelecekData YOK. Firebase boş diziyi saklamadığı için
+                    // bu "gerçekten boş" DA olabilir "henüz yazılmadı/yazılamadı" DA.
+                    // Kayıp yaşanmasın diye bellekteki veriyi EZMİYORUZ; sadece bellek
+                    // zaten boşsa tabloyu boş göster.
+                    if(!Array.isArray(window.gelecekData)) window.gelecekData = [];
+                    if(typeof window.renderGelecekTable === 'function') window.renderGelecekTable();
                 }
             }, function(error) {
                 console.error("❌ Firebase dinleyici hatası:", error);
@@ -11320,6 +11333,10 @@ if(data.ekGonderici) {
                 }
                 if(v.firm && typeof v.firm === 'object') {
                     window.firmData = v.firm;
+                    // Boş (araçsız) firmaları firmNames'ten geri kur
+                    if(Array.isArray(v.firmNames)) {
+                        v.firmNames.forEach(function(fn){ if(fn && !(fn in window.firmData)) window.firmData[fn] = []; });
+                    }
                     degisti = true;
                 }
                 if(v.kiymet && Array.isArray(v.kiymet)) {
