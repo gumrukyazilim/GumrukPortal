@@ -3369,9 +3369,9 @@ div[style*="position: relative"] > input {
     <div class="page-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:48px; outline:none; min-width:200px;">
             <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
-            <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
+            <option value="GMC">📂 GMC Tutanağı</option>
 			<option value="KIYMET">💶 Kıymet Dilekçesi</option>
-			<option value="KTMCEVAP">📨 Kıymet Cevapsız Dilekçesi</option>
+			<option value="CEVAP">📨 Kıymet Cevapsız Dilekçesi</option>
 			<option value="MOTORNO">🔧 Motor Numarası Dilekçesi</option>
 			<option value="TASFIYE">⚖️ Tasfiye (CIF %1) Dilekçesi</option>
             </select>
@@ -18168,10 +18168,10 @@ window.dilekceKIYMETViaGAS = async function() {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// KIYMET CEVAPSIZ (KTM) DİLEKÇESİ - GAS üzerinden PDF üretici
+// KIYMET CEVAPSIZ  DİLEKÇESİ - GAS üzerinden PDF üretici
 // Kıymet dilekçesiyle aynı altyapı: mobil/PC fark etmez, Google Docs şablonu
 // ═══════════════════════════════════════════════════════════════════
-window.dilekceKTMCEVAPViaGAS = async function() {
+window.dilekceCEVAPViaGAS = async function() {
     const items = window.currentDilekceItems || [];
     if (items.length === 0) {
         alert("Dilekçe verisi bulunamadı!");
@@ -18205,7 +18205,7 @@ window.dilekceKTMCEVAPViaGAS = async function() {
     }
 
     const payload = {
-        tip: "KTMCEVAP",
+        tip: "CEVAP",
         firmaAdi: firmaAdi,
         imzaYetkilisi: imzaYetkilisi,
         beyanname: ilkArac.beyanname || ilkArac.ozetBeyan || "...................",
@@ -18227,7 +18227,7 @@ window.dilekceKTMCEVAPViaGAS = async function() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = result.filename || "KTM_CEVAPSIZ_DILEKCE.pdf";
+        a.download = result.filename || "CEVAPSIZ_DILEKCE.pdf";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -18235,7 +18235,7 @@ window.dilekceKTMCEVAPViaGAS = async function() {
 
         if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
     } catch (err) {
-        console.error("KTMCEVAP GAS hatası:", err);
+        console.error("CEVAP GAS hatası:", err);
         // GAS henüz bu tipi tanımıyorsa tarayıcı içi yedek üreticiyle devam et
         if (typeof hideSyncToast === 'function') hideSyncToast("GAS yok, yedek PDF üretiliyor...", false);
         return window.dilekceHtml2PdfIndir();
@@ -18402,8 +18402,8 @@ window.downloadPDF = function() {
     if (tip === "KIYMET") {
         return window.dilekceKIYMETViaGAS();
     }
-    if (tip === "KTMCEVAP") {
-        return window.dilekceKTMCEVAPViaGAS();
+    if (tip === "CEVAP") {
+        return window.dilekceCEVAPViaGAS();
     }
     if (tip === "MOTORNO") {
         return window.dilekceMOTORNOViaGAS();
@@ -18579,7 +18579,7 @@ Saygılarımızla,
   },
 
   cevapsiz_kiymet: {
-    baslik: "Cevapsız Kıymet (KTM / İthalat Devam)",
+    baslik: "Cevapsız Kıymet ( / İthalat Devam)",
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE",
     alanlar: [
       { id: "firma", etiket: "İthalatçı Firma" },
@@ -20183,7 +20183,7 @@ window.renderDilekceContent = function() {
             </div>
         `;
     } 
-    else if (tip === "KTMCEVAP") {
+    else if (tip === "CEVAP") {
         icerik = `
             <div class="belge-kapsayici" style="margin-top: 90px;">
                 <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE</div>
