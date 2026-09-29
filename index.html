@@ -42,7 +42,45 @@
         window.firmMeta = {};
         window.cariData = {};
         window.kiymetData = [];
-        
+
+        // FİRMA ADI TEMİZLEYİCİ: Firebase nesne anahtarlarında . / # $ [ ] KABUL
+        // ETMEZ (set()'i tümüyle reddeder). Firma adları hem anahtar hem değer
+        // olarak kullanıldığından, girişte bu karakterleri boşlukla değiştiririz.
+        // Örn: "İTH. İHR. TİC." -> "İTH İHR TİC", "A.Ş." -> "AŞ", "LTD. ŞTİ." -> "LTD ŞTİ".
+        window.sanitizeFirmaAdi = function(ad) {
+            if (ad === null || ad === undefined) return '';
+            return (''+ad)
+                .replace(/[.\/#$\[\]\\]/g, ' ')  // Firebase yasaklı anahtar karakterleri
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
+        // MİGRASYON: Bellekteki eski noktalı firma anahtarlarını/değerlerini tek
+        // seferde temizler (çakışan anahtarlarda dizileri birleştirir). Böylece
+        // eskiden kaydedilemeyen dotted kayıtlar da tutarlı hale gelir.
+        window.firmaAdiMigrasyon = function() {
+            try {
+                var S = window.sanitizeFirmaAdi;
+                var anahtarTemizle = function(obj, birlestir) {
+                    if(!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+                    var yeni = {}, degisti = false;
+                    Object.keys(obj).forEach(function(k){
+                        var yk = S(k).toUpperCase() || k;
+                        if(yk !== k) degisti = true;
+                        if(yeni[yk] === undefined) yeni[yk] = obj[k];
+                        else if(birlestir && Array.isArray(yeni[yk]) && Array.isArray(obj[k])) yeni[yk] = yeni[yk].concat(obj[k]);
+                        else if(typeof yeni[yk] === 'object' && typeof obj[k] === 'object' && !Array.isArray(yeni[yk])) Object.assign(yeni[yk], obj[k]);
+                    });
+                    return degisti ? yeni : obj;
+                };
+                window.firmData = anahtarTemizle(window.firmData, true);
+                window.firmMeta = anahtarTemizle(window.firmMeta, false);
+                window.cariData = anahtarTemizle(window.cariData, false);
+                if(Array.isArray(window.declarationsData)) window.declarationsData.forEach(function(d){ if(d && d.firma) d.firma = S(d.firma).toUpperCase(); });
+                if(Array.isArray(window.gelecekData)) window.gelecekData.forEach(function(g){ if(g && g.firma) g.firma = S(g.firma).toUpperCase(); });
+            } catch(e) { console.warn('firma migrasyon hatası:', e); }
+        };
+
         let savedTheme = localStorage.getItem('gumruk_theme') || 'light';
         if(savedTheme === 'light') {
             document.documentElement.classList.add('light-mode');
@@ -5121,6 +5159,27 @@ window._firebaseSave = async function(payload) {
             catch(e) { payload.ekGonderici = []; }
         }
 
+        // 1.5 KRİTİK KALKAN: Firebase nesne ANAHTARLARINDA . / # $ [ ] karakterlerini
+        // KABUL ETMEZ ve set()'i TÜMÜYLE reddeder → firma adında nokta olunca
+        // (İTH. İHR. TİC.) TÜM kayıt sessizce çöküyordu (firma+gelecek+her şey kaybı).
+        // firm/firmMeta/cariData anahtarlarını yazmadan önce temizle.
+        var _keyTemizle = (window.sanitizeFirmaAdi) ? window.sanitizeFirmaAdi : function(k){ return (''+k).replace(/[.\/#$\[\]\\]/g,' ').replace(/\s+/g,' ').trim(); };
+        var _anahtarlariTemizle = function(obj){
+            if(!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+            var temiz = {};
+            Object.keys(obj).forEach(function(k){
+                var yk = _keyTemizle(k) || k.replace(/[.\/#$\[\]\\]/g,'_'); // boşsa yok etme
+                // Çakışma olursa dizileri birleştir, nesneleri harmanla
+                if(temiz[yk] === undefined) { temiz[yk] = obj[k]; }
+                else if(Array.isArray(temiz[yk]) && Array.isArray(obj[k])) { temiz[yk] = temiz[yk].concat(obj[k]); }
+                else if(typeof temiz[yk] === 'object' && typeof obj[k] === 'object') { Object.assign(temiz[yk], obj[k]); }
+            });
+            return temiz;
+        };
+        if(payload.firm)     payload.firm     = _anahtarlariTemizle(payload.firm);
+        if(payload.firmMeta) payload.firmMeta = _anahtarlariTemizle(payload.firmMeta);
+        if(payload.cariData) payload.cariData = _anahtarlariTemizle(payload.cariData);
+
         // 2. GÜVENLİK KONTROLÜ - SADECE ADMIN YAZAR
         // NOT: Rol boş/null ise uygulamanın geri kalanı gibi 'admin' varsayılır
         // (giriş yapan firma kullanıcılarının rolü her zaman dolu olur; sadece
@@ -6026,7 +6085,7 @@ window.saveGelecekEntry = function() {
     if(!firma || !marka) { alert('Firma ve Marka zorunludur!'); return; }
     
     let entry = {
-        firma: firma.toUpperCase(),
+        firma: window.sanitizeFirmaAdi(firma).toUpperCase(),
         marka: marka.toUpperCase(),
         model: val('gm-model').toUpperCase(),
         yil: val('gm-yil'),
@@ -11124,6 +11183,8 @@ function loadFromLocal() {
         if(!window.firmMeta) window.firmMeta = {};
         if(!window.gelecekData) window.gelecekData = [];
     }
+    // Eski noktalı firma anahtarlarını temizle
+    if(typeof window.firmaAdiMigrasyon === 'function') window.firmaAdiMigrasyon();
 }
 
     
@@ -11256,6 +11317,8 @@ if(data.ekGonderici) {
         }
     });
 }
+                // Eski noktalı firma anahtarlarını temizle (varsa)
+                if(typeof window.firmaAdiMigrasyon === 'function') window.firmaAdiMigrasyon();
                 window._dataLoaded = true; // VERİLER İNDİ, KİLİDİ AÇ!
                 window._sonYuklenenMeta = (data._meta && data._meta.updatedAt) || Date.now(); // çakışma koruması referansı
                 saveToLocal();
@@ -11519,7 +11582,9 @@ if(data.ekGonderici) {
     };
     window.confirmAddFirm=function(){
         let n=document.getElementById('newFirmNameInput')?.value;
-        if(n&&n.trim()){let name=n.trim().toUpperCase();if(!window.firmData[name]){window.firmData[name]=[];saveData('firm');window.renderView('firms');}}
+        // Nokta vb. Firebase yasaklı karakterleri temizle (yoksa kayıt çöküyor)
+        let name = window.sanitizeFirmaAdi(n).toUpperCase();
+        if(name){ if(!window.firmData[name]){window.firmData[name]=[];saveData('firm');window.renderView('firms');} }
         document.querySelector('.modal-overlay.active')?.remove();
     };
     window.deleteFirm=function(fn,e){e.stopPropagation();let name=fn.replace(/&quot;/g,'"');if(confirm(`'${name}' firmasını SİL?`)){delete window.firmData[name];saveData('firm');window.renderView('firms');}};
@@ -16124,7 +16189,7 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
     }
 
     let r={
-        firma:val('da-firma'),
+        firma:window.sanitizeFirmaAdi(val('da-firma')),
         marka:val('da-marka').toUpperCase(),
         model:val('da-model').toUpperCase(),
         yil:val('da-yil'),
