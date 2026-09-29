@@ -2142,6 +2142,10 @@ div[style*="position: relative"] > input {
 .dlk-field input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(90,172,255,.15); }
 .dlk-field input.dlk-hesap { background:rgba(90,172,255,.08); font-weight:700; color:var(--primary); }
 .dlk-empty { color:var(--text-muted); font-size:13px; text-align:center; padding:30px 10px; }
+.dlk-tabs { display:flex; gap:8px; flex-wrap:wrap; }
+.dlk-tab { padding:9px 16px; border-radius:var(--r-md); background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary); font-size:12.5px; font-weight:600; cursor:pointer; transition:all .18s; white-space:nowrap; }
+.dlk-tab:hover { border-color:var(--primary); color:var(--primary); }
+.dlk-tab.active { background:linear-gradient(135deg,#3b82f6,#1e40af); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(59,130,246,.32); }
 @media (max-width: 900px) {
   .dlk-wrap { grid-template-columns:1fr !important; }
 }
@@ -3369,9 +3373,9 @@ div[style*="position: relative"] > input {
     <div class="page-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:48px; outline:none; min-width:200px;">
             <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
-            <option value="GMC">📂 GMC Tutanağı</option>
+            <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
 			<option value="KIYMET">💶 Kıymet Dilekçesi</option>
-			<option value="CEVAP">📨 Kıymet Cevapsız Dilekçesi</option>
+			<option value="KTMCEVAP">📨 Kıymet Cevapsız Dilekçesi</option>
 			<option value="MOTORNO">🔧 Motor Numarası Dilekçesi</option>
 			<option value="TASFIYE">⚖️ Tasfiye (CIF %1) Dilekçesi</option>
             </select>
@@ -3419,16 +3423,20 @@ div[style*="position: relative"] > input {
             <h1 class="page-title">Dilekçeler</h1>
         </div>
         <div class="page-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn-sm" onclick="window.dilekceMetniKopyala()"><i data-lucide="copy"></i> Metni Kopyala</button>
             <button class="btn-sm" onclick="window.dilekceTemizle()"><i data-lucide="eraser"></i> Temizle</button>
-            <button class="btn-primary" onclick="window.dilekcelerPdfIndir()"><i data-lucide="download"></i> PDF İndir</button>
+            <button class="btn-primary" onclick="window.dilekcelerPdfIndir()"><i data-lucide="download"></i> PDF Olarak İndir</button>
         </div>
     </div>
 
-    <div class="dlk-wrap fade-in" style="display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:18px; align-items:start;">
-        <!-- SOL: Şablon seçimi + form -->
+    <!-- Şablon sekmeleri -->
+    <div id="dlk-tabs" class="dlk-tabs fade-in"></div>
+
+    <div class="dlk-wrap fade-in" style="display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:18px; align-items:start; margin-top:14px;">
+        <!-- SOL: Araç seç + dinamik form -->
         <div class="dlk-panel" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px;">
-            <label style="display:block; font-size:11.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Dilekçe Şablonu</label>
-            <select id="dlk-sablon" style="width:100%; padding:11px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-weight:600; font-size:13.5px; cursor:pointer; outline:none; margin-bottom:16px;"></select>
+            <label style="display:block; font-size:11.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Portaldan Araç Seç (Hızlı Doldur)</label>
+            <select id="dlk-arac-sec" onchange="window.dilekceAracSecildi(this.value)" style="width:100%; padding:11px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-weight:600; font-size:13px; cursor:pointer; outline:none; margin-bottom:16px;"></select>
             <div id="dlk-form" style="display:flex; flex-direction:column; gap:12px;"></div>
         </div>
 
@@ -6143,8 +6151,9 @@ window.selectGTIPGm = function(kod, desc) {
 };
 
 window.saveGelecekData = function() {
-    // KORUMA 0: SADECE ADMIN KAYDEDEBİLİR
-    const _gelecekRole = localStorage.getItem('gumruk_role') || '';
+    // KORUMA 0: SADECE ADMIN KAYDEDEBİLİR (rol boş ise 'admin' varsayılır —
+    // app geneliyle tutarlı; eskiden '' yüzünden gelecek araçlar kayboluyordu)
+    const _gelecekRole = localStorage.getItem('gumruk_role') || 'admin';
     if (_gelecekRole !== 'admin') {
         console.warn("Güvenlik: Admin olmayan kullanıcı gelecek araçları kaydedemez.");
         return;
@@ -11092,7 +11101,10 @@ function loadFromLocal() {
     let cloudSaveTimeout=null;
     function saveData(type){
         // GÜVENLİK KİLİDİ 0: SADECE ADMIN KAYDEDEBİLİR!
-        const _saveRole = localStorage.getItem('gumruk_role') || '';
+        // Rol boş/null ise app'in geri kalanı gibi 'admin' varsayılır; sadece
+        // gerçek firma rolleri engellenir. (Eskiden '' varsayılıp rol set
+        // edilmemiş admin oturumlarında firma/gelecek kayıtları KAYBOLUYORDU.)
+        const _saveRole = localStorage.getItem('gumruk_role') || 'admin';
         if (_saveRole !== 'admin') {
             console.warn("KORUMA: Admin olmayan kullanıcı Firebase'e yazamaz, engellendi.");
             return; // Müşteri/firma kullanıcıları hiçbir zaman Firebase'e yazamaz
@@ -18168,10 +18180,10 @@ window.dilekceKIYMETViaGAS = async function() {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// KIYMET CEVAPSIZ  DİLEKÇESİ - GAS üzerinden PDF üretici
+// KIYMET CEVAPSIZ DİLEKÇESİ - GAS üzerinden PDF üretici
 // Kıymet dilekçesiyle aynı altyapı: mobil/PC fark etmez, Google Docs şablonu
 // ═══════════════════════════════════════════════════════════════════
-window.dilekceCEVAPViaGAS = async function() {
+window.dilekceKTMCEVAPViaGAS = async function() {
     const items = window.currentDilekceItems || [];
     if (items.length === 0) {
         alert("Dilekçe verisi bulunamadı!");
@@ -18205,7 +18217,7 @@ window.dilekceCEVAPViaGAS = async function() {
     }
 
     const payload = {
-        tip: "CEVAP",
+        tip: "KTMCEVAP",
         firmaAdi: firmaAdi,
         imzaYetkilisi: imzaYetkilisi,
         beyanname: ilkArac.beyanname || ilkArac.ozetBeyan || "...................",
@@ -18227,7 +18239,7 @@ window.dilekceCEVAPViaGAS = async function() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = result.filename || "CEVAPSIZ_DILEKCE.pdf";
+        a.download = result.filename || "KIYMET_CEVAPSIZ_DILEKCE.pdf";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -18235,7 +18247,7 @@ window.dilekceCEVAPViaGAS = async function() {
 
         if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
     } catch (err) {
-        console.error("CEVAP GAS hatası:", err);
+        console.error("KTMCEVAP GAS hatası:", err);
         // GAS henüz bu tipi tanımıyorsa tarayıcı içi yedek üreticiyle devam et
         if (typeof hideSyncToast === 'function') hideSyncToast("GAS yok, yedek PDF üretiliyor...", false);
         return window.dilekceHtml2PdfIndir();
@@ -18402,8 +18414,8 @@ window.downloadPDF = function() {
     if (tip === "KIYMET") {
         return window.dilekceKIYMETViaGAS();
     }
-    if (tip === "CEVAP") {
-        return window.dilekceCEVAPViaGAS();
+    if (tip === "KTMCEVAP") {
+        return window.dilekceKTMCEVAPViaGAS();
     }
     if (tip === "MOTORNO") {
         return window.dilekceMOTORNOViaGAS();
@@ -18579,7 +18591,7 @@ Saygılarımızla,
   },
 
   cevapsiz_kiymet: {
-    baslik: "Cevapsız Kıymet ( / İthalat Devam)",
+    baslik: "Cevapsız Kıymet (İthalat Devam)",
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE",
     alanlar: [
       { id: "firma", etiket: "İthalatçı Firma" },
@@ -18693,13 +18705,77 @@ window._dlkDate = function(v){
 };
 
 window.dilekcelerInit = function(){
-    const sel = document.getElementById('dlk-sablon');
-    if(!sel) return;
+    const tabsEl = document.getElementById('dlk-tabs');
+    if(!tabsEl) return;
     const keys = Object.keys(window.DILEKCE_SABLONLARI);
-    sel.innerHTML = keys.map(k => '<option value="'+k+'">'+window.DILEKCE_SABLONLARI[k].baslik+'</option>').join('');
-    sel.onchange = function(){ window.dilekceSablonSec(sel.value); };
+
+    // Sekmeleri kur
+    tabsEl.innerHTML = keys.map(function(k){
+        return '<button type="button" class="dlk-tab" data-sablon="'+k+'" onclick="window.dilekceSablonSec(\''+k+'\')">'+window.DILEKCE_SABLONLARI[k].baslik+'</button>';
+    }).join('');
+
+    // Portaldan araç seç listesini doldur
+    window.dilekceAracListesiDoldur();
+
     // İlk şablonu otomatik aç (önizleme hemen görünsün)
     window.dilekceSablonSec(keys[0]);
+};
+
+// "Portaldan Araç Seç" açılır listesini doldurur (Gelen Araçlar / declarationsData)
+window.dilekceAracListesiDoldur = function(){
+    const sel = document.getElementById('dlk-arac-sec');
+    if(!sel) return;
+    const list = Array.isArray(window.declarationsData) ? window.declarationsData : [];
+    let opts = '<option value="">— Araç seçin (opsiyonel) —</option>';
+    opts += list.map(function(d, i){
+        const et = [ (d.marka||''), (d.model||''), (d.sasi? (d.sasi.slice(-6)) : '') ].filter(Boolean).join(' ');
+        const firma = d.firma ? (' · ' + d.firma) : '';
+        return '<option value="'+i+'">'+ (et || ('Araç #'+(i+1))) + firma +'</option>';
+    }).join('');
+    sel.innerHTML = opts;
+};
+
+// Araç seçilince ortak alanları otomatik doldur (yalnızca formda var olanları)
+window.dilekceAracSecildi = function(idx){
+    if(idx === '' || idx == null) return;
+    const list = Array.isArray(window.declarationsData) ? window.declarationsData : [];
+    const d = list[parseInt(idx,10)];
+    if(!d) return;
+    // vehicle key -> form alan id eşlemesi (ortak alanlar)
+    const esle = {
+        sasi: 'sasi', marka: 'marka', model: 'model',
+        beyanname: 'beyanname', fatura: 'fatura', firma: 'firma',
+        yil: 'yil', ozetBeyan: 'mrn'
+    };
+    Object.keys(esle).forEach(function(vk){
+        const alanId = esle[vk];
+        const el = document.getElementById('dlk-f-' + alanId);
+        if(el && d[vk] !== undefined && d[vk] !== null && (''+d[vk]).trim() !== ''){
+            el.value = d[vk];
+        }
+    });
+    // imza otomatik (firma bilindiyse)
+    const imzaEl = document.getElementById('dlk-f-imza');
+    if(imzaEl && !imzaEl.value && d.firma){
+        const fUst = (''+d.firma).toUpperCase();
+        Object.keys(window._dlkImzaHarita).forEach(function(anahtar){
+            if(fUst.includes(anahtar)) imzaEl.value = window._dlkImzaHarita[anahtar];
+        });
+    }
+    window.dilekceOnizleGuncelle();
+};
+
+// Dilekçe metnini panoya kopyala
+window.dilekceMetniKopyala = function(){
+    const metin = (document.getElementById('dlk-preview') || {}).innerText || '';
+    if(!metin.trim()){ alert('Kopyalanacak metin yok.'); return; }
+    const bitti = function(){ if(typeof showSyncToast==='function') showSyncToast('Metin panoya kopyalandı!', true); else alert('Metin kopyalandı!'); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(metin).then(bitti).catch(function(){ window._dlkKopyalaFallback(metin); bitti(); });
+    } else { window._dlkKopyalaFallback(metin); bitti(); }
+};
+window._dlkKopyalaFallback = function(metin){
+    try{ const ta=document.createElement('textarea'); ta.value=metin; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
 };
 
 window.dilekceSablonSec = function(key){
@@ -18709,6 +18785,8 @@ window.dilekceSablonSec = function(key){
     const s = window.DILEKCE_SABLONLARI[key];
     if(!s){ formEl.innerHTML = '<div class="dlk-empty">Yukarıdan bir dilekçe şablonu seçin.</div>'; prevEl.innerText = ''; window._dlkAktifSablon = null; return; }
     window._dlkAktifSablon = key;
+    // Aktif sekmeyi işaretle
+    document.querySelectorAll('#dlk-tabs .dlk-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.sablon === key); });
     const firmalar = Object.keys(window.firmData || {});
 
     formEl.innerHTML = s.alanlar.map(function(a){
@@ -18790,42 +18868,60 @@ window.dilekceTemizle = function(){
     window.dilekceOnizleGuncelle();
 };
 
-// PDF İndir — klon + sabit A4 (794px) + html2pdf (mobil/PC eşit)
-window.dilekcelerPdfIndir = function(){
+// PDF İndir — sabit A4 (794px) + html2pdf.
+// KRİTİK (iOS/Safari): html2canvas ekran DIŞINDAKİ / position:fixed kaynağı
+// bazen BOŞ render eder. Bu yüzden node'u viewport İÇİNDE (0,0) render edip
+// üstüne opak bir "hazırlanıyor" katmanı koyuyoruz — mobil/PC'de dolu çıkar.
+window.dilekcelerPdfIndir = async function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     if(typeof html2pdf === 'undefined'){ alert('PDF kütüphanesi yüklenemedi.'); return; }
     const s = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
     const metin = (document.getElementById('dlk-preview').innerText || '').trim();
-    if(!metin){ alert('Önizleme boş.'); return; }
+    if(!metin){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
 
+    // Export edilecek A4 node (viewport içinde, sol üstte)
     const node = document.createElement('div');
-    node.style.cssText = "width:794px !important; min-width:794px !important; max-width:794px !important; box-sizing:border-box !important; margin:0 !important; padding:70px 80px !important; background:#ffffff !important; color:#000000 !important; font-family:'Times New Roman', Times, serif !important; font-size:15px !important; line-height:1.7 !important; font-weight:600 !important; white-space:pre-wrap !important; text-align:justify !important; overflow:visible !important;";
+    node.style.cssText = "position:fixed; top:0; left:0; width:794px; box-sizing:border-box; margin:0; padding:70px 80px; background:#ffffff; color:#000000; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.7; font-weight:600; white-space:pre-wrap; text-align:justify; overflow:visible; z-index:2147483646;";
     node.innerText = metin;
+    document.body.appendChild(node);
 
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = "position:fixed !important; top:0 !important; left:-99999px !important; width:794px !important; background:#ffffff !important; z-index:-9999 !important; overflow:visible !important; pointer-events:none !important;";
-    wrapper.appendChild(node);
-    document.body.appendChild(wrapper);
+    // Kullanıcı ham node'u görmesin diye opak katman
+    const perde = document.createElement('div');
+    perde.style.cssText = "position:fixed; inset:0; background:var(--bg-main,#0b0e14); z-index:2147483647; display:flex; align-items:center; justify-content:center; color:var(--text-primary,#fff); font-size:15px; font-weight:600;";
+    perde.textContent = '📄 PDF hazırlanıyor...';
+    document.body.appendChild(perde);
 
+    // Layout otursun (kısa bekleme — özellikle iOS; rAF yerine setTimeout ki
+    // sekme arka planda olsa bile askıda kalmasın)
+    await new Promise(function(r){ setTimeout(r, 120); });
+
+    const yuk = Math.ceil(node.scrollHeight);
     let dosyaAdi = (s.baslik || 'DILEKCE').replace(/[^0-9A-Za-zĞÜŞİÖÇğüşıöç ]/g,'').replace(/\s+/g,'_');
     const opt = {
         margin: 0,
         filename: dosyaAdi + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794, windowWidth: 794 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794, height: yuk, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
         pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    if(typeof showSyncToast === 'function') showSyncToast('PDF hazırlanıyor...');
-    html2pdf().set(opt).from(node).save().then(function(){
-        if(wrapper.parentNode) document.body.removeChild(wrapper);
-        if(typeof hideSyncToast === 'function') hideSyncToast('PDF indirildi!', true);
-    }).catch(function(err){
-        if(wrapper.parentNode) document.body.removeChild(wrapper);
+    const temizle = function(){ if(node && node.parentNode) node.parentNode.removeChild(node); if(perde && perde.parentNode) perde.parentNode.removeChild(perde); };
+    // GÜVENLİK: save() bazı tarayıcılarda indirme bittiğinde geç çözülebilir;
+    // perde asla kalıcı kilitlenmesin diye en geç 12 sn sonra kaldır.
+    const guvenlikT = setTimeout(temizle, 12000);
+
+    try{
+        await html2pdf().set(opt).from(node).save();
+        clearTimeout(guvenlikT);
+        temizle();
+        if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
+    }catch(err){
+        clearTimeout(guvenlikT);
+        temizle();
         console.error('Dilekçe PDF hatası:', err);
         alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
-    });
+    }
 };
 
 // ============ EKSİK KLASÖR OLUŞTURUCU ============
@@ -20183,7 +20279,7 @@ window.renderDilekceContent = function() {
             </div>
         `;
     } 
-    else if (tip === "CEVAP") {
+    else if (tip === "KTMCEVAP") {
         icerik = `
             <div class="belge-kapsayici" style="margin-top: 90px;">
                 <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE</div>
