@@ -2136,6 +2136,16 @@ div[style*="position: relative"] > input {
   box-shadow: 0 0 0 3px rgba(90,172,255,.15) !important;
 }
 
+/* ── DİLEKÇELER MODÜLÜ ──────────────────────────────────────────────── */
+.dlk-field label { display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--text-muted); margin-bottom:5px; }
+.dlk-field input { width:100%; padding:10px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-size:13.5px; outline:none; box-sizing:border-box; }
+.dlk-field input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(90,172,255,.15); }
+.dlk-field input.dlk-hesap { background:rgba(90,172,255,.08); font-weight:700; color:var(--primary); }
+.dlk-empty { color:var(--text-muted); font-size:13px; text-align:center; padding:30px 10px; }
+@media (max-width: 900px) {
+  .dlk-wrap { grid-template-columns:1fr !important; }
+}
+
 /* ── 12. RESULT TOTAL PANELİ ────────────────────────────────────────── */
 .result-panel {
   border-radius: 16px !important;
@@ -2622,6 +2632,7 @@ div[style*="position: relative"] > input {
             <button class="nav-btn" data-view="declarations"><i data-lucide="car"></i><span>Gelen Araçlar</span></button>
             <button class="nav-btn admin-only" data-view="gelecekAraclar"><i data-lucide="ship"></i><span>Gelecek Araçlar</span></button>
             <button class="nav-btn admin-only" data-view="firms"><i data-lucide="building-2"></i><span>Firma Arşivi</span></button>
+            <button class="nav-btn admin-only" data-view="dilekceler" id="nav-dilekceler"><i data-lucide="file-text"></i><span>Dilekçeler</span></button>
 			<button class="nav-btn admin-only" data-view="uyelikler" id="nav-uyelikler"><i data-lucide="user-check"></i><span>Üyelikler</span><span id="uyelik-badge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:auto;">0</span></button>
             <button class="nav-btn admin-only" data-view="kiymetListesi"><i data-lucide="file-search"></i><span>Kıymet Listesi</span></button>
             <button class="nav-btn admin-only" data-view="beyanname"><i data-lucide="file-text"></i><span>Beyanname Özet</span></button>
@@ -3400,6 +3411,32 @@ div[style*="position: relative"] > input {
         </div>
     </div>
     <div id="firms-dynamic-grid" class="firms-grid fade-in"></div>
+</template>
+<template id="tpl-dilekceler">
+    <div class="page-hdr fade-in">
+        <div>
+            <div class="page-eyebrow">Belge Üretici</div>
+            <h1 class="page-title">Dilekçeler</h1>
+        </div>
+        <div class="page-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn-sm" onclick="window.dilekceTemizle()"><i data-lucide="eraser"></i> Temizle</button>
+            <button class="btn-primary" onclick="window.dilekcelerPdfIndir()"><i data-lucide="download"></i> PDF İndir</button>
+        </div>
+    </div>
+
+    <div class="dlk-wrap fade-in" style="display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:18px; align-items:start;">
+        <!-- SOL: Şablon seçimi + form -->
+        <div class="dlk-panel" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px;">
+            <label style="display:block; font-size:11.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Dilekçe Şablonu</label>
+            <select id="dlk-sablon" style="width:100%; padding:11px 12px; border-radius:var(--r-md); background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border); font-weight:600; font-size:13.5px; cursor:pointer; outline:none; margin-bottom:16px;"></select>
+            <div id="dlk-form" style="display:flex; flex-direction:column; gap:12px;"></div>
+        </div>
+
+        <!-- SAĞ: Canlı A4 önizleme -->
+        <div class="dlk-preview-wrap" style="overflow:auto;">
+            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#111; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.65; font-weight:600; white-space:pre-wrap; text-align:justify; padding:48px 56px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
+        </div>
+    </div>
 </template>
 <template id="tpl-uyelikler">
     <div class="toolbar fade-in" style="margin-top:0;">
@@ -17350,6 +17387,9 @@ if(vn==='cariKart'){
 if(vn==='gelecekAraclar'){
     window.renderGelecekTable();
 }
+if(vn==='dilekceler'){
+    setTimeout(function(){ if(window.dilekcelerInit) window.dilekcelerInit(); }, 50);
+}
 if(vn==='analiz'){
     setTimeout(function(){
         if(window.analizRender) window.analizRender();
@@ -18495,6 +18535,296 @@ window.dilekceHtml2PdfIndir = function() {
         console.error("PDF hatası:", err);
         if (wrapper.parentNode) document.body.removeChild(wrapper);
         alert("PDF hatası: " + (err.message || "Bilinmeyen hata"));
+    });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// DİLEKÇELER MODÜLÜ (çoklu şablon, jenerik {{PLACEHOLDER}} motoru)
+// Sidebar > Dilekçeler. Tamamen istemci içi: şablon seç → alanları doldur
+// → canlı A4 önizleme → PDF İndir (klon + html2pdf, mobil/PC eşit).
+// ═══════════════════════════════════════════════════════════════════
+window.DILEKCE_SABLONLARI = {
+  kiymet_farki: {
+    baslik: "Kıymet Farkı Kabul (GK 234)",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE",
+    alanlar: [
+      { id: "beyanname", etiket: "Beyanname No" },
+      { id: "sasi", etiket: "Şasi No" },
+      { id: "marka", etiket: "Marka" },
+      { id: "model", etiket: "Model" },
+      { id: "fatura", etiket: "Beyan Edilen Kıymet (€)" },
+      { id: "distributor", etiket: "Türkiye Distribütörü" },
+      { id: "kiymet_tarihi", etiket: "Kıymet Yazı Tarihi", tip: "date" },
+      { id: "dosya_no", etiket: "Dosya / Yazı No" },
+      { id: "kiymet", etiket: "Tespit Edilen Kıymet (€)" },
+      { id: "fark", etiket: "Kıymet Farkı (€)", hesaplanan: true },
+      { id: "firma", etiket: "İthalatçı Firma" },
+      { id: "imza", etiket: "İmza Yetkilisi" }
+    ],
+    metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE
+
+Konu: {{BEYANNAME}} tescil numaralı beyanname muhteviyatı aracın kıymet farkı hk.
+
+Gümrük Müdürlüğünüzde işlem gören {{BEYANNAME}} tescil numaralı beyanname kapsamındaki {{SASI}} şasi numaralı {{MARKA}} {{MODEL}} model aracın gümrük kıymeti, tarafımızca {{FATURA}} € olarak beyan edilmiştir.
+
+Ancak, üretici firma {{MARKA}} Türkiye distribütörü {{DISTRIBUTOR}} tarafından düzenlenen {{KIYMET_TARIHI}} tarihli ve Dosya No: {{DOSYA_NO}} sayılı yazıya istinaden; aracın toplam kıymetinin {{KIYMET}} € olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
+
+İlk beyanımız ile güncel kıymet arasındaki {{FARK}} € tutarındaki fark nedeniyle doğacak ek gümrük vergilerini ve 4458 sayılı Gümrük Kanunu'nun 234. maddesi uyarınca uygulanacak idari para cezasını peşinen kabul ettiğimizi bildiririz.
+
+Gerekli ek vergi ve cezaların tahsil edilerek aracın serbest dolaşıma giriş işlemlerinin tamamlanmasını arz ederiz.
+
+Saygılarımızla,
+{{FIRMA}}
+{{IMZA}}`
+  },
+
+  cevapsiz_kiymet: {
+    baslik: "Cevapsız Kıymet (KTM / İthalat Devam)",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE",
+    alanlar: [
+      { id: "firma", etiket: "İthalatçı Firma" },
+      { id: "beyanname", etiket: "Gümrük Beyanname No" },
+      { id: "tarih", etiket: "Tarih", tip: "date" },
+      { id: "sasi", etiket: "Şasi No" },
+      { id: "kiymet_yazi_no", etiket: "Kıymet Yazısı Numarası" },
+      { id: "imza", etiket: "İmza Yetkilisi" }
+    ],
+    metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE
+
+Konu: Kıymet yazısına distribütör tarafından cevap verilmemesi nedeniyle ithalat işlemlerinin devam ettirilmesi talebi.
+
+Şirketimiz {{FIRMA}} ithalatına konu olan aşağıdaki araçla ilgili Yeşilköy Gümrük Müdürlüğü'nüzce düzenlenen kıymet yazısına (Bilgi Belge talebi) İlgili distribütör tarafından cevap verilmemiştir.
+
+İşlem Bilgileri:
+● Gümrük Beyanname No: {{BEYANNAME}}
+● Tarih: {{TARIH}}
+● Şasi No: {{SASI}}
+
+Kıymet Yazısı Numaraları:
+● {{KIYMET_YAZI_NO}} - Distribütörün cevap vermemesi nedeniyle oluşan gecikmeden kaynaklanan her türlü ceza, faiz ve idari yaptırımı ve sonradan gelecek kıymete göre doğabilecek farklara ait sorumlulukları peşinen kabul ve taahhüt etmekteyiz.
+
+Bu nedenle, ithalat işlemlerimizin bir an önce tamamlanmasını arz ederiz.
+
+Saygılarımızla,
+{{IMZA}}
+{{FIRMA}}`
+  },
+
+  tse_kontrol: {
+    baslik: "TSE Saha Kontrol İzin Dilekçesi",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE",
+    alanlar: [
+      { id: "tarih", etiket: "Dilekçe Tarihi", tip: "date" },
+      { id: "firma", etiket: "İthalatçı Firma" },
+      { id: "mrn", etiket: "Taşıma Belge (MRN) No" },
+      { id: "sasi", etiket: "Şasi Numarası" },
+      { id: "imza", etiket: "İmza Yetkilisi" }
+    ],
+    metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE
+
+{{TARIH}}
+
+Müdürlüğünüz sahasına altta belirtilen Taşıma Belge Numarası ile intikal etmiş olan, firmamız {{FIRMA}} adına kayıtlı araç ile ilgili olarak, TSE Teknik Kontrolü ve gümrükleme işlemleri öncesinde aracın genel bir kontrolden geçirilmesi gerekmektedir.
+
+Bu nedenle, altta şasi numarası belirtilen aracın Gümrük sahası dahilinde, Gümrük gözetimi altında ve gümrük mevzuatına uygun şekilde, gerekli genel kontrolüne müsaade edilmesini talep etmekteyiz.
+
+Gereğini bilgilerinize arz ederiz.
+
+Taşıma Belge (MRN) No: {{MRN}}
+Şasi Numarası: {{SASI}}
+
+EKLER:
+TAŞIMA BELGESİ
+
+Saygılarımızla,
+{{IMZA}}
+{{FIRMA}}`
+  },
+
+  bursa_tse: {
+    baslik: "Bursa TSE Merkezine Yönlendirme",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE",
+    alanlar: [
+      { id: "giris_tarihi", etiket: "Geçici Ambara Giriş Tarihi", tip: "date" },
+      { id: "mrn", etiket: "Özet Beyan No" },
+      { id: "yil", etiket: "Model Yılı" },
+      { id: "marka", etiket: "Marka" },
+      { id: "sasi", etiket: "Şasi Numarası" },
+      { id: "tse_yazi_tarih", etiket: "TSE Yazı Tarihi" },
+      { id: "tse_yazi_sayi", etiket: "TSE Yazı Sayısı" },
+      { id: "imza", etiket: "İmza Yetkilisi" }
+    ],
+    metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE
+
+Konu: Bursa TSE Merkezine Yönlendirilmesi Talebi.
+
+{{GIRIS_TARIHI}} tarihinde {{MRN}} Özet beyan ile geçici ambara giriş yapan {{YIL}} model {{MARKA}} marka, {{SASI}} şase numaralı aracımıza ilişkin Türkiye Standartları Enstitüsü Ulaşım Sistemleri Merkez Başkanlığı'nın {{TSE_YAZI_TARIH}} tarihli ve {{TSE_YAZI_SAYI}} sayılı yazıları doğrultusunda gerekli işlemlerin başlatılması talep edilmektedir.
+
+TSE'nin ilgili muayene cihazlarının taşınabilir olmaması ve gümrük sahasında bu testlerin gerçekleştirilememesi nedeniyle, aracımızın Bursa TSE merkezine yönlendirilmesi gerektiği tarafımıza bildirilmiştir. Bu doğrultuda, ilgili aracımızın Bursa TSE merkezinde gerekli test ve muayene işlemlerinin yapılabilmesi için tarafınıza başvurumuzu sunar, gereğini bilgilerinize arz ederiz.
+
+Ekte, Türkiye Standartları Enstitüsü'ün {{TSE_YAZI_TARIH}} tarihli yazısı sunulmaktadır.
+
+Ekler:
+Ordino
+Fatura
+TSE yazısı
+
+Saygılarımızla,
+{{IMZA}}`
+  }
+};
+
+// Bilinen firma → imza yetkilisi (öneri; kullanıcı değiştirebilir)
+window._dlkImzaHarita = { "ŞAMNU":"FEVZİ ALPER TAVMAN", "FF OTOMOT":"FATİH İSMAİL ÇEBİ", "KARABAYIR":"BEHLÜL TÜREL", "SANDIKÇI":"HARUN SANDIKÇI" };
+
+// Sayı ayrıştırıcı (TR biçimi: 1.234,56 veya düz 102000)
+window._dlkNum = function(v){
+    if(v==null) return 0;
+    let s = (''+v).replace(/[^0-9,.\-]/g,'').trim();
+    if(!s) return 0;
+    if(s.indexOf(',') > -1) s = s.replace(/\./g,'').replace(',','.'); // virgül varsa nokta binlik
+    return parseFloat(s) || 0;
+};
+// Tarih biçimi YYYY-MM-DD → DD.MM.YYYY
+window._dlkDate = function(v){
+    if(!v) return '';
+    let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    return m ? (m[3] + '.' + m[2] + '.' + m[1]) : v;
+};
+
+window.dilekcelerInit = function(){
+    const sel = document.getElementById('dlk-sablon');
+    if(!sel) return;
+    const keys = Object.keys(window.DILEKCE_SABLONLARI);
+    sel.innerHTML = keys.map(k => '<option value="'+k+'">'+window.DILEKCE_SABLONLARI[k].baslik+'</option>').join('');
+    sel.onchange = function(){ window.dilekceSablonSec(sel.value); };
+    // İlk şablonu otomatik aç (önizleme hemen görünsün)
+    window.dilekceSablonSec(keys[0]);
+};
+
+window.dilekceSablonSec = function(key){
+    const formEl = document.getElementById('dlk-form');
+    const prevEl = document.getElementById('dlk-preview');
+    if(!formEl || !prevEl) return;
+    const s = window.DILEKCE_SABLONLARI[key];
+    if(!s){ formEl.innerHTML = '<div class="dlk-empty">Yukarıdan bir dilekçe şablonu seçin.</div>'; prevEl.innerText = ''; window._dlkAktifSablon = null; return; }
+    window._dlkAktifSablon = key;
+    const firmalar = Object.keys(window.firmData || {});
+
+    formEl.innerHTML = s.alanlar.map(function(a){
+        const idAttr = 'dlk-f-' + a.id;
+        if(a.hesaplanan){
+            return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'" class="dlk-hesap" readonly placeholder="otomatik hesaplanır"></div>';
+        }
+        if(a.tip === 'date'){
+            return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="date" id="'+idAttr+'"></div>';
+        }
+        if(a.id === 'firma'){
+            return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'" list="dlk-firma-list" autocomplete="off" placeholder="Firma adı..."><datalist id="dlk-firma-list">'+firmalar.map(function(f){return '<option value="'+f.replace(/"/g,'&quot;')+'">';}).join('')+'</datalist></div>';
+        }
+        return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'"></div>';
+    }).join('');
+
+    // Dinleyiciler
+    s.alanlar.forEach(function(a){
+        if(a.hesaplanan) return;
+        const el = document.getElementById('dlk-f-' + a.id);
+        if(!el) return;
+        el.addEventListener('input', window.dilekceOnizleGuncelle);
+        if(a.id === 'firma'){
+            el.addEventListener('change', function(){
+                const imzaEl = document.getElementById('dlk-f-imza');
+                if(imzaEl && !imzaEl.value){
+                    const fUst = (el.value || '').toUpperCase();
+                    Object.keys(window._dlkImzaHarita).forEach(function(anahtar){
+                        if(fUst.includes(anahtar)) imzaEl.value = window._dlkImzaHarita[anahtar];
+                    });
+                    window.dilekceOnizleGuncelle();
+                }
+            });
+        }
+    });
+
+    window.dilekceOnizleGuncelle();
+};
+
+window.dilekceOnizleGuncelle = function(){
+    const key = window._dlkAktifSablon;
+    if(!key) return;
+    const s = window.DILEKCE_SABLONLARI[key];
+    const alanTip = {};
+    s.alanlar.forEach(function(a){ alanTip[a.id] = a; });
+
+    const raw = {};
+    s.alanlar.forEach(function(a){
+        const el = document.getElementById('dlk-f-' + a.id);
+        raw[a.id] = el ? (el.value || '').trim() : '';
+    });
+
+    // Hesaplanan: fark = tespit kıymet - beyan fatura
+    if(alanTip.fark && alanTip.fark.hesaplanan){
+        const fark = window._dlkNum(raw.kiymet) - window._dlkNum(raw.fatura);
+        raw.fark = fark ? fark.toLocaleString('tr-TR') : '';
+        const fe = document.getElementById('dlk-f-fark');
+        if(fe) fe.value = raw.fark;
+    }
+
+    // Görüntü değerleri (tarih biçimlendir)
+    const disp = {};
+    Object.keys(raw).forEach(function(id){
+        disp[id] = (alanTip[id] && alanTip[id].tip === 'date') ? window._dlkDate(raw[id]) : raw[id];
+    });
+
+    const metin = s.metin.replace(/\{\{(\w+)\}\}/g, function(m, p){
+        const id = p.toLowerCase();
+        const v = disp[id];
+        return (v !== undefined && v !== '') ? v : '..........';
+    });
+
+    document.getElementById('dlk-preview').innerText = metin;
+};
+
+window.dilekceTemizle = function(){
+    if(!window._dlkAktifSablon) return;
+    document.querySelectorAll('#dlk-form input').forEach(function(el){ el.value = ''; });
+    window.dilekceOnizleGuncelle();
+};
+
+// PDF İndir — klon + sabit A4 (794px) + html2pdf (mobil/PC eşit)
+window.dilekcelerPdfIndir = function(){
+    if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
+    if(typeof html2pdf === 'undefined'){ alert('PDF kütüphanesi yüklenemedi.'); return; }
+    const s = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
+    const metin = (document.getElementById('dlk-preview').innerText || '').trim();
+    if(!metin){ alert('Önizleme boş.'); return; }
+
+    const node = document.createElement('div');
+    node.style.cssText = "width:794px !important; min-width:794px !important; max-width:794px !important; box-sizing:border-box !important; margin:0 !important; padding:70px 80px !important; background:#ffffff !important; color:#000000 !important; font-family:'Times New Roman', Times, serif !important; font-size:15px !important; line-height:1.7 !important; font-weight:600 !important; white-space:pre-wrap !important; text-align:justify !important; overflow:visible !important;";
+    node.innerText = metin;
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = "position:fixed !important; top:0 !important; left:-99999px !important; width:794px !important; background:#ffffff !important; z-index:-9999 !important; overflow:visible !important; pointer-events:none !important;";
+    wrapper.appendChild(node);
+    document.body.appendChild(wrapper);
+
+    let dosyaAdi = (s.baslik || 'DILEKCE').replace(/[^0-9A-Za-zĞÜŞİÖÇğüşıöç ]/g,'').replace(/\s+/g,'_');
+    const opt = {
+        margin: 0,
+        filename: dosyaAdi + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794, windowWidth: 794 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
+
+    if(typeof showSyncToast === 'function') showSyncToast('PDF hazırlanıyor...');
+    html2pdf().set(opt).from(node).save().then(function(){
+        if(wrapper.parentNode) document.body.removeChild(wrapper);
+        if(typeof hideSyncToast === 'function') hideSyncToast('PDF indirildi!', true);
+    }).catch(function(err){
+        if(wrapper.parentNode) document.body.removeChild(wrapper);
+        console.error('Dilekçe PDF hatası:', err);
+        alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
     });
 };
 
