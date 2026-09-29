@@ -2149,6 +2149,22 @@ div[style*="position: relative"] > input {
 @media (max-width: 900px) {
   .dlk-wrap { grid-template-columns:1fr !important; }
 }
+/* Dilekçeler YAZDIRMA: sadece A4 kağıdı bassın (yalnızca dilekçe görünümünde;
+   diğer sayfaların yazdırma akışını bozmamak için body.dilekceler-goruntu ile izole) */
+@media print {
+  body.dilekceler-goruntu * { visibility: hidden !important; }
+  body.dilekceler-goruntu #dlk-preview,
+  body.dilekceler-goruntu #dlk-preview * { visibility: visible !important; }
+  body.dilekceler-goruntu #dlk-preview {
+    position: absolute !important; left: 0 !important; top: 0 !important;
+    width: 100% !important; max-width: 100% !important; min-height: 0 !important;
+    margin: 0 !important; padding: 15mm 15mm !important; /* @page margin 0 zorlandığı için kenar boşluğu burada */
+    box-shadow: none !important; border: none !important; border-radius: 0 !important;
+    background: #ffffff !important; color: #000000 !important;
+    font-size: 12pt !important; line-height: 1.4 !important; overflow: visible !important;
+  }
+  body.dilekceler-goruntu #dlk-preview p { margin: 0 0 10px !important; line-height: 1.4 !important; }
+}
 
 /* ── 12. RESULT TOTAL PANELİ ────────────────────────────────────────── */
 .result-panel {
@@ -3425,6 +3441,7 @@ div[style*="position: relative"] > input {
         <div class="page-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button class="btn-sm" onclick="window.dilekceMetniKopyala()"><i data-lucide="copy"></i> Metni Kopyala</button>
             <button class="btn-sm" onclick="window.dilekceTemizle()"><i data-lucide="eraser"></i> Temizle</button>
+            <button class="btn-sm" onclick="window.dilekceYazdir()"><i data-lucide="printer"></i> Yazdır</button>
             <button class="btn-primary" onclick="window.dilekcelerPdfIndir()"><i data-lucide="download"></i> PDF Olarak İndir</button>
         </div>
     </div>
@@ -17416,6 +17433,7 @@ if(vn==='cariKart'){
 if(vn==='gelecekAraclar'){
     window.renderGelecekTable();
 }
+document.body.classList.toggle('dilekceler-goruntu', vn==='dilekceler');
 if(vn==='dilekceler'){
     setTimeout(function(){ if(window.dilekcelerInit) window.dilekcelerInit(); }, 50);
 }
@@ -18911,7 +18929,7 @@ window.dilekceHtmlUret = function(key){
     const firmaVar = !!alanTip.firma;
     const firmaVal = (disp.firma && disp.firma !== '..........') ? disp.firma : '';
     const imzaVal  = (disp.imza  && disp.imza  !== '..........') ? disp.imza  : '..........';
-    let imzaHtml = '<div style="margin-top:50px; display:flex; justify-content:flex-end; text-align:center;"><div style="width:250px; line-height:1.4;">Saygılarımızla,<br><br>';
+    let imzaHtml = '<div style="margin-top:35px; display:flex; justify-content:flex-end; text-align:center;"><div style="width:250px; line-height:1.4;">Saygılarımızla,<br><br>';
     if(firmaVar && firmaVal) imzaHtml += '<strong>' + window._dlkEsc(firmaVal) + '</strong><br>';
     imzaHtml += '<span>' + window._dlkEsc(imzaVal) + '</span><br><small style="color:#666;">(İmza / Kaşe)</small></div></div>';
 
@@ -18933,6 +18951,17 @@ window.dilekceTemizle = function(){
     window.dilekceOnizleGuncelle();
 };
 
+// Yazdır — tarayıcı yazdırma diyaloğu. Mobilde (iOS/Android) "PDF olarak kaydet"
+// için EN güvenilir yol (html2canvas'ın mobil hatalarını atlar). @media print
+// kuralları sadece A4 kağıdı bastırır (body.dilekceler-goruntu ile izole).
+window.dilekceYazdir = function(){
+    if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
+    const prev = document.getElementById('dlk-preview');
+    if(!prev || !prev.innerText.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
+    document.body.classList.add('dilekceler-goruntu'); // görünüm zaten açık ama garanti
+    setTimeout(function(){ window.print(); }, 60);
+};
+
 // PDF İndir — sabit A4 (794px) + html2pdf.
 // KRİTİK (iOS/Safari): html2canvas ekran DIŞINDAKİ / position:fixed kaynağı
 // bazen BOŞ render eder. Bu yüzden node'u viewport İÇİNDE (0,0) render edip
@@ -18946,7 +18975,7 @@ window.dilekcelerPdfIndir = async function(){
 
     // Export edilecek A4 node (viewport içinde, sol üstte)
     const node = document.createElement('div');
-    node.style.cssText = "position:fixed; top:0; left:0; width:794px; box-sizing:border-box; margin:0; padding:75px 85px; background:#ffffff; color:#000000; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.5; font-weight:400; text-align:left; overflow:visible; z-index:2147483646;";
+    node.style.cssText = "position:fixed; top:0; left:0; width:794px; box-sizing:border-box; margin:0; padding:0; background:#ffffff; color:#000000; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.5; font-weight:400; text-align:left; overflow:visible; z-index:2147483646;";
     node.innerHTML = html;
     document.body.appendChild(node);
 
@@ -18963,7 +18992,7 @@ window.dilekcelerPdfIndir = async function(){
     const yuk = Math.ceil(node.scrollHeight);
     let dosyaAdi = (s.baslik || 'DILEKCE').replace(/[^0-9A-Za-zĞÜŞİÖÇğüşıöç ]/g,'').replace(/\s+/g,'_');
     const opt = {
-        margin: 0,
+        margin: [15, 15, 15, 15], // mm — resmî kenar boşluğu (üst, sol, alt, sağ)
         filename: dosyaAdi + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794, height: yuk, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
