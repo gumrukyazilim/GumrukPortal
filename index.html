@@ -5059,11 +5059,16 @@ window._firebaseSave = async function(payload) {
             catch(e) { payload.ekGonderici = []; }
         }
 
-        // 2. GÜVENLİK KONTROLÜ - SADECE ADMIN GÖRÜR
-        const _fbSaveRole = localStorage.getItem('gumruk_role') || '';
+        // 2. GÜVENLİK KONTROLÜ - SADECE ADMIN YAZAR
+        // NOT: Rol boş/null ise uygulamanın geri kalanı gibi 'admin' varsayılır
+        // (giriş yapan firma kullanıcılarının rolü her zaman dolu olur; sadece
+        // gerçek firma rolleri engellenir). Eskiden '' varsayıldığı için rol
+        // set edilmemiş admin oturumlarında Firebase'e yazma sessizce bloklanıyordu.
+        const _fbSaveRole = localStorage.getItem('gumruk_role') || 'admin';
         if (_fbSaveRole !== 'admin') {
-            // Non-admin kullanıcılar Firebase'e yazamaz
+            // Non-admin (firma) kullanıcılar Firebase'e yazamaz
             console.warn("Güvenlik: Admin olmayan kullanıcı Firebase'e yazamaz.");
+            window._fbSonHata = 'Admin yetkisi yok (rol: ' + _fbSaveRole + ')';
             return false;
         }
         if ((!payload.decl || payload.decl.length === 0) && window._dataLoaded) {
@@ -5091,15 +5096,23 @@ window._firebaseSave = async function(payload) {
 
         payload._meta = { updatedAt: Date.now(), device: window._cihazKimligi || 'bilinmiyor' };
 
-        // 4. HER ŞEY TAMAMSA BULUTA YAZ
+        // 4. TEMİZLE: Firebase set() içeride 'undefined' bir değer görürse TÜM
+        // yazmayı reddeder. JSON tur-turu undefined alanları güvenle atar.
+        let temizPayload;
+        try { temizPayload = JSON.parse(JSON.stringify(payload)); }
+        catch(e) { temizPayload = payload; }
+
+        // 5. HER ŞEY TAMAMSA BULUTA YAZ
         window._kendiYazma = true; // Listener'a "bu benim yazdım, geri yükleme" de
-        await set(ref(db, 'portal_data_test'), payload);
+        await set(ref(db, 'portal_data_test'), temizPayload);
         window._sonYuklenenMeta = payload._meta.updatedAt;
+        window._fbSonHata = '';
         return true;
     }
-    catch(e) { 
-        console.error("Firebase save error:", e); 
-        return false; 
+    catch(e) {
+        console.error("Firebase save error:", e);
+        window._fbSonHata = (e && e.message) || 'bilinmeyen hata';
+        return false;
     }
 };
 window._firebaseLoad = async function() {
@@ -17467,7 +17480,7 @@ window.addGondericiPrompt = function() {
         localStorage.setItem('gumruk_ek_gonderici',JSON.stringify(ekler));
         if(window._firebaseSave){
     const ok = await window._firebaseSave({decl:window.declarationsData,firm:window.firmData,kiymet:window.kiymetData,firmMeta:window.firmMeta,cariData:window.cariData,gelecekData:window.gelecekData,ekGonderici:ekler});
-    if(!ok){ alert('⚠️ Firebase kaydı başarısız! Gönderici sadece yerel belleğe eklendi.'); }
+    if(!ok){ alert('⚠️ Firebase kaydı başarısız! Gönderici sadece yerel belleğe eklendi.\n\nSebep: ' + (window._fbSonHata || 'bilinmiyor')); }
 } else {
     alert('⚠️ Firebase bağlantısı hazır değil. Gönderici sadece yerel belleğe eklendi.');
 }
