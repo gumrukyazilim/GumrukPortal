@@ -2180,6 +2180,14 @@ div[style*="position: relative"] > input {
 .dlk-field input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(90,172,255,.15); }
 .dlk-field input.dlk-hesap { background:rgba(90,172,255,.08); font-weight:700; color:var(--primary); }
 .dlk-empty { color:var(--text-muted); font-size:13px; text-align:center; padding:30px 10px; }
+/* html2canvas mobil harf/kelime sıkışması (kerning) bug'ını önle */
+#dlk-preview, .dlk-a4-sheet,
+#dlk-preview p, #dlk-preview div, #dlk-preview span,
+.dlk-a4-sheet p, .dlk-a4-sheet div, .dlk-a4-sheet span {
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  text-rendering: geometricPrecision !important;
+}
 .dlk-tabs { display:flex; gap:8px; flex-wrap:wrap; }
 .dlk-tab { padding:9px 16px; border-radius:var(--r-md); background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary); font-size:12.5px; font-weight:600; cursor:pointer; transition:all .18s; white-space:nowrap; }
 .dlk-tab:hover { border-color:var(--primary); color:var(--primary); }
@@ -2199,9 +2207,9 @@ div[style*="position: relative"] > input {
     margin: 0 !important; padding: 15mm 15mm !important; /* @page margin 0 zorlandığı için kenar boşluğu burada */
     box-shadow: none !important; border: none !important; border-radius: 0 !important;
     background: #ffffff !important; color: #000000 !important;
-    font-size: 12pt !important; line-height: 1.4 !important; overflow: visible !important;
+    font-size: 12pt !important; line-height: 1.65 !important; overflow: visible !important;
   }
-  body.dilekceler-goruntu #dlk-preview p { margin: 0 0 10px !important; line-height: 1.4 !important; }
+  body.dilekceler-goruntu #dlk-preview p { margin: 0 0 20px !important; line-height: 1.65 !important; }
 }
 
 /* ── 12. RESULT TOTAL PANELİ ────────────────────────────────────────── */
@@ -3497,7 +3505,7 @@ div[style*="position: relative"] > input {
 
         <!-- SAĞ: Canlı A4 önizleme -->
         <div class="dlk-preview-wrap" style="overflow:auto;">
-            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#111; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.5; font-weight:400; white-space:normal; text-align:left; padding:56px 64px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
+            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#111; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.65; font-weight:400; white-space:normal; text-align:left; padding:0 64px 48px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
         </div>
     </div>
 </template>
@@ -18982,11 +18990,11 @@ window.dilekceHtmlUret = function(key){
         if(/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(b)) return;       // salt tarih (üstte var)
         if(/^konu\s*:/i.test(b)){
             const rest = b.replace(/^konu\s*:/i, '').trim();
-            govdeHtml += '<div style="font-weight:bold; text-align:left; margin:0 0 16px; line-height:1.5;">KONU: ' + window._dlkEsc(rest) + '</div>';
+            govdeHtml += '<div style="font-weight:bold; text-align:left; margin:0 0 20px; line-height:1.65;">KONU: ' + window._dlkEsc(rest) + '</div>';
         } else if(b.indexOf('●') > -1 || /(^|\n)\s*ekler\s*:/i.test(b) || (b.indexOf('\n') > -1 && b.split('\n').every(function(l){ return !l.trim() || l.indexOf(':') > -1; }))){
-            govdeHtml += '<div style="white-space:pre-line; text-align:left; margin:0 0 12px; line-height:1.5;">' + window._dlkEsc(b) + '</div>';
+            govdeHtml += '<div style="white-space:pre-line; text-align:left; margin:0 0 20px; line-height:1.65;">' + window._dlkEsc(b) + '</div>';
         } else {
-            govdeHtml += '<p style="text-align:justify; text-indent:30px; line-height:1.5; margin:0 0 12px;">' + window._dlkEsc(b.replace(/\n/g, ' ')) + '</p>';
+            govdeHtml += '<p style="text-align:justify; text-indent:30px; line-height:1.65; margin:0 0 20px;">' + window._dlkEsc(b.replace(/\n/g, ' ')) + '</p>';
         }
     });
 
@@ -18994,13 +19002,15 @@ window.dilekceHtmlUret = function(key){
     const firmaVar = !!alanTip.firma;
     const firmaVal = (disp.firma && disp.firma !== '..........') ? disp.firma : '';
     const imzaVal  = (disp.imza  && disp.imza  !== '..........') ? disp.imza  : '..........';
-    let imzaHtml = '<div style="margin-top:35px; display:flex; justify-content:flex-end; text-align:center;"><div style="width:250px; line-height:1.4;">Saygılarımızla,<br><br>';
+    let imzaHtml = '<div style="margin-top:65px; display:flex; justify-content:flex-end; text-align:center;"><div style="width:260px; line-height:1.6; font-size:15px;">Saygılarımızla,<br><br>';
     if(firmaVar && firmaVal) imzaHtml += '<strong>' + window._dlkEsc(firmaVal) + '</strong><br>';
     imzaHtml += '<span>' + window._dlkEsc(imzaVal) + '</span><br><small style="color:#666;">(İmza / Kaşe)</small></div></div>';
 
-    return '<div style="text-align:right; margin-bottom:10px;">Tarih: ' + window._dlkBugun() + '</div>' +
-           '<div style="text-align:center; font-weight:bold; font-size:15px; margin:30px 0 25px 0;">' + window._dlkEsc(s.makam) + '</div>' +
-           govdeHtml + imzaHtml;
+    return '<div style="padding-top:60px;">' +
+           '<div style="text-align:right; margin:0 0 30px 0;">Tarih: ' + window._dlkBugun() + '</div>' +
+           '<div style="text-align:center; font-weight:bold; font-size:15px; margin:0 0 35px 0;">' + window._dlkEsc(s.makam) + '</div>' +
+           govdeHtml + imzaHtml +
+           '</div>';
 };
 
 window.dilekceOnizleGuncelle = function(){
@@ -19038,9 +19048,11 @@ window.dilekcelerPdfIndir = async function(){
     const html = window.dilekceHtmlUret(window._dlkAktifSablon);
     if(!html){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
 
-    // Export edilecek A4 node (viewport içinde, sol üstte)
+    // Export edilecek A4 node (viewport içinde, sol üstte). dlk-a4-sheet sınıfı
+    // harf/kelime sıkışması (kerning) düzeltme CSS'ini uygular.
     const node = document.createElement('div');
-    node.style.cssText = "position:fixed; top:0; left:0; width:794px; box-sizing:border-box; margin:0; padding:0; background:#ffffff; color:#000000; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.5; font-weight:400; text-align:left; overflow:visible; z-index:2147483646;";
+    node.className = 'dlk-a4-sheet';
+    node.style.cssText = "position:fixed; top:0; left:0; width:794px; box-sizing:border-box; margin:0; padding:0; background:#ffffff; color:#000000; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.65; font-weight:400; text-align:left; overflow:visible; z-index:2147483646;";
     node.innerHTML = html;
     document.body.appendChild(node);
 
@@ -19060,7 +19072,7 @@ window.dilekcelerPdfIndir = async function(){
         margin: [15, 15, 15, 15], // mm — resmî kenar boşluğu (üst, sol, alt, sağ)
         filename: dosyaAdi + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794, height: yuk, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', logging: false, width: 794, height: yuk, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
         pagebreak: { mode: ['css', 'legacy'] }
     };
