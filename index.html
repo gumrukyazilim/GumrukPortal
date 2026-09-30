@@ -2189,7 +2189,7 @@ div[style*="position: relative"] > input {
   text-rendering: geometricPrecision !important;
 }
 .dlk-document { width:100%; max-width:100%; color:#000; overflow-wrap:anywhere; }
-#dlk-preview { display:flex !important; flex-direction:column; justify-content:center; width:100% !important; min-width:0 !important; min-height:1123px !important; aspect-ratio:210 / 297; }
+#dlk-preview { display:flex !important; flex-direction:column; justify-content:flex-start; width:100% !important; min-width:0 !important; min-height:1123px !important; aspect-ratio:210 / 297; }
 .dlk-document, .dlk-document * { min-width:0; overflow-wrap:anywhere; word-spacing:normal; }
 .dlk-document { flex:0 0 auto; }
 .dlk-date-row { text-align:right; font-weight:700; margin:0 0 20px; }
@@ -2209,7 +2209,7 @@ div[style*="position: relative"] > input {
 @media (max-width: 900px) {
   .dlk-wrap { grid-template-columns:minmax(0,1fr) !important; }
   .dlk-wrap > *, .dlk-preview-wrap { min-width:0 !important; max-width:100% !important; }
-  #dlk-preview { min-height:max(400px, calc(100vw * 1.414)) !important; padding:30px 50px 30px 50px !important; }
+  #dlk-preview { min-height:max(400px, calc(100vw * 1.414)) !important; padding:70mm 50px 30px 50px !important; }
 }
 /* Dilekçeler YAZDIRMA: sadece A4 kağıdı bassın (yalnızca dilekçe görünümünde;
    diğer sayfaların yazdırma akışını bozmamak için body.dilekceler-goruntu ile izole) */
@@ -2218,12 +2218,12 @@ div[style*="position: relative"] > input {
   body.dilekceler-goruntu #dlk-preview,
   body.dilekceler-goruntu #dlk-preview * { visibility: visible !important; }
   body.dilekceler-goruntu #dlk-preview {
-    position: absolute !important; left: 15mm !important; top: 18mm !important;
-    width: 180mm !important; max-width: none !important; height: 261mm !important; min-height: 261mm !important;
+    position: absolute !important; left: 15mm !important; top: 70mm !important;
+    width: 180mm !important; max-width: none !important; height: 227mm !important; min-height: 227mm !important;
     margin: 0 !important; padding: 0 !important;
     box-shadow: none !important; border: none !important; border-radius: 0 !important;
     background: #ffffff !important; color: #000000 !important;
-    display: flex !important; flex-direction: column !important; justify-content: center !important;
+    display: flex !important; flex-direction: column !important; justify-content: flex-start !important;
     box-sizing: border-box !important; font-size: 10.5pt !important; line-height: 1.45 !important; overflow: visible !important;
   }
   body.dilekceler-goruntu .dlk-wrap { display:block !important; position:static !important; margin:0 !important; }
@@ -3542,7 +3542,7 @@ div[style*="position: relative"] > input {
 
         <!-- SAĞ: Canlı A4 önizleme -->
         <div class="dlk-preview-wrap" style="overflow:auto;">
-            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#000; font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.6; font-weight:400; white-space:normal; text-align:left; padding:30px 50px 30px 50px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
+            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#000; font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.6; font-weight:400; white-space:normal; text-align:left; padding:70mm 50px 30px 50px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
         </div>
     </div>
 </template>
@@ -19207,15 +19207,15 @@ window.dilekceBelgesiYazdir = function(){
             '.mobile-actions button,.mobile-actions a { min-height:44px; display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:8px; padding:0 16px; background:#2563eb; color:#fff; font:600 14px Arial,sans-serif; text-decoration:none; cursor:pointer; }' +
             '.mobile-actions button:disabled { opacity:.65; } .mobile-actions a { background:#374151; } .mobile-status { flex-basis:100%; min-height:18px; text-align:center; color:#fff; font:12px Arial,sans-serif; }' +
             '.dlk-print-page { display:flex; flex-direction:column; justify-content:center; width:calc(100% - 24px); max-width:180mm; min-height:70vh; margin:12px auto; padding:28px 22px; background:#fff; box-shadow:0 2px 14px #0002; font:10.5pt/1.45 "Times New Roman",Times,serif; overflow-wrap:anywhere; }' +
-            '.dlk-document, .dlk-document * { min-width:0; max-width:100%; overflow-wrap:anywhere; } .dlk-document { display:block; flex:0 0 auto; width:100%; min-width:0; margin:0; padding:0; color:#000; transform:translateY(-10mm); }' +
+            '.dlk-document, .dlk-document * { min-width:0; max-width:100%; overflow-wrap:anywhere; } .dlk-document { display:block; flex:0 0 auto; width:100%; min-width:0; margin:0; padding:0; color:#000; }' +
             '.dlk-date-row { width:100%; text-align:right; font-weight:bold; margin:0 0 20px; } .dlk-addressee { text-align:center; font-weight:bold; font-size:12pt; text-transform:uppercase; margin:0 0 24px; }' +
             '.dlk-subject { margin:0 0 18px; } .dlk-body p { text-align:justify; text-indent:10mm; margin:0 0 12px; line-height:1.45; } .dlk-body div { margin:0 0 12px; white-space:pre-line; }' +
             '.dlk-attachments { margin:12px 0 0; line-height:1.45; } .dlk-signature { display:block; width:100%; margin:28px 0 0; text-align:right; break-inside:avoid; }' +
             '.dlk-signature-box { display:inline-block; width:68mm; max-width:100%; white-space:normal; text-align:center; line-height:1.45; overflow-wrap:anywhere; } .dlk-signoff { margin-bottom:14px; } .dlk-signature-company { margin-bottom:4px; }' +
-            '@media print { html,body { width:210mm !important; height:297mm !important; min-width:0; margin:0 !important; padding:0 !important; background:#fff; } .mobile-actions { display:none !important; } .dlk-print-page { display:flex !important; flex-direction:column !important; justify-content:center !important; width:210mm !important; height:297mm !important; min-height:297mm !important; margin:0 !important; padding:18mm 15mm !important; box-sizing:border-box !important; box-shadow:none !important; } }' +
+            '@media print { html,body { width:210mm !important; height:297mm !important; min-width:0; margin:0 !important; padding:0 !important; background:#fff; } .mobile-actions { display:none !important; } .dlk-print-page { display:flex !important; flex-direction:column !important; justify-content:flex-start !important; width:210mm !important; height:297mm !important; min-height:297mm !important; margin:0 !important; padding:70mm 15mm 18mm !important; box-sizing:border-box !important; box-shadow:none !important; } }' +
             '</style></head><body><nav class="mobile-actions"><button id="mobile-pdf-button" type="button" onclick="window.dilekceMobilPdfIndir(this);">PDF İndir</button><a href="' + portalaDon + '">Portala Dön</a><div id="mobile-pdf-status" class="mobile-status" role="status" aria-live="polite"></div></nav><main id="mobile-pdf-sheet" class="dlk-print-page">' + html + '</main>' +
             '<scr' + 'ipt src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></scr' + 'ipt>' +
-            '<scr' + 'ipt>window.dilekceMobilPdfIndir=function(btn){var sheet=document.getElementById("mobile-pdf-sheet"),status=document.getElementById("mobile-pdf-status");if(!sheet||typeof html2pdf!=="function"){if(status)status.textContent="PDF motoru yüklenemedi; sayfayı yenileyip tekrar deneyin.";return;}var oldStyle=sheet.style.cssText;var filename=(document.title||"Dilekce").replace(/[^\\w\\-ğüşöçıİĞÜŞÖÇ]+/g,"_")+".pdf";if(btn)btn.disabled=true;if(status)status.textContent="PDF hazırlanıyor…";sheet.style.width="210mm";sheet.style.maxWidth="210mm";sheet.style.height="297mm";sheet.style.minHeight="297mm";sheet.style.margin="0";sheet.style.padding="18mm 15mm";sheet.style.boxSizing="border-box";sheet.style.overflow="visible";var opt={margin:0,filename:filename,image:{type:"jpeg",quality:0.98},html2canvas:{scale:1.5,useCORS:true,letterRendering:true,windowWidth:794,windowHeight:1123,scrollX:0,scrollY:0,backgroundColor:"#ffffff"},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"]}};html2pdf().set(opt).from(sheet).save().then(function(){sheet.style.cssText=oldStyle;if(btn)btn.disabled=false;if(status)status.textContent="PDF indirildi. İndirilenler bölümünü kontrol edin.";}).catch(function(err){sheet.style.cssText=oldStyle;if(btn)btn.disabled=false;if(status)status.textContent="PDF oluşturulamadı: "+(err&&err.message?err.message:"Tekrar deneyin.");console.error("Mobil dilekçe PDF hatası:",err);});};</scr' + 'ipt>' +
+            '<scr' + 'ipt>window.dilekceMobilPdfIndir=function(btn){var sheet=document.getElementById("mobile-pdf-sheet"),status=document.getElementById("mobile-pdf-status");if(!sheet||typeof html2pdf!=="function"){if(status)status.textContent="PDF motoru yüklenemedi; sayfayı yenileyip tekrar deneyin.";return;}var oldStyle=sheet.style.cssText;var filename=(document.title||"Dilekce").replace(/[^\\w\\-ğüşöçıİĞÜŞÖÇ]+/g,"_")+".pdf";if(btn)btn.disabled=true;if(status)status.textContent="PDF hazırlanıyor…";sheet.style.width="210mm";sheet.style.maxWidth="210mm";sheet.style.height="297mm";sheet.style.minHeight="297mm";sheet.style.margin="0";sheet.style.padding="70mm 15mm 18mm";sheet.style.justifyContent="flex-start";sheet.style.boxSizing="border-box";sheet.style.overflow="visible";var opt={margin:0,filename:filename,image:{type:"jpeg",quality:0.98},html2canvas:{scale:1.5,useCORS:true,letterRendering:true,windowWidth:794,windowHeight:1123,scrollX:0,scrollY:0,backgroundColor:"#ffffff"},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"]}};html2pdf().set(opt).from(sheet).save().then(function(){sheet.style.cssText=oldStyle;if(btn)btn.disabled=false;if(status)status.textContent="PDF indirildi. İndirilenler bölümünü kontrol edin.";}).catch(function(err){sheet.style.cssText=oldStyle;if(btn)btn.disabled=false;if(status)status.textContent="PDF oluşturulamadı: "+(err&&err.message?err.message:"Tekrar deneyin.");console.error("Mobil dilekçe PDF hatası:",err);});};</scr' + 'ipt>' +
             '</body></html>'
         );
         mobilPencere.document.close();
@@ -19227,11 +19227,11 @@ window.dilekceBelgesiYazdir = function(){
     if(!w){ alert('Yazdırma penceresi açılamadı. Tarayıcıda pop-up iznini açın.'); return; }
     w.document.write(
         '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + window._dlkEsc(belgeBasligi) + '</title><style>' +
-        '@page { size: A4 portrait; margin: 18mm 15mm; }' +
+        '@page { size: A4 portrait; margin: 0; }' +
         '* { box-sizing:border-box; } html,body { margin:0; padding:0; background:#fff; color:#000; width:100%; min-width:0; }' +
         "body { font-family:'Times New Roman',Times,serif; font-size:10.5pt; line-height:1.45; }" +
-        '.dlk-print-page { display:flex; flex-direction:column; justify-content:center; width:100%; max-width:180mm; min-height:260mm; margin:0 auto; font-size:10.5pt; line-height:1.45; overflow-wrap:anywhere; }' +
-        '.dlk-document { display:block; flex:0 0 auto; width:100%; max-width:100%; margin:0; padding:0; border:0; box-shadow:none; color:#000; font:inherit; overflow-wrap:anywhere; transform:translateY(-10mm); }' +
+        '.dlk-print-page { display:flex; flex-direction:column; justify-content:flex-start; width:210mm; height:297mm; min-height:297mm; margin:0; padding:70mm 15mm 18mm; box-sizing:border-box; font-size:10.5pt; line-height:1.45; overflow-wrap:anywhere; }' +
+        '.dlk-document { display:block; flex:0 0 auto; width:100%; max-width:100%; margin:0; padding:0; border:0; box-shadow:none; color:#000; font:inherit; overflow-wrap:anywhere; }' +
         '.dlk-date-row { text-align:right; font-weight:bold; margin:0 0 20px; }' +
         '.dlk-addressee { text-align:center; font-weight:bold; font-size:12pt; text-transform:uppercase; margin:0 0 24px; overflow-wrap:anywhere; }' +
         '.dlk-subject { margin:0 0 18px; overflow-wrap:anywhere; }' +
@@ -19242,7 +19242,7 @@ window.dilekceBelgesiYazdir = function(){
         '.dlk-signature-box { display:inline-block; width:68mm; max-width:100%; text-align:center; line-height:1.45; overflow-wrap:anywhere; }' +
         '.dlk-signoff { margin-bottom:14px; } .dlk-signature-company { margin-bottom:4px; }' +
         '.dlk-print-page, .dlk-print-page * { letter-spacing:normal !important; word-spacing:normal !important; }' +
-        '@media print { html,body { width:100% !important; min-width:0 !important; } .dlk-print-page { display:flex !important; flex-direction:column !important; justify-content:center !important; width:180mm !important; max-width:180mm !important; min-height:260mm !important; margin:0 auto !important; } .dlk-document { width:100% !important; max-width:100% !important; flex:0 0 auto !important; } }' +
+        '@media print { html,body { width:210mm !important; height:297mm !important; min-width:0 !important; margin:0 !important; padding:0 !important; } .dlk-print-page { display:flex !important; flex-direction:column !important; justify-content:flex-start !important; width:210mm !important; height:297mm !important; max-width:210mm !important; min-height:297mm !important; margin:0 !important; padding:70mm 15mm 18mm !important; box-sizing:border-box !important; } .dlk-document { width:100% !important; max-width:100% !important; flex:0 0 auto !important; } }' +
         '</style></head><body><main class="dlk-print-page">' + html + '</main>' +
         '<scr' + 'ipt>window.onload=function(){setTimeout(function(){try{window.print();}catch(e){}},300);};</scr' + 'ipt>' +
         '</body></html>'
