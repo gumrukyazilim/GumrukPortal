@@ -19070,31 +19070,66 @@ window.dilekceYazdir = function(){
     w.document.close();
 };
 
-// PDF İNDİR — doğrudan görünür A4 tablosundan (iframe/negatif koordinat YOK).
-// Tablo yapısı html2canvas'ta sarsılmaz; ekrandaki #dlk-preview doğrudan A4'e
-// dökülür. Mobilde en temiz sonuç için "Yazdır" butonu tavsiye edilir.
+// PDF İNDİR — temiz, ÇERÇEVESİZ, SABİT 794px KLON'dan.
+// MOBİL FIX: ekrandaki #dlk-preview mobilde responsive (~375px) olduğu için
+// doğrudan yakalayınca A4'e YUKARI ölçekleniyordu → yazı devleşiyor + içerik
+// uzayıp 3 sayfaya taşıyordu. Çözüm: sabit 794px genişlikli, box-shadow/border/
+// outline'ı sıfırlanmış klon yakala → mobil/PC aynı, tek sayfa, normal punto.
 window.dilekcelerPdfIndir = function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     if(typeof html2pdf === 'undefined'){ alert('PDF kütüphanesi yüklenemedi.'); return; }
-    const element = document.getElementById('dlk-preview');
-    if(!element || !element.innerText.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
+    const livePreview = document.getElementById('dlk-preview');
+    if(!livePreview || !livePreview.innerText.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
     const s = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
     const dosyaAdi = (s && s.baslik ? s.baslik : 'Dilekce').replace(/\s+/g,'_');
-    const opt = {
-        margin: 10, // mm kenar payı
-        filename: dosyaAdi + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all'] }
-    };
-    if(typeof showSyncToast === 'function') showSyncToast('📄 PDF hazırlanıyor...');
-    html2pdf().set(opt).from(element).save().then(function(){
-        if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
-    }).catch(function(err){
-        console.error('Dilekçe PDF hatası:', err);
-        alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
+
+    // 1. Temiz, çerçevesiz, SABİT genişlikli klon (viewport'a sol üstte, perde altında)
+    const clone = livePreview.cloneNode(true);
+    clone.id = 'dlk-pdf-clone';
+    clone.style.cssText = "position:fixed; left:0; top:0; z-index:2147483646; width:794px; max-width:794px; min-height:0; margin:0; padding:40px 55px; background:#ffffff; color:#000000; box-shadow:none !important; border:none !important; outline:none !important; border-radius:0 !important; font-family:'Times New Roman',Times,serif; font-size:14px; line-height:1.5;";
+    // İç öğelerin çerçeve/gölge/kerning fazlalıklarını da yok et
+    clone.querySelectorAll('*').forEach(function(el){
+        el.style.boxShadow = 'none';
+        el.style.border = 'none';
+        el.style.outline = 'none';
+        el.style.letterSpacing = 'normal';
+        el.style.wordSpacing = 'normal';
     });
+    document.body.appendChild(clone);
+
+    // Kullanıcı ham klonu görmesin diye opak perde
+    const perde = document.createElement('div');
+    perde.style.cssText = "position:fixed; inset:0; background:var(--bg-main,#0b0e14); z-index:2147483647; display:flex; align-items:center; justify-content:center; color:var(--text-primary,#fff); font-size:15px; font-weight:600;";
+    perde.textContent = '📄 PDF hazırlanıyor...';
+    document.body.appendChild(perde);
+
+    const temizle = function(){ if(clone.parentNode) clone.parentNode.removeChild(clone); if(perde.parentNode) perde.parentNode.removeChild(perde); };
+    const guvenlikT = setTimeout(temizle, 15000);
+    try { window.scrollTo(0, 0); } catch(e){}
+
+    // 2. scale:1 → mobil Retina'da font patlamasını önler; avoid-all → tek sayfa.
+    //    KRİTİK: mobil dar viewport'ta geniş öğeyi yakalayabilmek için html2canvas'a
+    //    794-genişlikli pencere emüle ettiriyoruz (width+height+windowWidth+windowHeight);
+    //    yoksa 0-yükseklik/boş canvas çıkar.
+    setTimeout(function(){
+        const H = Math.max(clone.scrollHeight, clone.offsetHeight, 300);
+        const opt = {
+            margin: [20, 15, 20, 15], // üst, sağ, alt, sol (mm) resmî marjin
+            filename: dosyaAdi + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 1, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', width: 794, height: H, windowWidth: 794, windowHeight: H },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all'] }
+        };
+        html2pdf().set(opt).from(clone).save().then(function(){
+            clearTimeout(guvenlikT); temizle();
+            if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
+        }).catch(function(err){
+            clearTimeout(guvenlikT); temizle();
+            console.error('Dilekçe PDF hatası:', err);
+            alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
+        });
+    }, 150);
 };
 
 // ============ EKSİK KLASÖR OLUŞTURUCU ============
