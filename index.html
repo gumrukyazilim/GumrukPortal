@@ -3505,7 +3505,7 @@ div[style*="position: relative"] > input {
 
         <!-- SAĞ: Canlı A4 önizleme -->
         <div class="dlk-preview-wrap" style="overflow:auto;">
-            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#111; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.65; font-weight:400; white-space:normal; text-align:left; padding:0 64px 48px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
+            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#000; font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.6; font-weight:400; white-space:normal; text-align:left; padding:60px 55px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
         </div>
     </div>
 </template>
@@ -18995,34 +18995,44 @@ window.dilekceHtmlUret = function(key){
     govde = govde.replace(/\n?Saygılarımızla[\s\S]*$/i, ''); // imza bloğu (kendimiz koyacağız)
     govde = sub(govde).trim();
 
+    // Blokları ayır: KONU / EKLER / gövde paragrafları
     const bloklar = govde.split(/\n\s*\n/).map(function(b){ return b.trim(); }).filter(Boolean);
-    let govdeHtml = '';
+    let konuHtml = '', eklerHtml = '', govdeHtml = '';
     bloklar.forEach(function(b){
         if(/^\.{3,}$/.test(b)) return;                       // boş "........."
         if(/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(b)) return;       // salt tarih (üstte var)
         if(/^konu\s*:/i.test(b)){
-            const rest = b.replace(/^konu\s*:/i, '').trim();
-            govdeHtml += '<div style="font-weight:bold; text-align:left; margin:0 0 20px; line-height:1.65;">KONU: ' + window._dlkEsc(rest) + '</div>';
-        } else if(b.indexOf('●') > -1 || /(^|\n)\s*ekler\s*:/i.test(b) || (b.indexOf('\n') > -1 && b.split('\n').every(function(l){ return !l.trim() || l.indexOf(':') > -1; }))){
-            govdeHtml += '<div style="white-space:pre-line; text-align:left; margin:0 0 20px; line-height:1.65;">' + window._dlkEsc(b) + '</div>';
+            konuHtml = window._dlkEsc(b.replace(/^konu\s*:/i, '').trim());
+        } else if(/^ekler\s*:/i.test(b)){
+            // "EKLER:" başlık satırını at, kalan maddeleri <br> ile birleştir
+            var satirlar = b.split('\n').slice(1).map(function(l){ return l.trim(); }).filter(Boolean);
+            eklerHtml = satirlar.map(function(l){ return window._dlkEsc(l); }).join('<br>');
+        } else if(b.indexOf('●') > -1 || (b.indexOf('\n') > -1 && b.split('\n').every(function(l){ return !l.trim() || l.indexOf(':') > -1; }))){
+            govdeHtml += '<div style="text-align:left; margin:0 0 18px; line-height:1.6; white-space:pre-line;">' + window._dlkEsc(b) + '</div>';
         } else {
-            govdeHtml += '<p style="text-align:justify; text-indent:30px; line-height:1.65; margin:0 0 20px;">' + window._dlkEsc(b.replace(/\n/g, ' ')) + '</p>';
+            govdeHtml += '<p style="text-align:justify; text-indent:30px; line-height:1.65; margin:0 0 18px;">' + window._dlkEsc(b.replace(/\n/g, ' ')) + '</p>';
         }
     });
 
-    // İmza bloğu (sağ alt): firma alanı olan şablonlarda firma + imza
+    // İmza değerleri (firma alanı olan şablonlarda firma + imza)
     const firmaVar = !!alanTip.firma;
-    const firmaVal = (disp.firma && disp.firma !== '..........') ? disp.firma : '';
-    const imzaVal  = (disp.imza  && disp.imza  !== '..........') ? disp.imza  : '..........';
-    let imzaHtml = '<div style="margin-top:50px; display:flex; justify-content:flex-end; text-align:center;"><div style="width:260px; line-height:1.5; font-size:15px;">Saygılarımızla,<br><br>';
-    if(firmaVar && firmaVal) imzaHtml += '<strong>' + window._dlkEsc(firmaVal) + '</strong><br>';
-    imzaHtml += '<span>' + window._dlkEsc(imzaVal) + '</span></div></div>';
+    const firmaVal = (disp.firma && disp.firma !== '..........') ? window._dlkEsc(disp.firma) : '';
+    const imzaVal  = (disp.imza  && disp.imza  !== '..........') ? window._dlkEsc(disp.imza)  : '..........';
 
-    return '<div style="padding-top:85px;">' +
-           '<div style="text-align:right; margin:0 0 30px 0;">Tarih: ' + window._dlkBugun() + '</div>' +
-           '<div style="text-align:center; font-weight:bold; font-size:15px; margin:0 0 35px 0;">' + window._dlkEsc(s.makam) + '</div>' +
-           govdeHtml + imzaHtml +
-           '</div>';
+    // RESMİ HTML TABLO YAPISI (flexbox/negatif koordinat YOK → html2canvas + yazdırma sağlam)
+    var h = '<table style="width:100%; border-collapse:collapse; border:none;">';
+    h += '<tr><td style="text-align:right; font-weight:bold; font-size:14px; padding-bottom:30px;">Tarih: ' + window._dlkBugun() + '</td></tr>';
+    h += '<tr><td style="text-align:center; font-weight:bold; font-size:16px; padding-bottom:35px; text-transform:uppercase; word-wrap:break-word;">' + window._dlkEsc(s.makam) + '</td></tr>';
+    if(konuHtml) h += '<tr><td style="font-weight:bold; font-size:14px; padding-bottom:25px; word-wrap:break-word;">KONU: ' + konuHtml + '</td></tr>';
+    h += '<tr><td style="text-align:justify; font-size:14px; line-height:1.65; padding-bottom:10px; word-wrap:break-word;">' + govdeHtml + '</td></tr>';
+    if(eklerHtml) h += '<tr><td style="padding-bottom:30px; font-size:13.5px; line-height:1.5;"><strong>EKLER:</strong><br>' + eklerHtml + '</td></tr>';
+    h += '<tr><td style="padding-top:40px;"><table align="right" style="width:260px; text-align:center; border-collapse:collapse; border:none;">';
+    h += '<tr><td style="font-size:14px; padding-bottom:15px;">Saygılarımızla,</td></tr>';
+    if(firmaVar && firmaVal) h += '<tr><td style="font-weight:bold; font-size:14px; padding-bottom:5px;">' + firmaVal + '</td></tr>';
+    h += '<tr><td style="font-size:14px;">' + imzaVal + '</td></tr>';
+    h += '</table></td></tr>';
+    h += '</table>';
+    return h;
 };
 
 window.dilekceOnizleGuncelle = function(){
@@ -19038,73 +19048,53 @@ window.dilekceTemizle = function(){
     window.dilekceOnizleGuncelle();
 };
 
-// Yazdır — tarayıcı yazdırma diyaloğu. Mobilde (iOS/Android) "PDF olarak kaydet"
-// için EN güvenilir yol (html2canvas'ın mobil hatalarını atlar). @media print
-// kuralları sadece A4 kağıdı bastırır (body.dilekceler-goruntu ile izole).
+// YAZDIR / PDF KAYDET — AYRI PENCERE (tarayıcı garantisi).
+// En güvenilir A4 yolu: içeriği ayrı bir pencereye yazıp @page A4 ile print
+// ediyoruz. Yazdırma motoru A4 boyutunda render eder → mobil ekran genişliği
+// çıktıyı ETKİLEMEZ. Kullanıcı diyalogdan "PDF olarak kaydet" seçebilir.
 window.dilekceYazdir = function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
-    const prev = document.getElementById('dlk-preview');
-    if(!prev || !prev.innerText.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
-    document.body.classList.add('dilekceler-goruntu'); // görünüm zaten açık ama garanti
-    setTimeout(function(){ window.print(); }, 60);
+    const html = window.dilekceHtmlUret(window._dlkAktifSablon);
+    if(!html || !html.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
+    const w = window.open('', '_blank');
+    if(!w){ alert('Yazdırma penceresi açılamadı. Tarayıcıda pop-up iznini açın.'); return; }
+    w.document.write(
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Resmi Dilekçe</title><style>' +
+        '@page { size: A4 portrait; margin: 20mm 15mm; }' +
+        "body { margin:0; padding:0; background:#fff; color:#000; font-family:'Times New Roman',Times,serif; font-size:14px; line-height:1.6; }" +
+        'table { border-collapse:collapse; width:100%; } td{ vertical-align:top; } p,div,span,td{ letter-spacing:normal; word-spacing:normal; }' +
+        '</style></head><body>' + html +
+        '<scr' + 'ipt>window.onload=function(){setTimeout(function(){try{window.print();}catch(e){}},250);window.onafterprint=function(){window.close();};};</scr' + 'ipt>' +
+        '</body></html>'
+    );
+    w.document.close();
 };
 
-// PDF İndir — İZOLE IFRAME motoru (kurşun geçirmez cross-browser).
-// KÖK NEDENLER: (1) ekran dışı (left:-9999px) öğe PC html2canvas'ta BOŞ çıkar;
-// (2) sabit 1123px yükseklik A4'ü (842pt) aşıp boş 2. sayfa üretir; (3) mobil
-// Safari'de sayfa/ekran CSS'i PDF motoruna sızıp satırları böler, imza kaybolur.
-// ÇÖZÜM: İçeriği, sayfanın CSS'inden TAMAMEN İZOLE bir iframe içinde (sabit 794px
-// body) render edip PDF'i oradan üretiyoruz. Telefon/PC birebir aynı çıktı.
+// PDF İNDİR — doğrudan görünür A4 tablosundan (iframe/negatif koordinat YOK).
+// Tablo yapısı html2canvas'ta sarsılmaz; ekrandaki #dlk-preview doğrudan A4'e
+// dökülür. Mobilde en temiz sonuç için "Yazdır" butonu tavsiye edilir.
 window.dilekcelerPdfIndir = function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     if(typeof html2pdf === 'undefined'){ alert('PDF kütüphanesi yüklenemedi.'); return; }
+    const element = document.getElementById('dlk-preview');
+    if(!element || !element.innerText.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
     const s = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
-    const html = window.dilekceHtmlUret(window._dlkAktifSablon);
-    if(!html || !html.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
-    const dosyaAdi = (s.baslik || 'DILEKCE').replace(/[^0-9A-Za-zĞÜŞİÖÇğüşıöç ]/g,'').replace(/\s+/g,'_');
-
-    // 1. Ekran/mobil CSS'ten TAMAMEN bağımsız izole iframe (neredeyse görünmez)
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = "position:fixed; top:0; left:0; width:794px; height:1100px; opacity:0.01; pointer-events:none; z-index:99999; border:none;";
-    document.body.appendChild(iframe);
-
-    // 2. İzole belgeyi yaz: sabit 794px body + sadece kerning koruması.
-    //    Üst boşluk dilekceHtmlUret içindeki padding-top wrapper'dan gelir (body top:0).
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(
-        '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
-        '*{margin:0;padding:0;box-sizing:border-box;}' +
-        "body{width:794px;background:#ffffff;color:#000000;font-family:'Times New Roman',Times,serif;padding:0 70px 40px 70px;font-size:15px;line-height:1.65;font-weight:400;}" +
-        'p,div,span{letter-spacing:normal !important;word-spacing:normal !important;text-rendering:geometricPrecision;}' +
-        '</style></head><body>' + html + '</body></html>'
-    );
-    doc.close();
-
+    const dosyaAdi = (s && s.baslik ? s.baslik : 'Dilekce').replace(/\s+/g,'_');
+    const opt = {
+        margin: 10, // mm kenar payı
+        filename: dosyaAdi + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all'] }
+    };
     if(typeof showSyncToast === 'function') showSyncToast('📄 PDF hazırlanıyor...');
-
-    const temizle = function(){ if(iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe); };
-    const guvenlikT = setTimeout(temizle, 15000); // ne olursa olsun iframe'i kaldır
-
-    // 3. İframe içeriği yerleşince PDF üret (avoid-all → asla boş 2. sayfa yok)
-    setTimeout(function(){
-        const opt = {
-            margin: 0,
-            filename: dosyaAdi + '.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', logging: false, width: 794, windowWidth: 794, scrollX: 0, scrollY: 0 },
-            jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait', compress: true },
-            pagebreak: { mode: ['avoid-all'] }
-        };
-        html2pdf().set(opt).from(doc.body).save().then(function(){
-            clearTimeout(guvenlikT); temizle();
-            if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
-        }).catch(function(err){
-            clearTimeout(guvenlikT); temizle();
-            console.error('Dilekçe PDF hatası:', err);
-            alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
-        });
-    }, 300);
+    html2pdf().set(opt).from(element).save().then(function(){
+        if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
+    }).catch(function(err){
+        console.error('Dilekçe PDF hatası:', err);
+        alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
+    });
 };
 
 // ============ EKSİK KLASÖR OLUŞTURUCU ============
