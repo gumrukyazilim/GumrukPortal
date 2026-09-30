@@ -19080,8 +19080,8 @@ window.dilekceBelgesiYazdir = function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     const html = window.dilekceHtmlUret(window._dlkAktifSablon);
     if(!html || !html.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
-    // Mobil Safari/Chrome aynı sekmedeki window.print çağrısını sessizce yok sayabiliyor.
-    // Mobilde kontrollü bir çıktı sekmesi aç; PDF/Yazdır ve Portala Dön düğmeleri sun.
+    // Mobil tarayıcılar bu sekmedeki window.print çağrısını yok sayabiliyor.
+    // Mobil çıktı sayfası PDF'yi doğrudan üretir; yazdırma ayrı bir eylem olarak kalır.
     const mobilYazdir = (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) ||
         /Android|iPhone|iPad|iPod|Mobile/i.test((navigator && navigator.userAgent) || '');
     if(mobilYazdir){
@@ -19096,7 +19096,7 @@ window.dilekceBelgesiYazdir = function(){
             '@page { size:A4 portrait; margin:18mm 15mm; } * { box-sizing:border-box; } html,body { margin:0; padding:0; min-width:0; background:#eef2f7; color:#000; font-family:Arial,sans-serif; }' +
             '.mobile-actions { position:sticky; top:0; z-index:10; display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; padding:12px; background:#101827; box-shadow:0 2px 12px #0003; }' +
             '.mobile-actions button,.mobile-actions a { min-height:44px; display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:8px; padding:0 16px; background:#2563eb; color:#fff; font:600 14px Arial,sans-serif; text-decoration:none; cursor:pointer; }' +
-            '.mobile-actions a { background:#374151; }' +
+            '.mobile-actions button:disabled { opacity:.65; } .mobile-actions .print-action { background:#0f766e; } .mobile-actions a { background:#374151; } .mobile-status { flex-basis:100%; min-height:18px; text-align:center; color:#fff; font:12px Arial,sans-serif; }' +
             '.dlk-print-page { display:flex; flex-direction:column; justify-content:center; width:calc(100% - 24px); max-width:180mm; min-height:70vh; margin:12px auto; padding:28px 22px; background:#fff; box-shadow:0 2px 14px #0002; font:10.5pt/1.45 "Times New Roman",Times,serif; overflow-wrap:anywhere; }' +
             '.dlk-document, .dlk-document * { min-width:0; max-width:100%; overflow-wrap:anywhere; } .dlk-document { display:block; flex:0 0 auto; width:100%; min-width:0; margin:0; padding:0; color:#000; }' +
             '.dlk-date-row { text-align:right; font-weight:bold; margin:0 0 25px; } .dlk-addressee { text-align:center; font-weight:bold; font-size:12pt; text-transform:uppercase; margin:0 0 24px; }' +
@@ -19104,7 +19104,10 @@ window.dilekceBelgesiYazdir = function(){
             '.dlk-attachments { margin:12px 0 0; line-height:1.45; } .dlk-signature { display:block; width:100%; margin:28px 0 0; text-align:right; break-inside:avoid; }' +
             '.dlk-signature-box { display:inline-block; width:68mm; max-width:100%; text-align:center; line-height:1.45; overflow-wrap:anywhere; } .dlk-signoff { margin-bottom:14px; } .dlk-signature-company { margin-bottom:4px; }' +
             '@media print { html,body { width:100%; min-width:0; background:#fff; } .mobile-actions { display:none !important; } .dlk-print-page { display:flex !important; flex-direction:column !important; justify-content:center !important; width:180mm !important; min-height:260mm !important; margin:0 auto !important; padding:0 !important; box-shadow:none !important; } }' +
-            '</style></head><body><nav class="mobile-actions"><button type="button" onclick="window.print();">PDF Kaydet / Yazdır</button><a href="' + portalaDon + '">Portala Dön</a></nav><main class="dlk-print-page">' + html + '</main></body></html>'
+            '</style></head><body><nav class="mobile-actions"><button id="mobile-pdf-button" type="button" onclick="window.dilekceMobilPdfIndir(this);">PDF İndir</button><button class="print-action" type="button" onclick="window.print();">Yazdır</button><a href="' + portalaDon + '">Portala Dön</a><div id="mobile-pdf-status" class="mobile-status" role="status" aria-live="polite"></div></nav><main id="mobile-pdf-sheet" class="dlk-print-page">' + html + '</main>' +
+            '<scr' + 'ipt src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></scr' + 'ipt>' +
+            '<scr' + 'ipt>window.dilekceMobilPdfIndir=function(btn){var sheet=document.getElementById("mobile-pdf-sheet"),status=document.getElementById("mobile-pdf-status");if(!sheet||typeof html2pdf!=="function"){if(status)status.textContent="PDF motoru yüklenemedi; sayfayı yenileyip tekrar deneyin.";return;}var oldStyle=sheet.style.cssText;var filename=(document.title||"Dilekce").replace(/[^\\w\\-ğüşöçıİĞÜŞÖÇ]+/g,"_")+".pdf";if(btn)btn.disabled=true;if(status)status.textContent="PDF hazırlanıyor…";sheet.style.width="180mm";sheet.style.maxWidth="180mm";sheet.style.height="260mm";sheet.style.minHeight="260mm";sheet.style.margin="0";sheet.style.padding="0";sheet.style.boxSizing="border-box";sheet.style.overflow="visible";var opt={margin:[18,15,18,15],filename:filename,image:{type:"jpeg",quality:0.98},html2canvas:{scale:1.5,useCORS:true,letterRendering:true,windowWidth:794,windowHeight:1123,scrollX:0,scrollY:0,backgroundColor:"#ffffff"},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"]}};html2pdf().set(opt).from(sheet).save().then(function(){sheet.style.cssText=oldStyle;if(btn)btn.disabled=false;if(status)status.textContent="PDF indirildi. İndirilenler bölümünü kontrol edin.";}).catch(function(err){sheet.style.cssText=oldStyle;if(btn)btn.disabled=false;if(status)status.textContent="PDF oluşturulamadı: "+(err&&err.message?err.message:"Tekrar deneyin.");console.error("Mobil dilekçe PDF hatası:",err);});};</scr' + 'ipt>' +
+            '</body></html>'
         );
         mobilPencere.document.close();
         return;
