@@ -19049,10 +19049,11 @@ window.dilekceYazdir = function(){
     setTimeout(function(){ window.print(); }, 60);
 };
 
-// PDF İndir — sabit A4 (794px) + html2pdf.
-// KRİTİK (iOS/Safari): html2canvas ekran DIŞINDAKİ / position:fixed kaynağı
-// bazen BOŞ render eder. Bu yüzden node'u viewport İÇİNDE (0,0) render edip
-// üstüne opak bir "hazırlanıyor" katmanı koyuyoruz — mobil/PC'de dolu çıkar.
+// PDF İndir — CİHAZ EKRANINDAN TAMAMEN İZOLE sabit A4 (794×1123) konteyner.
+// KRİTİK (iOS/Safari): position:fixed + viewport'tan geniş öğe Safari'de
+// kırpılıp satırları böler, imza kutusu daralıp firma adı kaybolur. Bu yüzden
+// ekran DIŞINDA (position:absolute; left:-9999px) SABİT 794px'lik bir A4
+// konteyner kurup PDF'i ORADAN üretiyoruz — telefon/PC aynı çıktı.
 window.dilekcelerPdfIndir = async function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     if(typeof html2pdf === 'undefined'){ alert('PDF kütüphanesi yüklenemedi.'); return; }
@@ -19060,42 +19061,52 @@ window.dilekcelerPdfIndir = async function(){
     const html = window.dilekceHtmlUret(window._dlkAktifSablon);
     if(!html){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
 
-    // Export edilecek A4 node (viewport içinde, sol üstte). dlk-a4-sheet sınıfı
-    // harf/kelime sıkışması (kerning) düzeltme CSS'ini uygular.
-    const node = document.createElement('div');
-    node.className = 'dlk-a4-sheet';
-    node.style.cssText = "position:fixed; top:0; left:0; width:794px; box-sizing:border-box; margin:0; padding:0; background:#ffffff; color:#000000; font-family:'Times New Roman', Times, serif; font-size:15px; line-height:1.65; font-weight:400; text-align:left; overflow:visible; z-index:2147483646;";
-    node.innerHTML = html;
-    document.body.appendChild(node);
+    // Ekran boyutundan ETKİLENMEYEN sabit 794px A4 ihracat konteyneri.
+    // KRİTİK: html2canvas ekran DIŞINDAKİ (left:-9999px) öğeyi BOŞ render eder;
+    // bu yüzden konteyneri viewport'un SOL ÜST köşesine (left:0) koyup üstüne
+    // opak "perde" seriyoruz. position:ABSOLUTE (fixed DEĞİL) → Safari'de öğe
+    // viewport'a sıkıştırılmaz, tam 794px kalır; satırlar bölünmez, imza kaybolmaz.
+    // Üst boşluk dilekceHtmlUret içindeki padding-top wrapper'dan gelir.
+    const exportDiv = document.createElement('div');
+    exportDiv.id = 'dlk-pdf-export';
+    exportDiv.className = 'dlk-a4-sheet';
+    exportDiv.style.cssText = "position:absolute !important; left:0 !important; top:0 !important; width:794px !important; box-sizing:border-box !important; margin:0 !important; padding:0 65px 60px 65px !important; background:#ffffff !important; color:#000000 !important; font-family:'Times New Roman', Times, serif !important; font-size:15px !important; line-height:1.65 !important; font-weight:400 !important; text-align:left !important; overflow:visible !important; z-index:2147483646 !important;";
+    exportDiv.innerHTML = html;
+    // Mobil CSS ezmelerini engelle: tüm metin öğelerine normal harf/kelime aralığı
+    exportDiv.querySelectorAll('p, div, span').forEach(function(el){
+        el.style.letterSpacing = 'normal';
+        el.style.wordSpacing = 'normal';
+    });
+    document.body.appendChild(exportDiv);
 
-    // Kullanıcı ham node'u görmesin diye opak katman
+    // Ham konteyneri kullanıcı görmesin diye opak perde
     const perde = document.createElement('div');
     perde.style.cssText = "position:fixed; inset:0; background:var(--bg-main,#0b0e14); z-index:2147483647; display:flex; align-items:center; justify-content:center; color:var(--text-primary,#fff); font-size:15px; font-weight:600;";
     perde.textContent = '📄 PDF hazırlanıyor...';
     document.body.appendChild(perde);
 
-    // Layout otursun (kısa bekleme — özellikle iOS; rAF yerine setTimeout ki
-    // sekme arka planda olsa bile askıda kalmasın)
+    try { window.scrollTo(0, 0); } catch(e){}
+    // Layout otursun (setTimeout — arka planda askıda kalmasın)
     await new Promise(function(r){ setTimeout(r, 120); });
 
-    const yuk = Math.ceil(node.scrollHeight);
+    // html2canvas'a AÇIK yükseklik (doğal içerik yüksekliği) ver; verilmezse bazı
+    // tarayıcılarda 0-yükseklik canvas çıkar. min-height KULLANMA: tam A4 (1123px)
+    // jsPDF yuvarlamasında 0.1pt taşıp 2. sayfaya sarkıyordu.
+    const yuk = Math.max(exportDiv.scrollHeight, exportDiv.offsetHeight, 300);
     let dosyaAdi = (s.baslik || 'DILEKCE').replace(/[^0-9A-Za-zĞÜŞİÖÇğüşıöç ]/g,'').replace(/\s+/g,'_');
     const opt = {
-        margin: [15, 15, 15, 15], // mm — resmî kenar boşluğu (üst, sol, alt, sağ)
+        margin: [0, 0, 0, 0],
         filename: dosyaAdi + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', logging: false, width: 794, height: yuk, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', logging: false, scrollX: 0, scrollY: 0, width: 794, height: yuk, windowWidth: 794, windowHeight: yuk },
+        jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait', compress: true },
         pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    const temizle = function(){ if(node && node.parentNode) node.parentNode.removeChild(node); if(perde && perde.parentNode) perde.parentNode.removeChild(perde); };
-    // GÜVENLİK: save() bazı tarayıcılarda indirme bittiğinde geç çözülebilir;
-    // perde asla kalıcı kilitlenmesin diye en geç 12 sn sonra kaldır.
-    const guvenlikT = setTimeout(temizle, 12000);
-
+    const temizle = function(){ if(exportDiv && exportDiv.parentNode) exportDiv.parentNode.removeChild(exportDiv); if(perde && perde.parentNode) perde.parentNode.removeChild(perde); };
+    const guvenlikT = setTimeout(temizle, 15000); // ne olursa olsun temizle
     try{
-        await html2pdf().set(opt).from(node).save();
+        await html2pdf().set(opt).from(exportDiv).save();
         clearTimeout(guvenlikT);
         temizle();
         if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
