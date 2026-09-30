@@ -2209,7 +2209,7 @@ div[style*="position: relative"] > input {
 @media (max-width: 900px) {
   .dlk-wrap { grid-template-columns:minmax(0,1fr) !important; }
   .dlk-wrap > *, .dlk-preview-wrap { min-width:0 !important; max-width:100% !important; }
-  #dlk-preview { min-height:max(400px, calc(100vw * 1.414)) !important; padding:clamp(24px, 8vw, 45px) clamp(16px, 7vw, 30px) !important; }
+  #dlk-preview { min-height:max(400px, calc(100vw * 1.414)) !important; padding:50px 50px 30px 50px !important; }
 }
 /* Dilekçeler YAZDIRMA: sadece A4 kağıdı bassın (yalnızca dilekçe görünümünde;
    diğer sayfaların yazdırma akışını bozmamak için body.dilekceler-goruntu ile izole) */
@@ -3519,8 +3519,17 @@ div[style*="position: relative"] > input {
         </div>
     </div>
 
-    <!-- Şablon sekmeleri -->
-    <div id="dlk-tabs" class="dlk-tabs fade-in"></div>
+    <div class="field-group fade-in" style="margin-bottom:18px;">
+        <label class="field-label" for="dilekce-sablon-secici" style="font-weight:700; font-size:13px; color:var(--accent);">DİLEKÇE ŞABLONU SEÇİN:</label>
+        <select id="dilekce-sablon-secici" class="field-select" style="width:100%; font-size:14px; font-weight:600; padding:10px 14px;" onchange="window.dilekceSablonDegistir(this.value)">
+            <option value="kiymet_farki">1. Kıymet Farkı Kabul (GK 234)</option>
+            <option value="cevapsiz_kiymet">2. Cevapsız Kıymet (İthalat Devam)</option>
+            <option value="tse_kontrol">3. TSE Saha Kontrol İzin Dilekçesi</option>
+            <option value="bursa_tse">4. Bursa TSE Dilekçesi (Merkeze Yönlendirme Talebi)</option>
+            <option value="tasfiye_cif">5. Tasfiye (CIF %1) Dilekçesi</option>
+            <option value="sure_uzatimi">6. Süre Uzatımı Dilekçesi</option>
+        </select>
+    </div>
 
     <div class="dlk-wrap fade-in" style="display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:18px; align-items:start; margin-top:14px;">
         <!-- SOL: Araç seç + dinamik form -->
@@ -3532,7 +3541,7 @@ div[style*="position: relative"] > input {
 
         <!-- SAĞ: Canlı A4 önizleme -->
         <div class="dlk-preview-wrap" style="overflow:auto;">
-            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#000; font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.6; font-weight:400; white-space:normal; text-align:left; padding:60px 55px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
+            <div id="dlk-preview" style="width:100%; max-width:794px; margin:0 auto; min-height:400px; background:#ffffff; color:#000; font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.6; font-weight:400; white-space:normal; text-align:left; padding:50px 50px 30px 50px; box-sizing:border-box; border-radius:6px; box-shadow:0 6px 26px rgba(0,0,0,.14); border:1px solid #e5e7eb;"></div>
         </div>
     </div>
 </template>
@@ -18821,6 +18830,62 @@ EKLER :
 Saygılarımızla,
 {{FIRMA}}
 {{IMZA}}`
+  },
+
+  tasfiye_cif: {
+    baslik: "Tasfiye (CIF %1) Dilekçesi",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE",
+    alanlar: [
+      { id: "firma", etiket: "İthalatçı Firma" },
+      { id: "mrn", etiket: "Özet Beyan No" },
+      { id: "gelis_tarihi", etiket: "Geliş Tarihi", tip: "date" },
+      { id: "sasi", etiket: "Şasi No" },
+      { id: "tarih", etiket: "Dilekçe Tarihi", tip: "date", varsayilanBugun: true },
+      { id: "imza", etiket: "İmza Yetkilisi" }
+    ],
+    metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE
+
+Tarih: {{TARIH}}
+
+Konu: CIF bedelinin %1'i tahsil edilerek serbest dolaşıma giriş işlemleri hk.
+
+İşlem Bilgileri:
+● Firma: {{FIRMA}}
+● Özet Beyan No: {{MRN}}
+● Geliş Tarihi: {{GELIS_TARIHI}}
+● Şasi No: {{SASI}}
+
+Gümrük Kanunu ve Tasfiye Tüzüğü'nün ilgili maddeleri gereğince, CIF bedelinin %1'inin tahsil edilerek serbest dolaşıma giriş işlemlerinin yapılması hususunda gereğini emir ve müsaadelerinize arz ederiz.
+
+Saygılarımızla,
+{{FIRMA}}
+{{IMZA}}`
+  },
+
+  sure_uzatimi: {
+    baslik: "Süre Uzatımı Dilekçesi",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE",
+    alanlar: [
+      { id: "firma", etiket: "İthalatçı Firma" },
+      { id: "mrn", etiket: "Özet Beyan No" },
+      { id: "sasi", etiket: "Şasi No" },
+      { id: "tarih", etiket: "Dilekçe Tarihi", tip: "date", varsayilanBugun: true },
+      { id: "imza", etiket: "İmza Yetkilisi" }
+    ],
+    metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE
+
+Tarih: {{TARIH}}
+
+Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
+
+Gereğini emir ve müsaadelerinize arz ederiz.
+
+Özet Beyan Numarası: {{MRN}}
+Şase No: {{SASI}}
+
+Saygılarımızla,
+{{FIRMA}}
+{{IMZA}}`
   }
 };
 
@@ -18841,15 +18906,25 @@ window._dlkDate = function(v){
     let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
     return m ? (m[3] + '.' + m[2] + '.' + m[1]) : v;
 };
+window._dlkBugunISO = function(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+};
 
 window.dilekcelerInit = function(){
-    const tabsEl = document.getElementById('dlk-tabs');
-    if(!tabsEl) return;
+    const secici = document.getElementById('dilekce-sablon-secici');
+    if(!secici) return;
     const keys = Object.keys(window.DILEKCE_SABLONLARI);
-
-    // Sekmeleri kur
-    tabsEl.innerHTML = keys.map(function(k){
-        return '<button type="button" class="dlk-tab" data-sablon="'+k+'" onclick="window.dilekceSablonSec(\''+k+'\')">'+window.DILEKCE_SABLONLARI[k].baslik+'</button>';
+    const etiketler = {
+        kiymet_farki: '1. Kıymet Farkı Kabul (GK 234)',
+        cevapsiz_kiymet: '2. Cevapsız Kıymet (İthalat Devam)',
+        tse_kontrol: '3. TSE Saha Kontrol İzin Dilekçesi',
+        bursa_tse: '4. Bursa TSE Dilekçesi (Merkeze Yönlendirme Talebi)',
+        tasfiye_cif: '5. Tasfiye (CIF %1) Dilekçesi',
+        sure_uzatimi: '6. Süre Uzatımı Dilekçesi'
+    };
+    secici.innerHTML = keys.map(function(k){
+        return '<option value="'+k+'">'+(etiketler[k] || window.DILEKCE_SABLONLARI[k].baslik)+'</option>';
     }).join('');
 
     // Portaldan araç seç listesini doldur
@@ -18895,12 +18970,13 @@ window.dilekceAracSecildi = function(idx){
     // Geçici Ambara Giriş Tarihi (Bursa TSE vb.): aracın antrepo/geliş tarihini
     // otomatik ata. Portal tarihleri TR (GG.AA.YYYY) → date input için ISO'ya çevir.
     const girisEl = document.getElementById('dlk-f-giris_tarihi');
-    if(girisEl){
-        const secilenTarih = d.antTarih || d.tarih || d.tahminiGelis || '';
-        if(secilenTarih){
-            girisEl.value = (typeof window.trToIso === 'function') ? (window.trToIso(secilenTarih) || secilenTarih) : secilenTarih;
+    const gelisEl = document.getElementById('dlk-f-gelis_tarihi');
+    const secilenTarih = d.antTarih || d.tarih || d.tahminiGelis || '';
+    [girisEl, gelisEl].forEach(function(dateEl){
+        if(dateEl && secilenTarih){
+            dateEl.value = (typeof window.trToIso === 'function') ? (window.trToIso(secilenTarih) || secilenTarih) : secilenTarih;
         }
-    }
+    });
     // imza otomatik (firma bilindiyse)
     const imzaEl = document.getElementById('dlk-f-imza');
     if(imzaEl && !imzaEl.value && d.firma){
@@ -18932,8 +19008,8 @@ window.dilekceSablonSec = function(key){
     const s = window.DILEKCE_SABLONLARI[key];
     if(!s){ formEl.innerHTML = '<div class="dlk-empty">Yukarıdan bir dilekçe şablonu seçin.</div>'; prevEl.innerText = ''; window._dlkAktifSablon = null; return; }
     window._dlkAktifSablon = key;
-    // Aktif sekmeyi işaretle
-    document.querySelectorAll('#dlk-tabs .dlk-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.sablon === key); });
+    const secici = document.getElementById('dilekce-sablon-secici');
+    if(secici) secici.value = key;
     const firmalar = Object.keys(window.firmData || {});
 
     formEl.innerHTML = s.alanlar.map(function(a){
@@ -18942,7 +19018,8 @@ window.dilekceSablonSec = function(key){
             return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'" class="dlk-hesap" readonly placeholder="otomatik hesaplanır"></div>';
         }
         if(a.tip === 'date'){
-            return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="date" id="'+idAttr+'"></div>';
+            const defaultDate = a.varsayilanBugun ? ' value="'+window._dlkBugunISO()+'"' : '';
+            return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="date" id="'+idAttr+'"'+defaultDate+'></div>';
         }
         if(a.id === 'firma'){
             return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'" list="dlk-firma-list" autocomplete="off" placeholder="Firma adı..."><datalist id="dlk-firma-list">'+firmalar.map(function(f){return '<option value="'+f.replace(/"/g,'&quot;')+'">';}).join('')+'</datalist></div>';
@@ -18972,6 +19049,7 @@ window.dilekceSablonSec = function(key){
 
     window.dilekceOnizleGuncelle();
 };
+window.dilekceSablonDegistir = function(key){ window.dilekceSablonSec(key); };
 
 // HTML kaçış
 window._dlkEsc = function(s){ return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
