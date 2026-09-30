@@ -2218,14 +2218,25 @@ div[style*="position: relative"] > input {
   body.dilekceler-goruntu #dlk-preview,
   body.dilekceler-goruntu #dlk-preview * { visibility: visible !important; }
   body.dilekceler-goruntu #dlk-preview {
-    position: absolute !important; left: 0 !important; top: 0 !important;
-    width: 100% !important; max-width: 100% !important; min-height: 0 !important;
-    margin: 0 !important; padding: 15mm 15mm !important; /* @page margin 0 zorlandığı için kenar boşluğu burada */
+    position: absolute !important; left: 15mm !important; top: 18mm !important;
+    width: 180mm !important; max-width: none !important; height: 261mm !important; min-height: 261mm !important;
+    margin: 0 !important; padding: 0 !important;
     box-shadow: none !important; border: none !important; border-radius: 0 !important;
     background: #ffffff !important; color: #000000 !important;
-    font-size: 12pt !important; line-height: 1.65 !important; overflow: visible !important;
+    display: flex !important; flex-direction: column !important; justify-content: center !important;
+    box-sizing: border-box !important; font-size: 10.5pt !important; line-height: 1.45 !important; overflow: visible !important;
   }
-  body.dilekceler-goruntu #dlk-preview p { margin: 0 0 20px !important; line-height: 1.65 !important; }
+  body.dilekceler-goruntu .dlk-wrap { display:block !important; position:static !important; margin:0 !important; }
+  body.dilekceler-goruntu .app-wrap,
+  body.dilekceler-goruntu .main-content { display:block !important; position:static !important; width:auto !important; height:auto !important; min-height:0 !important; overflow:visible !important; }
+  body.dilekceler-goruntu .view-area { position:static !important; overflow:visible !important; padding:0 !important; }
+  body.dilekceler-goruntu .dlk-preview-wrap { display:block !important; position:static !important; width:auto !important; max-width:none !important; max-height:none !important; overflow:visible !important; }
+  body.dilekceler-goruntu #dlk-preview .dlk-document { flex:0 0 auto !important; width:100% !important; max-width:100% !important; min-width:0 !important; }
+  body.dilekceler-goruntu #dlk-preview .dlk-addressee { font-size:12pt !important; margin:0 0 24px !important; }
+  body.dilekceler-goruntu #dlk-preview .dlk-body p { margin:0 0 12px !important; font-size:10.5pt !important; line-height:1.45 !important; text-indent:10mm !important; }
+  body.dilekceler-goruntu #dlk-preview .dlk-body div { margin:0 0 12px !important; font-size:10.5pt !important; line-height:1.45 !important; }
+  body.dilekceler-goruntu #dlk-preview .dlk-signature { margin-top:24px !important; break-inside:avoid !important; }
+  body.dilekceler-goruntu #dlk-preview .dlk-signature-box { width:68mm !important; max-width:100% !important; font-size:10.5pt !important; line-height:1.45 !important; }
 }
 
 /* ── 12. RESULT TOTAL PANELİ ────────────────────────────────────────── */
@@ -19069,6 +19080,16 @@ window.dilekceBelgesiYazdir = function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     const html = window.dilekceHtmlUret(window._dlkAktifSablon);
     if(!html || !html.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
+    // iOS Safari/Android Chrome, etkileşim dışında açılan yazdırma penceresini
+    // otomatik yazdıramıyor ve belge sekmesini tam ekranda bırakabiliyor.
+    // Mobilde aynı sekmede, kullanıcı tıklamasının içinde yerel baskıyı başlat.
+    const mobilYazdir = (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test((navigator && navigator.userAgent) || '');
+    if(mobilYazdir){
+        if(document.body && !document.body.classList.contains('dilekceler-goruntu')) document.body.classList.add('dilekceler-goruntu');
+        try { window.print(); } catch(e) { console.error('Mobil yazdırma başlatılamadı:', e); }
+        return;
+    }
     const sablon = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
     const belgeBasligi = sablon && sablon.baslik ? sablon.baslik : 'Resmi Dilekçe';
     const w = window.open('', '_blank');
