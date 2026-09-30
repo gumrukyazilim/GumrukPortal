@@ -18762,34 +18762,37 @@ Saygılarımızla,
   },
 
   bursa_tse: {
-    baslik: "Bursa TSE Merkezine Yönlendirme",
+    baslik: "Bursa TSE Dilekçesi (Bursa TSE Merkezine Yönlendirme Talebi)",
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE",
     alanlar: [
       { id: "giris_tarihi", etiket: "Geçici Ambara Giriş Tarihi", tip: "date" },
-      { id: "mrn", etiket: "Özet Beyan No" },
+      { id: "mrn", etiket: "Özet Beyan (MRN) No" },
       { id: "yil", etiket: "Model Yılı" },
       { id: "marka", etiket: "Marka" },
-      { id: "sasi", etiket: "Şasi Numarası" },
-      { id: "tse_yazi_tarih", etiket: "TSE Yazı Tarihi" },
+      { id: "model", etiket: "Model" },
+      { id: "sasi", etiket: "Şasi No" },
+      { id: "tse_yazi_tarih", etiket: "TSE Yazı Tarihi", tip: "date" },
       { id: "tse_yazi_sayi", etiket: "TSE Yazı Sayısı" },
+      { id: "firma", etiket: "İthalatçı Firma" },
       { id: "imza", etiket: "İmza Yetkilisi" }
     ],
     metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE
 
-Konu: Bursa TSE Merkezine Yönlendirilmesi Talebi.
+KONU : Bursa TSE Merkezine Yönlendirilmesi Talebi.
 
-{{GIRIS_TARIHI}} tarihinde {{MRN}} Özet beyan ile geçici ambara giriş yapan {{YIL}} model {{MARKA}} marka, {{SASI}} şase numaralı aracımıza ilişkin Türkiye Standartları Enstitüsü Ulaşım Sistemleri Merkez Başkanlığı'nın {{TSE_YAZI_TARIH}} tarihli ve {{TSE_YAZI_SAYI}} sayılı yazıları doğrultusunda gerekli işlemlerin başlatılması talep edilmektedir.
+{{GIRIS_TARIHI}} tarihinde {{MRN}} Özet beyan ile geçici ambara giriş yapan {{YIL}} model {{MARKA}} {{MODEL}} marka, {{SASI}} şase numaralı aracımıza ilişkin Türkiye Standartları Enstitüsü Ulaşım Sistemleri Merkez Başkanlığı'nın {{TSE_YAZI_TARIH}} tarihli ve {{TSE_YAZI_SAYI}} sayılı yazıları doğrultusunda gerekli işlemlerin başlatılması talep edilmektedir.
 
 TSE'nin ilgili muayene cihazlarının taşınabilir olmaması ve gümrük sahasında bu testlerin gerçekleştirilememesi nedeniyle, aracımızın Bursa TSE merkezine yönlendirilmesi gerektiği tarafımıza bildirilmiştir. Bu doğrultuda, ilgili aracımızın Bursa TSE merkezinde gerekli test ve muayene işlemlerinin yapılabilmesi için tarafınıza başvurumuzu sunar, gereğini bilgilerinize arz ederiz.
 
-Ekte, Türkiye Standartları Enstitüsü'ün {{TSE_YAZI_TARIH}} tarihli yazısı sunulmaktadır.
+Ekte, Türkiye Standartları Enstitüsü'nün {{TSE_YAZI_TARIH}} tarihli yazısı sunulmaktadır.
 
-Ekler:
-Ordino
-Fatura
-TSE yazısı
+EKLER :
+1. Ordino
+2. Fatura
+3. TSE Yazısı
 
 Saygılarımızla,
+{{FIRMA}}
 {{IMZA}}`
   }
 };
