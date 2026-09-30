@@ -19020,13 +19020,13 @@ window.dilekceHtmlUret = function(key){
     const imzaVal  = (disp.imza  && disp.imza  !== '..........') ? window._dlkEsc(disp.imza)  : '..........';
 
     // RESMİ HTML TABLO YAPISI (flexbox/negatif koordinat YOK → html2canvas + yazdırma sağlam)
-    var h = '<table style="width:100%; border-collapse:collapse; border:none;">';
-    h += '<tr><td style="text-align:right; font-weight:bold; font-size:14px; padding-bottom:30px;">Tarih: ' + window._dlkBugun() + '</td></tr>';
-    h += '<tr><td style="text-align:center; font-weight:bold; font-size:16px; padding-bottom:35px; text-transform:uppercase; word-wrap:break-word;">' + window._dlkEsc(s.makam) + '</td></tr>';
-    if(konuHtml) h += '<tr><td style="font-weight:bold; font-size:14px; padding-bottom:25px; word-wrap:break-word;">KONU: ' + konuHtml + '</td></tr>';
-    h += '<tr><td style="text-align:justify; font-size:14px; line-height:1.65; padding-bottom:10px; word-wrap:break-word;">' + govdeHtml + '</td></tr>';
-    if(eklerHtml) h += '<tr><td style="padding-bottom:30px; font-size:13.5px; line-height:1.5;"><strong>EKLER:</strong><br>' + eklerHtml + '</td></tr>';
-    h += '<tr><td style="padding-top:40px;"><table align="right" style="width:260px; text-align:center; border-collapse:collapse; border:none;">';
+    var h = '<table class="dlk-document-table" style="width:100%; table-layout:fixed; border-collapse:collapse; border:none;">';
+    h += '<tr><td style="text-align:right; font-weight:bold; font-size:14px; padding-bottom:30px; overflow-wrap:anywhere;">Tarih: ' + window._dlkBugun() + '</td></tr>';
+    h += '<tr><td style="text-align:center; font-weight:bold; font-size:16px; padding-bottom:35px; text-transform:uppercase; overflow-wrap:anywhere;">' + window._dlkEsc(s.makam) + '</td></tr>';
+    if(konuHtml) h += '<tr><td style="font-weight:bold; font-size:14px; padding-bottom:25px; overflow-wrap:anywhere;">KONU: ' + konuHtml + '</td></tr>';
+    h += '<tr><td style="text-align:justify; font-size:14px; line-height:1.65; padding-bottom:10px; overflow-wrap:anywhere;">' + govdeHtml + '</td></tr>';
+    if(eklerHtml) h += '<tr><td style="padding-bottom:30px; font-size:13.5px; line-height:1.5; overflow-wrap:anywhere;"><strong>EKLER:</strong><br>' + eklerHtml + '</td></tr>';
+    h += '<tr><td style="padding-top:40px;"><table class="dlk-signature-table" align="right" style="width:260px; table-layout:fixed; text-align:center; border-collapse:collapse; border:none;">';
     h += '<tr><td style="font-size:14px; padding-bottom:15px;">Saygılarımızla,</td></tr>';
     if(firmaVar && firmaVal) h += '<tr><td style="font-weight:bold; font-size:14px; padding-bottom:5px;">' + firmaVal + '</td></tr>';
     h += '<tr><td style="font-size:14px;">' + imzaVal + '</td></tr>';
@@ -19061,9 +19061,15 @@ window.dilekceYazdir = function(){
     w.document.write(
         '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Resmi Dilekçe</title><style>' +
         '@page { size: A4 portrait; margin: 20mm 15mm; }' +
-        "body { margin:0; padding:0; background:#fff; color:#000; font-family:'Times New Roman',Times,serif; font-size:14px; line-height:1.6; }" +
-        'table { border-collapse:collapse; width:100%; } td{ vertical-align:top; } p,div,span,td{ letter-spacing:normal; word-spacing:normal; }' +
-        '</style></head><body>' + html +
+        "html,body { margin:0; padding:0; background:#fff; color:#000; }" +
+        "body { font-family:'Times New Roman',Times,serif; font-size:10pt; line-height:1.45; }" +
+        '.dlk-print-page { width:180mm; max-width:180mm; margin:0 auto; box-sizing:border-box; font-size:10pt; line-height:1.45; overflow-wrap:anywhere; }' +
+        '.dlk-document-table { width:100% !important; table-layout:fixed !important; border-collapse:collapse; border:0; }' +
+        '.dlk-print-page td { vertical-align:top; overflow-wrap:anywhere; word-break:normal; }' +
+        '.dlk-signature-table { width:68mm !important; table-layout:fixed !important; break-inside:avoid; page-break-inside:avoid; }' +
+        '.dlk-print-page, .dlk-print-page * { letter-spacing:normal !important; word-spacing:normal !important; }' +
+        '@media print { .dlk-print-page { width:180mm; max-width:180mm; margin:0 auto; } }' +
+        '</style></head><body><main class="dlk-print-page">' + html + '</main>' +
         '<scr' + 'ipt>window.onload=function(){setTimeout(function(){try{window.print();}catch(e){}},250);window.onafterprint=function(){window.close();};};</scr' + 'ipt>' +
         '</body></html>'
     );
@@ -19081,7 +19087,7 @@ window.dilekcelerPdfIndir = function(){
     const dosyaAdi = (s && s.baslik ? s.baslik : 'Dilekce').replace(/\s+/g,'_');
 
     // Eleman ve içeriğinin mevcut inline stillerini sakla; indirme bitince geri koy.
-    const stilYedegi = [element].concat(Array.from(element.querySelectorAll('p, div, span, td')))
+    const stilYedegi = [element].concat(Array.from(element.querySelectorAll('p, div, span, td, table')))
         .map(function(el){ return { el: el, cssText: el.style.cssText }; });
     let geriAlindi = false;
     const geriAl = function(){
@@ -19092,13 +19098,26 @@ window.dilekcelerPdfIndir = function(){
     element.style.border = 'none';
     element.style.outline = 'none';
     element.style.borderRadius = '0';
+    element.style.width = '180mm';
+    element.style.maxWidth = '180mm';
+    element.style.minHeight = '0';
+    element.style.boxSizing = 'border-box';
+    element.style.margin = '0 auto';
+    element.style.padding = '0';
+    element.style.background = '#ffffff';
+    element.style.color = '#000000';
+    element.style.fontFamily = "'Times New Roman', Times, serif";
+    element.style.lineHeight = '1.45';
     element.style.fontSize = '10pt';
+    const mainTable = element.querySelector('.dlk-document-table') || element.querySelector('table');
+    if(mainTable){ mainTable.style.width = '100%'; mainTable.style.tableLayout = 'fixed'; }
     element.querySelectorAll('p, div, span, td').forEach(function(el){
         el.style.boxShadow = 'none';
         el.style.border = 'none';
         el.style.outline = 'none';
         el.style.fontSize = '10pt';
         el.style.lineHeight = '1.45';
+        el.style.overflowWrap = 'anywhere';
     });
 
     const opt = {
@@ -19107,7 +19126,9 @@ window.dilekcelerPdfIndir = function(){
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 1.5, useCORS: true, letterRendering: true, windowWidth: 1024, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all'] }
+        // avoid-all blankeyebiliyor: Bursa metninin gövde hücresi tek büyük satır.
+        // Metin gerektiğinde bölünebilir; imza tablosu birlikte tutulur.
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.dlk-signature-table'] }
     };
     const guvenlikT = setTimeout(geriAl, 20000); // takılırsa ekranı yine de düzelt
     if(typeof showSyncToast === 'function') showSyncToast('📄 PDF hazırlanıyor...');
