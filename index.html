@@ -19070,67 +19070,57 @@ window.dilekceYazdir = function(){
     w.document.close();
 };
 
-// PDF İNDİR — temiz, ÇERÇEVESİZ, SABİT 794px KLON'dan.
-// MOBİL FIX: ekrandaki #dlk-preview mobilde responsive (~375px) olduğu için
-// doğrudan yakalayınca A4'e YUKARI ölçekleniyordu → yazı devleşiyor + içerik
-// uzayıp 3 sayfaya taşıyordu. Çözüm: sabit 794px genişlikli, box-shadow/border/
-// outline'ı sıfırlanmış klon yakala → mobil/PC aynı, tek sayfa, normal punto.
+// PDF İNDİR — doğrudan ekranda görünen #dlk-preview; klon/appendChild yok.
+// PDF sırasında görünümü 10pt ve çerçevesiz yap, sonra bütün stilleri aynen geri yükle.
 window.dilekcelerPdfIndir = function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     if(typeof html2pdf === 'undefined'){ alert('PDF kütüphanesi yüklenemedi.'); return; }
-    const livePreview = document.getElementById('dlk-preview');
-    if(!livePreview || !livePreview.innerText.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
+    const element = document.getElementById('dlk-preview');
+    if(!element || !element.innerText.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
     const s = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
     const dosyaAdi = (s && s.baslik ? s.baslik : 'Dilekce').replace(/\s+/g,'_');
 
-    // 1. Temiz, çerçevesiz, SABİT genişlikli klon (viewport'a sol üstte, perde altında)
-    const clone = livePreview.cloneNode(true);
-    clone.id = 'dlk-pdf-clone';
-    clone.style.cssText = "position:fixed; left:0; top:0; z-index:2147483646; width:794px; max-width:794px; min-height:0; margin:0; padding:40px 55px; background:#ffffff; color:#000000; box-shadow:none !important; border:none !important; outline:none !important; border-radius:0 !important; font-family:'Times New Roman',Times,serif; font-size:14px; line-height:1.5;";
-    // İç öğelerin çerçeve/gölge/kerning fazlalıklarını da yok et
-    clone.querySelectorAll('*').forEach(function(el){
+    // Eleman ve içeriğinin mevcut inline stillerini sakla; indirme bitince geri koy.
+    const stilYedegi = [element].concat(Array.from(element.querySelectorAll('p, div, span, td')))
+        .map(function(el){ return { el: el, cssText: el.style.cssText }; });
+    let geriAlindi = false;
+    const geriAl = function(){
+        if(geriAlindi) return; geriAlindi = true;
+        stilYedegi.forEach(function(x){ x.el.style.cssText = x.cssText; });
+    };
+    element.style.boxShadow = 'none';
+    element.style.border = 'none';
+    element.style.outline = 'none';
+    element.style.borderRadius = '0';
+    element.style.fontSize = '10pt';
+    element.querySelectorAll('p, div, span, td').forEach(function(el){
         el.style.boxShadow = 'none';
         el.style.border = 'none';
         el.style.outline = 'none';
-        el.style.letterSpacing = 'normal';
-        el.style.wordSpacing = 'normal';
+        el.style.fontSize = '10pt';
+        el.style.lineHeight = '1.45';
     });
-    document.body.appendChild(clone);
 
-    // Kullanıcı ham klonu görmesin diye opak perde
-    const perde = document.createElement('div');
-    perde.style.cssText = "position:fixed; inset:0; background:var(--bg-main,#0b0e14); z-index:2147483647; display:flex; align-items:center; justify-content:center; color:var(--text-primary,#fff); font-size:15px; font-weight:600;";
-    perde.textContent = '📄 PDF hazırlanıyor...';
-    document.body.appendChild(perde);
-
-    const temizle = function(){ if(clone.parentNode) clone.parentNode.removeChild(clone); if(perde.parentNode) perde.parentNode.removeChild(perde); };
-    const guvenlikT = setTimeout(temizle, 15000);
-    try { window.scrollTo(0, 0); } catch(e){}
-
-    // 2. scale:1 → mobil Retina'da font patlamasını önler; avoid-all → tek sayfa.
-    //    KRİTİK: mobil dar viewport'ta geniş öğeyi yakalayabilmek için html2canvas'a
-    //    794-genişlikli pencere emüle ettiriyoruz (width+height+windowWidth+windowHeight);
-    //    yoksa 0-yükseklik/boş canvas çıkar.
-    setTimeout(function(){
-        const H = Math.max(clone.scrollHeight, clone.offsetHeight, 300);
-        const opt = {
-            margin: [20, 15, 20, 15], // üst, sağ, alt, sol (mm) resmî marjin
-            filename: dosyaAdi + '.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 1, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff', width: 794, height: H, windowWidth: 794, windowHeight: H },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all'] }
-        };
-        html2pdf().set(opt).from(clone).save().then(function(){
-            clearTimeout(guvenlikT); temizle();
-            if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
-        }).catch(function(err){
-            clearTimeout(guvenlikT); temizle();
-            console.error('Dilekçe PDF hatası:', err);
-            alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
-        });
-    }, 150);
+    const opt = {
+        margin: [15, 15, 15, 15], // mm — temiz A4 marjini
+        filename: dosyaAdi + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 1.5, useCORS: true, letterRendering: true, windowWidth: 1024, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all'] }
+    };
+    const guvenlikT = setTimeout(geriAl, 20000); // takılırsa ekranı yine de düzelt
+    if(typeof showSyncToast === 'function') showSyncToast('📄 PDF hazırlanıyor...');
+    html2pdf().set(opt).from(element).save().then(function(){
+        clearTimeout(guvenlikT); geriAl();
+        if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
+    }).catch(function(err){
+        clearTimeout(guvenlikT); geriAl();
+        console.error('Dilekçe PDF hatası:', err);
+        alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
+    });
 };
+window.dilekcePdfIndir = window.dilekcelerPdfIndir; // eski ad da çalışsın
 
 // ============ EKSİK KLASÖR OLUŞTURUCU ============
 window._KLASOR_GAS_URL = "https://script.google.com/macros/s/AKfycbzMeFacfalO7dPcn0dITuuluvnAeMLsu18X7uh_F6A-FrUHggF4jA2ZzeOT57k0m4ezGA/exec";
