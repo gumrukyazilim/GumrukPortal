@@ -19080,14 +19080,33 @@ window.dilekceBelgesiYazdir = function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     const html = window.dilekceHtmlUret(window._dlkAktifSablon);
     if(!html || !html.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
-    // iOS Safari/Android Chrome, etkileşim dışında açılan yazdırma penceresini
-    // otomatik yazdıramıyor ve belge sekmesini tam ekranda bırakabiliyor.
-    // Mobilde aynı sekmede, kullanıcı tıklamasının içinde yerel baskıyı başlat.
+    // Mobil Safari/Chrome aynı sekmedeki window.print çağrısını sessizce yok sayabiliyor.
+    // Mobilde kontrollü bir çıktı sekmesi aç; PDF/Yazdır ve Portala Dön düğmeleri sun.
     const mobilYazdir = (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) ||
         /Android|iPhone|iPad|iPod|Mobile/i.test((navigator && navigator.userAgent) || '');
     if(mobilYazdir){
-        if(document.body && !document.body.classList.contains('dilekceler-goruntu')) document.body.classList.add('dilekceler-goruntu');
-        try { window.print(); } catch(e) { console.error('Mobil yazdırma başlatılamadı:', e); }
+        const mobilPencere = window.open('', '_blank');
+        if(!mobilPencere){ alert('Çıktı sayfası açılamadı. Tarayıcıda açılır pencerelere izin verip yeniden deneyin.'); return; }
+        const mobilSablon = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
+        const mobilBaslik = mobilSablon && mobilSablon.baslik ? mobilSablon.baslik : 'Resmi Dilekçe';
+        const portalaDon = window._dlkEsc(window.location.href);
+        mobilPencere.document.open();
+        mobilPencere.document.write(
+            '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + window._dlkEsc(mobilBaslik) + '</title><style>' +
+            '@page { size:A4 portrait; margin:18mm 15mm; } * { box-sizing:border-box; } html,body { margin:0; padding:0; min-width:0; background:#eef2f7; color:#000; font-family:Arial,sans-serif; }' +
+            '.mobile-actions { position:sticky; top:0; z-index:10; display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; padding:12px; background:#101827; box-shadow:0 2px 12px #0003; }' +
+            '.mobile-actions button,.mobile-actions a { min-height:44px; display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:8px; padding:0 16px; background:#2563eb; color:#fff; font:600 14px Arial,sans-serif; text-decoration:none; cursor:pointer; }' +
+            '.mobile-actions a { background:#374151; }' +
+            '.dlk-print-page { display:flex; flex-direction:column; justify-content:center; width:calc(100% - 24px); max-width:180mm; min-height:70vh; margin:12px auto; padding:28px 22px; background:#fff; box-shadow:0 2px 14px #0002; font:10.5pt/1.45 "Times New Roman",Times,serif; overflow-wrap:anywhere; }' +
+            '.dlk-document, .dlk-document * { min-width:0; max-width:100%; overflow-wrap:anywhere; } .dlk-document { display:block; flex:0 0 auto; width:100%; min-width:0; margin:0; padding:0; color:#000; }' +
+            '.dlk-date-row { text-align:right; font-weight:bold; margin:0 0 25px; } .dlk-addressee { text-align:center; font-weight:bold; font-size:12pt; text-transform:uppercase; margin:0 0 24px; }' +
+            '.dlk-subject { margin:0 0 18px; } .dlk-body p { text-align:justify; text-indent:10mm; margin:0 0 12px; line-height:1.45; } .dlk-body div { margin:0 0 12px; white-space:pre-line; }' +
+            '.dlk-attachments { margin:12px 0 0; line-height:1.45; } .dlk-signature { display:block; width:100%; margin:28px 0 0; text-align:right; break-inside:avoid; }' +
+            '.dlk-signature-box { display:inline-block; width:68mm; max-width:100%; text-align:center; line-height:1.45; overflow-wrap:anywhere; } .dlk-signoff { margin-bottom:14px; } .dlk-signature-company { margin-bottom:4px; }' +
+            '@media print { html,body { width:100%; min-width:0; background:#fff; } .mobile-actions { display:none !important; } .dlk-print-page { display:flex !important; flex-direction:column !important; justify-content:center !important; width:180mm !important; min-height:260mm !important; margin:0 auto !important; padding:0 !important; box-shadow:none !important; } }' +
+            '</style></head><body><nav class="mobile-actions"><button type="button" onclick="window.print();">PDF Kaydet / Yazdır</button><a href="' + portalaDon + '">Portala Dön</a></nav><main class="dlk-print-page">' + html + '</main></body></html>'
+        );
+        mobilPencere.document.close();
         return;
     }
     const sablon = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
