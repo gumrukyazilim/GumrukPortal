@@ -2188,6 +2188,17 @@ div[style*="position: relative"] > input {
   word-spacing: normal !important;
   text-rendering: geometricPrecision !important;
 }
+.dlk-document { width:100%; max-width:100%; color:#000; overflow-wrap:anywhere; }
+.dlk-date-row { text-align:right; font-weight:700; margin:0 0 25px; }
+.dlk-addressee { text-align:center; font-weight:700; font-size:16px; text-transform:uppercase; margin:0 0 28px; overflow-wrap:anywhere; }
+.dlk-subject { margin:0 0 18px; overflow-wrap:anywhere; }
+.dlk-body p { text-align:justify; text-indent:30px; margin:0 0 18px; line-height:1.55; }
+.dlk-body div { margin:0 0 18px; white-space:pre-line; }
+.dlk-attachments { margin:12px 0 0; line-height:1.5; }
+.dlk-signature { display:flex; justify-content:flex-end; width:100%; margin:32px 0 0; text-align:center; break-inside:avoid; }
+.dlk-signature-box { width:260px; max-width:100%; line-height:1.5; overflow-wrap:anywhere; }
+.dlk-signoff { margin-bottom:14px; }
+.dlk-signature-company { margin-bottom:4px; }
 .dlk-tabs { display:flex; gap:8px; flex-wrap:wrap; }
 .dlk-tab { padding:9px 16px; border-radius:var(--r-md); background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary); font-size:12.5px; font-weight:600; cursor:pointer; transition:all .18s; white-space:nowrap; }
 .dlk-tab:hover { border-color:var(--primary); color:var(--primary); }
@@ -3488,7 +3499,7 @@ div[style*="position: relative"] > input {
             <button class="btn-sm" onclick="window.dilekceMetniKopyala()"><i data-lucide="copy"></i> Metni Kopyala</button>
             <button class="btn-sm" onclick="window.dilekceTemizle()"><i data-lucide="eraser"></i> Temizle</button>
             <button class="btn-sm" onclick="window.dilekceYazdir()"><i data-lucide="printer"></i> Yazdır</button>
-            <button class="btn-primary" onclick="window.dilekcelerPdfIndir()"><i data-lucide="download"></i> PDF Olarak İndir</button>
+            <button class="btn-primary" onclick="window.dilekcelerPdfIndir()"><i data-lucide="printer"></i> PDF Kaydet / Yazdır</button>
         </div>
     </div>
 
@@ -19019,19 +19030,18 @@ window.dilekceHtmlUret = function(key){
     const firmaVal = (disp.firma && disp.firma !== '..........') ? window._dlkEsc(disp.firma) : '';
     const imzaVal  = (disp.imza  && disp.imza  !== '..........') ? window._dlkEsc(disp.imza)  : '..........';
 
-    // RESMİ HTML TABLO YAPISI (flexbox/negatif koordinat YOK → html2canvas + yazdırma sağlam)
-    var h = '<table class="dlk-document-table" style="width:100%; table-layout:fixed; border-collapse:collapse; border:none;">';
-    h += '<tr><td style="text-align:right; font-weight:bold; font-size:14px; padding-bottom:30px; overflow-wrap:anywhere;">Tarih: ' + window._dlkBugun() + '</td></tr>';
-    h += '<tr><td style="text-align:center; font-weight:bold; font-size:16px; padding-bottom:35px; text-transform:uppercase; overflow-wrap:anywhere;">' + window._dlkEsc(s.makam) + '</td></tr>';
-    if(konuHtml) h += '<tr><td style="font-weight:bold; font-size:14px; padding-bottom:25px; overflow-wrap:anywhere;">KONU: ' + konuHtml + '</td></tr>';
-    h += '<tr><td style="text-align:justify; font-size:14px; line-height:1.65; padding-bottom:10px; overflow-wrap:anywhere;">' + govdeHtml + '</td></tr>';
-    if(eklerHtml) h += '<tr><td style="padding-bottom:30px; font-size:13.5px; line-height:1.5; overflow-wrap:anywhere;"><strong>EKLER:</strong><br>' + eklerHtml + '</td></tr>';
-    h += '<tr><td style="padding-top:40px;"><table class="dlk-signature-table" align="right" style="width:260px; table-layout:fixed; text-align:center; border-collapse:collapse; border:none;">';
-    h += '<tr><td style="font-size:14px; padding-bottom:15px;">Saygılarımızla,</td></tr>';
-    if(firmaVar && firmaVal) h += '<tr><td style="font-weight:bold; font-size:14px; padding-bottom:5px;">' + firmaVal + '</td></tr>';
-    h += '<tr><td style="font-size:14px;">' + imzaVal + '</td></tr>';
-    h += '</table></td></tr>';
-    h += '</table>';
+    // Blok akışı Safari/iOS yazdırmada tabloların yatay taşma hatasını önler.
+    var h = '<article class="dlk-document">';
+    h += '<div class="dlk-date-row">Tarih: ' + window._dlkBugun() + '</div>';
+    h += '<div class="dlk-addressee">' + window._dlkEsc(s.makam) + '</div>';
+    if(konuHtml) h += '<div class="dlk-subject"><strong>KONU:</strong> ' + konuHtml + '</div>';
+    h += '<div class="dlk-body">' + govdeHtml + '</div>';
+    if(eklerHtml) h += '<div class="dlk-attachments"><strong>EKLER:</strong><br>' + eklerHtml + '</div>';
+    h += '<div class="dlk-signature"><div class="dlk-signature-box">';
+    h += '<div class="dlk-signoff">Saygılarımızla,</div>';
+    if(firmaVar && firmaVal) h += '<div class="dlk-signature-company"><strong>' + firmaVal + '</strong></div>';
+    h += '<div class="dlk-signature-name">' + imzaVal + '</div>';
+    h += '</div></div></article>';
     return h;
 };
 
@@ -19048,100 +19058,44 @@ window.dilekceTemizle = function(){
     window.dilekceOnizleGuncelle();
 };
 
-// YAZDIR / PDF KAYDET — AYRI PENCERE (tarayıcı garantisi).
-// En güvenilir A4 yolu: içeriği ayrı bir pencereye yazıp @page A4 ile print
-// ediyoruz. Yazdırma motoru A4 boyutunda render eder → mobil ekran genişliği
-// çıktıyı ETKİLEMEZ. Kullanıcı diyalogdan "PDF olarak kaydet" seçebilir.
-window.dilekceYazdir = function(){
+// Yazdır ve PDF kaydet aynı A4 belgesini tarayıcının yerel yazdırma motoruna verir.
+// html2canvas/jsPDF mobil ölçek ve sıfır baytlı dosya hatalarını devre dışı bırakır.
+window.dilekceBelgesiYazdir = function(){
     if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
     const html = window.dilekceHtmlUret(window._dlkAktifSablon);
     if(!html || !html.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
+    const sablon = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
+    const belgeBasligi = sablon && sablon.baslik ? sablon.baslik : 'Resmi Dilekçe';
     const w = window.open('', '_blank');
     if(!w){ alert('Yazdırma penceresi açılamadı. Tarayıcıda pop-up iznini açın.'); return; }
     w.document.write(
-        '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Resmi Dilekçe</title><style>' +
-        '@page { size: A4 portrait; margin: 20mm 15mm; }' +
-        "html,body { margin:0; padding:0; background:#fff; color:#000; }" +
-        "body { font-family:'Times New Roman',Times,serif; font-size:10pt; line-height:1.45; }" +
-        '.dlk-print-page { width:180mm; max-width:180mm; margin:0 auto; box-sizing:border-box; font-size:10pt; line-height:1.45; overflow-wrap:anywhere; }' +
-        '.dlk-document-table { width:100% !important; table-layout:fixed !important; border-collapse:collapse; border:0; }' +
-        '.dlk-print-page td { vertical-align:top; overflow-wrap:anywhere; word-break:normal; }' +
-        '.dlk-signature-table { width:68mm !important; table-layout:fixed !important; break-inside:avoid; page-break-inside:avoid; }' +
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + window._dlkEsc(belgeBasligi) + '</title><style>' +
+        '@page { size: A4 portrait; margin: 18mm 15mm; }' +
+        '* { box-sizing:border-box; } html,body { margin:0; padding:0; background:#fff; color:#000; width:100%; min-width:0; }' +
+        "body { font-family:'Times New Roman',Times,serif; font-size:10.5pt; line-height:1.45; }" +
+        '.dlk-print-page { display:block; width:100%; max-width:180mm; margin:0 auto; font-size:10.5pt; line-height:1.45; overflow-wrap:anywhere; }' +
+        '.dlk-document { display:block; width:100%; max-width:100%; margin:0; padding:0; border:0; box-shadow:none; color:#000; font:inherit; overflow-wrap:anywhere; }' +
+        '.dlk-date-row { text-align:right; font-weight:bold; margin:0 0 25px; }' +
+        '.dlk-addressee { text-align:center; font-weight:bold; font-size:12pt; text-transform:uppercase; margin:0 0 28px; overflow-wrap:anywhere; }' +
+        '.dlk-subject { margin:0 0 18px; overflow-wrap:anywhere; }' +
+        '.dlk-body p { text-align:justify; text-indent:10mm; margin:0 0 12px; line-height:1.45; }' +
+        '.dlk-body div { margin:0 0 12px; white-space:pre-line; }' +
+        '.dlk-attachments { margin:12px 0 0; line-height:1.45; }' +
+        '.dlk-signature { display:block; width:100%; margin:32px 0 0; text-align:right; break-inside:avoid; page-break-inside:avoid; }' +
+        '.dlk-signature-box { display:inline-block; width:68mm; max-width:100%; text-align:center; line-height:1.45; overflow-wrap:anywhere; }' +
+        '.dlk-signoff { margin-bottom:14px; } .dlk-signature-company { margin-bottom:4px; }' +
         '.dlk-print-page, .dlk-print-page * { letter-spacing:normal !important; word-spacing:normal !important; }' +
-        '@media print { .dlk-print-page { width:180mm; max-width:180mm; margin:0 auto; } }' +
+        '@media print { html,body { width:100% !important; min-width:0 !important; } .dlk-print-page { width:180mm !important; max-width:180mm !important; margin:0 auto !important; } .dlk-document { width:100% !important; max-width:100% !important; } }' +
         '</style></head><body><main class="dlk-print-page">' + html + '</main>' +
-        '<scr' + 'ipt>window.onload=function(){setTimeout(function(){try{window.print();}catch(e){}},250);window.onafterprint=function(){window.close();};};</scr' + 'ipt>' +
+        '<scr' + 'ipt>window.onload=function(){setTimeout(function(){try{window.print();}catch(e){}},300);};</scr' + 'ipt>' +
         '</body></html>'
     );
     w.document.close();
 };
-
-// PDF İNDİR — doğrudan ekranda görünen #dlk-preview; klon/appendChild yok.
-// PDF sırasında görünümü 10pt ve çerçevesiz yap, sonra bütün stilleri aynen geri yükle.
-window.dilekcelerPdfIndir = function(){
-    if(!window._dlkAktifSablon){ alert('Önce bir dilekçe şablonu seçin.'); return; }
-    if(typeof html2pdf === 'undefined'){ alert('PDF kütüphanesi yüklenemedi.'); return; }
-    const element = document.getElementById('dlk-preview');
-    if(!element || !element.innerText.trim()){ alert('Önizleme boş. Lütfen alanları doldurun.'); return; }
-    const s = window.DILEKCE_SABLONLARI[window._dlkAktifSablon];
-    const dosyaAdi = (s && s.baslik ? s.baslik : 'Dilekce').replace(/\s+/g,'_');
-
-    // Eleman ve içeriğinin mevcut inline stillerini sakla; indirme bitince geri koy.
-    const stilYedegi = [element].concat(Array.from(element.querySelectorAll('p, div, span, td, table')))
-        .map(function(el){ return { el: el, cssText: el.style.cssText }; });
-    let geriAlindi = false;
-    const geriAl = function(){
-        if(geriAlindi) return; geriAlindi = true;
-        stilYedegi.forEach(function(x){ x.el.style.cssText = x.cssText; });
-    };
-    element.style.boxShadow = 'none';
-    element.style.border = 'none';
-    element.style.outline = 'none';
-    element.style.borderRadius = '0';
-    element.style.width = '180mm';
-    element.style.maxWidth = '180mm';
-    element.style.minHeight = '0';
-    element.style.boxSizing = 'border-box';
-    element.style.margin = '0 auto';
-    element.style.padding = '0';
-    element.style.background = '#ffffff';
-    element.style.color = '#000000';
-    element.style.fontFamily = "'Times New Roman', Times, serif";
-    element.style.lineHeight = '1.45';
-    element.style.fontSize = '10pt';
-    const mainTable = element.querySelector('.dlk-document-table') || element.querySelector('table');
-    if(mainTable){ mainTable.style.width = '100%'; mainTable.style.tableLayout = 'fixed'; }
-    element.querySelectorAll('p, div, span, td').forEach(function(el){
-        el.style.boxShadow = 'none';
-        el.style.border = 'none';
-        el.style.outline = 'none';
-        el.style.fontSize = '10pt';
-        el.style.lineHeight = '1.45';
-        el.style.overflowWrap = 'anywhere';
-    });
-
-    const opt = {
-        margin: [15, 15, 15, 15], // mm — temiz A4 marjini
-        filename: dosyaAdi + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 1.5, useCORS: true, letterRendering: true, windowWidth: 1024, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        // avoid-all blankeyebiliyor: Bursa metninin gövde hücresi tek büyük satır.
-        // Metin gerektiğinde bölünebilir; imza tablosu birlikte tutulur.
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['.dlk-signature-table'] }
-    };
-    const guvenlikT = setTimeout(geriAl, 20000); // takılırsa ekranı yine de düzelt
-    if(typeof showSyncToast === 'function') showSyncToast('📄 PDF hazırlanıyor...');
-    html2pdf().set(opt).from(element).save().then(function(){
-        clearTimeout(guvenlikT); geriAl();
-        if(typeof showSyncToast === 'function') showSyncToast('PDF indirildi!', true);
-    }).catch(function(err){
-        clearTimeout(guvenlikT); geriAl();
-        console.error('Dilekçe PDF hatası:', err);
-        alert('PDF hatası: ' + (err.message || 'Bilinmeyen hata'));
-    });
-};
-window.dilekcePdfIndir = window.dilekcelerPdfIndir; // eski ad da çalışsın
+window.dilekceYazdir = window.dilekceBelgesiYazdir;
+// PDF butonu da yerel yazdırma penceresini açar; kullanıcı PDF Kaydet'i seçebilir.
+window.dilekcelerPdfIndir = window.dilekceBelgesiYazdir;
+window.dilekcePdfIndir = window.dilekceBelgesiYazdir;
 
 // ============ EKSİK KLASÖR OLUŞTURUCU ============
 window._KLASOR_GAS_URL = "https://script.google.com/macros/s/AKfycbzMeFacfalO7dPcn0dITuuluvnAeMLsu18X7uh_F6A-FrUHggF4jA2ZzeOT57k0m4ezGA/exec";
