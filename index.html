@@ -18865,6 +18865,15 @@ window.dilekceAracSecildi = function(idx){
             el.value = d[vk];
         }
     });
+    // Geçici Ambara Giriş Tarihi (Bursa TSE vb.): aracın antrepo/geliş tarihini
+    // otomatik ata. Portal tarihleri TR (GG.AA.YYYY) → date input için ISO'ya çevir.
+    const girisEl = document.getElementById('dlk-f-giris_tarihi');
+    if(girisEl){
+        const secilenTarih = d.antTarih || d.tarih || d.tahminiGelis || '';
+        if(secilenTarih){
+            girisEl.value = (typeof window.trToIso === 'function') ? (window.trToIso(secilenTarih) || secilenTarih) : secilenTarih;
+        }
+    }
     // imza otomatik (firma bilindiyse)
     const imzaEl = document.getElementById('dlk-f-imza');
     if(imzaEl && !imzaEl.value && d.firma){
@@ -19005,11 +19014,11 @@ window.dilekceHtmlUret = function(key){
     const firmaVar = !!alanTip.firma;
     const firmaVal = (disp.firma && disp.firma !== '..........') ? disp.firma : '';
     const imzaVal  = (disp.imza  && disp.imza  !== '..........') ? disp.imza  : '..........';
-    let imzaHtml = '<div style="margin-top:65px; display:flex; justify-content:flex-end; text-align:center;"><div style="width:260px; line-height:1.6; font-size:15px;">Saygılarımızla,<br><br>';
+    let imzaHtml = '<div style="margin-top:50px; display:flex; justify-content:flex-end; text-align:center;"><div style="width:260px; line-height:1.5; font-size:15px;">Saygılarımızla,<br><br>';
     if(firmaVar && firmaVal) imzaHtml += '<strong>' + window._dlkEsc(firmaVal) + '</strong><br>';
-    imzaHtml += '<span>' + window._dlkEsc(imzaVal) + '</span><br><small style="color:#666;">(İmza / Kaşe)</small></div></div>';
+    imzaHtml += '<span>' + window._dlkEsc(imzaVal) + '</span></div></div>';
 
-    return '<div style="padding-top:60px;">' +
+    return '<div style="padding-top:85px;">' +
            '<div style="text-align:right; margin:0 0 30px 0;">Tarih: ' + window._dlkBugun() + '</div>' +
            '<div style="text-align:center; font-weight:bold; font-size:15px; margin:0 0 35px 0;">' + window._dlkEsc(s.makam) + '</div>' +
            govdeHtml + imzaHtml +
