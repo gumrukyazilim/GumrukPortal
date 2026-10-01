@@ -3503,6 +3503,12 @@ div[style*="position: relative"] > input {
             <button class="btn-primary" onclick="window.addNewFirm()"><i data-lucide="plus"></i> Yeni Firma</button>
         </div>
     </div>
+    <div class="firm-filter-tabs" style="display:flex; gap:8px; margin:15px 0 20px; align-items:center; flex-wrap:wrap;">
+        <button id="tab-firm-active" class="btn-sm active" onclick="window.setFirmFilter('active')"><i data-lucide="check-circle" style="width:14px;"></i> Aktif Firmalar (<span id="cnt-firm-active">0</span>)</button>
+        <button id="tab-firm-archived" class="btn-sm" onclick="window.setFirmFilter('archived')"><i data-lucide="archive" style="width:14px;"></i> Arşivlenenler (<span id="cnt-firm-archived">0</span>)</button>
+        <button id="tab-firm-all" class="btn-sm" onclick="window.setFirmFilter('all')"><i data-lucide="layers" style="width:14px;"></i> Tümü (<span id="cnt-firm-all">0</span>)</button>
+        <input type="text" id="firm-search-input" class="field-input" placeholder="Firma ara..." oninput="window.renderFirmsList()" style="max-width:250px; margin-left:auto; padding:6px 12px; font-size:13px;">
+    </div>
     <div id="firms-dynamic-grid" class="firms-grid fade-in"></div>
 </template>
 <template id="tpl-dilekceler">
@@ -6081,6 +6087,12 @@ window.openGelecekModal = function() {
         document.body.appendChild(modal);
     }
 
+    const firmaDatalist = document.getElementById('gm-firma-liste');
+    if(firmaDatalist){
+        const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        firmaDatalist.innerHTML = window.getActiveFirmNames().map(name => '<option value="'+esc(name)+'"></option>').join('');
+    }
+
     let idx = window._gelecekEditIdx;
     if(idx >= 0 && window.gelecekData[idx]) {
         let d = window.gelecekData[idx];
@@ -6100,7 +6112,7 @@ window.openGelecekModal = function() {
         document.getElementById('gm-not').value = d.not || '';
     } else {
         document.getElementById('gelecek-modal-title').innerText = 'Gelecek Araç Ekle';
-        document.getElementById('gm-firma').value = '';
+        document.getElementById('gm-firma').value = window.getActiveFirmNames()[0] || '';
         document.getElementById('gm-marka').value = '';
         document.getElementById('gm-model').value = '';
         document.getElementById('gm-yil').value = '2025';
@@ -13527,69 +13539,104 @@ document.addEventListener('click', function(e) {
     document.getElementById('decl-selectAll').checked=false;window.toggleDeclCb();window.applyRoleUI();if(window.lucide)lucide.createIcons();window.renderSutunMenu();window.applySutunGizle();
 };
 
-// --- FİRMA ARŞİVİ RENDER VE SIRALAMA MOTORU (HAFIZALI VE KORUMALI) ---
+// --- FİRMA ARŞİVİ: firma verisini silmeden aktif/arşiv filtreleme ---
+window.currentFirmFilter = window.currentFirmFilter || 'active';
+window.getActiveFirmNames = function(){
+    return Object.keys(window.firmData || {}).filter(function(name){
+        return !(window.firmMeta && window.firmMeta[name] && window.firmMeta[name].isArchived === true);
+    });
+};
+window.setFirmFilter = function(filter){
+    window.currentFirmFilter = ['active','archived','all'].includes(filter) ? filter : 'active';
+    window.renderFirmsList();
+};
+window.archiveFirm = function(firmName, e){
+    if(e) e.stopPropagation();
+    if(!window.firmData || !Object.prototype.hasOwnProperty.call(window.firmData, firmName)) return;
+    if(!confirm(`"${firmName}" firmasını arşive kaldırmak istediğinize emin misiniz?\n\nFirmaya ait hiçbir araç veya geçmiş silinmez; firma Arşivlenenler sekmesine taşınır.`)) return;
+    if(!window.firmMeta[firmName]) window.firmMeta[firmName] = {};
+    window.firmMeta[firmName].isArchived = true;
+    saveData('firm');
+    window.renderFirmsList();
+};
+window.unarchiveFirm = function(firmName, e){
+    if(e) e.stopPropagation();
+    if(!window.firmData || !Object.prototype.hasOwnProperty.call(window.firmData, firmName)) return;
+    if(!confirm(`"${firmName}" firmasını tekrar aktif firmalar arasına almak istiyor musunuz?`)) return;
+    if(!window.firmMeta[firmName]) window.firmMeta[firmName] = {};
+    window.firmMeta[firmName].isArchived = false;
+    saveData('firm');
+    window.renderFirmsList();
+};
 window.renderFirmsList = function() {
     let container = document.getElementById('firms-dynamic-grid');
     if(!container) return;
-    
-    let firmalar = Object.keys(window.firmData);
-    if(!firmalar.length) {
-        container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">Henüz firma kaydı yok.</div>';
-        return;
-    }
+
+    const firmalar = Object.keys(window.firmData || {});
+    const archivedCount = firmalar.filter(fn => window.firmMeta && window.firmMeta[fn] && window.firmMeta[fn].isArchived === true).length;
+    const activeCount = firmalar.length - archivedCount;
+    const setCount = (id, value) => { const el = document.getElementById(id); if(el) el.textContent = value; };
+    setCount('cnt-firm-active', activeCount);
+    setCount('cnt-firm-archived', archivedCount);
+    setCount('cnt-firm-all', firmalar.length);
+    ['active','archived','all'].forEach(function(filter){
+        const btn = document.getElementById('tab-firm-' + filter);
+        if(btn) btn.classList.toggle('active', window.currentFirmFilter === filter);
+    });
 
     let selectEl = document.getElementById('firms-sort-select');
-    // 🧠 SİSTEM HAFIZASI: Tarayıcının belleğinden son seçimi al, yoksa 'name_asc' (A-Z) yap
     let savedSort = localStorage.getItem('gumruk_firms_sort') || 'name_asc';
-
-    // Sayfa ilk yüklendiğinde, menüyü senin hafızadaki seçimine göre ayarla
     if(selectEl && selectEl.getAttribute('data-loaded') !== 'true') {
         selectEl.value = savedSort;
         selectEl.setAttribute('data-loaded', 'true');
     }
-
-    // Güncel sıralama tipini al ve anında hafızaya kaydet
     let sortType = selectEl ? selectEl.value : savedSort;
     localStorage.setItem('gumruk_firms_sort', sortType);
 
-    // Firmaları, araç sayılarını ve meta verilerini bir listeye çevir
-    let firmList = firmalar.map(function(fn) {
-        return {
-            name: fn,
-            count: (window.firmData[fn] || []).length
-        };
+    const search = (document.getElementById('firm-search-input')?.value || '').toLocaleLowerCase('tr').trim();
+    let firmList = firmalar.map(function(fn){
+        const meta = (window.firmMeta && window.firmMeta[fn]) || {};
+        return { name:fn, count:Array.isArray(window.firmData[fn]) ? window.firmData[fn].length : 0, archived:meta.isArchived === true, meta:meta };
+    }).filter(function(f){
+        const inFilter = window.currentFirmFilter === 'all' || (window.currentFirmFilter === 'archived' ? f.archived : !f.archived);
+        return inFilter && (!search || f.name.toLocaleLowerCase('tr').includes(search));
     });
 
-    // SIRALAMA ALGORİTMALARI
-    if(sortType === 'name_asc') {
-        firmList.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-    } else if(sortType === 'name_desc') {
-        firmList.sort((a, b) => b.name.localeCompare(a.name, 'tr'));
-    } else if(sortType === 'count_desc') {
-        firmList.sort((a, b) => b.count - a.count);
-    } else if(sortType === 'count_asc') {
-        firmList.sort((a, b) => a.count - b.count);
-    }
+    if(sortType === 'name_asc') firmList.sort((a,b) => a.name.localeCompare(b.name,'tr'));
+    else if(sortType === 'name_desc') firmList.sort((a,b) => b.name.localeCompare(a.name,'tr'));
+    else if(sortType === 'count_desc') firmList.sort((a,b) => b.count-a.count);
+    else if(sortType === 'count_asc') firmList.sort((a,b) => a.count-b.count);
 
-    // Sıralanmış listeyi ekrana çiz
-    container.innerHTML = firmList.map(function(f) {
-        let fn = f.name;
-        let sn = fn.replace(/"/g,'&quot;').replace(/'/g,"\\'");
-        let meta = window.firmMeta[fn] || {};
-        
-        return `<div class="firm-card" onclick="window.renderFirmDetails('${sn}')">
-            <div class="firm-delete-btn" onclick="window.deleteFirm('${sn}',event)"><i data-lucide="trash-2"></i></div>
-            <div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta('${sn}')"><i data-lucide="edit-3"></i></div>
-            <div class="firm-card-icon"><i data-lucide="building-2"></i></div>
-            <div class="firm-card-name">${fn}</div>
+    if(!firmList.length){
+        const message = !firmalar.length ? 'Henüz firma kaydı yok.' : (search ? 'Aramanızla eşleşen firma bulunamadı.' : 'Bu filtrede firma bulunmuyor.');
+        container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">'+message+'</div>';
+        return;
+    }
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    container.innerHTML = firmList.map(function(f){
+        const fn = f.name;
+        const arg = encodeURIComponent(fn).replace(/'/g, '%27');
+        const sn = `decodeURIComponent('${arg}')`;
+        const status = f.archived
+            ? '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;background:rgba(107,114,128,.12);color:#6b7280;font-size:11px;font-weight:700;">📦 Arşivlendi</span>'
+            : '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;background:rgba(16,185,129,.12);color:#059669;font-size:11px;font-weight:700;">● Aktif</span>';
+        const action = f.archived
+            ? `<button type="button" class="btn-sm" style="position:absolute;top:48px;right:14px;padding:5px 8px;font-size:11px;" onclick="window.unarchiveFirm(${sn},event)">🔄 Aktif Et</button>`
+            : `<button type="button" class="btn-sm" style="position:absolute;top:48px;right:14px;padding:5px 8px;font-size:11px;" onclick="window.archiveFirm(${sn},event)">📦 Arşivle</button>`;
+        return `<div class="firm-card" onclick="window.renderFirmDetails(${sn})">
+            <div style="position:absolute;top:14px;left:22px;">${status}</div>
+            <div class="firm-delete-btn" onclick="window.deleteFirm(${sn},event)" title="Kalıcı sil"><i data-lucide="trash-2"></i></div>
+            <div style="position:absolute;top:14px;right:46px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--text-muted);display:flex;justify-content:center;align-items:center;cursor:pointer;opacity:0;transition:0.18s;border:1px solid transparent;" class="firm-edit-btn" onclick="event.stopPropagation();window.editFirmMeta(${sn})"><i data-lucide="edit-3"></i></div>
+            ${action}
+            <div class="firm-card-icon" style="margin-top:28px;"><i data-lucide="building-2"></i></div>
+            <div class="firm-card-name">${escapeHtml(fn)}</div>
             <div class="firm-card-count">${f.count} Araç</div>
-            ${meta.vergiNo ? '<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: ' + meta.vergiNo + '</div>' : ''}
-            ${meta.tcNo ? '<div style="font-size:10px;color:var(--text-muted);">TC: ' + meta.tcNo + '</div>' : ''}
+            ${f.meta.vergiNo ? '<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">VN: ' + escapeHtml(f.meta.vergiNo) + '</div>' : ''}
+            ${f.meta.tcNo ? '<div style="font-size:10px;color:var(--text-muted);">TC: ' + escapeHtml(f.meta.tcNo) + '</div>' : ''}
         </div>`;
     }).join('');
-    
     if(window.lucide) lucide.createIcons();
-};    
+};
 window.renderFirmDetails=function(fn){window.currentFirm=fn.replace(/&quot;/g,'"');window.renderView('firmDetails');document.getElementById('current-firm-title').innerText=window.currentFirm;window.renderFirmVehicles();};
     // ===== EVRAK ROZETLERİ MOTORU =====
     window.EVRAK_TIPLERI = ['ATR', 'COO', 'COC', 'ONAY', 'ART44', 'TSE', 'IMEI', 'EORI', 'N_FATURA'];
@@ -14004,14 +14051,14 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         if(typeof window.tseMarkaDatalistDoldur === 'function') window.tseMarkaDatalistDoldur();
         document.getElementById('decl-edit-idx').value=idx;
         let firmList=document.getElementById('da-firma-list');
-        if(firmList)firmList.innerHTML=Object.keys(window.firmData).map(f=>`<div class="firm-dropdown-item" onmousedown="window.selectFirm('${f.replace(/'/g,"\\'")}')">${f}</div>`).join('');
+        if(firmList){const esc=f=>String(f).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));firmList.innerHTML=window.getActiveFirmNames().map(f=>`<div class="firm-dropdown-item" onmousedown="window.selectFirm(decodeURIComponent('${encodeURIComponent(f).replace(/'/g,'%27')}'))">${esc(f)}</div>`).join('');}
         let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
         
         if(idx===-1||!d){
             ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
             if(document.getElementById('da-tarih')){let _n=new Date();document.getElementById('da-tarih').value=`${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;}
             if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value='Açık';
-            let defFirm=ctx==='firm'?window.currentFirm:(Object.keys(window.firmData)[0]||'');
+            let defFirm=ctx==='firm'?window.currentFirm:(window.getActiveFirmNames()[0]||'');
             if(document.getElementById('da-firma')) document.getElementById('da-firma').value=defFirm;
             if(document.getElementById('da-firma-search')) document.getElementById('da-firma-search').value=defFirm;
             
@@ -17622,7 +17669,7 @@ if(vn==='beyanname'){
         let listEl = document.getElementById('da-firma-list');
         if(!listEl) return;
         let q = val.toLocaleLowerCase('tr').trim();
-        let matches = Object.keys(window.firmData);
+        let matches = window.getActiveFirmNames();
         if(q) {
             matches = matches.filter(f => f.toLocaleLowerCase('tr').includes(q));
         }
@@ -19030,7 +19077,7 @@ window.dilekceSablonSec = function(key){
     window._dlkAktifSablon = key;
     const secici = document.getElementById('dilekce-sablon-secici');
     if(secici) secici.value = key;
-    const firmalar = Object.keys(window.firmData || {});
+    const firmalar = window.getActiveFirmNames();
 
     formEl.innerHTML = s.alanlar.map(function(a){
         const idAttr = 'dlk-f-' + a.id;
