@@ -11667,6 +11667,7 @@ alert("Şasi: " + (d?d.sasi:'YOK') + "\nFirma sayısı: " + Object.keys(window.f
     if(d && d.sasi){
         let sasi=d.sasi;
         window.declarationsData=window.declarationsData.filter(function(x){return x.sasi!==sasi;});
+        window.gelecekData=(window.gelecekData||[]).filter(function(x){return x.sasi!==sasi;});
         window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});
     }
     window.firmData[window.currentFirm].splice(i,1);
@@ -13596,7 +13597,10 @@ window.renderFirmsList = function() {
     const search = (document.getElementById('firm-search-input')?.value || '').toLocaleLowerCase('tr').trim();
     let firmList = firmalar.map(function(fn){
         const meta = (window.firmMeta && window.firmMeta[fn]) || {};
-        return { name:fn, count:Array.isArray(window.firmData[fn]) ? window.firmData[fn].length : 0, archived:meta.isArchived === true, meta:meta };
+        const aracSayisi = typeof window.getFirmAllVehicles === 'function'
+            ? window.getFirmAllVehicles(fn).length
+            : (Array.isArray(window.firmData[fn]) ? window.firmData[fn].length : 0);
+        return { name:fn, count:aracSayisi, archived:meta.isArchived === true, meta:meta };
     }).filter(function(f){
         const inFilter = window.currentFirmFilter === 'all' || (window.currentFirmFilter === 'archived' ? f.archived : !f.archived);
         return inFilter && (!search || f.name.toLocaleLowerCase('tr').includes(search));
@@ -13816,56 +13820,115 @@ window.renderEvrakBadges = function(d, idx, ctx) {
     };
     // ===== EVRAK ROZETLERİ MOTORU BİTİŞ =====
 
-    window.renderFirmVehicles=function(){
-    let tbody=document.getElementById('firm-vehicles-tbody');if(!tbody)return;
-    let cF=window.currentFirm;if(!cF)return;
-    let fv=document.getElementById('firm-status-filter')?.value||'all';
-    let list=(window.firmData[cF]||[]).map((d,i)=>({data:d,origIdx:i}));
-    if(fv==='acik')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return e==='açık'||e==='acik';});
-    else if(fv==='kiymet')list=list.filter(x=>x.data.kiymVv&&!x.data.kiymGt);
-    else if(fv==='sure_alinmayan')list=list.filter(x=>{let e=(x.data.evrak||'').toLocaleLowerCase('tr');return (e==='açık'||e==='acik') && !x.data.ekSure && !x.data.antTarih;});
-    
-    if(!list.length){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:48px;color:var(--text-muted);">Bu firmaya ait kayıt bulunamadı.</td></tr>';if(window.lucide)lucide.createIcons();return;}
-    
-    tbody.innerHTML=list.map(item=>{
-        let d=item.data,i=item.origIdx;
-        let m=window.calculateVehicleMetrics(d); // Gelen araçlardaki hesaplamayı buraya da çağırıyoruz
-        let evrakDurum=(d.evrak||'').toLocaleLowerCase('tr');
-        let isAcik=evrakDurum==='açık'||evrakDurum==='acik';
-        let isKapali=evrakDurum==='kapalı'||evrakDurum==='kapali';
-        let isKiymette=d.kiymVv&&!d.kiymGt;
-        let rc=isKiymette?'row-kiymette':(isKapali?'row-kapali':(isAcik?'row-acik':''));
-        
-        // Kıymet bilgisi
-        let kiymetText='-';
-        let sasi=(d.sasi||'').trim();
-        if(sasi){
-            let k=(window.kiymetData||[]).find(kd=>(kd.sasi||'').trim()===sasi);
-            if(k && k.kiymet){
-                kiymetText='<span style="color:var(--success);font-weight:700;">'+window.formatNumber(k.kiymet)+' €</span>';
-            }
-        }
-        
-        // Kırmızı Kıymette-X Rozeti
-        let kiymetteBadge = '';
-        if(m.sonGun && m.sonGun.toString().includes('Kıymette')) {
-            kiymetteBadge = `<div style="margin-bottom:4px;"><span class="badge badge-kiymette">${m.sonGun}</span></div>`;
-        }
+    // Firma araç havuzunu Gelen Araçlar, Firma Arşivi ve Gelecek Araçlar'dan
+    // şasi numarasına göre birleştirir. Firma dizisi kalıcı, tekil gösterim olur.
+    window.getFirmAllVehicles = function(firmaAdi){
+        if(!firmaAdi) return [];
+        const norm = String(firmaAdi).trim().toLocaleUpperCase('tr');
+        const map = new Map();
+        const unkeyedFirmVehicles = [];
+        const vehicleKey = d => String(d && d.sasi || '').trim().toUpperCase();
+        const belongsToFirm = d => String(d && d.firma || '').trim().toLocaleUpperCase('tr') === norm;
 
-        return '<tr class="'+rc+'" onclick="if(!event.target.closest(\'button, input, a, .evrak-badge\')) window.openDeclVehicleModal('+i+',\'firm\')" style="cursor:pointer;" title="Detaylar için tıklayın">'+ 
-            '<td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb firm-cb" value="'+i+'" onclick="event.stopPropagation();window.toggleFirmCb()"></td>'+ 
-            '<td><span class="font-bold" style="color:var(--text-primary);">'+(d.marka||'')+' '+(d.model||'')+'</span>'+window.renderEvrakBadges(d, i, 'firm')+'</td>'+ 
-            '<td>'+(d.yil||'-')+'</td>'+ 
-            '<td>'+(d.renk||'-')+'</td>'+ 
-            '<td><span class="sasi-no">'+(d.sasi||'-')+'</span></td>'+
-            '<td>'+(d.tarih||'-')+'</td>'+ 
-            '<td>'+(d.beyanname||'-')+'</td>'+ 
-            '<td class="firma-readonly">'+(d.fatura?window.formatNumber(d.fatura)+' €':'-')+'</td>'+ 
-            '<td>'+kiymetteBadge+kiymetText+'</td>'+ 
-        '</tr>';
-    }).join('');
-    if(window.lucide)lucide.createIcons();
-};
+        (window.declarationsData || []).forEach(function(d, idx){
+            const key = vehicleKey(d);
+            if(belongsToFirm(d) && key) map.set(key, { ...d, _source:'decl', _declIdx:idx });
+        });
+
+        ((window.firmData && window.firmData[firmaAdi]) || []).forEach(function(d, idx){
+            if(!d) return;
+            const key = vehicleKey(d);
+            if(!key){ unkeyedFirmVehicles.push({ ...d, _source:'firm' }); return; }
+            if(!map.has(key)) map.set(key, { ...d, _source:'firm', _firmIdx:idx });
+            else {
+                const current = map.get(key);
+                map.set(key, { ...d, ...current });
+            }
+        });
+
+        (window.gelecekData || []).forEach(function(d, idx){
+            const key = vehicleKey(d);
+            if(!belongsToFirm(d) || !key) return;
+            const current = map.get(key);
+            if(current && current._source === 'decl') return;
+            map.set(key, {
+                ...(current || {}), ...d,
+                evrak:'Açık', durum:d.durum || (current && current.durum) || 'YÜKLENDI',
+                _source:'gelecek', _gelecekIdx:idx,
+                _firmIdx:current && current._firmIdx
+            });
+        });
+
+        const combined = Array.from(map.values()).concat(unkeyedFirmVehicles);
+        const cleanForStorage = combined.map(function(d){
+            const clean = { ...d };
+            delete clean._source; delete clean._declIdx; delete clean._gelecekIdx; delete clean._firmIdx;
+            return clean;
+        });
+        const existing = (window.firmData && window.firmData[firmaAdi]) || [];
+        if(JSON.stringify(existing) !== JSON.stringify(cleanForStorage)){
+            if(!window.firmData[firmaAdi]) window.firmData[firmaAdi] = [];
+            window.firmData[firmaAdi] = cleanForStorage;
+            if(typeof window.saveData === 'function') window.saveData('firm');
+            else if(typeof saveToLocal === 'function') saveToLocal();
+        }
+        return combined.map(function(d, idx){ return { ...d, _firmIdx:idx }; });
+    };
+
+    window.renderFirmVehicles=function(){
+        const tbody=document.getElementById('firm-vehicles-tbody');
+        if(!tbody || !window.currentFirm) return;
+        const filter=document.getElementById('firm-status-filter')?.value || 'all';
+        let vehicles=window.getFirmAllVehicles(window.currentFirm);
+        const statusOf=d=>String(d.evrak ?? '').trim().toLocaleLowerCase('tr');
+        const isOpen=d=>['açık','acik','false','0'].includes(statusOf(d)) || d._source==='gelecek';
+        const isClosed=d=>['kapalı','kapali','true','1'].includes(statusOf(d));
+        if(filter==='acik') vehicles=vehicles.filter(isOpen);
+        else if(filter==='kapali') vehicles=vehicles.filter(isClosed);
+        else if(filter==='kiymet') vehicles=vehicles.filter(d=>d.kiymVv&&!d.kiymGt);
+        else if(filter==='sure_alinmayan') vehicles=vehicles.filter(d=>isOpen(d)&&!d.ekSure&&!d.antTarih);
+
+        if(!vehicles.length){
+            tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">Bu filtrede araç bulunamadı.</td></tr>';
+            if(window.lucide) lucide.createIcons();
+            return;
+        }
+        const esc=value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        tbody.innerHTML=vehicles.map(function(d){
+            const idx=d._firmIdx;
+            const source=d._source || 'firm';
+            const isAcik=isOpen(d);
+            const statusBadge=isAcik?'<span class="badge badge-warning">Açık</span>':'<span class="badge badge-dark">Kapalı</span>';
+            const rowClick=source==='decl'
+                ? `window.openDeclVehicleModal(${d._declIdx},'decl')`
+                : source==='gelecek'
+                    ? `window.gelecekAracDuzenle(${d._gelecekIdx})`
+                    : `window.openDeclVehicleModal(${idx},'firm')`;
+            const editClick=source==='decl'
+                ? `window.openDeclVehicleModal(${d._declIdx},'decl')`
+                : source==='gelecek'
+                    ? `window.gelecekAracDuzenle(${d._gelecekIdx})`
+                    : `window.openDeclVehicleModal(${idx},'firm')`;
+            const k=(window.kiymetData||[]).find(item=>String(item.sasi||'').trim().toUpperCase()===String(d.sasi||'').trim().toUpperCase());
+            return `<tr class="${isAcik?'row-acik':'row-kapali'}" onclick="if(!event.target.closest('button,input,a,.evrak-badge'))${rowClick}" style="cursor:pointer;">
+                <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb firm-cb" value="${idx}" onclick="event.stopPropagation();window.toggleFirmCb()"></td>
+                <td><span class="font-bold" style="color:var(--text-primary);">${esc(d.marka||'-')} ${esc(d.model||'-')}</span><div style="margin-top:4px;">${statusBadge}</div>${window.renderEvrakBadges(d,idx,'firm')}</td>
+                <td>${esc(d.yil||'-')}</td>
+                <td>${esc(d.renk||'-')}</td>
+                <td><span class="sasi-no">${esc(d.sasi||'-')}</span></td>
+                <td>${esc(d.tarih||d.antTarih||d.tahminiGelis||'-')}</td>
+                <td>${d.beyanname?esc(d.beyanname):(source==='gelecek'?'<span style="color:var(--accent);">Gelecek Araç</span>':'-')}</td>
+                <td class="firma-readonly">${d.fatura?window.formatNumber(d.fatura)+' €':'-'}</td>
+                <td style="color:var(--success);font-weight:700;">${d.kiymet?window.formatNumber(d.kiymet)+' €':(k&&k.kiymet?window.formatNumber(k.kiymet)+' €':'-')}</td>
+                <td style="text-align:center;"><button class="icon-btn admin-only" onclick="event.stopPropagation();${editClick}" title="Düzenle"><i data-lucide="edit-3" style="width:16px;"></i></button><button class="icon-btn text-danger-btn admin-only" onclick="event.stopPropagation();window.deleteFirmVehicle(${idx})" title="Sil"><i data-lucide="trash-2" style="width:16px;"></i></button></td>
+            </tr>`;
+        }).join('');
+        const selectAll=document.getElementById('firm-select-all');
+        if(selectAll) selectAll.checked=false;
+        if(window.toggleFirmCb) window.toggleFirmCb();
+        if(window.applyRoleUI) window.applyRoleUI();
+        if(window.lucide) lucide.createIcons();
+    };
 
 renderFirmVehiclesOLD_IGNORE=function(){
         let tbody=document.getElementById('firm-vehicles-tbody');if(!tbody)return;
@@ -13995,7 +14058,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
     window.bulkDeleteDeclarations=function(){const _r=localStorage.getItem('gumruk_role');if(_r&&_r!=='admin'){alert('Yetkiniz yok.');return;}let c=document.querySelectorAll('.decl-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.declarationsData[i];if(d&&d.sasi){let sasi=d.sasi;Object.keys(window.firmData).forEach(function(fn){window.firmData[fn]=window.firmData[fn].filter(function(x){return x.sasi!==sasi;});});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.declarationsData.splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderDeclarationsTable();if(window.updateDashboardStats)window.updateDashboardStats();}};
     window.toggleAllFirmVehicles=function(v){document.querySelectorAll('.firm-cb').forEach(c=>c.checked=v);window.toggleFirmCb();};
     window.toggleFirmCb=function(){let c=document.querySelectorAll('.firm-cb:checked'),b=document.getElementById('firm-bulk-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('firm-selected-count').innerText=c.length;}else b.classList.add('hidden');}document.querySelectorAll('.firm-cb').forEach(function(cb){let row=cb.closest('tr');if(row){if(cb.checked)row.classList.add('selected');else row.classList.remove('selected');}});};
-    window.bulkDeleteFirmVehicles=function(){let c=document.querySelectorAll('.firm-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.firmData[window.currentFirm][i];if(d&&d.sasi){let sasi=d.sasi;window.declarationsData=window.declarationsData.filter(function(x){return x.sasi!==sasi;});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.firmData[window.currentFirm].splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderFirmVehicles();if(window.updateDashboardStats)window.updateDashboardStats();}};
+    window.bulkDeleteFirmVehicles=function(){let c=document.querySelectorAll('.firm-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){let idxs=Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a);idxs.forEach(function(i){let d=window.firmData[window.currentFirm][i];if(d&&d.sasi){let sasi=d.sasi;window.declarationsData=window.declarationsData.filter(function(x){return x.sasi!==sasi;});window.gelecekData=(window.gelecekData||[]).filter(function(x){return x.sasi!==sasi;});window.kiymetData=window.kiymetData.filter(function(x){return x.sasi!==sasi;});}window.firmData[window.currentFirm].splice(i,1);});saveData('decl');saveData('firm');saveData('kiymet');window.renderFirmVehicles();if(window.updateDashboardStats)window.updateDashboardStats();}};
     window.toggleSelectAllKiymet=function(v){document.querySelectorAll('.kiymet-cb').forEach(c=>c.checked=v);window.toggleKiymetCb();};
     window.toggleKiymetCb=function(){let c=document.querySelectorAll('.kiymet-cb:checked'),b=document.getElementById('kiymet-delete-btn');if(b){if(c.length>0){b.classList.remove('hidden');document.getElementById('kiymet-sel-count').innerText=c.length;}else b.classList.add('hidden');}};
     window.deleteSelectedKiymets=function(){let c=document.querySelectorAll('.kiymet-cb:checked');if(!c.length)return;if(confirm('Seçilenleri sil?')){Array.from(c).map(x=>parseInt(x.value)).sort((a,b)=>b-a).forEach(i=>window.kiymetData.splice(i,1));saveData('kiymet');window.renderKiymetTable();}};
