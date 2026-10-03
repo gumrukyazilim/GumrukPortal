@@ -18881,15 +18881,12 @@ Saygılarımızla,
     baslik: "TSE Saha Kontrol İzin Dilekçesi",
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE",
     alanlar: [
-      { id: "tarih", etiket: "Dilekçe Tarihi", tip: "date" },
       { id: "firma", etiket: "İthalatçı Firma" },
-      { id: "mrn", etiket: "Taşıma Belge (MRN) No" },
+      { id: "mrn", etiket: "Taşıma Belge No" },
       { id: "sasi", etiket: "Şasi Numarası" },
       { id: "imza", etiket: "İmza Yetkilisi" }
     ],
     metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE
-
-{{TARIH}}
 
 Müdürlüğünüz sahasına altta belirtilen Taşıma Belge Numarası ile intikal etmiş olan, firmamız {{FIRMA}} adına kayıtlı araç ile ilgili olarak, TSE Teknik Kontrolü ve gümrükleme işlemleri öncesinde aracın genel bir kontrolden geçirilmesi gerekmektedir.
 
@@ -18897,11 +18894,11 @@ Bu nedenle, altta şasi numarası belirtilen aracın Gümrük sahası dahilinde,
 
 Gereğini bilgilerinize arz ederiz.
 
-Taşıma Belge (MRN) No: {{MRN}}
+Taşıma Belge No: {{MRN}}
 Şasi Numarası: {{SASI}}
 
 EKLER:
-TAŞIMA BELGESİ
+- Taşıma Belgesi
 
 Saygılarımızla,
 {{IMZA}}
