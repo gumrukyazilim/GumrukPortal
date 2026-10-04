@@ -2056,11 +2056,45 @@ div[style*="position: relative"] > input {
 /* ── 9. MOBİL UYUMLULUK ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
 
+  /* Modalları güvenli alanın altına indir ve kapatma düğmesini belirginleştir */
+  .modal-backdrop {
+    padding-top: max(env(safe-area-inset-top, 20px), 24px) !important;
+    padding-bottom: max(env(safe-area-inset-bottom, 15px), 20px) !important;
+    align-items: flex-start !important;
+  }
+  .modal-box {
+    margin-top: 10px !important;
+    max-height: calc(92vh - env(safe-area-inset-top, 20px)) !important;
+  }
+  .modal-header .icon-btn {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: var(--bg-hover, #f1f5f9) !important;
+    color: var(--text-primary, #0f172a) !important;
+    border: 1px solid var(--border, rgba(0, 0, 0, 0.08)) !important;
+    opacity: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .modal-header .icon-btn svg,
+  .modal-header .icon-btn i {
+    width: 18px !important;
+    height: 18px !important;
+    stroke: var(--text-primary, #0f172a) !important;
+    stroke-width: 2.5px !important;
+  }
+
   /* HEADER — Mobilde düzeltme */
   .top-header {
-    padding: 0 10px !important;
+    padding-top: max(env(safe-area-inset-top, 20px), 36px) !important;
+    padding-bottom: 12px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
     gap: 7px !important;
-    height: 56px !important;
+    height: auto !important;
+    min-height: calc(50px + env(safe-area-inset-top, 20px)) !important;
   }
   .header-left {
     flex: 1 !important;
