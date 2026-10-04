@@ -2722,6 +2722,23 @@ div[style*="position: relative"] > input {
     padding: 12px 16px !important;
     background: var(--bg-surface) !important;
   }
+
+  input[type="date"],
+  .input-group input[type="date"],
+  .modal-section input[type="date"] {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    display: block !important;
+  }
+  .modal-section,
+  .modal-section > div,
+  .modal-section .input-group {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
 }
 </style>
 
