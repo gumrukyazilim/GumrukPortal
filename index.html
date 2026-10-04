@@ -2695,6 +2695,34 @@ div[style*="position: relative"] > input {
   background: var(--primary-hover) !important;
   transform: translateY(-1px) !important;
 }
+
+/* Mobil araç detay modalı: metrikler, katman sırası ve kaydırılabilir form */
+@media (max-width: 768px) {
+  #decl-preview-box .metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  #decl-preview-box .metric-item { padding: 4px !important; min-width: 0 !important; }
+  #decl-preview-box .metric-value { font-size: 13px !important; white-space: nowrap !important; }
+  #decl-preview-box .metric-label { font-size: 9.5px !important; }
+
+  .modal-backdrop,
+  .modal-overlay,
+  .modal-overlay.active { z-index: 100000 !important; }
+  .modal-box,
+  .modal-overlay .modal-box { z-index: 100001 !important; }
+
+  .modal-body {
+    padding-bottom: 20px !important;
+    max-height: calc(85vh - 130px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal-footer {
+    padding: 12px 16px !important;
+    background: var(--bg-surface) !important;
+  }
+}
 </style>
 
 </head>
