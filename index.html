@@ -2739,6 +2739,43 @@ div[style*="position: relative"] > input {
     max-width: 100% !important;
     min-width: 0 !important;
   }
+
+  /* iOS date kontrollerinin min-content genişliği grid sütununu büyütmesin */
+  #decl-modal > .modal-box {
+    width: calc(100% - 20px) !important;
+    max-width: 700px !important;
+    min-width: 0 !important;
+    margin: 10px auto !important;
+  }
+  #decl-modal .modal-body {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 15px !important;
+    padding-bottom: 20px !important;
+  }
+  #decl-modal .modal-section {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #decl-modal .modal-section > div[style*="grid-template-columns"] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #decl-modal .modal-section .input-group {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #decl-modal .modal-section input[type="date"] {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
 }
 </style>
 
