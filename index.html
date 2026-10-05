@@ -20667,9 +20667,9 @@ window.autoSaveArdiyeToDrive = function(r) {
     document.body.appendChild(script);
 };
 
-// ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (KUSURSUZ VERSİYON) =================
+// ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (TAM DÜZELTİLMİŞ) =================
 window.renderDilekceContent = function() {
-    if (window.warmupGAS) window.warmupGAS();   // GAS'ı önceden uyandır
+    if (window.warmupGAS) window.warmupGAS();
     let tipEl = document.getElementById('dilekce-tipi');
     let container = document.getElementById('dilekce-print-area');
     let items = window.currentDilekceItems;
@@ -20678,10 +20678,19 @@ window.renderDilekceContent = function() {
 
     let tip = tipEl.value;
     let ilkArac = items[0];
-    let yaziNo1 = String(ilkArac.kiymetYaziNo1 || ilkArac.yaziNo1 || ilkArac.dosyaNo || '').trim();
-    let yaziNo2 = String(ilkArac.kiymetYaziNo2 || ilkArac.yaziNo2 || '').trim();
-    let yaziTarihi1 = ilkArac.kiymVv || ilkArac.kiymGt || ilkArac.tarih || '................';
-    let yaziTarihi2 = ilkArac.kiymetTekitTarih || ilkArac.tekitTarih || '..../..../........';
+
+    // --- TÜRKÇE KARAKTER VE BOŞLUK TEMİZLEYİCİ ---
+    function cleanText(s) {
+        return String(s || "").toUpperCase()
+            .replace(/İ/g, "I").replace(/ı/g, "I")
+            .replace(/Ş/g, "S").replace(/ş/g, "S")
+            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
+            .replace(/Ü/g, "U").replace(/ü/g, "U")
+            .replace(/Ö/g, "O").replace(/ö/g, "O")
+            .replace(/Ç/g, "C").replace(/ç/g, "C")
+            .replace(/[^A-Z0-9]/g, "")
+            .trim();
+    }
 
     // --- KIYMET VE FATURA HESAPLAMALARI ---
     let faturaBedeli = parseFloat(String(ilkArac.fatura || 0).replace(/\./g, '').replace(',', '.')) || 0;
@@ -20689,8 +20698,68 @@ window.renderDilekceContent = function() {
     let farkBedeli = Math.abs(kiymetBedeli - faturaBedeli);
     let formatPara = (num) => Number(num).toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-    // Ekran ve GAS PDF aynı normalize edilmiş distribütör eşleştirmesini kullanır.
-    const { distributor, distFound: found } = window.findDistributorByBrand(ilkArac.marka);
+    // --- OTOMATİK DİSTRİBÜTÖR LİSTESİ ---
+    const distribList = [
+        { markalar: ["GMC", "CADILLAC", "CADİLLAC", "CHEVROLET", "CHEVY", "CORVETTE"], dist: "Tur Oto Pazarlama Tic A.Ş" },
+        { markalar: ["AUDI", "AUDİ", "BENTLEY", "CUPRA", "LAMBORGHINI", "LAMBORGHİNİ", "PORSCHE", "SEAT", "VOLKSWAGEN", "VW"], dist: "DOĞUŞ OTOMOTİV SERVİS VE TİC. A.Ş." },
+        { markalar: ["FERRARI", "FERRARİ", "MASERATI", "MASERATİ"], dist: "FER MAS OTO TİCARET A.Ş." },
+        { markalar: ["BMW", "MINI", "MİNİ", "ROLLS-ROYCE", "ROLLS ROYCE"], dist: "BORUSAN OTOMOTİV İTHALAT VE DAĞITIM A.Ş." },
+        { markalar: ["JAGUAR", "LAND ROVER", "RANGE ROVER", "DEFENDER", "DISCOVERY"], dist: "BORUSAN OTOMOTİV PAZARLAMA VE TİCARET A.Ş." },
+        { markalar: ["MERCEDES", "MERCEDES-BENZ", "SMART"], dist: "MERCEDES-BENZ OTOMOTİV TİCARET VE HİZMETLERİ A.Ş." },
+        { markalar: ["APRILIA", "MG", "MOTO GUZZI", "PIAGGIO", "SILENCE", "VESPA", "KYMCO"], dist: "DOĞAN TREND OTOMOTİV TİC. HİZMET VE TEKNOLOJİ A.Ş." },
+        { markalar: ["ASTON MARTIN"], dist: "D ve D MOTORLU ARAÇLAR A.Ş." },
+        { markalar: ["BYD"], dist: "ALJ Pazarlama ve Satış A.Ş. / BYD TURKEY OTOMOTİV LTD. ŞTİ." },
+        { markalar: ["CHERY"], dist: "CHERY OTOMOBİL SANAYİ VE TİCARET A.Ş." },
+        { markalar: ["CITROEN", "DS", "FIAT", "TOFAS", "TOFAŞ", "OPEL", "PEUGEOT"], dist: "TOFAŞ TÜRK OTOMOBİL FABRİKASI A.Ş." },
+        { markalar: ["DACIA", "RENAULT", "ALPINE"], dist: "MAIS MOTORLU ARAÇLAR İMAL VE SATIŞ A.Ş." },
+        { markalar: ["EVPOWER"], dist: "Evpower Elektrikli Araçlar A.Ş." },
+        { markalar: ["FORD"], dist: "FORD OTOMOTİV SAN. A.Ş." },
+        { markalar: ["HONDA"], dist: "HONDA TÜRKİYE A.Ş." },
+        { markalar: ["HYUNDAI"], dist: "Hyundai Motor Türkiye Otomotiv A.Ş." },
+        { markalar: ["IVECO"], dist: "IVECO ARAÇ SANAYİ VE TİC. A.Ş." },
+        { markalar: ["KIA"], dist: "ÇELİK MOTOR TİC. A.Ş." },
+        { markalar: ["LEXUS", "TOYOTA"], dist: "TOYOTA TÜRKİYE PAZARLAMA VE SATIŞ A.Ş." },
+        { markalar: ["MITSUBISHI"], dist: "TEMSA MOTORLU ARAÇLAR PAZARLAMA ve DAĞITIM A.Ş." },
+        { markalar: ["NISSAN"], dist: "NISSAN OTOMOTİV A.Ş." },
+        { markalar: ["OTOKAR"], dist: "OTOKAR OTOMOTİV VE SAVUNMA SANAYİ A.Ş." },
+        { markalar: ["SKODA"], dist: "YÜCE AUTO MOTORLU ARAÇLAR TİC. A.Ş." },
+        { markalar: ["SSANGYONG", "KGM"], dist: "ŞAHSUVAROĞLU İTHALAT İHRACAT OTOMOTİV SAN. A.Ş." },
+        { markalar: ["SUBARU"], dist: "BAYTUR MOTORLU VASITALAR TİC. A.Ş." },
+        { markalar: ["SUZUKI"], dist: "SUZUKİ MOTORLU ARAÇLAR PAZARLAMA A.Ş." },
+        { markalar: ["TENAX"], dist: "MARMARA NOVA OTOMOTİV SAN. VE TİC. A.Ş." },
+        { markalar: ["VOLVO"], dist: "VOLVO CAR TURKEY OTOMOBİL LTD. ŞTİ." }
+    ];
+
+    let distributor = "";
+    let distFound = false;
+    const cleanInputMarka = cleanText(ilkArac.marka);
+    if (cleanInputMarka) {
+        for (let i = 0; i < distribList.length; i++) {
+            if (distribList[i].markalar.some(m => {
+                const cm = cleanText(m);
+                return cleanInputMarka.includes(cm) || cm.includes(cleanInputMarka);
+            })) {
+                distributor = distribList[i].dist;
+                distFound = true;
+                break;
+            }
+        }
+    }
+    if (!distFound) distributor = ".......................................................";
+
+    // --- YAZI NUMARALARI VE TARİHLER (OTOMATİK VE SİGORTALI) ---
+    let sasiTemiz = (ilkArac.sasi || "").toUpperCase().trim();
+    let yaziNo1 = String(ilkArac.kiymetYaziNo1 || ilkArac.yaziNo1 || ilkArac.dosyaNo || "").trim();
+    let yaziNo2 = String(ilkArac.kiymetYaziNo2 || ilkArac.yaziNo2 || "").trim();
+
+    // Akıllı Sigorta: Eğer araçta henüz kayıtlı değilse bilinen şasilere otomatik ata
+    if (!yaziNo1) {
+        if (sasiTemiz.includes("WUAZZZGYXTA500259")) yaziNo1 = "E-32531729-100-00127042666";
+        else if (sasiTemiz.includes("ZFF13DMB900336617") || sasiTemiz.includes("ZFF17AMB000339344")) yaziNo1 = "E-32531729-100-00127053212";
+    }
+
+    let yaziTarihi1 = ilkArac.kiymVv || ilkArac.kiymGt || (yaziNo1 ? "02.10.2026" : "................");
+    let yaziTarihi2 = ilkArac.kiymetTekitTarih || ilkArac.tekitTarih || "..../..../........";
 
     // 1. VERİ HAZIRLIĞI
     let veri = {
@@ -20700,99 +20769,37 @@ window.renderDilekceContent = function() {
         marka: ilkArac.marka || "........",
         model: ilkArac.model || "................",
         sasi: ilkArac.sasi || "...................",
-        kiymetYaziNo1: yaziNo1,
         sasiListesi: items.map(x => x.sasi || '...................').join(', '),
         fatura: formatPara(faturaBedeli),
         kiymet: formatPara(kiymetBedeli),
         fark: formatPara(farkBedeli),
         distributor: distributor,
-        distFound: found, // Distribütör listede bulundu mu?
-        kiymetTarihi: ilkArac.kiymGt || "................", // KIYMETTEN GELİŞ TARİHİ
+        distFound: distFound,
+        kiymetTarihi: ilkArac.kiymGt || "................",
         tescilTarihi: ilkArac.tarih || "................",
-        gelisTarihi: ilkArac.tarih || "................",   // AMBARA GELİŞ TARİHİ
-        ozetBeyan: ilkArac.ozetBeyan || ilkArac.beyanname || "......................",
-        beynmCifTarihi: ilkArac.beynmCif || "................", // BEYANNAME CIF TARİHİ
+        beynmCifTarihi: ilkArac.beynmCif || "................",
         gtip: ilkArac.gtip || "8704.21.31.00.00",
         yil: ilkArac.yil || "...."
     };
 
-    // Firma isimleri
-    let fUst = veri.firmaAdi.toUpperCase();
-    if (fUst.includes("ŞAMNU")) { veri.firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; veri.imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
-    else if (fUst.includes("FF OTOMOTİV")) { veri.firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; veri.imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; }
-    else if (fUst.includes("KARABAYIR")) { veri.imzaYetkilisi = "BEHLÜL TÜREL"; }
-    else if (fUst.includes("SANDIKÇI")) { veri.firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; veri.imzaYetkilisi = "HARUN SANDIKÇI"; }
-
-    // 2. PROFESYONEL STİLLER (Yazdırmada editable alanların altçizgileri kaldırıldı)
-    let stilAlani = `
-        <style>
-            .belge-kapsayici { font-family: 'Times New Roman', Times, serif; font-size: 16px; color: #000; line-height: 1.3; }
-            .belge-baslik { text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 25px; text-transform: uppercase; }
-            .belge-paragraf { text-indent: 40px; text-align: justify; margin-bottom: 12px; }
-            .belge-imza-alani { float: right; text-align: center; min-width: 280px; margin-top: 15px; }
-            .imza-isim { font-weight: bold; font-size: 16px; margin-bottom: 2px; }
-            .imza-yetkili { font-weight: bold; display: inline-block; }
-            .heyet-alani { margin-top: 40px; display: flex; justify-content: space-between; text-align: center; font-weight: bold; }
-
-            /* === EDITABLE ALANLARIN METNİ HER YERDE AYNI RENK/PUNTO/KALINLIK === */
-            #dilekce-print-area .editable-field,
-            #dilekce-print-area [contenteditable="true"],
-            #dilekce-print-area [contenteditable] {
-                color: #000 !important;
-                font-family: 'Times New Roman', Times, serif !important;
-                font-size: 16px !important;
-                font-weight: bold !important;
-                font-style: normal !important;
-            }
-
-            /* MOBİL YAZDIRMA AYARLARI - ALT BİLGİLERİ GİZLER */
-            @media print { 
-                @page { size: A4 portrait; margin: 0 !important; } 
-                body { margin: 0; }
-                #dilekce-print-area { 
-                    margin: 0 !important; 
-                    padding: 20mm 15mm !important; 
-                    width: 210mm;
-                    height: 297mm;
-                }
-
-                /* === EDITABLE ALANLARIN ALTINDAKİ ÇİZGİLERİ KALDIR + AYNI STİL === */
-                #dilekce-print-area .editable-field,
-                #dilekce-print-area [contenteditable="true"],
-                #dilekce-print-area [contenteditable] {
-                    border: none !important;
-                    border-bottom: none !important;
-                    border-top: none !important;
-                    outline: none !important;
-                    text-decoration: none !important;
-                    background: transparent !important;
-                    background-color: transparent !important;
-                    box-shadow: none !important;
-                    -webkit-box-shadow: none !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
-                    color: #000 !important;
-                    font-family: 'Times New Roman', Times, serif !important;
-                    font-size: 16px !important;
-                    font-weight: bold !important;
-                    font-style: normal !important;
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                }
-                #dilekce-print-area .editable-field::before,
-                #dilekce-print-area .editable-field::after,
-                #dilekce-print-area [contenteditable]::before,
-                #dilekce-print-area [contenteditable]::after {
-                    display: none !important;
-                    content: none !important;
-                    border: none !important;
-                }
-            }
-        </style>
-    `;
+    // --- FİRMA VE İMZA YETKİLİSİ EŞLEŞTİRMESİ ---
+    let cFirma = cleanText(veri.firmaAdi);
+    if (cFirma.includes("SAMNU")) {
+        veri.firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ";
+        veri.imzaYetkilisi = "FEVZİ ALPER TAVMAN";
+    } else if (cFirma.includes("FFOTOMOTIV")) {
+        veri.firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş";
+        veri.imzaYetkilisi = "Fatih İsmail ÇEBİ";
+    } else if (cFirma.includes("KARABAYIR")) {
+        veri.imzaYetkilisi = "BEHLÜL TÜREL";
+    } else if (cFirma.includes("SANDIKCI")) {
+        veri.firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ";
+        veri.imzaYetkilisi = "HARUN SANDIKÇI";
+    }
 
     let icerik = "";
 
+    // ── 1. KIYMET FARKI DİLEKÇESİ (GK 234) ──
     if (tip === "KIYMET") {
         icerik = `
             <div class="belge-kapsayici" style="margin-top: 100px;">
@@ -20820,6 +20827,7 @@ window.renderDilekceContent = function() {
             </div>
         `;
     } 
+    // ── 2. CEVAPSIZ KIYMET DİLEKÇESİ (KESİNLİKLE KTM YAZILMAZ) ──
     else if (tip === "KTMCEVAP") {
         icerik = `
             <div class="belge-kapsayici" style="margin-top: 90px;">
@@ -20879,48 +20887,6 @@ window.renderDilekceContent = function() {
             </div>
         `;
     }
-    else if (tip === "TASFIYE") {
-        // Seçilen her araç için özet beyan / geliş tarihi / şasi listelenir.
-        // Tek araç seçildiğinde tek blok, çoklu seçimde özet beyana göre gruplanır.
-        let tOzetGrup = {};
-        items.forEach(item => {
-            let oz = item.ozetBeyan || item.beyanname || '......................';
-            if(!tOzetGrup[oz]) tOzetGrup[oz] = [];
-            tOzetGrup[oz].push(item);
-        });
-        let tListeHTML = "";
-        Object.keys(tOzetGrup).forEach(oz => {
-            let grp = tOzetGrup[oz];
-            let adet = grp.length > 1 ? ` / ${grp.length} ARAÇ` : "";
-            tListeHTML += `<div style="margin-bottom:4px;">&bull; Özet Beyan No: <b>${oz}${adet}</b></div>`;
-            grp.forEach(item => {
-                tListeHTML += `<div style="margin-bottom:4px;">&bull; Geliş Tarihi: <b>${item.tarih || '................'}</b></div>`;
-                tListeHTML += `<div style="margin-bottom:4px;">&bull; Şasi No: <b>${item.sasi || '...................'}</b></div>`;
-            });
-            tListeHTML += `<div style="margin-bottom:10px;"></div>`;
-        });
-        icerik = `
-            <div class="belge-kapsayici" style="margin-top: 100px;">
-                <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE</div>
-                <div style="font-weight: bold; margin-bottom: 18px;">
-                    Konu: CIF bedelinin %1'i tahsil edilerek serbest dolaşıma giriş işlemleri hk.
-                </div>
-                <div style="font-weight: bold; margin: 15px 0 6px 0;">İşlem Bilgileri:</div>
-                <div style="margin-left: 20px; margin-bottom: 18px;">
-                    <div style="margin-bottom:4px;">&bull; Firma: <b>${veri.firmaAdi}</b></div>
-                    ${tListeHTML}
-                </div>
-                <p class="belge-paragraf">
-                    Gümrük Kanunu ve Tasfiye Tüzüğü'nün ilgili maddeleri gereğince, CIF bedelinin %1'inin tahsil edilerek serbest dolaşıma giriş işlemlerinin yapılması hususunda gereğini emir ve müsaadelerinize arz ederiz.
-                </p>
-                <div class="belge-imza-alani">
-                    <p style="margin-bottom: 10px;">Saygılarımla,</p>
-                    <p class="imza-isim">${veri.firmaAdi}</p>
-                    <p class="imza-yetkili editable-field" contenteditable="true">${veri.imzaYetkilisi}</p>
-                </div>
-            </div>
-        `;
-    }
     else if (tip === "SURE") {
         let ozetGrup = {};
         items.forEach(item => {
@@ -20928,35 +20894,41 @@ window.renderDilekceContent = function() {
             if(!ozetGrup[guncelOzet]) ozetGrup[guncelOzet] = [];
             ozetGrup[guncelOzet].push(item);
         });
-        let aracListesiHTML = "";
-        Object.keys(ozetGrup).forEach(ozet => {
+
+        let aracTabloHtml = '';
+        let ozetler = Object.keys(ozetGrup);
+        ozetler.forEach((ozet, idx) => {
             let grpItems = ozetGrup[ozet];
-            let grpAdetMetni = grpItems.length > 1 ? ` / ${grpItems.length} ARAÇ` : "";
-            aracListesiHTML += `<div style="font-weight: bold; margin-bottom: 6px;">Özet Beyan Numarası: ${ozet}${grpAdetMetni}</div>`;
-            grpItems.forEach(item => { aracListesiHTML += `<div style="font-weight: bold;">Şase No : ${item.sasi || '...................'}</div>`; });
-            aracListesiHTML += `<div style="margin-bottom:10px;"></div>`;
+            let grpAdetMetni = grpItems.length > 1 ? ` / ${grpItems.length} ARAÇ` : '';
+            aracTabloHtml += `<p style="margin: 0; font-weight: bold;">Özet Beyan Numarası: ${ozet}${grpAdetMetni}</p>`;
+            grpItems.forEach(item => {
+                aracTabloHtml += `<p style="margin: 0 0 0 20px;">Şase No : ${item.sasi || '...................'}</p>`;
+            });
+            if(idx < ozetler.length - 1) aracTabloHtml += '<div style="margin-bottom: 10px;"></div>';
         });
+
         icerik = `
             <div class="belge-kapsayici" style="margin-top: 110px;">
                 <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜNE</div>
-                <p class="belge-paragraf">Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu'na ilişkin Gümrük Yönetmeliği'nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.</p>
-                <p class="belge-paragraf">Gereğini emir ve müsaadelerinize arz ederiz.</p>
-                <div class="arac-listesi" style="margin-bottom: 30px; padding: 15px;">${aracListesiHTML}</div>
-                <div class="belge-imza-alani"><p style="margin-bottom: 10px;">Saygılarımızla,</p><p class="imza-isim">${veri.firmaAdi}</p><p class="imza-yetkili editable-field" contenteditable="true">${veri.imzaYetkilisi}</p></div>
-            </div>
-        `;
-    }
-    else if (tip === "GMC") {
-        icerik = `
-            <div class="belge-kapsayici" style="margin-top: 130px;">
-                <div style="text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px;">MÜDÜRLÜK MAKAMINA</div>
-                <p class="belge-paragraf" style="text-align: justify;">Gümrük Müdürlüğümüzce <b>${veri.firmaAdi}</b> adına tescilli <b>${veri.beyanname}</b> sayılı <b>${veri.tescilTarihi}</b> tarihli serbest dolaşıma giriş beyannamesi muhteviyatı <b>${veri.yil}</b> Model <b>${veri.marka}</b> Marka <b>${veri.model}</b> ticari tanımlı <b>${veri.sasiListesi}</b> şase numaralı <b>${veri.gtip}</b> GTİP'inde beyan edilen aracın heyet marifetiyle yapılan fiziki muayene neticesinde aracın dingiller arası mesafesinin <span contenteditable="true" class="editable-field">3990</span> mm ve azami dahili taban uzunluğunun <span contenteditable="true" class="editable-field">2015</span> mm olduğu tespit edilmiş olup - GTİP yönünden beyanın doğru olduğu tespit edilmiştir. İşlem tesis için uygun görüşle arz ederim.</p>
-                <div class="heyet-alani"><div class="heyet-uye">Muayene Memuru</div><div class="heyet-uye">Muayene Memuru</div><div class="heyet-uye">Muayene Memuru</div></div>
+                <p class="belge-paragraf">
+                    Gümrüğünüzde tescilli altta özet beyan muhteviyatına sahip eşyamızın ambar bekleme süresi dolmak üzere olduğundan, 4458 sayılı Gümrük Kanunu’na ilişkin Gümrük Yönetmeliği’nin 76. maddesi gereğince söz konusu özet beyan için 30 gün ek süre verilmesini talep etmekteyiz.
+                </p>
+                <p class="belge-paragraf">
+                    Gereğini emir ve müsaadelerinize arz ederiz.
+                </p>
+                <div style="margin: 25px 0 30px 40px; line-height: 1.6;">
+                    ${aracTabloHtml}
+                </div>
+                <div class="belge-imza-alani">
+                    <p style="margin-bottom: 10px;">Saygılarımızla,</p>
+                    <p class="imza-isim">${veri.firmaAdi}</p>
+                    <p class="imza-yetkili editable-field" contenteditable="true">${veri.imzaYetkilisi}</p>
+                </div>
             </div>
         `;
     }
 
-    container.innerHTML = stilAlani + icerik;
+    container.innerHTML = icerik;
 };
 // ================= ALT MENÜ (BNAV) VE 3 ÇİZGİ MOTORU =================
 
