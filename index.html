@@ -3645,7 +3645,7 @@ div[style*="position: relative"] > input {
         <label for="dilekce-sablon-secici" style="font-weight:700; font-size:12px; color:var(--accent); letter-spacing:0.5px; text-transform:uppercase;">DİLEKÇE ŞABLONU:</label>
         <select id="dilekce-sablon-secici" class="field-select" style="width:100%; max-width:320px; font-size:13.5px; font-weight:600; padding:9px 12px; border-radius:8px; margin:0;" onchange="window.dilekceSablonDegistir(this.value)">
             <option value="kiymet_farki">1. Kıymet Farkı (GK 234)</option>
-            <option value="cevapsiz_kiymet">2. Cevapsız Kıymet</option>
+            <option value="cevapsiz_kiymet">2. Cevapsız Kıymet Dilekçesi</option>
             <option value="tse_kontrol">3. TSE Saha Kontrol İzni</option>
             <option value="bursa_tse">4. Bursa TSE Sevk Talebi</option>
             <option value="tasfiye_cif">5. Tasfiye (CIF %1)</option>
@@ -18424,20 +18424,20 @@ window.dilekceGMCViaGAS = async function() {
 // Distribütör otomatik bulunur (bulunamazsa ekrandan okunur)
 // Dosya No her zaman ekrandaki düzenlenebilir alandan okunur
 // ═══════════════════════════════════════════════════════════════════
-window.cleanBrand = function(s) {
-    return String(s || '').toUpperCase()
-        .replace(/İ/g, 'I').replace(/ı/g, 'I')
-        .replace(/Ş/g, 'S').replace(/ş/g, 'S')
-        .replace(/Ğ/g, 'G').replace(/ğ/g, 'G')
-        .replace(/Ü/g, 'U').replace(/ü/g, 'U')
-        .replace(/Ö/g, 'O').replace(/ö/g, 'O')
-        .replace(/Ç/g, 'C').replace(/ç/g, 'C')
-        .replace(/[^A-Z0-9]/g, '')
-        .trim();
+window.cleanBrand = function(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/İ/g, "I").replace(/ı/g, "I").replace(/i/g, "I")
+            .replace(/Ş/g, "S").replace(/ş/g, "S")
+            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
+            .replace(/Ü/g, "U").replace(/ü/g, "U")
+            .replace(/Ö/g, "O").replace(/ö/g, "O")
+            .replace(/Ç/g, "C").replace(/ç/g, "C")
+            .toUpperCase().trim();
 };
-window.findDistributorByBrand = function(brand) {
+window.findDistributorByBrand = function(brand, normalizer = window.cleanBrand) {
     const distribList = [
-        { markalar: ["GMC", "CADILLAC", "CADİLLAC", "CHEVROLET", "CHEVY", "CORVETTE"], dist: "Tur Oto Pazarlama Tic A.Ş" },
+        { markalar: ["GMC", "CADILLAC", "CADİLLAC", "CHEVROLET", "CHEVY", "CORVETTE"], dist: "Tur Oto Pazarlama Ticaret A.Ş." },
         { markalar: ["AUDI", "AUDİ", "BENTLEY", "CUPRA", "LAMBORGHINI", "LAMBORGHİNİ", "PORSCHE", "SEAT", "VOLKSWAGEN", "VW"], dist: "DOĞUŞ OTOMOTİV SERVİS VE TİC. A.Ş." },
         { markalar: ["FERRARI", "FERRARİ", "MASERATI", "MASERATİ"], dist: "FER MAS OTO TİCARET A.Ş." },
         { markalar: ["BMW", "MINI", "MİNİ", "ROLLS-ROYCE", "ROLLS ROYCE"], dist: "BORUSAN OTOMOTİV İTHALAT VE DAĞITIM A.Ş." },
@@ -18466,17 +18466,45 @@ window.findDistributorByBrand = function(brand) {
         { markalar: ["TENAX"], dist: "MARMARA NOVA OTOMOTİV SAN. VE TİC. A.Ş." },
         { markalar: ["VOLVO"], dist: "VOLVO CAR TURKEY OTOMOBİL LTD. ŞTİ." }
     ];
-    const cleanInputMarka = window.cleanBrand(brand);
-    if (!cleanInputMarka) return { distributor: '', distFound: false };
+    const cleanInputMarka = normalizer(brand);
+    if (!cleanInputMarka) return { distributor: '.......................................................', distFound: false };
     for (let i = 0; i < distribList.length; i++) {
         if (distribList[i].markalar.some(m => {
-            const cm = window.cleanBrand(m);
+            const cm = normalizer(m);
             return cleanInputMarka.includes(cm) || cm.includes(cleanInputMarka);
         })) return { distributor: distribList[i].dist, distFound: true };
     }
     return { distributor: '.......................................................', distFound: false };
 };
+window.getKiymetYaziBilgileri = function(arac) {
+    const d = arac || {};
+    let yaziNo1 = String(d.kiymetYaziNo1 || d.yaziNo1 || d.dosyaNo || "").trim();
+    let yaziTarih1 = String(d.kiymVv || d.kiymGt || d.kiymetTarihi1 || d.tarih || "").trim();
+    let yaziNo2 = String(d.kiymetYaziNo2 || d.yaziNo2 || d.tekitNo || "").trim();
+    let yaziTarih2 = String(d.tekitTarih || d.kiymetTarihi2 || "").trim();
+    const sClean = String(d.sasi || "").toUpperCase().trim();
+    if (sClean.includes("500259")) {
+        if (!yaziNo1) yaziNo1 = "E-32531729-100-00127042666";
+        if (!yaziTarih1 || yaziTarih1.includes("....")) yaziTarih1 = "02.10.2026";
+    } else if (sClean.includes("336617") || sClean.includes("339344")) {
+        if (!yaziNo1) yaziNo1 = "E-32531729-100-00127053212";
+        if (!yaziTarih1 || yaziTarih1.includes("....")) yaziTarih1 = "02.10.2026";
+    }
+    return { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2 };
+};
 window.dilekceKIYMETViaGAS = async function() {
+    function cleanStr(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/İ/g, "I").replace(/ı/g, "I").replace(/i/g, "I")
+            .replace(/Ş/g, "S").replace(/ş/g, "S")
+            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
+            .replace(/Ü/g, "U").replace(/ü/g, "U")
+            .replace(/Ö/g, "O").replace(/ö/g, "O")
+            .replace(/Ç/g, "C").replace(/ç/g, "C")
+            .toUpperCase().trim();
+    }
+
     const items = window.currentDilekceItems || [];
     if (items.length === 0) {
         alert("Dilekçe verisi bulunamadı!");
@@ -18488,21 +18516,22 @@ window.dilekceKIYMETViaGAS = async function() {
     // Firma & imza yetkilisi
     let firmaAdi = ilkArac.firma || "........................";
     let imzaYetkilisi = "........................";
-    let fUst = firmaAdi.toUpperCase();
-    if (fUst.includes("ŞAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
-    else if (fUst.includes("FF OTOMOTİV")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; }
-    else if (fUst.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
-    else if (fUst.includes("SANDIKÇI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+    let cFirma = cleanStr(firmaAdi);
+    if (cFirma.includes("SAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
+    else if (cFirma.includes("FF")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "Fatih İsmail ÇEBİ"; }
+    else if (cFirma.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
+    else if (cFirma.includes("SANDIKCI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
 
     // Distribütör eşleşmesi ekrandaki dilekçe motoruyla aynı normalizasyonu kullanır.
-    const { distributor, distFound } = window.findDistributorByBrand(ilkArac.marka);
+    let { distributor, distFound } = window.findDistributorByBrand(ilkArac.marka, cleanStr);
+    const yaziBilgileri = window.getKiymetYaziBilgileri(ilkArac);
 
     // Ekrandaki düzenlenebilir alanları oku (imza-yetkili'yi hariç tutuyoruz)
     // Sıralama:
     //   - Distribütör bulunmadıysa: editables[0] = distributor (manuel), editables[1] = dosya no
     //   - Distribütör bulunduysa:   editables[0] = dosya no
     const editables = document.querySelectorAll('#dilekce-print-area .editable-field:not(.imza-yetkili)');
-    let dosyaNo = String(ilkArac.kiymetYaziNo1 || ilkArac.yaziNo1 || ilkArac.dosyaNo || '').trim() || "E-........................";
+    let dosyaNo = yaziBilgileri.yaziNo1 || "E-........................";
     if (distFound) {
         if (editables[0] && editables[0].textContent.trim()) dosyaNo = editables[0].textContent.trim();
     } else {
@@ -18539,7 +18568,7 @@ window.dilekceKIYMETViaGAS = async function() {
         kiymet: formatPara(kiymet),
         fark: formatPara(fark),
         distributor: distributor,
-        kiymetTarihi: ilkArac.kiymGt || "................",
+        kiymetTarihi: yaziBilgileri.yaziTarih1 || "................",
         dosyaNo: dosyaNo
     };
 
@@ -18571,10 +18600,22 @@ window.dilekceKIYMETViaGAS = async function() {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// KIYMET CEVAPSIZ DİLEKÇESİ - GAS üzerinden PDF üretici
+// Cevapsız Kıymet Dilekçesi - GAS üzerinden PDF üretici
 // Kıymet dilekçesiyle aynı altyapı: mobil/PC fark etmez, Google Docs şablonu
 // ═══════════════════════════════════════════════════════════════════
 window.dilekceKTMCEVAPViaGAS = async function() {
+    function cleanStr(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/İ/g, "I").replace(/ı/g, "I").replace(/i/g, "I")
+            .replace(/Ş/g, "S").replace(/ş/g, "S")
+            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
+            .replace(/Ü/g, "U").replace(/ü/g, "U")
+            .replace(/Ö/g, "O").replace(/ö/g, "O")
+            .replace(/Ç/g, "C").replace(/ç/g, "C")
+            .toUpperCase().trim();
+    }
+
     const items = window.currentDilekceItems || [];
     if (items.length === 0) {
         alert("Dilekçe verisi bulunamadı!");
@@ -18586,18 +18627,23 @@ window.dilekceKTMCEVAPViaGAS = async function() {
     // Firma & imza yetkilisi (diğer dilekçelerle aynı eşleme)
     let firmaAdi = ilkArac.firma || "........................";
     let imzaYetkilisi = "........................";
-    let fUst = firmaAdi.toUpperCase();
-    if (fUst.includes("ŞAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
-    else if (fUst.includes("FF OTOMOTİV")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; }
-    else if (fUst.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
-    else if (fUst.includes("SANDIKÇI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+    let cFirma = cleanStr(firmaAdi);
+    if (cFirma.includes("SAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
+    else if (cFirma.includes("FF")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "Fatih İsmail ÇEBİ"; }
+    else if (cFirma.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
+    else if (cFirma.includes("SANDIKCI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
 
     // Ekrandaki düzenlenebilir kıymet yazısı satırlarını oku (imza hariç)
     const editables = document.querySelectorAll('#dilekce-print-area .editable-field:not(.imza-yetkili)');
-    let kiymetYazilari = [];
-    editables.forEach(function(el) {
+    const { distributor } = window.findDistributorByBrand(ilkArac.marka, cleanStr);
+    const { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2 } = window.getKiymetYaziBilgileri(ilkArac);
+    const kiymetYazilari = [
+        `${yaziNo1 || 'E-........................-100-........................'} (${yaziTarih1 || '..../..../........'})`,
+        `${yaziNo2 || 'E-........................-100-........................'} (${yaziTarih2 || '..../..../........'})`
+    ];
+    editables.forEach(function(el, index) {
         const t = (el.textContent || '').trim();
-        if (t) kiymetYazilari.push(t);
+        if (index < 2 && t) kiymetYazilari[index] = t;
     });
 
     // İmza yetkilisi ekrandan değiştirilmiş olabilir
@@ -18614,6 +18660,8 @@ window.dilekceKTMCEVAPViaGAS = async function() {
         beyanname: ilkArac.beyanname || ilkArac.ozetBeyan || "...................",
         tarih: ilkArac.beynmCif || ilkArac.tarih || "................",
         sasi: ilkArac.sasi || "...................",
+        marka: ilkArac.marka || "........",
+        distributor: distributor,
         kiymetYazilari: kiymetYazilari
     };
 
@@ -18630,7 +18678,7 @@ window.dilekceKTMCEVAPViaGAS = async function() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = result.filename || "KIYMET_CEVAPSIZ_DILEKCE.pdf";
+        a.download = "Cevapsız Kıymet Dilekçesi.pdf";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -18638,7 +18686,7 @@ window.dilekceKTMCEVAPViaGAS = async function() {
 
         if (typeof hideSyncToast === 'function') hideSyncToast("PDF İndirildi!", true);
     } catch (err) {
-        console.error("KTMCEVAP GAS hatası:", err);
+        console.error("Cevapsız Kıymet Dilekçesi GAS hatası:", err);
         // GAS henüz bu tipi tanımıyorsa tarayıcı içi yedek üreticiyle devam et
         if (typeof hideSyncToast === 'function') hideSyncToast("GAS yok, yedek PDF üretiliyor...", false);
         return window.dilekceHtml2PdfIndir();
@@ -18982,7 +19030,7 @@ Saygılarımızla,
   },
 
   cevapsiz_kiymet: {
-    baslik: "Cevapsız Kıymet (İthalat Devam)",
+    baslik: "Cevapsız Kıymet Dilekçesi",
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE",
     alanlar: [
       { id: "firma", etiket: "İthalatçı Firma" },
@@ -19172,7 +19220,7 @@ window.dilekcelerInit = function(){
     const keys = Object.keys(window.DILEKCE_SABLONLARI);
     const etiketler = {
         kiymet_farki: '1. Kıymet Farkı (GK 234)',
-        cevapsiz_kiymet: '2. Cevapsız Kıymet',
+        cevapsiz_kiymet: '2. Cevapsız Kıymet Dilekçesi',
         tse_kontrol: '3. TSE Saha Kontrol İzni',
         bursa_tse: '4. Bursa TSE Sevk Talebi',
         tasfiye_cif: '5. Tasfiye (CIF %1)',
@@ -20669,6 +20717,18 @@ window.autoSaveArdiyeToDrive = function(r) {
 
 // ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (TAM DÜZELTİLMİŞ) =================
 window.renderDilekceContent = function() {
+    function cleanStr(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/İ/g, "I").replace(/ı/g, "I").replace(/i/g, "I")
+            .replace(/Ş/g, "S").replace(/ş/g, "S")
+            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
+            .replace(/Ü/g, "U").replace(/ü/g, "U")
+            .replace(/Ö/g, "O").replace(/ö/g, "O")
+            .replace(/Ç/g, "C").replace(/ç/g, "C")
+            .toUpperCase().trim();
+    }
+
     if (window.warmupGAS) window.warmupGAS();
     let tipEl = document.getElementById('dilekce-tipi');
     let container = document.getElementById('dilekce-print-area');
@@ -20679,87 +20739,14 @@ window.renderDilekceContent = function() {
     let tip = tipEl.value;
     let ilkArac = items[0];
 
-    // --- TÜRKÇE KARAKTER VE BOŞLUK TEMİZLEYİCİ ---
-    function cleanText(s) {
-        return String(s || "").toUpperCase()
-            .replace(/İ/g, "I").replace(/ı/g, "I")
-            .replace(/Ş/g, "S").replace(/ş/g, "S")
-            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
-            .replace(/Ü/g, "U").replace(/ü/g, "U")
-            .replace(/Ö/g, "O").replace(/ö/g, "O")
-            .replace(/Ç/g, "C").replace(/ç/g, "C")
-            .replace(/[^A-Z0-9]/g, "")
-            .trim();
-    }
-
     // --- KIYMET VE FATURA HESAPLAMALARI ---
     let faturaBedeli = parseFloat(String(ilkArac.fatura || 0).replace(/\./g, '').replace(',', '.')) || 0;
     let kiymetBedeli = parseFloat(String(ilkArac.kiymet || 0).replace(/\./g, '').replace(',', '.')) || 0;
     let farkBedeli = Math.abs(kiymetBedeli - faturaBedeli);
     let formatPara = (num) => Number(num).toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-    // --- OTOMATİK DİSTRİBÜTÖR LİSTESİ ---
-    const distribList = [
-        { markalar: ["GMC", "CADILLAC", "CADİLLAC", "CHEVROLET", "CHEVY", "CORVETTE"], dist: "Tur Oto Pazarlama Tic A.Ş" },
-        { markalar: ["AUDI", "AUDİ", "BENTLEY", "CUPRA", "LAMBORGHINI", "LAMBORGHİNİ", "PORSCHE", "SEAT", "VOLKSWAGEN", "VW"], dist: "DOĞUŞ OTOMOTİV SERVİS VE TİC. A.Ş." },
-        { markalar: ["FERRARI", "FERRARİ", "MASERATI", "MASERATİ"], dist: "FER MAS OTO TİCARET A.Ş." },
-        { markalar: ["BMW", "MINI", "MİNİ", "ROLLS-ROYCE", "ROLLS ROYCE"], dist: "BORUSAN OTOMOTİV İTHALAT VE DAĞITIM A.Ş." },
-        { markalar: ["JAGUAR", "LAND ROVER", "RANGE ROVER", "DEFENDER", "DISCOVERY"], dist: "BORUSAN OTOMOTİV PAZARLAMA VE TİCARET A.Ş." },
-        { markalar: ["MERCEDES", "MERCEDES-BENZ", "SMART"], dist: "MERCEDES-BENZ OTOMOTİV TİCARET VE HİZMETLERİ A.Ş." },
-        { markalar: ["APRILIA", "MG", "MOTO GUZZI", "PIAGGIO", "SILENCE", "VESPA", "KYMCO"], dist: "DOĞAN TREND OTOMOTİV TİC. HİZMET VE TEKNOLOJİ A.Ş." },
-        { markalar: ["ASTON MARTIN"], dist: "D ve D MOTORLU ARAÇLAR A.Ş." },
-        { markalar: ["BYD"], dist: "ALJ Pazarlama ve Satış A.Ş. / BYD TURKEY OTOMOTİV LTD. ŞTİ." },
-        { markalar: ["CHERY"], dist: "CHERY OTOMOBİL SANAYİ VE TİCARET A.Ş." },
-        { markalar: ["CITROEN", "DS", "FIAT", "TOFAS", "TOFAŞ", "OPEL", "PEUGEOT"], dist: "TOFAŞ TÜRK OTOMOBİL FABRİKASI A.Ş." },
-        { markalar: ["DACIA", "RENAULT", "ALPINE"], dist: "MAIS MOTORLU ARAÇLAR İMAL VE SATIŞ A.Ş." },
-        { markalar: ["EVPOWER"], dist: "Evpower Elektrikli Araçlar A.Ş." },
-        { markalar: ["FORD"], dist: "FORD OTOMOTİV SAN. A.Ş." },
-        { markalar: ["HONDA"], dist: "HONDA TÜRKİYE A.Ş." },
-        { markalar: ["HYUNDAI"], dist: "Hyundai Motor Türkiye Otomotiv A.Ş." },
-        { markalar: ["IVECO"], dist: "IVECO ARAÇ SANAYİ VE TİC. A.Ş." },
-        { markalar: ["KIA"], dist: "ÇELİK MOTOR TİC. A.Ş." },
-        { markalar: ["LEXUS", "TOYOTA"], dist: "TOYOTA TÜRKİYE PAZARLAMA VE SATIŞ A.Ş." },
-        { markalar: ["MITSUBISHI"], dist: "TEMSA MOTORLU ARAÇLAR PAZARLAMA ve DAĞITIM A.Ş." },
-        { markalar: ["NISSAN"], dist: "NISSAN OTOMOTİV A.Ş." },
-        { markalar: ["OTOKAR"], dist: "OTOKAR OTOMOTİV VE SAVUNMA SANAYİ A.Ş." },
-        { markalar: ["SKODA"], dist: "YÜCE AUTO MOTORLU ARAÇLAR TİC. A.Ş." },
-        { markalar: ["SSANGYONG", "KGM"], dist: "ŞAHSUVAROĞLU İTHALAT İHRACAT OTOMOTİV SAN. A.Ş." },
-        { markalar: ["SUBARU"], dist: "BAYTUR MOTORLU VASITALAR TİC. A.Ş." },
-        { markalar: ["SUZUKI"], dist: "SUZUKİ MOTORLU ARAÇLAR PAZARLAMA A.Ş." },
-        { markalar: ["TENAX"], dist: "MARMARA NOVA OTOMOTİV SAN. VE TİC. A.Ş." },
-        { markalar: ["VOLVO"], dist: "VOLVO CAR TURKEY OTOMOBİL LTD. ŞTİ." }
-    ];
-
-    let distributor = "";
-    let distFound = false;
-    const cleanInputMarka = cleanText(ilkArac.marka);
-    if (cleanInputMarka) {
-        for (let i = 0; i < distribList.length; i++) {
-            if (distribList[i].markalar.some(m => {
-                const cm = cleanText(m);
-                return cleanInputMarka.includes(cm) || cm.includes(cleanInputMarka);
-            })) {
-                distributor = distribList[i].dist;
-                distFound = true;
-                break;
-            }
-        }
-    }
-    if (!distFound) distributor = ".......................................................";
-
-    // --- YAZI NUMARALARI VE TARİHLER (OTOMATİK VE SİGORTALI) ---
-    let sasiTemiz = (ilkArac.sasi || "").toUpperCase().trim();
-    let yaziNo1 = String(ilkArac.kiymetYaziNo1 || ilkArac.yaziNo1 || ilkArac.dosyaNo || "").trim();
-    let yaziNo2 = String(ilkArac.kiymetYaziNo2 || ilkArac.yaziNo2 || "").trim();
-
-    // Akıllı Sigorta: Eğer araçta henüz kayıtlı değilse bilinen şasilere otomatik ata
-    if (!yaziNo1) {
-        if (sasiTemiz.includes("WUAZZZGYXTA500259")) yaziNo1 = "E-32531729-100-00127042666";
-        else if (sasiTemiz.includes("ZFF13DMB900336617") || sasiTemiz.includes("ZFF17AMB000339344")) yaziNo1 = "E-32531729-100-00127053212";
-    }
-
-    let yaziTarihi1 = ilkArac.kiymVv || ilkArac.kiymGt || (yaziNo1 ? "02.10.2026" : "................");
-    let yaziTarihi2 = ilkArac.kiymetTekitTarih || ilkArac.tekitTarih || "..../..../........";
+    const { distributor, distFound } = window.findDistributorByBrand(ilkArac.marka, cleanStr);
+    const { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2 } = window.getKiymetYaziBilgileri(ilkArac);
 
     // 1. VERİ HAZIRLIĞI
     let veri = {
@@ -20775,7 +20762,7 @@ window.renderDilekceContent = function() {
         fark: formatPara(farkBedeli),
         distributor: distributor,
         distFound: distFound,
-        kiymetTarihi: ilkArac.kiymGt || "................",
+        kiymetTarihi: yaziTarih1 || "................",
         tescilTarihi: ilkArac.tarih || "................",
         beynmCifTarihi: ilkArac.beynmCif || "................",
         gtip: ilkArac.gtip || "8704.21.31.00.00",
@@ -20783,11 +20770,11 @@ window.renderDilekceContent = function() {
     };
 
     // --- FİRMA VE İMZA YETKİLİSİ EŞLEŞTİRMESİ ---
-    let cFirma = cleanText(veri.firmaAdi);
+    let cFirma = cleanStr(veri.firmaAdi);
     if (cFirma.includes("SAMNU")) {
         veri.firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ";
         veri.imzaYetkilisi = "FEVZİ ALPER TAVMAN";
-    } else if (cFirma.includes("FFOTOMOTIV")) {
+    } else if (cFirma.includes("FF")) {
         veri.firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş";
         veri.imzaYetkilisi = "Fatih İsmail ÇEBİ";
     } else if (cFirma.includes("KARABAYIR")) {
@@ -20827,7 +20814,7 @@ window.renderDilekceContent = function() {
             </div>
         `;
     } 
-    // ── 2. CEVAPSIZ KIYMET DİLEKÇESİ (KESİNLİKLE KTM YAZILMAZ) ──
+    // ── 2. Cevapsız Kıymet Dilekçesi ──
     else if (tip === "KTMCEVAP") {
         icerik = `
             <div class="belge-kapsayici" style="margin-top: 90px;">
@@ -20836,7 +20823,7 @@ window.renderDilekceContent = function() {
                     Konu: Kıymet yazısına distribütör tarafından cevap verilmemesi nedeniyle ithalat işlemlerinin devam ettirilmesi talebi.
                 </div>
                 <p class="belge-paragraf">
-                    Şirketimiz <b>${veri.firmaAdi}</b> ithalatına konu olan aşağıdaki araçla ilgili Yeşilköy Gümrük Müdürlüğü'nüzce düzenlenen kıymet yazısına (Bilgi Belge talebi) İlgili distribütör tarafından cevap verilmemiştir.
+                    Şirketimiz <b>${veri.firmaAdi}</b> ithalatına konu olan aşağıdaki araçla ilgili Yeşilköy Gümrük Müdürlüğü'nüzce düzenlenen kıymet yazısına (Bilgi Belge talebi) üretici firma <b>${veri.marka}</b> Türkiye distribütörü <b>${veri.distributor}</b> tarafından yasal süresi içerisinde cevap verilmemiştir.
                 </p>
                 <div style="font-weight: bold; margin: 15px 0 6px 0;">İşlem Bilgileri:</div>
                 <div style="margin-left: 20px; margin-bottom: 15px;">
@@ -20846,8 +20833,8 @@ window.renderDilekceContent = function() {
                 </div>
                 <div style="font-weight: bold; margin: 15px 0 6px 0;">Kıymet Yazısı Numaraları:</div>
                 <div style="margin-left: 20px; margin-bottom: 15px;">
-                    <div style="margin-bottom: 4px;">&bull; 1. Yazı: <span contenteditable="true" class="editable-field">${yaziNo1 ? `${yaziNo1} (${yaziTarihi1})` : 'E-........................-100-........................ (..../..../........)'}</span></div>
-                    <div style="margin-bottom: 4px;">&bull; 2. Yazı (Tekit): <span contenteditable="true" class="editable-field">${yaziNo2 ? `${yaziNo2} (${yaziTarihi2})` : 'E-........................-100-........................ (..../..../........)'}</span></div>
+                    <div style="margin-bottom: 4px;">&bull; 1. Kıymet Yazısı: <span contenteditable="true" class="editable-field">${yaziNo1 || 'E-........................-100-........................'} (${yaziTarih1 || '..../..../........'})</span></div>
+                    <div style="margin-bottom: 4px;">&bull; 2. Kıymet Tekit Yazısı: <span contenteditable="true" class="editable-field">${yaziNo2 || 'E-........................-100-........................'} (${yaziTarih2 || '..../..../........'})</span></div>
                 </div>
                 <p class="belge-paragraf">
                     Distribütörün cevap vermemesi nedeniyle oluşan gecikmeden kaynaklanan her türlü ceza, faiz ve idari yaptırımı ve sonradan gelecek kıymete göre doğabilecek farklara ait sorumlulukları peşinen kabul ve taahhüt etmekteyiz.
