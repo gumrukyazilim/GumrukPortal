@@ -3580,7 +3580,7 @@ div[style*="position: relative"] > input {
             <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
             <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
 			<option value="KIYMET">💶 Kıymet Dilekçesi</option>
-			<option value="KTMCEVAP">📨 Kıymet Cevapsız Dilekçesi</option>
+			<option value="KTMCEVAP">📨 Cevapsız Kıymet Dilekçesi</option>
 			<option value="MOTORNO">🔧 Motor Numarası Dilekçesi</option>
 			<option value="TASFIYE">⚖️ Tasfiye (CIF %1) Dilekçesi</option>
             </select>
@@ -3645,7 +3645,7 @@ div[style*="position: relative"] > input {
         <label for="dilekce-sablon-secici" style="font-weight:700; font-size:12px; color:var(--accent); letter-spacing:0.5px; text-transform:uppercase;">DİLEKÇE ŞABLONU:</label>
         <select id="dilekce-sablon-secici" class="field-select" style="width:100%; max-width:320px; font-size:13.5px; font-weight:600; padding:9px 12px; border-radius:8px; margin:0;" onchange="window.dilekceSablonDegistir(this.value)">
             <option value="kiymet_farki">1. Kıymet Farkı (GK 234)</option>
-            <option value="cevapsiz_kiymet">2. Cevapsız Kıymet (KTM)</option>
+            <option value="cevapsiz_kiymet">2. Cevapsız Kıymet</option>
             <option value="tse_kontrol">3. TSE Saha Kontrol İzni</option>
             <option value="bursa_tse">4. Bursa TSE Sevk Talebi</option>
             <option value="tasfiye_cif">5. Tasfiye (CIF %1)</option>
@@ -4192,6 +4192,8 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0;"><label>Beyanname CIF</label><input type="date" id="da-beynmCif" onchange="window.declAutoCalc()"></div>
                     <div class="input-group" style="margin:0;"><label>Kıymet V. T.</label><input type="date" id="da-kiymVv" onchange="window.declAutoCalc(); window.kiymVvKontrol();"></div>
                     <div class="input-group" style="margin:0;"><label>Kıymet G. T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc(); window.kiymetTarihKontrol();"></div>
+                    <div class="input-group" style="margin:0;"><label>1. Kıymet Yazı No / Sayı</label><input type="text" id="da-kiymetYaziNo1" placeholder="E-32531729-100-00127042666"></div>
+                    <div class="input-group" style="margin:0;"><label>2. Kıymet Tekit Yazı No</label><input type="text" id="da-kiymetYaziNo2" placeholder="E-32531729-100-00128014521"></div>
                 </div>
             </div>
 
@@ -14234,7 +14236,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
         
         if(idx===-1||!d){
-            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
+            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim','kiymetYaziNo1','kiymetYaziNo2'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
             if(document.getElementById('da-tarih')){let _n=new Date();document.getElementById('da-tarih').value=`${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;}
             if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value='Açık';
             let defFirm=ctx==='firm'?window.currentFirm:(window.getActiveFirmNames()[0]||'');
@@ -14247,7 +14249,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         else{
             if(document.getElementById('da-firma')) document.getElementById('da-firma').value=d.firma||'';
             if(document.getElementById('da-firma-search')) document.getElementById('da-firma-search').value=d.firma||'';
-            ['marka','model','yil','renk','gonderici','gtip','brut','net','teslim','beyanname','ozetBeyan','fatura','kiymet'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
+            ['marka','model','yil','renk','gonderici','gtip','brut','net','teslim','beyanname','ozetBeyan','fatura','kiymet','kiymetYaziNo1','kiymetYaziNo2'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
             if(document.getElementById('da-sase')) document.getElementById('da-sase').value=d.sasi||'';
             if(document.getElementById('da-evrakLink')) document.getElementById('da-evrakLink').value=d.evrakLink||'';
 setTimeout(function(){ window.loadPhotoGallery(); }, 500);
@@ -16472,6 +16474,8 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
         beynmCif:fD(val('da-beynmCif')),
         kiymVv:fD(val('da-kiymVv')),
         kiymGt:fD(val('da-kiymGt')),
+        kiymetYaziNo1:val('da-kiymetYaziNo1'),
+        kiymetYaziNo2:val('da-kiymetYaziNo2'),
         kapanisTarih:kapanisTarih,
         evrak:yeniEvrak,
         teslim:val('da-teslim'), 
@@ -19152,7 +19156,7 @@ window.dilekcelerInit = function(){
     const keys = Object.keys(window.DILEKCE_SABLONLARI);
     const etiketler = {
         kiymet_farki: '1. Kıymet Farkı (GK 234)',
-        cevapsiz_kiymet: '2. Cevapsız Kıymet (KTM)',
+        cevapsiz_kiymet: '2. Cevapsız Kıymet',
         tse_kontrol: '3. TSE Saha Kontrol İzni',
         bursa_tse: '4. Bursa TSE Sevk Talebi',
         tasfiye_cif: '5. Tasfiye (CIF %1)',
@@ -20817,7 +20821,7 @@ window.renderDilekceContent = function() {
                     Gümrük Müdürlüğünüzde işlem gören <b>${veri.beyanname}</b> tescil numaralı beyanname kapsamındaki <b>${veri.sasi}</b> şasi numaralı <b>${veri.marka} ${veri.model}</b> model aracın gümrük kıymeti, tarafımızca <b>${veri.fatura} €</b> olarak beyan edilmiştir.
                 </p>
                 <p class="belge-paragraf">
-                    Ancak, üretici firma <b>${veri.marka}</b> Türkiye distribütörü ${veri.distFound ? `<b>${veri.distributor}</b>` : `<span contenteditable="true" class="editable-field">${veri.distributor}</span>`} tarafından düzenlenen <b>${veri.kiymetTarihi}</b> tarihli ve Dosya No: <span contenteditable="true" class="editable-field">E-........................</span> sayılı yazıya istinaden; aracın toplam kıymetinin <b>${veri.kiymet} €</b> olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
+                    Ancak, üretici firma <b>${veri.marka}</b> Türkiye distribütörü ${veri.distFound ? `<b>${veri.distributor}</b>` : `<span contenteditable="true" class="editable-field">${veri.distributor}</span>`} tarafından düzenlenen <b>${veri.kiymetTarihi}</b> tarihli ve Dosya No: ${ilkArac.kiymetYaziNo1 ? `<b>${ilkArac.kiymetYaziNo1}</b>` : `<span contenteditable="true" class="editable-field">E-........................</span>`} sayılı yazıya istinaden; aracın toplam kıymetinin <b>${veri.kiymet} €</b> olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
                 </p>
                 <p class="belge-paragraf">
                     İlk beyanımız ile güncel kıymet arasındaki <b>${veri.fark} €</b> tutarındaki fark nedeniyle doğacak ek gümrük vergilerini ve 4458 sayılı Gümrük Kanunu’nun 234. maddesi uyarınca uygulanacak idari para cezasını peşinen kabul ettiğimizi bildiririz.
@@ -20851,8 +20855,8 @@ window.renderDilekceContent = function() {
                 </div>
                 <div style="font-weight: bold; margin: 15px 0 6px 0;">Kıymet Yazısı Numaraları:</div>
                 <div style="margin-left: 20px; margin-bottom: 15px;">
-                    <div style="margin-bottom: 4px;">&bull; <span contenteditable="true" class="editable-field">E-........................-100-........................ (..../..../........)</span></div>
-                    <div style="margin-bottom: 4px;">&bull; <span contenteditable="true" class="editable-field">E-........................-100-........................ (..../..../........)</span></div>
+                    <div style="margin-bottom: 4px;">&bull; 1. Yazı: <span contenteditable="true" class="editable-field">${ilkArac.kiymetYaziNo1 || 'E-........................-100-........................'} (${ilkArac.kiymVv || '..../..../........'})</span></div>
+                    <div style="margin-bottom: 4px;">&bull; 2. Yazı (Tekit): <span contenteditable="true" class="editable-field">${ilkArac.kiymetYaziNo2 || 'E-........................-100-........................'} (${ilkArac.kiymGt || '..../..../........'})</span></div>
                 </div>
                 <p class="belge-paragraf">
                     Distribütörün cevap vermemesi nedeniyle oluşan gecikmeden kaynaklanan her türlü ceza, faiz ve idari yaptırımı ve sonradan gelecek kıymete göre doğabilecek farklara ait sorumlulukları peşinen kabul ve taahhüt etmekteyiz.
