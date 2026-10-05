@@ -12417,6 +12417,8 @@ if(role !== 'admin' && !yetkiler.izleyici && (d.firma || '').toLocaleUpperCase('
                         <span style="margin:0 8px;">·</span>${d.tarih||'-'}
                         ${d.beyanname?'<span style="margin:0 8px;">·</span>Byn: '+d.beyanname:''}
                     </div>
+                    ${d.kiymetYaziNo1?`<div style="font-size:11px;color:var(--text-secondary);margin-top:5px;">1. Kıymet Yazı No: ${String(d.kiymetYaziNo1).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</div>`:''}
+                    ${d.kiymetYaziNo2?`<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">2. Kıymet Tekit No: ${String(d.kiymetYaziNo2).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</div>`:''}
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
                     ${evBadge}
@@ -13511,6 +13513,7 @@ document.addEventListener('click', function(e) {
 
     window.renderDeclarationsTable=function(){
     let tbody=document.getElementById('declarations-tbody');if(!tbody)return;
+    const escapeVehicleText=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     let role = localStorage.getItem('gumruk_role') || 'admin';
     let isAdmin = role === 'admin' || window.isSuperViewer;
     let fv=document.getElementById('decl-status-filter')?.value||'all';
@@ -13593,7 +13596,7 @@ document.addEventListener('click', function(e) {
         
         return `<tr class="${finalRowClass}" data-gun="${gunFarki}" onclick="if(!event.target.closest('button, input, a, .inline-date')) window.openDeclVehicleModal(${i}, 'decl')" style="cursor: pointer;" title="Detayları görmek için tıklayın">
             <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb decl-cb" value="${i}" onclick="window.toggleDeclCb()"></td>
-            <td><span class="font-bold" style="color:var(--text-primary);">${d.firma||'-'}</span><br><span style="font-size:11px;color:var(--text-muted);">${d.marka||''} ${d.model||''} (${d.yil||'-'})</span>${modelUyari}${window.renderEvrakBadges(d, i, 'decl')}</td>
+            <td><span class="font-bold" style="color:var(--text-primary);">${escapeVehicleText(d.firma||'-')}</span><br><span style="font-size:11px;color:var(--text-muted);">${escapeVehicleText(d.marka||'')} ${escapeVehicleText(d.model||'')} (${escapeVehicleText(d.yil||'-')})</span>${d.kiymetYaziNo1?`<br><span style="font-size:10px;color:var(--text-secondary);">1. Kıymet Yazı No: ${escapeVehicleText(d.kiymetYaziNo1)}</span>`:''}${d.kiymetYaziNo2?`<br><span style="font-size:10px;color:var(--text-secondary);">2. Kıymet Tekit No: ${escapeVehicleText(d.kiymetYaziNo2)}</span>`:''}${modelUyari}${window.renderEvrakBadges(d, i, 'decl')}</td>
             <td><span class="sasi-no">${d.sasi||'-'}</span></td>
             <td class="inline-date" ${isAdmin ? `onclick="window.inlineEditDate(this,${i},'tarih')"` : ''}>${d.tarih||'-'}</td>
             <td style="color:var(--warning);">${m.ilkSureSonu||'-'}</td>
@@ -14030,7 +14033,7 @@ window.renderEvrakBadges = function(d, idx, ctx) {
             const k=(window.kiymetData||[]).find(item=>String(item.sasi||'').trim().toUpperCase()===String(d.sasi||'').trim().toUpperCase());
             return `<tr class="${isAcik?'row-acik':'row-kapali'}" onclick="if(!event.target.closest('button,input,a,.evrak-badge'))${rowClick}" style="cursor:pointer;">
                 <td style="text-align:center;" class="admin-only"><input type="checkbox" class="custom-cb firm-cb" value="${idx}" onclick="event.stopPropagation();window.toggleFirmCb()"></td>
-                <td><span class="font-bold" style="color:var(--text-primary);">${esc(d.marka||'-')} ${esc(d.model||'-')}</span><div style="margin-top:4px;">${statusBadge}</div>${window.renderEvrakBadges(d,idx,'firm')}</td>
+                <td><span class="font-bold" style="color:var(--text-primary);">${esc(d.marka||'-')} ${esc(d.model||'-')}</span>${d.kiymetYaziNo1?`<div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">1. Kıymet Yazı No: ${esc(d.kiymetYaziNo1)}</div>`:''}${d.kiymetYaziNo2?`<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">2. Kıymet Tekit No: ${esc(d.kiymetYaziNo2)}</div>`:''}<div style="margin-top:4px;">${statusBadge}</div>${window.renderEvrakBadges(d,idx,'firm')}</td>
                 <td>${esc(d.yil||'-')}</td>
                 <td>${esc(d.renk||'-')}</td>
                 <td><span class="sasi-no">${esc(d.sasi||'-')}</span></td>
@@ -20855,8 +20858,8 @@ window.renderDilekceContent = function() {
                 </div>
                 <div style="font-weight: bold; margin: 15px 0 6px 0;">Kıymet Yazısı Numaraları:</div>
                 <div style="margin-left: 20px; margin-bottom: 15px;">
-                    <div style="margin-bottom: 4px;">&bull; 1. Yazı: <span contenteditable="true" class="editable-field">${ilkArac.kiymetYaziNo1 || 'E-........................-100-........................'} (${ilkArac.kiymVv || '..../..../........'})</span></div>
-                    <div style="margin-bottom: 4px;">&bull; 2. Yazı (Tekit): <span contenteditable="true" class="editable-field">${ilkArac.kiymetYaziNo2 || 'E-........................-100-........................'} (${ilkArac.kiymGt || '..../..../........'})</span></div>
+                    <div style="margin-bottom: 4px;">&bull; 1. Yazı: <span contenteditable="true" class="editable-field">${ilkArac.kiymetYaziNo1 || 'E-........................-100-........................'} (${ilkArac.kiymVv || ilkArac.kiymGt || '..../..../........'})</span></div>
+                    <div style="margin-bottom: 4px;">&bull; 2. Yazı (Tekit): <span contenteditable="true" class="editable-field">${ilkArac.kiymetYaziNo2 || 'E-........................-100-........................'} (..../..../........)</span></div>
                 </div>
                 <p class="belge-paragraf">
                     Distribütörün cevap vermemesi nedeniyle oluşan gecikmeden kaynaklanan her türlü ceza, faiz ve idari yaptırımı ve sonradan gelecek kıymete göre doğabilecek farklara ait sorumlulukları peşinen kabul ve taahhüt etmekteyiz.
