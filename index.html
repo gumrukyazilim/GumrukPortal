@@ -20665,6 +20665,10 @@ window.renderDilekceContent = function() {
 
     let tip = tipEl.value;
     let ilkArac = items[0];
+    let yaziNo1 = String(ilkArac.kiymetYaziNo1 || ilkArac.yaziNo1 || '').trim();
+    let yaziNo2 = String(ilkArac.kiymetYaziNo2 || ilkArac.yaziNo2 || '').trim();
+    let tarih1 = ilkArac.kiymVv || ilkArac.kiymGt || ilkArac.tarih || '................';
+    let tarih2 = ilkArac.kiymetTekitTarih || ilkArac.tekitTarih || '..../..../........';
 
     // --- KIYMET VE FATURA HESAPLAMALARI ---
     let faturaBedeli = parseFloat(String(ilkArac.fatura || 0).replace(/\./g, '').replace(',', '.')) || 0;
@@ -20704,10 +20708,20 @@ window.renderDilekceContent = function() {
         { markalar: ["GMC"], dist: "Tur Oto Pazarlama Ticaret A.Ş." }
     ];
 
+    function normMarka(s) {
+        return String(s || '').toUpperCase()
+            .replace(/İ/g, 'I').replace(/ı/g, 'I')
+            .replace(/Ş/g, 'S').replace(/ş/g, 'S')
+            .replace(/Ğ/g, 'G').replace(/ğ/g, 'G')
+            .replace(/Ü/g, 'U').replace(/ü/g, 'U')
+            .replace(/Ö/g, 'O').replace(/ö/g, 'O')
+            .replace(/Ç/g, 'C').replace(/ç/g, 'C')
+            .replace(/[^A-Z0-9]/g, '').trim();
+    }
     let distributor = ""; let found = false;
-    let markaUpper = (ilkArac.marka || "").toUpperCase();
+    let markaNorm = normMarka(ilkArac.marka);
     for (let i = 0; i < distribList.length; i++) {
-        if (distribList[i].markalar.some(m => markaUpper.includes(m))) {
+        if (distribList[i].markalar.some(m => markaNorm.includes(normMarka(m)))) {
             distributor = distribList[i].dist; found = true; break;
         }
     }
@@ -20721,6 +20735,7 @@ window.renderDilekceContent = function() {
         marka: ilkArac.marka || "........",
         model: ilkArac.model || "................",
         sasi: ilkArac.sasi || "...................",
+        kiymetYaziNo1: yaziNo1,
         sasiListesi: items.map(x => x.sasi || '...................').join(', '),
         fatura: formatPara(faturaBedeli),
         kiymet: formatPara(kiymetBedeli),
@@ -20824,7 +20839,7 @@ window.renderDilekceContent = function() {
                     Gümrük Müdürlüğünüzde işlem gören <b>${veri.beyanname}</b> tescil numaralı beyanname kapsamındaki <b>${veri.sasi}</b> şasi numaralı <b>${veri.marka} ${veri.model}</b> model aracın gümrük kıymeti, tarafımızca <b>${veri.fatura} €</b> olarak beyan edilmiştir.
                 </p>
                 <p class="belge-paragraf">
-                    Ancak, üretici firma <b>${veri.marka}</b> Türkiye distribütörü ${veri.distFound ? `<b>${veri.distributor}</b>` : `<span contenteditable="true" class="editable-field">${veri.distributor}</span>`} tarafından düzenlenen <b>${veri.kiymetTarihi}</b> tarihli ve Dosya No: ${ilkArac.kiymetYaziNo1 ? `<b>${ilkArac.kiymetYaziNo1}</b>` : `<span contenteditable="true" class="editable-field">E-........................</span>`} sayılı yazıya istinaden; aracın toplam kıymetinin <b>${veri.kiymet} €</b> olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
+                    Ancak, üretici firma <b>${veri.marka}</b> Türkiye distribütörü ${veri.distFound ? `<b>${veri.distributor}</b>` : `<span contenteditable="true" class="editable-field">${veri.distributor}</span>`} tarafından düzenlenen <b>${veri.kiymetTarihi}</b> tarihli ve Dosya No: ${veri.kiymetYaziNo1 ? `<b>${veri.kiymetYaziNo1}</b>` : `<span contenteditable="true" class="editable-field">${yaziNo1 || 'E-........................'}</span>`} sayılı yazıya istinaden; aracın toplam kıymetinin <b>${veri.kiymet} €</b> olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
                 </p>
                 <p class="belge-paragraf">
                     İlk beyanımız ile güncel kıymet arasındaki <b>${veri.fark} €</b> tutarındaki fark nedeniyle doğacak ek gümrük vergilerini ve 4458 sayılı Gümrük Kanunu’nun 234. maddesi uyarınca uygulanacak idari para cezasını peşinen kabul ettiğimizi bildiririz.
@@ -20858,8 +20873,8 @@ window.renderDilekceContent = function() {
                 </div>
                 <div style="font-weight: bold; margin: 15px 0 6px 0;">Kıymet Yazısı Numaraları:</div>
                 <div style="margin-left: 20px; margin-bottom: 15px;">
-                    <div style="margin-bottom: 4px;">&bull; 1. Yazı: <span contenteditable="true" class="editable-field">${ilkArac.kiymetYaziNo1 || 'E-........................-100-........................'} (${ilkArac.kiymVv || ilkArac.kiymGt || '..../..../........'})</span></div>
-                    <div style="margin-bottom: 4px;">&bull; 2. Yazı (Tekit): <span contenteditable="true" class="editable-field">${ilkArac.kiymetYaziNo2 || 'E-........................-100-........................'} (..../..../........)</span></div>
+                    <div style="margin-bottom: 4px;">&bull; 1. Yazı: <span contenteditable="true" class="editable-field">${yaziNo1 ? `${yaziNo1} (${tarih1})` : 'E-........................-100-........................ (..../..../........)'}</span></div>
+                    <div style="margin-bottom: 4px;">&bull; 2. Yazı (Tekit): <span contenteditable="true" class="editable-field">${yaziNo2 ? `${yaziNo2} (${tarih2})` : 'E-........................-100-........................ (..../..../........)'}</span></div>
                 </div>
                 <p class="belge-paragraf">
                     Distribütörün cevap vermemesi nedeniyle oluşan gecikmeden kaynaklanan her türlü ceza, faiz ve idari yaptırımı ve sonradan gelecek kıymete göre doğabilecek farklara ait sorumlulukları peşinen kabul ve taahhüt etmekteyiz.
