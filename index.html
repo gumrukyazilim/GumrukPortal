@@ -18435,13 +18435,13 @@ window.cleanBrand = function(str) {
             .replace(/Ç/g, "C").replace(/ç/g, "C")
             .toUpperCase().trim();
 };
-window.findDistributorByBrand = function(brand, normalizer = window.cleanBrand) {
+window.findDistributor = function(marka) {
     const distribList = [
         { markalar: ["GMC", "CADILLAC", "CADİLLAC", "CHEVROLET", "CHEVY", "CORVETTE"], dist: "Tur Oto Pazarlama Ticaret A.Ş." },
         { markalar: ["AUDI", "AUDİ", "BENTLEY", "CUPRA", "LAMBORGHINI", "LAMBORGHİNİ", "PORSCHE", "SEAT", "VOLKSWAGEN", "VW"], dist: "DOĞUŞ OTOMOTİV SERVİS VE TİC. A.Ş." },
         { markalar: ["FERRARI", "FERRARİ", "MASERATI", "MASERATİ"], dist: "FER MAS OTO TİCARET A.Ş." },
         { markalar: ["BMW", "MINI", "MİNİ", "ROLLS-ROYCE", "ROLLS ROYCE"], dist: "BORUSAN OTOMOTİV İTHALAT VE DAĞITIM A.Ş." },
-        { markalar: ["JAGUAR", "LAND ROVER", "RANGE ROVER", "DEFENDER", "DISCOVERY"], dist: "BORUSAN OTOMOTİV PAZARLAMA VE TİCARET A.Ş." },
+        { markalar: ["JAGUAR", "LAND ROVER", "RANGE ROVER", "LAND ROWER", "DEFENDER", "DISCOVERY"], dist: "BORUSAN OTOMOTİV PAZARLAMA VE TİCARET A.Ş." },
         { markalar: ["MERCEDES", "MERCEDES-BENZ", "SMART"], dist: "MERCEDES-BENZ OTOMOTİV TİCARET VE HİZMETLERİ A.Ş." },
         { markalar: ["APRILIA", "MG", "MOTO GUZZI", "PIAGGIO", "SILENCE", "VESPA", "KYMCO"], dist: "DOĞAN TREND OTOMOTİV TİC. HİZMET VE TEKNOLOJİ A.Ş." },
         { markalar: ["ASTON MARTIN"], dist: "D ve D MOTORLU ARAÇLAR A.Ş." },
@@ -18466,15 +18466,20 @@ window.findDistributorByBrand = function(brand, normalizer = window.cleanBrand) 
         { markalar: ["TENAX"], dist: "MARMARA NOVA OTOMOTİV SAN. VE TİC. A.Ş." },
         { markalar: ["VOLVO"], dist: "VOLVO CAR TURKEY OTOMOBİL LTD. ŞTİ." }
     ];
-    const cleanInputMarka = normalizer(brand);
-    if (!cleanInputMarka) return { distributor: '.......................................................', distFound: false };
+    const cleanInputMarka = window.cleanBrand(marka);
+    if (!cleanInputMarka) return '.......................................................';
     for (let i = 0; i < distribList.length; i++) {
         if (distribList[i].markalar.some(m => {
-            const cm = normalizer(m);
+            const cm = window.cleanBrand(m);
             return cleanInputMarka.includes(cm) || cm.includes(cleanInputMarka);
-        })) return { distributor: distribList[i].dist, distFound: true };
+        })) return distribList[i].dist;
     }
-    return { distributor: '.......................................................', distFound: false };
+    return '.......................................................';
+};
+// Eski çağrıların veri biçimini korur; eşleşme yalnız ortak motorda yapılır.
+window.findDistributorByBrand = function(brand) {
+    const distributor = window.findDistributor(brand);
+    return { distributor: distributor, distFound: distributor !== '.......................................................' };
 };
 window.getKiymetYaziBilgileri = function(arac) {
     const d = arac || {};
@@ -18523,7 +18528,8 @@ window.dilekceKIYMETViaGAS = async function() {
     else if (cFirma.includes("SANDIKCI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
 
     // Distribütör eşleşmesi ekrandaki dilekçe motoruyla aynı normalizasyonu kullanır.
-    let { distributor, distFound } = window.findDistributorByBrand(ilkArac.marka, cleanStr);
+    let distributor = window.findDistributor(ilkArac.marka);
+    const distFound = distributor !== '.......................................................';
     const yaziBilgileri = window.getKiymetYaziBilgileri(ilkArac);
 
     // Ekrandaki düzenlenebilir alanları oku (imza-yetkili'yi hariç tutuyoruz)
@@ -18635,7 +18641,7 @@ window.dilekceKTMCEVAPViaGAS = async function() {
 
     // Ekrandaki düzenlenebilir kıymet yazısı satırlarını oku (imza hariç)
     const editables = document.querySelectorAll('#dilekce-print-area .editable-field:not(.imza-yetkili)');
-    const { distributor } = window.findDistributorByBrand(ilkArac.marka, cleanStr);
+    const distributor = window.findDistributor(ilkArac.marka);
     const { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2 } = window.getKiymetYaziBilgileri(ilkArac);
     const kiymetYazilari = [
         `${yaziNo1 || 'E-........................-100-........................'} (${yaziTarih1 || '..../..../........'})`,
@@ -19037,6 +19043,8 @@ Saygılarımızla,
       { id: "beyanname", etiket: "Gümrük Beyanname No" },
       { id: "tarih", etiket: "Tarih", tip: "date" },
       { id: "sasi", etiket: "Şasi No" },
+      { id: "marka", etiket: "Marka" },
+      { id: "distributor", etiket: "Türkiye Distribütörü" },
       { id: "kiymet_yazi_no", etiket: "Kıymet Yazısı Numarası" },
       { id: "imza", etiket: "İmza Yetkilisi" }
     ],
@@ -19044,7 +19052,7 @@ Saygılarımızla,
 
 Konu: Kıymet yazısına distribütör tarafından cevap verilmemesi nedeniyle ithalat işlemlerinin devam ettirilmesi talebi.
 
-Şirketimiz {{FIRMA}} ithalatına konu olan aşağıdaki araçla ilgili Yeşilköy Gümrük Müdürlüğü'nüzce düzenlenen kıymet yazısına (Bilgi Belge talebi) İlgili distribütör tarafından cevap verilmemiştir.
+Şirketimiz {{FIRMA}} ithalatına konu olan aşağıdaki araçla ilgili Yeşilköy Gümrük Müdürlüğü'nüzce düzenlenen kıymet yazısına (Bilgi Belge talebi) üretici firma {{MARKA}} Türkiye distribütörü {{DISTRIBUTOR}} tarafından yasal süresi içerisinde cevap verilmemiştir.
 
 İşlem Bilgileri:
 ● Gümrük Beyanname No: {{BEYANNAME}}
@@ -19198,7 +19206,7 @@ Muayene Memuru              Muayene Memuru              Muayene Memuru`
 };
 
 // Bilinen firma → imza yetkilisi (öneri; kullanıcı değiştirebilir)
-window._dlkImzaHarita = { "ŞAMNU":"FEVZİ ALPER TAVMAN", "FF OTOMOT":"FATİH İSMAİL ÇEBİ", "KARABAYIR":"BEHLÜL TÜREL", "SANDIKÇI":"HARUN SANDIKÇI" };
+window._dlkImzaHarita = { "ŞAMNU":"FEVZİ ALPER TAVMAN", "FF OTOMOT":"Fatih İsmail ÇEBİ", "KARABAYIR":"BEHLÜL TÜREL", "SANDIKÇI":"HARUN SANDIKÇI" };
 
 // Sayı ayrıştırıcı (TR biçimi: 1.234,56 veya düz 102000)
 window._dlkNum = function(v){
@@ -19271,6 +19279,8 @@ window.dilekceAracSecildi = function(idx){
             el.value = d[vk];
         }
     });
+    const distributorEl = document.getElementById('dlk-f-distributor');
+    if(distributorEl) distributorEl.value = window.findDistributor(d.marka);
     // Geçici Ambara Giriş Tarihi (Bursa TSE vb.): aracın antrepo/geliş tarihini
     // otomatik ata. Portal tarihleri TR (GG.AA.YYYY) → date input için ISO'ya çevir.
     const girisEl = document.getElementById('dlk-f-giris_tarihi');
@@ -19343,7 +19353,13 @@ window.dilekceSablonSec = function(key){
         if(a.hesaplanan) return;
         const el = document.getElementById('dlk-f-' + a.id);
         if(!el) return;
-        el.addEventListener('input', window.dilekceOnizleGuncelle);
+        el.addEventListener('input', function(){
+            if(a.id === 'marka'){
+                const distributorEl = document.getElementById('dlk-f-distributor');
+                if(distributorEl) distributorEl.value = window.findDistributor(el.value);
+            }
+            window.dilekceOnizleGuncelle();
+        });
         if(a.id === 'firma'){
             el.addEventListener('change', function(){
                 const imzaEl = document.getElementById('dlk-f-imza');
@@ -19358,7 +19374,9 @@ window.dilekceSablonSec = function(key){
         }
     });
 
-    window.dilekceOnizleGuncelle();
+    const aracSecici = document.getElementById('dlk-arac-sec');
+    if(aracSecici && aracSecici.value !== '') window.dilekceAracSecildi(aracSecici.value);
+    else window.dilekceOnizleGuncelle();
 };
 window.dilekceSablonDegistir = function(key){ window.dilekceSablonSec(key); };
 
@@ -19381,6 +19399,13 @@ window.dilekceHtmlUret = function(key){
         const el = document.getElementById('dlk-f-' + a.id);
         raw[a.id] = el ? (el.value || '').trim() : '';
     });
+
+    // Boş distribütör alanını ortak motordan tamamla; elle girilen değeri koru.
+    if(alanTip.distributor && !raw.distributor){
+        raw.distributor = window.findDistributor(raw.marka);
+        const distributorEl = document.getElementById('dlk-f-distributor');
+        if(distributorEl) distributorEl.value = raw.distributor;
+    }
 
     // Hesaplanan: fark = tespit kıymet - beyan fatura (para biçimi)
     if(alanTip.fark && alanTip.fark.hesaplanan){
@@ -20745,7 +20770,8 @@ window.renderDilekceContent = function() {
     let farkBedeli = Math.abs(kiymetBedeli - faturaBedeli);
     let formatPara = (num) => Number(num).toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-    const { distributor, distFound } = window.findDistributorByBrand(ilkArac.marka, cleanStr);
+    const distributor = window.findDistributor(ilkArac.marka);
+    const distFound = distributor !== '.......................................................';
     const { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2 } = window.getKiymetYaziBilgileri(ilkArac);
 
     // 1. VERİ HAZIRLIĞI
