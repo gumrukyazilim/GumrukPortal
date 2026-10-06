@@ -4194,6 +4194,7 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0;"><label>Kıymet G. T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc(); window.kiymetTarihKontrol();"></div>
                     <div class="input-group" style="margin:0;"><label>1. Kıymet Yazı No / Sayı</label><input type="text" id="da-kiymetYaziNo1" placeholder="E-32531729-100-00127042666"></div>
                     <div class="input-group" style="margin:0;"><label>2. Kıymet Tekit Yazı No</label><input type="text" id="da-kiymetYaziNo2" placeholder="E-32531729-100-00128014521"></div>
+                    <div class="input-group" style="margin:0;"><label>3. Kıymet Gelen Cevap No</label><input type="text" id="da-kiymetGelenCevap" placeholder="E-32531729-100-..."></div>
                 </div>
             </div>
 
@@ -14239,7 +14240,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
         
         if(idx===-1||!d){
-            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim','kiymetYaziNo1','kiymetYaziNo2'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
+            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim','kiymetYaziNo1','kiymetYaziNo2','kiymetGelenCevap'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
             if(document.getElementById('da-tarih')){let _n=new Date();document.getElementById('da-tarih').value=`${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;}
             if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value='Açık';
             let defFirm=ctx==='firm'?window.currentFirm:(window.getActiveFirmNames()[0]||'');
@@ -14252,7 +14253,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         else{
             if(document.getElementById('da-firma')) document.getElementById('da-firma').value=d.firma||'';
             if(document.getElementById('da-firma-search')) document.getElementById('da-firma-search').value=d.firma||'';
-            ['marka','model','yil','renk','gonderici','gtip','brut','net','teslim','beyanname','ozetBeyan','fatura','kiymet','kiymetYaziNo1','kiymetYaziNo2'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
+            ['marka','model','yil','renk','gonderici','gtip','brut','net','teslim','beyanname','ozetBeyan','fatura','kiymet','kiymetYaziNo1','kiymetYaziNo2','kiymetGelenCevap'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value=d[id]||'';});
             if(document.getElementById('da-sase')) document.getElementById('da-sase').value=d.sasi||'';
             if(document.getElementById('da-evrakLink')) document.getElementById('da-evrakLink').value=d.evrakLink||'';
 setTimeout(function(){ window.loadPhotoGallery(); }, 500);
@@ -16479,6 +16480,7 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
         kiymGt:fD(val('da-kiymGt')),
         kiymetYaziNo1:val('da-kiymetYaziNo1'),
         kiymetYaziNo2:val('da-kiymetYaziNo2'),
+        kiymetGelenCevap:val('da-kiymetGelenCevap'),
         kapanisTarih:kapanisTarih,
         evrak:yeniEvrak,
         teslim:val('da-teslim'), 
@@ -18495,7 +18497,8 @@ window.getKiymetYaziBilgileri = function(arac) {
         if (!yaziNo1) yaziNo1 = "E-32531729-100-00127053212";
         if (!yaziTarih1 || yaziTarih1.includes("....")) yaziTarih1 = "02.10.2026";
     }
-    return { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2 };
+    const gelenCevap = String(d.kiymetGelenCevap || "").trim();
+    return { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2, gelenCevap };
 };
 window.dilekceKIYMETViaGAS = async function() {
     function cleanStr(str) {
@@ -18537,7 +18540,7 @@ window.dilekceKIYMETViaGAS = async function() {
     //   - Distribütör bulunmadıysa: editables[0] = distributor (manuel), editables[1] = dosya no
     //   - Distribütör bulunduysa:   editables[0] = dosya no
     const editables = document.querySelectorAll('#dilekce-print-area .editable-field:not(.imza-yetkili)');
-    let dosyaNo = yaziBilgileri.yaziNo1 || "E-........................";
+    let dosyaNo = yaziBilgileri.gelenCevap || yaziBilgileri.yaziNo1 || "E-........................";
     if (distFound) {
         if (editables[0] && editables[0].textContent.trim()) dosyaNo = editables[0].textContent.trim();
     } else {
@@ -18557,8 +18560,8 @@ window.dilekceKIYMETViaGAS = async function() {
     }
 
     // Para formatı (renderDilekceContent ile aynı)
-    const fatura = parseFloat(String(ilkArac.fatura || 0).replace(/\./g, '').replace(',', '.')) || 0;
-    const kiymet = parseFloat(String(ilkArac.kiymet || 0).replace(/\./g, '').replace(',', '.')) || 0;
+    const fatura = window._dlkNum(ilkArac.fatura);
+    const kiymet = window._dlkNum(ilkArac.kiymet);
     const fark = Math.abs(kiymet - fatura);
     const formatPara = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -19041,11 +19044,13 @@ Saygılarımızla,
     alanlar: [
       { id: "firma", etiket: "İthalatçı Firma" },
       { id: "beyanname", etiket: "Gümrük Beyanname No" },
-      { id: "tarih", etiket: "Tarih", tip: "date" },
       { id: "sasi", etiket: "Şasi No" },
       { id: "marka", etiket: "Marka" },
       { id: "distributor", etiket: "Türkiye Distribütörü" },
-      { id: "kiymet_yazi_no", etiket: "Kıymet Yazısı Numarası" },
+      { id: "kiymet_yazi_no_1", domId: "dilekce-yazi-no-1", etiket: "1. Kıymet Yazı No" },
+      { id: "kiymet_yazi_tarih_1", etiket: "1. Kıymet Yazı Tarihi", tip: "date" },
+      { id: "kiymet_yazi_no_2", domId: "dilekce-yazi-no-2", etiket: "2. Kıymet Tekit Yazı No" },
+      { id: "kiymet_yazi_tarih_2", etiket: "2. Kıymet Tekit Yazı Tarihi", tip: "date" },
       { id: "imza", etiket: "İmza Yetkilisi" }
     ],
     metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE
@@ -19054,13 +19059,15 @@ Konu: Kıymet yazısına distribütör tarafından cevap verilmemesi nedeniyle i
 
 Şirketimiz {{FIRMA}} ithalatına konu olan aşağıdaki araçla ilgili Yeşilköy Gümrük Müdürlüğü'nüzce düzenlenen kıymet yazısına (Bilgi Belge talebi) üretici firma {{MARKA}} Türkiye distribütörü {{DISTRIBUTOR}} tarafından yasal süresi içerisinde cevap verilmemiştir.
 
-İşlem Bilgileri:
+Araç Bilgileri:
 ● Gümrük Beyanname No: {{BEYANNAME}}
-● Tarih: {{TARIH}}
 ● Şasi No: {{SASI}}
 
 Kıymet Yazısı Numaraları:
-● {{KIYMET_YAZI_NO}} - Distribütörün cevap vermemesi nedeniyle oluşan gecikmeden kaynaklanan her türlü ceza, faiz ve idari yaptırımı ve sonradan gelecek kıymete göre doğabilecek farklara ait sorumlulukları peşinen kabul ve taahhüt etmekteyiz.
+● 1. Kıymet Yazısı: {{KIYMET_YAZI_NO_1}} ({{KIYMET_YAZI_TARIH_1}})
+● 2. Kıymet Tekit Yazısı: {{KIYMET_YAZI_NO_2}} ({{KIYMET_YAZI_TARIH_2}})
+
+Distribütörün cevap vermemesi nedeniyle oluşan gecikmeden kaynaklanan her türlü ceza, faiz ve idari yaptırımı ve sonradan gelecek kıymete göre doğabilecek farklara ait sorumlulukları peşinen kabul ve taahhüt etmekteyiz.
 
 Bu nedenle, ithalat işlemlerimizin bir an önce tamamlanmasını arz ederiz.
 
@@ -19222,6 +19229,13 @@ window._dlkDate = function(v){
     let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
     return m ? (m[3] + '.' + m[2] + '.' + m[1]) : v;
 };
+window._dlkAlanId = function(alan){ return alan.domId || ('dlk-f-' + alan.id); };
+window._dlkIsoDate = function(value){
+    const str = String(value || '').trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    const match = /^(\d{1,2})[./](\d{1,2})[./](\d{4})$/.exec(str);
+    return match ? match[3] + '-' + match[2].padStart(2,'0') + '-' + match[1].padStart(2,'0') : '';
+};
 window.dilekcelerInit = function(){
     const secici = document.getElementById('dilekce-sablon-secici');
     if(!secici) return;
@@ -19270,17 +19284,28 @@ window.dilekceAracSecildi = function(idx){
     const esle = {
         sasi: 'sasi', marka: 'marka', model: 'model',
         beyanname: 'beyanname', fatura: 'fatura', firma: 'firma',
-        yil: 'yil', ozetBeyan: 'mrn'
+        yil: 'yil', ozetBeyan: 'mrn', kiymet: 'kiymet'
     };
     Object.keys(esle).forEach(function(vk){
         const alanId = esle[vk];
         const el = document.getElementById('dlk-f-' + alanId);
-        if(el && d[vk] !== undefined && d[vk] !== null && (''+d[vk]).trim() !== ''){
-            el.value = d[vk];
-        }
+        if(el) el.value = d[vk] == null ? '' : d[vk];
     });
     const distributorEl = document.getElementById('dlk-f-distributor');
     if(distributorEl) distributorEl.value = window.findDistributor(d.marka);
+    const yazi = window.getKiymetYaziBilgileri(d);
+    const yaziAlanlari = {
+        'dilekce-yazi-no-1': yazi.yaziNo1,
+        'dilekce-yazi-no-2': yazi.yaziNo2,
+        'dlk-f-kiymet_yazi_tarih_1': window._dlkIsoDate(yazi.yaziTarih1),
+        'dlk-f-kiymet_yazi_tarih_2': window._dlkIsoDate(yazi.yaziTarih2),
+        'dlk-f-dosya_no': yazi.gelenCevap || yazi.yaziNo1,
+        'dlk-f-kiymet_tarihi': window._dlkIsoDate(yazi.yaziTarih1)
+    };
+    Object.keys(yaziAlanlari).forEach(function(id){
+        const el = document.getElementById(id);
+        if(el) el.value = yaziAlanlari[id];
+    });
     // Geçici Ambara Giriş Tarihi (Bursa TSE vb.): aracın antrepo/geliş tarihini
     // otomatik ata. Portal tarihleri TR (GG.AA.YYYY) → date input için ISO'ya çevir.
     const girisEl = document.getElementById('dlk-f-giris_tarihi');
@@ -19334,7 +19359,7 @@ window.dilekceSablonSec = function(key){
     const firmalar = window.getActiveFirmNames();
 
     formEl.innerHTML = s.alanlar.map(function(a){
-        const idAttr = 'dlk-f-' + a.id;
+        const idAttr = window._dlkAlanId(a);
         if(a.hesaplanan){
             return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'" class="dlk-hesap" readonly placeholder="otomatik hesaplanır"></div>';
         }
@@ -19351,7 +19376,7 @@ window.dilekceSablonSec = function(key){
     // Dinleyiciler
     s.alanlar.forEach(function(a){
         if(a.hesaplanan) return;
-        const el = document.getElementById('dlk-f-' + a.id);
+        const el = document.getElementById(window._dlkAlanId(a));
         if(!el) return;
         el.addEventListener('input', function(){
             if(a.id === 'marka'){
@@ -19396,7 +19421,7 @@ window.dilekceHtmlUret = function(key){
 
     const raw = {};
     s.alanlar.forEach(function(a){
-        const el = document.getElementById('dlk-f-' + a.id);
+        const el = document.getElementById(window._dlkAlanId(a));
         raw[a.id] = el ? (el.value || '').trim() : '';
     });
 
@@ -19409,8 +19434,8 @@ window.dilekceHtmlUret = function(key){
 
     // Hesaplanan: fark = tespit kıymet - beyan fatura (para biçimi)
     if(alanTip.fark && alanTip.fark.hesaplanan){
-        const fark = window._dlkNum(raw.kiymet) - window._dlkNum(raw.fatura);
-        raw.fark = fark ? window._dlkPara(fark) : '';
+        const fark = Math.abs(window._dlkNum(raw.kiymet) - window._dlkNum(raw.fatura));
+        raw.fark = (raw.kiymet !== '' || raw.fatura !== '') ? window._dlkPara(fark) : '';
         const fe = document.getElementById('dlk-f-fark');
         if(fe) fe.value = raw.fark;
     }
@@ -19427,7 +19452,10 @@ window.dilekceHtmlUret = function(key){
     const sub = function(text){
         return text.replace(/\{\{(\w+)\}\}/g, function(m, p){
             const id = p.toLowerCase(); const v = disp[id];
-            return (v !== undefined && v !== '') ? v : '..........';
+            if(v !== undefined && v !== '') return v;
+            if(id === 'kiymet_yazi_no_1' || id === 'kiymet_yazi_no_2') return 'E-........................';
+            if(id === 'kiymet_yazi_tarih_1' || id === 'kiymet_yazi_tarih_2') return '..../..../........';
+            return '..........';
         });
     };
 
@@ -20765,14 +20793,14 @@ window.renderDilekceContent = function() {
     let ilkArac = items[0];
 
     // --- KIYMET VE FATURA HESAPLAMALARI ---
-    let faturaBedeli = parseFloat(String(ilkArac.fatura || 0).replace(/\./g, '').replace(',', '.')) || 0;
-    let kiymetBedeli = parseFloat(String(ilkArac.kiymet || 0).replace(/\./g, '').replace(',', '.')) || 0;
+    let faturaBedeli = window._dlkNum(ilkArac.fatura);
+    let kiymetBedeli = window._dlkNum(ilkArac.kiymet);
     let farkBedeli = Math.abs(kiymetBedeli - faturaBedeli);
     let formatPara = (num) => Number(num).toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
     const distributor = window.findDistributor(ilkArac.marka);
     const distFound = distributor !== '.......................................................';
-    const { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2 } = window.getKiymetYaziBilgileri(ilkArac);
+    const { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2, gelenCevap } = window.getKiymetYaziBilgileri(ilkArac);
 
     // 1. VERİ HAZIRLIĞI
     let veri = {
@@ -20824,7 +20852,7 @@ window.renderDilekceContent = function() {
                     Gümrük Müdürlüğünüzde işlem gören <b>${veri.beyanname}</b> tescil numaralı beyanname kapsamındaki <b>${veri.sasi}</b> şasi numaralı <b>${veri.marka} ${veri.model}</b> model aracın gümrük kıymeti, tarafımızca <b>${veri.fatura} €</b> olarak beyan edilmiştir.
                 </p>
                 <p class="belge-paragraf">
-                    Ancak, üretici firma <b>${veri.marka}</b> Türkiye distribütörü ${veri.distFound ? `<b>${veri.distributor}</b>` : `<span contenteditable="true" class="editable-field">${veri.distributor}</span>`} tarafından düzenlenen <b>${veri.kiymetTarihi}</b> tarihli ve Dosya No: <span contenteditable="true" class="editable-field">${yaziNo1 || 'E-........................'}</span> sayılı yazıya istinaden; aracın toplam kıymetinin <b>${veri.kiymet} €</b> olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
+                    Ancak, üretici firma <b>${veri.marka}</b> Türkiye distribütörü ${veri.distFound ? `<b>${veri.distributor}</b>` : `<span contenteditable="true" class="editable-field">${veri.distributor}</span>`} tarafından düzenlenen <b>${veri.kiymetTarihi}</b> tarihli ve Dosya No: <span contenteditable="true" class="editable-field">${gelenCevap || yaziNo1 || 'E-........................'}</span> sayılı yazıya istinaden; aracın toplam kıymetinin <b>${veri.kiymet} €</b> olduğu tespit edilmiştir. İşlemlerde bu güncel kıymetin esas alınmasını talep ediyoruz.
                 </p>
                 <p class="belge-paragraf">
                     İlk beyanımız ile güncel kıymet arasındaki <b>${veri.fark} €</b> tutarındaki fark nedeniyle doğacak ek gümrük vergilerini ve 4458 sayılı Gümrük Kanunu’nun 234. maddesi uyarınca uygulanacak idari para cezasını peşinen kabul ettiğimizi bildiririz.
@@ -20851,10 +20879,9 @@ window.renderDilekceContent = function() {
                 <p class="belge-paragraf">
                     Şirketimiz <b>${veri.firmaAdi}</b> ithalatına konu olan aşağıdaki araçla ilgili Yeşilköy Gümrük Müdürlüğü'nüzce düzenlenen kıymet yazısına (Bilgi Belge talebi) üretici firma <b>${veri.marka}</b> Türkiye distribütörü <b>${veri.distributor}</b> tarafından yasal süresi içerisinde cevap verilmemiştir.
                 </p>
-                <div style="font-weight: bold; margin: 15px 0 6px 0;">İşlem Bilgileri:</div>
+                <div style="font-weight: bold; margin: 15px 0 6px 0;">Araç Bilgileri:</div>
                 <div style="margin-left: 20px; margin-bottom: 15px;">
                     <div style="margin-bottom: 4px;">&bull; Gümrük Beyanname No: <b>${veri.beyanname}</b></div>
-                    <div style="margin-bottom: 4px;">&bull; Tarih: <b>${veri.beynmCifTarihi}</b></div>
                     <div style="margin-bottom: 4px;">&bull; Şasi No: <b>${veri.sasi}</b></div>
                 </div>
                 <div style="font-weight: bold; margin: 15px 0 6px 0;">Kıymet Yazısı Numaraları:</div>
