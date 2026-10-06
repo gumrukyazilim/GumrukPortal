@@ -18278,6 +18278,22 @@ window.sheetseSenkronArkaPlanda = function() {
 // SÜRE DİLEKÇESİ - GAS üzerinden PDF üretici
 // Mobil/PC fark etmez, jet siyah yazı, Google Docs şablonu kullanır
 // ═══════════════════════════════════════════════════════════════════
+// Resmî firma unvanı ve yetkili: tüm dilekçe ekranları ile PDF servisleri ortaktır.
+window.getFirmaDetay = function(firmaGirdi){
+    const f = String(firmaGirdi || '').toUpperCase();
+    const fClean = f.replace(/İ/g,'I').replace(/ı/g,'I').replace(/Ş/g,'S')
+        .replace(/Ğ/g,'G').replace(/Ü/g,'U').replace(/Ö/g,'O').replace(/Ç/g,'C');
+    if(fClean.includes('SAMNU')){
+        return { tamUnvan: 'ŞAMNU GT MOTORLU ARAÇLAR SAN VE TİC LTD ŞTİ', imzaYetkilisi: 'FEVZİ ALPER TAVMAN' };
+    } else if(fClean.includes('FF')){
+        return { tamUnvan: 'FF OTOMOTİV SAN VE TİC A.Ş', imzaYetkilisi: 'Fatih İsmail ÇEBİ' };
+    } else if(fClean.includes('KARABAYIR')){
+        return { tamUnvan: 'KARABAYIR OTOMOTİV TİC. LTD. ŞTİ.', imzaYetkilisi: 'BEHLÜL TÜREL' };
+    } else if(fClean.includes('SANDIKCI')){
+        return { tamUnvan: 'SANDIKÇI OTO SAN VE TİC LTD.ŞTİ', imzaYetkilisi: 'HARUN SANDIKÇI' };
+    }
+    return { tamUnvan: firmaGirdi || '.......................................................', imzaYetkilisi: '........................' };
+};
 window.dilekceSureViaGAS = async function() {
     const items = window.currentDilekceItems || [];
     if (items.length === 0) {
@@ -18287,26 +18303,9 @@ window.dilekceSureViaGAS = async function() {
 
     const ilkArac = items[0];
 
-    // Firma & imza yetkilisi mantığı (mevcut renderDilekceContent ile aynı)
-    let firmaAdi = ilkArac.firma || "........................";
-    let imzaYetkilisi = "........................";
-    let fUst = firmaAdi.toUpperCase();
-    
-    if (fUst.includes("ŞAMNU")) { 
-        firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; 
-        imzaYetkilisi = "FEVZİ ALPER TAVMAN"; 
-    }
-    else if (fUst.includes("FF OTOMOTİV")) { 
-        firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; 
-        imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; 
-    }
-    else if (fUst.includes("KARABAYIR")) { 
-        imzaYetkilisi = "BEHLÜL TÜREL"; 
-    }
-    else if (fUst.includes("SANDIKÇI")) { 
-        firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; 
-        imzaYetkilisi = "HARUN SANDIKÇI"; 
-    }
+    const firmaBilgi = window.getFirmaDetay(ilkArac.firma);
+    let firmaAdi = firmaBilgi.tamUnvan;
+    let imzaYetkilisi = firmaBilgi.imzaYetkilisi;
 
     // Payload hazırla
     const payload = {
@@ -18369,11 +18368,8 @@ window.dilekceGMCViaGAS = async function() {
 
     const ilkArac = items[0];
 
-    let firmaAdi = ilkArac.firma || "........................";
-    let fUst = firmaAdi.toUpperCase();
-    if (fUst.includes("ŞAMNU")) firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ";
-    else if (fUst.includes("FF OTOMOTİV")) firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş";
-    else if (fUst.includes("SANDIKÇI")) firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ";
+    const firmaBilgi = window.getFirmaDetay(ilkArac.firma);
+    let firmaAdi = firmaBilgi.tamUnvan;
 
     // Ekrandaki düzenlenebilir alanlardan dingiller ve taban değerlerini OKU
     const editables = document.querySelectorAll('#dilekce-print-area .editable-field');
@@ -18501,17 +18497,6 @@ window.getKiymetYaziBilgileri = function(arac) {
     return { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2, gelenCevap };
 };
 window.dilekceKIYMETViaGAS = async function() {
-    function cleanStr(str) {
-        if (!str) return "";
-        return String(str)
-            .replace(/İ/g, "I").replace(/ı/g, "I").replace(/i/g, "I")
-            .replace(/Ş/g, "S").replace(/ş/g, "S")
-            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
-            .replace(/Ü/g, "U").replace(/ü/g, "U")
-            .replace(/Ö/g, "O").replace(/ö/g, "O")
-            .replace(/Ç/g, "C").replace(/ç/g, "C")
-            .toUpperCase().trim();
-    }
 
     const items = window.currentDilekceItems || [];
     if (items.length === 0) {
@@ -18521,14 +18506,9 @@ window.dilekceKIYMETViaGAS = async function() {
 
     const ilkArac = items[0];
 
-    // Firma & imza yetkilisi
-    let firmaAdi = ilkArac.firma || "........................";
-    let imzaYetkilisi = "........................";
-    let cFirma = cleanStr(firmaAdi);
-    if (cFirma.includes("SAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
-    else if (cFirma.includes("FF")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "Fatih İsmail ÇEBİ"; }
-    else if (cFirma.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
-    else if (cFirma.includes("SANDIKCI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+    const firmaBilgi = window.getFirmaDetay(ilkArac.firma);
+    let firmaAdi = firmaBilgi.tamUnvan;
+    let imzaYetkilisi = firmaBilgi.imzaYetkilisi;
 
     // Distribütör eşleşmesi ekrandaki dilekçe motoruyla aynı normalizasyonu kullanır.
     let distributor = window.findDistributor(ilkArac.marka);
@@ -18613,17 +18593,6 @@ window.dilekceKIYMETViaGAS = async function() {
 // Kıymet dilekçesiyle aynı altyapı: mobil/PC fark etmez, Google Docs şablonu
 // ═══════════════════════════════════════════════════════════════════
 window.dilekceKTMCEVAPViaGAS = async function() {
-    function cleanStr(str) {
-        if (!str) return "";
-        return String(str)
-            .replace(/İ/g, "I").replace(/ı/g, "I").replace(/i/g, "I")
-            .replace(/Ş/g, "S").replace(/ş/g, "S")
-            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
-            .replace(/Ü/g, "U").replace(/ü/g, "U")
-            .replace(/Ö/g, "O").replace(/ö/g, "O")
-            .replace(/Ç/g, "C").replace(/ç/g, "C")
-            .toUpperCase().trim();
-    }
 
     const items = window.currentDilekceItems || [];
     if (items.length === 0) {
@@ -18633,14 +18602,9 @@ window.dilekceKTMCEVAPViaGAS = async function() {
 
     const ilkArac = items[0];
 
-    // Firma & imza yetkilisi (diğer dilekçelerle aynı eşleme)
-    let firmaAdi = ilkArac.firma || "........................";
-    let imzaYetkilisi = "........................";
-    let cFirma = cleanStr(firmaAdi);
-    if (cFirma.includes("SAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
-    else if (cFirma.includes("FF")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "Fatih İsmail ÇEBİ"; }
-    else if (cFirma.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
-    else if (cFirma.includes("SANDIKCI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+    const firmaBilgi = window.getFirmaDetay(ilkArac.firma);
+    let firmaAdi = firmaBilgi.tamUnvan;
+    let imzaYetkilisi = firmaBilgi.imzaYetkilisi;
 
     // Ekrandaki düzenlenebilir kıymet yazısı satırlarını oku (imza hariç)
     const editables = document.querySelectorAll('#dilekce-print-area .editable-field:not(.imza-yetkili)');
@@ -18715,14 +18679,9 @@ window.dilekceMOTORNOViaGAS = async function() {
 
     const ilkArac = items[0];
 
-    // Firma & imza yetkilisi (diğer dilekçelerle aynı eşleme)
-    let firmaAdi = ilkArac.firma || "........................";
-    let imzaYetkilisi = "........................";
-    let fUst = firmaAdi.toUpperCase();
-    if (fUst.includes("ŞAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
-    else if (fUst.includes("FF OTOMOTİV")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; }
-    else if (fUst.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
-    else if (fUst.includes("SANDIKÇI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+    const firmaBilgi = window.getFirmaDetay(ilkArac.firma);
+    let firmaAdi = firmaBilgi.tamUnvan;
+    let imzaYetkilisi = firmaBilgi.imzaYetkilisi;
 
     // Motor numarası ekrandan (tek elle girilen alan)
     const motorEl = document.querySelector('#dilekce-print-area .motor-no-alani');
@@ -18791,14 +18750,9 @@ window.dilekceTASFIYEViaGAS = async function() {
 
     const ilkArac = items[0];
 
-    // Firma & imza yetkilisi (diğer dilekçelerle aynı eşleme)
-    let firmaAdi = ilkArac.firma || "........................";
-    let imzaYetkilisi = "........................";
-    let fUst = firmaAdi.toUpperCase();
-    if (fUst.includes("ŞAMNU")) { firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ"; imzaYetkilisi = "FEVZİ ALPER TAVMAN"; }
-    else if (fUst.includes("FF OTOMOTİV")) { firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş"; imzaYetkilisi = "FATİH İSMAİL ÇEBİ"; }
-    else if (fUst.includes("KARABAYIR")) { imzaYetkilisi = "BEHLÜL TÜREL"; }
-    else if (fUst.includes("SANDIKÇI")) { firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ"; imzaYetkilisi = "HARUN SANDIKÇI"; }
+    const firmaBilgi = window.getFirmaDetay(ilkArac.firma);
+    let firmaAdi = firmaBilgi.tamUnvan;
+    let imzaYetkilisi = firmaBilgi.imzaYetkilisi;
 
     // İmza yetkilisi ekrandan değiştirilmiş olabilir
     const imzaEl = document.querySelector('#dilekce-print-area .imza-yetkili.editable-field');
@@ -19213,7 +19167,10 @@ Muayene Memuru              Muayene Memuru              Muayene Memuru`
 };
 
 // Bilinen firma → imza yetkilisi (öneri; kullanıcı değiştirebilir)
-window._dlkImzaHarita = { "ŞAMNU":"FEVZİ ALPER TAVMAN", "FF OTOMOT":"Fatih İsmail ÇEBİ", "KARABAYIR":"BEHLÜL TÜREL", "SANDIKÇI":"HARUN SANDIKÇI" };
+window._dlkImzaHarita = {};
+['ŞAMNU','FF OTOMOT','KARABAYIR','SANDIKÇI'].forEach(function(firma){
+    window._dlkImzaHarita[firma] = window.getFirmaDetay(firma).imzaYetkilisi;
+});
 
 // Türkçe para: binlik nokta, ondalık virgül ve mevcut sayısal kayıtları okur.
 window.parseParaTR = function(val){
@@ -19336,14 +19293,11 @@ window.dilekceAracSecildi = function(idx){
             beyanTarihiEl.value = /^\d{4}-\d{2}-\d{2}$/.test(beyanTarihi) ? beyanTarihi : ((typeof window.trToIso === 'function') ? (window.trToIso(beyanTarihi) || beyanTarihi) : beyanTarihi);
         }
     }
-    // imza otomatik (firma bilindiyse)
+    const firmaBilgi = window.getFirmaDetay(d.firma);
+    const firmaEl = document.getElementById('dlk-f-firma');
+    if(firmaEl) firmaEl.value = firmaBilgi.tamUnvan;
     const imzaEl = document.getElementById('dlk-f-imza');
-    if(imzaEl && !imzaEl.value && d.firma){
-        const fUst = (''+d.firma).toUpperCase();
-        Object.keys(window._dlkImzaHarita).forEach(function(anahtar){
-            if(fUst.includes(anahtar)) imzaEl.value = window._dlkImzaHarita[anahtar];
-        });
-    }
+    if(imzaEl) imzaEl.value = firmaBilgi.imzaYetkilisi === '........................' ? '' : firmaBilgi.imzaYetkilisi;
     window.dilekceOnizleGuncelle();
 };
 
@@ -19401,13 +19355,10 @@ window.dilekceSablonSec = function(key){
         if(a.id === 'firma'){
             el.addEventListener('change', function(){
                 const imzaEl = document.getElementById('dlk-f-imza');
-                if(imzaEl && !imzaEl.value){
-                    const fUst = (el.value || '').toUpperCase();
-                    Object.keys(window._dlkImzaHarita).forEach(function(anahtar){
-                        if(fUst.includes(anahtar)) imzaEl.value = window._dlkImzaHarita[anahtar];
-                    });
-                    window.dilekceOnizleGuncelle();
-                }
+                const firmaBilgi = window.getFirmaDetay(el.value);
+                el.value = firmaBilgi.tamUnvan;
+                if(imzaEl) imzaEl.value = firmaBilgi.imzaYetkilisi === '........................' ? '' : firmaBilgi.imzaYetkilisi;
+                window.dilekceOnizleGuncelle();
             });
         }
     });
@@ -19437,6 +19388,17 @@ window.dilekceHtmlUret = function(key){
         const el = document.getElementById(window._dlkAlanId(a));
         raw[a.id] = el ? (el.value || '').trim() : '';
     });
+
+    // Firma metni ve imza aynı resmî unvanı kullanır; bilinmeyen firma için elle imza girilebilir.
+    if(alanTip.firma){
+        const firmaBilgi = window.getFirmaDetay(raw.firma);
+        raw.firma = firmaBilgi.tamUnvan;
+        if(alanTip.imza && firmaBilgi.imzaYetkilisi !== '........................'){
+            raw.imza = firmaBilgi.imzaYetkilisi;
+            const imzaEl = document.getElementById('dlk-f-imza');
+            if(imzaEl) imzaEl.value = raw.imza;
+        }
+    }
 
     // Boş distribütör alanını ortak motordan tamamla; elle girilen değeri koru.
     if(alanTip.distributor && !raw.distributor){
@@ -20783,17 +20745,6 @@ window.autoSaveArdiyeToDrive = function(r) {
 
 // ================= EVRAK İÇERİĞİ OLUŞTURMA MOTORU (TAM DÜZELTİLMİŞ) =================
 window.renderDilekceContent = function() {
-    function cleanStr(str) {
-        if (!str) return "";
-        return String(str)
-            .replace(/İ/g, "I").replace(/ı/g, "I").replace(/i/g, "I")
-            .replace(/Ş/g, "S").replace(/ş/g, "S")
-            .replace(/Ğ/g, "G").replace(/ğ/g, "G")
-            .replace(/Ü/g, "U").replace(/ü/g, "U")
-            .replace(/Ö/g, "O").replace(/ö/g, "O")
-            .replace(/Ç/g, "C").replace(/ç/g, "C")
-            .toUpperCase().trim();
-    }
 
     if (window.warmupGAS) window.warmupGAS();
     let tipEl = document.getElementById('dilekce-tipi');
@@ -20816,9 +20767,10 @@ window.renderDilekceContent = function() {
     const { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2, gelenCevap } = window.getKiymetYaziBilgileri(ilkArac);
 
     // 1. VERİ HAZIRLIĞI
+    const firmaBilgi = window.getFirmaDetay(ilkArac.firma);
     let veri = {
-        firmaAdi: ilkArac.firma || "........................",
-        imzaYetkilisi: "........................",
+        firmaAdi: firmaBilgi.tamUnvan,
+        imzaYetkilisi: firmaBilgi.imzaYetkilisi,
         beyanname: ilkArac.beyanname || ilkArac.ozetBeyan || "......................",
         marka: ilkArac.marka || "........",
         model: ilkArac.model || "................",
@@ -20835,21 +20787,6 @@ window.renderDilekceContent = function() {
         gtip: ilkArac.gtip || "8704.21.31.00.00",
         yil: ilkArac.yil || "...."
     };
-
-    // --- FİRMA VE İMZA YETKİLİSİ EŞLEŞTİRMESİ ---
-    let cFirma = cleanStr(veri.firmaAdi);
-    if (cFirma.includes("SAMNU")) {
-        veri.firmaAdi = "ŞAMNU GT MOTORLU ARAÇLAR SAN.VE TİC.LTD.ŞTİ";
-        veri.imzaYetkilisi = "FEVZİ ALPER TAVMAN";
-    } else if (cFirma.includes("FF")) {
-        veri.firmaAdi = "FF OTOMOTİV SAN VE TİC A.Ş";
-        veri.imzaYetkilisi = "Fatih İsmail ÇEBİ";
-    } else if (cFirma.includes("KARABAYIR")) {
-        veri.imzaYetkilisi = "BEHLÜL TÜREL";
-    } else if (cFirma.includes("SANDIKCI")) {
-        veri.firmaAdi = "SANDIKÇI OTO SAN VE TİC LTD.ŞTİ";
-        veri.imzaYetkilisi = "HARUN SANDIKÇI";
-    }
 
     let icerik = "";
 
