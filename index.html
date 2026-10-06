@@ -18560,8 +18560,8 @@ window.dilekceKIYMETViaGAS = async function() {
     }
 
     // Para formatı (renderDilekceContent ile aynı)
-    const fatura = window._dlkNum(ilkArac.fatura);
-    const kiymet = window._dlkNum(ilkArac.kiymet);
+    const fatura = window.parseParaTR(ilkArac.fatura);
+    const kiymet = window.parseParaTR(ilkArac.kiymet);
     const fark = Math.abs(kiymet - fatura);
     const formatPara = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -19215,14 +19215,27 @@ Muayene Memuru              Muayene Memuru              Muayene Memuru`
 // Bilinen firma → imza yetkilisi (öneri; kullanıcı değiştirebilir)
 window._dlkImzaHarita = { "ŞAMNU":"FEVZİ ALPER TAVMAN", "FF OTOMOT":"Fatih İsmail ÇEBİ", "KARABAYIR":"BEHLÜL TÜREL", "SANDIKÇI":"HARUN SANDIKÇI" };
 
-// Sayı ayrıştırıcı (TR biçimi: 1.234,56 veya düz 102000)
-window._dlkNum = function(v){
-    if(v==null) return 0;
-    let s = (''+v).replace(/[^0-9,.\-]/g,'').trim();
+// Türkçe para: binlik nokta, ondalık virgül ve mevcut sayısal kayıtları okur.
+window.parseParaTR = function(val){
+    if(typeof val === 'number') return Number.isFinite(val) ? val : 0;
+    if(val == null) return 0;
+    let s = String(val).replace(/[^0-9.,\-]/g, '').trim();
     if(!s) return 0;
-    if(s.indexOf(',') > -1) s = s.replace(/\./g,'').replace(',','.'); // virgül varsa nokta binlik
-    return parseFloat(s) || 0;
+    if(s.includes(',') && s.includes('.')){
+        s = s.replace(/\./g, '').replace(',', '.');
+    } else if(s.includes('.')){
+        const parts = s.split('.');
+        if(parts.length > 2 || (parts.length === 2 && parts[1].length === 3)){
+            s = s.replace(/\./g, '');
+        }
+    } else if(s.includes(',')){
+        s = s.replace(',', '.');
+    }
+    const number = Number(s);
+    return Number.isFinite(number) ? number : 0;
 };
+// Önceki yardımcı adı da aynı ayrıştırıcıyı kullanır.
+window._dlkNum = window.parseParaTR;
 // Tarih biçimi YYYY-MM-DD → DD.MM.YYYY
 window._dlkDate = function(v){
     if(!v) return '';
@@ -19408,7 +19421,7 @@ window.dilekceSablonDegistir = function(key){ window.dilekceSablonSec(key); };
 // HTML kaçış
 window._dlkEsc = function(s){ return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
 // Para biçimi: 100.000,00
-window._dlkPara = function(v){ return window._dlkNum(v).toLocaleString('tr-TR', { minimumFractionDigits:2, maximumFractionDigits:2 }); };
+window._dlkPara = function(v){ return window.parseParaTR(v).toLocaleString('tr-TR', { minimumFractionDigits:2, maximumFractionDigits:2 }); };
 // Bugünün tarihi GG.AA.YYYY
 window._dlkBugun = function(){ var d=new Date(); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); };
 
@@ -19434,7 +19447,7 @@ window.dilekceHtmlUret = function(key){
 
     // Hesaplanan: fark = tespit kıymet - beyan fatura (para biçimi)
     if(alanTip.fark && alanTip.fark.hesaplanan){
-        const fark = Math.abs(window._dlkNum(raw.kiymet) - window._dlkNum(raw.fatura));
+        const fark = Math.abs(window.parseParaTR(raw.kiymet) - window.parseParaTR(raw.fatura));
         raw.fark = (raw.kiymet !== '' || raw.fatura !== '') ? window._dlkPara(fark) : '';
         const fe = document.getElementById('dlk-f-fark');
         if(fe) fe.value = raw.fark;
@@ -20793,8 +20806,8 @@ window.renderDilekceContent = function() {
     let ilkArac = items[0];
 
     // --- KIYMET VE FATURA HESAPLAMALARI ---
-    let faturaBedeli = window._dlkNum(ilkArac.fatura);
-    let kiymetBedeli = window._dlkNum(ilkArac.kiymet);
+    let faturaBedeli = window.parseParaTR(ilkArac.fatura);
+    let kiymetBedeli = window.parseParaTR(ilkArac.kiymet);
     let farkBedeli = Math.abs(kiymetBedeli - faturaBedeli);
     let formatPara = (num) => Number(num).toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
