@@ -19050,7 +19050,7 @@ window.SAHIS_BILGE_ALANLARI = [
     {id:'anneKizlik', domId:'sahis-anne-kizlik', etiket:'Anne Kızlık Soyadı', varsayilan:'....................'},
     {id:'tel', domId:'sahis-tel', etiket:'Telefon No', varsayilan:'....................'},
     {id:'mail', domId:'sahis-mail', etiket:'E-Posta (Mail)', varsayilan:'....................'},
-    {id:'adres', domId:'sahis-adres', etiket:'İkamet / Tebligat Adresi', varsayilan:'Bahçeşehir 2. Kısım Mah. Şelale Cad. No:19 A / 9 Başakşehir / İSTANBUL'}
+    {id:'adres', domId:'sahis-adres', etiket:'İkamet / Tebligat Adresi', varsayilan:'........................................'}
 ];
 window.sahisBilgeVerisiniOku = function(){
     const s = {};
@@ -19062,16 +19062,16 @@ window.sahisBilgeVerisiniOku = function(){
 };
 window.sahisBilgeHtmlUret = function(s, modern){
     const esc = window._dlkEsc;
-    const field = function(value){return '<span'+(modern ? '' : ' contenteditable="true" class="editable-field"')+' style="overflow-wrap:anywhere;">'+esc(value)+'</span>';};
+    const field = function(value, editable){return '<span'+(modern && !editable ? '' : ' contenteditable="true" class="editable-field"')+' style="overflow-wrap:anywhere;">'+esc(value)+'</span>';};
     let h = modern ? '<article class="dlk-document">' : '<div class="belge-kapsayici" style="margin-top:25px; font-family:Times New Roman,Times,serif; font-size:15px; color:#000; line-height:1.45;">';
     h += '<div class="'+(modern ? 'dlk-date-row' : 'sahis-date-row')+'" style="text-align:right; margin-bottom:25px; font-weight:bold; font-size:14.5px;">Tarih: '+esc(window._dlkBugun())+'</div>';
     h += '<div class="'+(modern ? 'dlk-addressee' : 'belge-baslik')+'" style="text-align:center; font-weight:bold; font-size:17px; margin-bottom:25px;">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE</div>';
     h += '<div class="'+(modern ? 'dlk-subject' : 'sahis-subject')+'" style="font-weight:bold; margin-bottom:20px; font-size:15px;">Konu: BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi Hk.</div>';
     h += '<p class="belge-paragraf" style="text-indent:35px; text-align:justify; margin-bottom:25px; font-size:15px; line-height:1.55;">Şahıs <b>'+field(s.adSoyad)+'</b> adına yapacağımız 4458 sayılı Gümrük Kanunu çerçevesindeki ithalat, ihracat, transit, dahilde işleme ve serbest bölge işlemlerine istinaden tarafımıza BİLGE kullanıcı kodu verilmesini ve YFKS tanımlamasının yapılmasını emir ve tensiplerinize arz ederiz.</p>';
     h += '<div class="belge-imza-alani" style="float:right; text-align:center; width:260px; max-width:100%; margin-top:10px; margin-bottom:30px; break-inside:avoid;"><p style="margin-bottom:8px;">Saygılarımızla,</p><p class="imza-isim" style="font-weight:bold; margin-bottom:4px;">'+field(s.adSoyad)+'</p></div><div style="clear:both;"></div>';
-    h += '<div style="margin-top:10px; font-size:13.5px; line-height:1.45; max-width:520px; text-align:left;"><div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px; text-decoration:underline;">ŞAHIS VE İLETİŞİM BİLGİLERİ:</div><div style="display:grid; grid-template-columns:max-content auto minmax(0,1fr); column-gap:5px; row-gap:5px; align-items:start;">';
+    h += '<div style="margin-top:10px; font-size:13.5px; line-height:1.45; max-width:520px; text-align:left;"><div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px; text-decoration:underline;">İLETİŞİM BİLGİLERİ:</div><div style="display:grid; grid-template-columns:max-content auto minmax(0,1fr); column-gap:5px; row-gap:5px; align-items:start;">';
     [['T.C. Kimlik No',s.tcNo],['Anne Kızlık Soyadı',s.anneKizlik],['Telefon',s.tel],['E-Posta (Mail)',s.mail],['Tebligat Adresi',s.adres]].forEach(function(row){
-        h += '<span style="font-weight:bold;">'+esc(row[0])+'</span><span>:</span><span style="min-width:0; overflow-wrap:anywhere;">'+field(row[1])+'</span>';
+        h += '<span style="font-weight:bold;">'+esc(row[0])+'</span><span>:</span><span style="min-width:0; overflow-wrap:anywhere;">'+field(row[1], row[0] === 'Tebligat Adresi')+'</span>';
     });
     h += '</div></div><div><div style="font-weight:bold; margin-bottom:6px; text-decoration:underline;">EKLER:</div>';
     ['Vekaletname','Kimlik Kopyası','İkametgâh Belgesi','Nüfus Kayıt Örneği'].forEach(function(e,i){h += '<div>'+(i+1)+'. '+esc(e)+'</div>';});
