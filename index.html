@@ -3579,6 +3579,7 @@ div[style*="position: relative"] > input {
         <select id="dilekce-tipi" onchange="window.renderDilekceContent()" class="btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); cursor:pointer; font-weight:bold; height:48px; outline:none; min-width:200px;">
             <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
             <option value="BILGE_YFKS">📑 BİLGE ve YFKS Süre Uzatımı Dilekçesi</option>
+            <option value="SAHIS_BILGE_YFKS">👤 Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi</option>
             <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
 			<option value="KIYMET">💶 Kıymet Dilekçesi</option>
 			<option value="KTMCEVAP">📨 Cevapsız Kıymet Dilekçesi</option>
@@ -3601,6 +3602,7 @@ div[style*="position: relative"] > input {
 </div>
     
     <section id="bilge-yfks-form-panel" class="card card-pad no-print hidden"></section>
+    <section id="sahis-bilge-form-panel" class="card card-pad no-print hidden"></section>
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in"></div>
 </template>
 <template id="tpl-firms">
@@ -3654,6 +3656,7 @@ div[style*="position: relative"] > input {
             <option value="sure_uzatimi">6. Süre Uzatımı (30 Gün)</option>
             <option value="gmc_chevrolet_tutanak">7. GMC-CHEVROLE Tutanak</option>
     <option value="BILGE_YFKS">8. BİLGE ve YFKS Süre Uzatımı Dilekçesi</option>
+    <option value="SAHIS_BILGE_YFKS">9. Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi</option>
         </select>
     </div>
 
@@ -19041,6 +19044,49 @@ window.bilgeLegacyFormHazirla = function(arac){
     window.BILGE_FORM_ALANLARI.forEach(function(a){document.getElementById(a.domId).addEventListener('input',window.renderDilekceContent);});
 };
 
+window.SAHIS_BILGE_ALANLARI = [
+    {id:'adSoyad', domId:'sahis-ad-soyad', etiket:'Şahıs Adı Soyadı', varsayilan:'........................................'},
+    {id:'tcNo', domId:'sahis-tc', etiket:'T.C. Kimlik No', varsayilan:'....................'},
+    {id:'anneKizlik', domId:'sahis-anne-kizlik', etiket:'Anne Kızlık Soyadı', varsayilan:'....................'},
+    {id:'tel', domId:'sahis-tel', etiket:'Telefon No', varsayilan:'....................'},
+    {id:'mail', domId:'sahis-mail', etiket:'E-Posta (Mail)', varsayilan:'....................'},
+    {id:'adres', domId:'sahis-adres', etiket:'İkamet / Tebligat Adresi', varsayilan:'Bahçeşehir 2. Kısım Mah. Şelale Cad. No:19 A / 9 Başakşehir / İSTANBUL'}
+];
+window.sahisBilgeVerisiniOku = function(){
+    const s = {};
+    window.SAHIS_BILGE_ALANLARI.forEach(function(a){
+        const el = document.getElementById(a.domId);
+        s[a.id] = el && el.value.trim() ? el.value.trim() : a.varsayilan;
+    });
+    return s;
+};
+window.sahisBilgeHtmlUret = function(s, modern){
+    const esc = window._dlkEsc;
+    const field = function(value){return '<span'+(modern ? '' : ' contenteditable="true" class="editable-field"')+' style="overflow-wrap:anywhere;">'+esc(value)+'</span>';};
+    let h = modern ? '<article class="dlk-document">' : '<div class="belge-kapsayici" style="margin-top:25px; font-family:Times New Roman,Times,serif; font-size:15px; color:#000; line-height:1.45;">';
+    h += '<div class="'+(modern ? 'dlk-date-row' : 'sahis-date-row')+'" style="text-align:right; margin-bottom:25px; font-weight:bold; font-size:14.5px;">Tarih: '+esc(window._dlkBugun())+'</div>';
+    h += '<div class="'+(modern ? 'dlk-addressee' : 'belge-baslik')+'" style="text-align:center; font-weight:bold; font-size:17px; margin-bottom:25px;">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE</div>';
+    h += '<div class="'+(modern ? 'dlk-subject' : 'sahis-subject')+'" style="font-weight:bold; margin-bottom:20px; font-size:15px;">Konu: BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi Hk.</div>';
+    h += '<p class="belge-paragraf" style="text-indent:35px; text-align:justify; margin-bottom:25px; font-size:15px; line-height:1.55;">Şahıs <b>'+field(s.adSoyad)+'</b> adına yapacağımız 4458 sayılı Gümrük Kanunu çerçevesindeki ithalat, ihracat, transit, dahilde işleme ve serbest bölge işlemlerine istinaden tarafımıza BİLGE kullanıcı kodu verilmesini ve YFKS tanımlamasının yapılmasını emir ve tensiplerinize arz ederiz.</p>';
+    h += '<div class="belge-imza-alani" style="float:right; text-align:center; width:260px; max-width:100%; margin-top:10px; margin-bottom:30px; break-inside:avoid;"><p style="margin-bottom:8px;">Saygılarımızla,</p><p class="imza-isim" style="font-weight:bold; margin-bottom:4px;">'+field(s.adSoyad)+'</p></div><div style="clear:both;"></div>';
+    h += '<div style="margin-top:10px; font-size:13.5px; line-height:1.45; max-width:520px; text-align:left;"><div style="margin-bottom:20px;"><div style="font-weight:bold; margin-bottom:8px; text-decoration:underline;">ŞAHIS VE İLETİŞİM BİLGİLERİ:</div><div style="display:grid; grid-template-columns:max-content auto minmax(0,1fr); column-gap:5px; row-gap:5px; align-items:start;">';
+    [['T.C. Kimlik No',s.tcNo],['Anne Kızlık Soyadı',s.anneKizlik],['Telefon',s.tel],['E-Posta (Mail)',s.mail],['Tebligat Adresi',s.adres]].forEach(function(row){
+        h += '<span style="font-weight:bold;">'+esc(row[0])+'</span><span>:</span><span style="min-width:0; overflow-wrap:anywhere;">'+field(row[1])+'</span>';
+    });
+    h += '</div></div><div><div style="font-weight:bold; margin-bottom:6px; text-decoration:underline;">EKLER:</div>';
+    ['Vekaletname','Kimlik Kopyası','İkametgâh Belgesi','Nüfus Kayıt Örneği'].forEach(function(e,i){h += '<div>'+(i+1)+'. '+esc(e)+'</div>';});
+    return h + '</div></div>' + (modern ? '</article>' : '</div>');
+};
+window.sahisBilgeLegacyFormHazirla = function(){
+    const panel = document.getElementById('sahis-bilge-form-panel');
+    if(!panel) return;
+    panel.classList.remove('hidden');
+    if(panel.dataset.ready === '1') return;
+    panel.innerHTML = window.SAHIS_BILGE_ALANLARI.map(function(a){return '<div class="input-group"><label for="'+a.domId+'">'+a.etiket+'</label><input type="text" id="'+a.domId+'" value="'+window._dlkEsc(a.varsayilan).replace(/"/g,'&quot;')+'"></div>';}).join('');
+    panel.dataset.ready = '1';
+    window.SAHIS_BILGE_ALANLARI.forEach(function(a){document.getElementById(a.domId).addEventListener('input',window.renderDilekceContent);});
+};
+
 window.DILEKCE_SABLONLARI = {
   kiymet_farki: {
     baslik: "Kıymet Farkı Kabul (GK 234)",
@@ -19253,6 +19299,12 @@ Muayene Memuru              Muayene Memuru              Muayene Memuru`
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE",
     alanlar: [{ id: "firma", etiket: "İthalatçı Firma" }].concat(window.BILGE_FORM_ALANLARI),
     metin: ""
+  },
+  SAHIS_BILGE_YFKS: {
+    baslik: "Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE",
+    alanlar: window.SAHIS_BILGE_ALANLARI,
+    metin: ""
   }
 };
 
@@ -19308,7 +19360,8 @@ window.dilekcelerInit = function(){
         tasfiye_cif: '5. Tasfiye (CIF %1)',
         sure_uzatimi: '6. Süre Uzatımı (30 Gün)',
         gmc_chevrolet_tutanak: '7. GMC-CHEVROLE Tutanak',
-        BILGE_YFKS: '8. BİLGE ve YFKS Süre Uzatımı Dilekçesi'
+        BILGE_YFKS: '8. BİLGE ve YFKS Süre Uzatımı Dilekçesi',
+        SAHIS_BILGE_YFKS: '9. Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi'
     };
     secici.innerHTML = keys.map(function(k){
         return '<option value="'+k+'">'+(etiketler[k] || window.DILEKCE_SABLONLARI[k].baslik)+'</option>';
@@ -19337,6 +19390,7 @@ window.dilekceAracListesiDoldur = function(){
 
 // Araç seçilince ortak alanları otomatik doldur (yalnızca formda var olanları)
 window.dilekceAracSecildi = function(idx){
+    if(window._dlkAktifSablon === 'SAHIS_BILGE_YFKS'){ window.dilekceOnizleGuncelle(); return; }
     if(idx === '' || idx == null) return;
     const list = Array.isArray(window.declarationsData) ? window.declarationsData : [];
     const d = list[parseInt(idx,10)];
@@ -19481,6 +19535,7 @@ window._dlkBugun = function(){ var d=new Date(); return String(d.getDate()).padS
 window.dilekceHtmlUret = function(key){
     const s = window.DILEKCE_SABLONLARI[key];
     if(!s) return '';
+    if(key === 'SAHIS_BILGE_YFKS') return window.sahisBilgeHtmlUret(window.sahisBilgeVerisiniOku(), true);
     if(key === 'BILGE_YFKS') return window.bilgeBelgeHtmlUret(window.bilgeFormVerisiniOku('dlk-f-firma'), true);
     const alanTip = {};
     s.alanlar.forEach(function(a){ alanTip[a.id] = a; });
@@ -20855,6 +20910,14 @@ window.renderDilekceContent = function() {
 
     if (!tipEl || !container) return;
     const bilgePanel = document.getElementById('bilge-yfks-form-panel');
+    const sahisPanel = document.getElementById('sahis-bilge-form-panel');
+    if(tipEl.value === 'SAHIS_BILGE_YFKS'){
+        if(bilgePanel) bilgePanel.classList.add('hidden');
+        window.sahisBilgeLegacyFormHazirla();
+        container.innerHTML = window.sahisBilgeHtmlUret(window.sahisBilgeVerisiniOku(), false);
+        return;
+    }
+    if(sahisPanel) sahisPanel.classList.add('hidden');
     if(tipEl.value === 'BILGE_YFKS'){
         window.bilgeLegacyFormHazirla((items || [])[0] || {});
         container.innerHTML = window.bilgeBelgeHtmlUret(window.bilgeFormVerisiniOku('bilge-firma'), false);
