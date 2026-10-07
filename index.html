@@ -19005,15 +19005,16 @@ window.bilgeBelgeHtmlUret = function(b, modern){
     h += '<div class="'+(modern ? 'dlk-addressee' : 'belge-baslik')+'" style="text-align:center; font-weight:bold; font-size:17px; margin-bottom:25px; text-transform:uppercase;">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE</div>';
     h += '<div class="'+(modern ? 'dlk-subject' : 'bilge-subject')+'" style="font-weight:bold; margin-bottom:20px; font-size:15px;">Konu: BİLGE kullanıcı kodu ve YFKS yetkilendirmemizin süresi hk.</div>';
     h += '<p class="belge-paragraf" style="text-indent:35px; text-align:justify; margin-bottom:25px; font-size:15px; line-height:1.55;">Firmamız <b>'+esc(b.tamUnvan)+'</b> adına tanımlı bulunan mevcut BİLGE kullanıcı kodu ve YFKS yetkilendirmemizin geçerlilik süresi sona ermiş bulunmaktadır. 4458 sayılı Gümrük Kanunu ve ilgili mevzuat çerçevesinde yürütmekte olduğumuz ithalat, ihracat, transit, dahilde işleme ve serbest bölge gümrük işlemlerimizin kesintiye uğramadan devam edebilmesi amacıyla; mevcut BİLGE kullanıcı kodumuzun ve gümrük yetkilendirmemizin süre uzatımının yapılması hususunu emir ve tensiplerinize arz ederiz.</p>';
-    h += '<div class="belge-imza-alani" style="float:right; text-align:center; width:280px; max-width:100%; margin-top:10px; margin-bottom:35px; break-inside:avoid;">';
-    h += '<p style="margin-bottom:6px;">Saygılarımızla,</p><p class="imza-isim" style="font-weight:bold; margin-bottom:4px;">'+esc(b.tamUnvan)+'</p><p class="imza-yetkili'+(modern ? '' : ' editable-field')+'"'+(modern ? '' : ' contenteditable="true"')+' style="font-weight:bold; margin-bottom:4px;">'+esc(b.imzaYetkilisi)+'</p><p style="font-size:12px; color:#555; margin-top:2px;">(İmza / Kaşe)</p></div><div style="clear:both;"></div>';
-    h += '<div class="bilge-alt-bilgiler" style="margin-top:20px; padding-top:15px; display:grid; grid-template-columns:minmax(0, 0.9fr) minmax(0, 1.1fr); gap:20px; font-size:13.5px; line-height:1.45;">';
-    h += '<div style="min-width:0;"><div style="font-weight:bold; margin-bottom:6px; text-decoration:underline;">EKLER:</div>'+ekler.map(function(e,i){return '<div>'+(i+1)+'. '+esc(e)+'</div>';}).join('')+'</div>';
-    h += '<div style="min-width:0;"><div style="font-weight:bold; margin-bottom:6px; text-decoration:underline;">ŞİRKET &amp; YETKİLİ BİLGİLERİ:</div><div style="display:grid; grid-template-columns:max-content auto minmax(0, 1fr); column-gap:5px; row-gap:5px; align-items:start;">';
+    h += '<div class="belge-imza-alani" style="float:right; text-align:center; width:280px; max-width:100%; margin-top:10px; margin-bottom:25px; break-inside:avoid;">';
+    h += '<p style="margin-bottom:6px;">Saygılarımızla,</p><p class="imza-isim" style="font-weight:bold; margin-bottom:4px;">'+esc(b.tamUnvan)+'</p><p class="imza-yetkili'+(modern ? '' : ' editable-field')+'"'+(modern ? '' : ' contenteditable="true"')+' style="font-weight:bold; margin-bottom:4px;">'+esc(b.imzaYetkilisi)+'</p></div><div style="clear:both;"></div>';
+    h += '<div class="bilge-alt-bilgiler" style="margin-top:10px; font-size:13.5px; line-height:1.45; max-width:480px; text-align:left;">';
+    h += '<div style="min-width:0; margin-bottom:18px;"><div style="font-weight:bold; margin-bottom:6px; text-decoration:underline;">ŞİRKET &amp; YETKİLİ BİLGİLERİ:</div><div style="display:grid; grid-template-columns:max-content auto minmax(0, 1fr); column-gap:5px; row-gap:4px; align-items:start;">';
     rows.forEach(function(row){
         h += '<span style="font-weight:bold;">'+esc(row[0])+'</span><span>:</span><span'+(modern ? '' : ' contenteditable="true" class="editable-field"')+' style="min-width:0; overflow-wrap:anywhere;">'+esc(row[1])+'</span>';
     });
-    h += '</div></div></div>';
+    h += '</div></div>';
+    h += '<div style="min-width:0;"><div style="font-weight:bold; margin-bottom:6px; text-decoration:underline;">EKLER:</div>'+ekler.map(function(e,i){return '<div>'+(i+1)+'. '+esc(e)+'</div>';}).join('')+'</div>';
+    h += '</div>';
     return h + (modern ? '</article>' : '</div>');
 };
 window.bilgeLegacyFormHazirla = function(arac){
