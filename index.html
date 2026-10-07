@@ -3580,6 +3580,7 @@ div[style*="position: relative"] > input {
             <option value="SURE">📄 Süre Uzatımı Dilekçesi</option>
             <option value="BILGE_YFKS">📑 BİLGE ve YFKS Süre Uzatımı Dilekçesi</option>
             <option value="SAHIS_BILGE_YFKS">👤 Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi</option>
+            <option value="FIRMA_BILGE_YFKS">🏢 Firma BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi</option>
             <option value="GMC">📂 Yurt Dışı Araştırma Tutanağı</option>
 			<option value="KIYMET">💶 Kıymet Dilekçesi</option>
 			<option value="KTMCEVAP">📨 Cevapsız Kıymet Dilekçesi</option>
@@ -3603,6 +3604,7 @@ div[style*="position: relative"] > input {
     
     <section id="bilge-yfks-form-panel" class="card card-pad no-print hidden"></section>
     <section id="sahis-bilge-form-panel" class="card card-pad no-print hidden"></section>
+    <section id="firma-bilge-form-panel" class="card card-pad no-print hidden"></section>
     <div id="dilekce-print-area" class="dilekce-sayfa fade-in"></div>
 </template>
 <template id="tpl-firms">
@@ -3657,6 +3659,7 @@ div[style*="position: relative"] > input {
             <option value="gmc_chevrolet_tutanak">7. GMC-CHEVROLE Tutanak</option>
     <option value="BILGE_YFKS">8. BİLGE ve YFKS Süre Uzatımı Dilekçesi</option>
     <option value="SAHIS_BILGE_YFKS">9. Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi</option>
+    <option value="FIRMA_BILGE_YFKS">10. Firma BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi</option>
         </select>
     </div>
 
@@ -19087,6 +19090,61 @@ window.sahisBilgeLegacyFormHazirla = function(){
     window.SAHIS_BILGE_ALANLARI.forEach(function(a){document.getElementById(a.domId).addEventListener('input',window.renderDilekceContent);});
 };
 
+window.FIRMA_BILGE_ALANLARI = [
+    {id:'firma',domId:'yfks-firma-ad',etiket:'İthalatçı / Temsil Edilen Firma',veri:'tamUnvan'},
+    {id:'tcNo',domId:'yfks-tc',etiket:'T.C. Kimlik No',veri:'tcNo'},
+    {id:'vergiNo',domId:'yfks-vno',etiket:'Vergi No (V.No)',veri:'vergiNo'},
+    {id:'anneKizlik',domId:'yfks-anne-kizlik',etiket:'Anne Kızlık Soyadı',veri:'anneKizlikSoyadi'},
+    {id:'kepAdresi',domId:'yfks-kep',etiket:'KEP Adresi',veri:'kepAdresi'},
+    {id:'tel',domId:'yfks-tel',etiket:'Telefon No',veri:'tel'},
+    {id:'adres',domId:'yfks-adres',etiket:'Firma Adresi',veri:'adres'},
+    {id:'imza',domId:'yfks-yetkili',etiket:'İmza Yetkilisi',veri:'imzaYetkilisi'}
+];
+window.firmaBilgeFormuDoldur = function(firma){
+    const b = window.getBilgeFirmaBilgisi(firma);
+    window.FIRMA_BILGE_ALANLARI.forEach(function(a){
+        const el = document.getElementById(a.domId);
+        if(el) el.value = b[a.veri] || '........................................';
+    });
+};
+window.firmaBilgeVerisiniOku = function(){
+    const b = {};
+    window.FIRMA_BILGE_ALANLARI.forEach(function(a){
+        const el = document.getElementById(a.domId);
+        b[a.veri] = el && el.value.trim() ? el.value.trim() : '........................................';
+    });
+    return b;
+};
+window.firmaBilgeHtmlUret = function(f, modern){
+    const esc = window._dlkEsc;
+    const field = function(v){return '<span'+(modern ? '' : ' contenteditable="true" class="editable-field"')+' style="overflow-wrap:anywhere;">'+esc(v)+'</span>';};
+    let h = modern ? '<article class="dlk-document">' : '<div class="belge-kapsayici" style="margin-top:25px; font-family:Times New Roman,Times,serif; font-size:15px; color:#000; line-height:1.45;">';
+    h += '<div class="'+(modern ? 'dlk-date-row' : 'yfks-date-row')+'" style="text-align:right; margin-bottom:25px; font-weight:bold; font-size:14.5px;">Tarih: '+esc(window._dlkBugun())+'</div>';
+    h += '<div class="'+(modern ? 'dlk-addressee' : 'belge-baslik')+'" style="text-align:center; font-weight:bold; font-size:17px; margin-bottom:25px;">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE</div>';
+    h += '<div class="'+(modern ? 'dlk-subject' : 'yfks-subject')+'" style="font-weight:bold; margin-bottom:20px; font-size:15px;">Konu: Yetkilendirilmiş Yükümlü Takip Sistemi Onay için Başvuru</div>';
+    h += '<p class="belge-paragraf" style="text-indent:35px; text-align:justify; margin-bottom:25px; font-size:15px; line-height:1.55;">Firmamızın adına dolaylı temsil yetkimiz dahilinde işlemlerini yürüteceğimiz <b>'+field(f.tamUnvan)+"</b>'nin vekaletname kayıt işlemlerinin onaylarının, Gümrük Genel Tebliği (Yükümlü Kayıt ve Takip Sistemi) (Seri No: 1) 20.12.2014 tarihli ve 29211 sayılı Resmî Gazete'de yayımlanan Tebliğin 5. maddesine göre yapılması hususunda gereğini emir ve müsaadelerinize arz ederiz.</p>";
+    h += '<div class="belge-imza-alani" style="float:right; text-align:center; width:280px; max-width:100%; margin-top:10px; margin-bottom:25px; break-inside:avoid;"><p style="margin-bottom:6px;">Saygılarımızla,</p><p class="imza-isim" style="font-weight:bold; margin-bottom:4px;">'+esc(f.tamUnvan)+'</p><p class="imza-yetkili'+(modern ? '' : ' editable-field')+'"'+(modern ? '' : ' contenteditable="true"')+' style="font-weight:bold;">'+esc(f.imzaYetkilisi)+'</p></div><div style="clear:both;"></div>';
+    h += '<div style="margin-top:10px; font-size:13px; line-height:1.4; max-width:520px; text-align:left;"><div style="margin-bottom:16px;"><div style="font-weight:bold; margin-bottom:6px; text-decoration:underline;">ŞİRKET &amp; YETKİLİ BİLGİLERİ:</div><div style="display:grid; grid-template-columns:max-content auto minmax(0,1fr); column-gap:5px; row-gap:3.5px; align-items:start;">';
+    [['Adres',f.adres],['Vergi No (V.No)',f.vergiNo],['T.C. Kimlik No',f.tcNo],['Anne Kızlık Soyadı',f.anneKizlikSoyadi],['KEP Adresi',f.kepAdresi],['Telefon',f.tel]].forEach(function(row){h += '<span style="font-weight:bold;">'+esc(row[0])+'</span><span>:</span><span style="min-width:0; overflow-wrap:anywhere;">'+field(row[1])+'</span>';});
+    h += '</div></div><div><div style="font-weight:bold; margin-bottom:5px; text-decoration:underline;">EKLER:</div>';
+    ['Vekaletname','İkametgâh Belgesi','Adli Sicil Kaydı','Nüfus Kayıt Örneği','Kimlik Kopyası','Ticaret Sicil Tasdiknamesi','Faaliyet Belgesi','Vergi Levhası','Şirket İmza Sirküleri','Mükellefiyet Belgesi','Ticaret Sicil Gazetesi'].forEach(function(e,i){h += '<div>'+(i+1)+'. '+esc(e)+'</div>';});
+    return h + '</div></div>' + (modern ? '</article>' : '</div>');
+};
+window.firmaBilgeLegacyFormHazirla = function(arac){
+    const panel = document.getElementById('firma-bilge-form-panel');
+    if(!panel) return;
+    panel.classList.remove('hidden');
+    const firma = String(arac.firma || '');
+    if(panel.dataset.ready === '1'){
+        if(panel.dataset.kaynakFirma !== firma){panel.dataset.kaynakFirma = firma; window.firmaBilgeFormuDoldur(firma);}
+        return;
+    }
+    panel.innerHTML = window.FIRMA_BILGE_ALANLARI.map(function(a){return '<div class="input-group"><label for="'+a.domId+'">'+a.etiket+'</label><input type="text" id="'+a.domId+'"'+(a.id === 'firma' ? ' list="yfks-firma-list"' : '')+'></div>';}).join('')+'<datalist id="yfks-firma-list">'+window.getActiveFirmNames().map(function(f){return '<option value="'+window._dlkEsc(f).replace(/"/g,'&quot;')+'">';}).join('')+'</datalist>';
+    panel.dataset.ready = '1'; panel.dataset.kaynakFirma = firma;
+    window.FIRMA_BILGE_ALANLARI.forEach(function(a){const el = document.getElementById(a.domId); el.addEventListener('input',window.renderDilekceContent); if(a.id === 'firma') el.addEventListener('change',function(){window.firmaBilgeFormuDoldur(el.value); window.renderDilekceContent();});});
+    window.firmaBilgeFormuDoldur(firma);
+};
+
 window.DILEKCE_SABLONLARI = {
   kiymet_farki: {
     baslik: "Kıymet Farkı Kabul (GK 234)",
@@ -19305,6 +19363,12 @@ Muayene Memuru              Muayene Memuru              Muayene Memuru`
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE",
     alanlar: window.SAHIS_BILGE_ALANLARI,
     metin: ""
+  },
+  FIRMA_BILGE_YFKS: {
+    baslik: "Firma BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE",
+    alanlar: window.FIRMA_BILGE_ALANLARI,
+    metin: ""
   }
 };
 
@@ -19361,7 +19425,8 @@ window.dilekcelerInit = function(){
         sure_uzatimi: '6. Süre Uzatımı (30 Gün)',
         gmc_chevrolet_tutanak: '7. GMC-CHEVROLE Tutanak',
         BILGE_YFKS: '8. BİLGE ve YFKS Süre Uzatımı Dilekçesi',
-        SAHIS_BILGE_YFKS: '9. Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi'
+        SAHIS_BILGE_YFKS: '9. Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi',
+        FIRMA_BILGE_YFKS: '10. Firma BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi'
     };
     secici.innerHTML = keys.map(function(k){
         return '<option value="'+k+'">'+(etiketler[k] || window.DILEKCE_SABLONLARI[k].baslik)+'</option>';
@@ -19438,6 +19503,7 @@ window.dilekceAracSecildi = function(idx){
             beyanTarihiEl.value = /^\d{4}-\d{2}-\d{2}$/.test(beyanTarihi) ? beyanTarihi : ((typeof window.trToIso === 'function') ? (window.trToIso(beyanTarihi) || beyanTarihi) : beyanTarihi);
         }
     }
+    if(window._dlkAktifSablon === 'FIRMA_BILGE_YFKS'){window.firmaBilgeFormuDoldur(d.firma); window.dilekceOnizleGuncelle(); return;}
     if(window._dlkAktifSablon === 'BILGE_YFKS'){
         window.bilgeFormuDoldur(d.firma, 'dlk-f-firma');
         window.dilekceOnizleGuncelle();
@@ -19505,6 +19571,7 @@ window.dilekceSablonSec = function(key){
         if(a.id === 'firma'){
             el.addEventListener('change', function(){
                 const imzaEl = document.getElementById('dlk-f-imza');
+                if(window._dlkAktifSablon === 'FIRMA_BILGE_YFKS'){window.firmaBilgeFormuDoldur(el.value); window.dilekceOnizleGuncelle(); return;}
                 if(window._dlkAktifSablon === 'BILGE_YFKS'){
                     window.bilgeFormuDoldur(el.value, 'dlk-f-firma');
                     window.dilekceOnizleGuncelle();
@@ -19535,6 +19602,7 @@ window._dlkBugun = function(){ var d=new Date(); return String(d.getDate()).padS
 window.dilekceHtmlUret = function(key){
     const s = window.DILEKCE_SABLONLARI[key];
     if(!s) return '';
+    if(key === 'FIRMA_BILGE_YFKS') return window.firmaBilgeHtmlUret(window.firmaBilgeVerisiniOku(), true);
     if(key === 'SAHIS_BILGE_YFKS') return window.sahisBilgeHtmlUret(window.sahisBilgeVerisiniOku(), true);
     if(key === 'BILGE_YFKS') return window.bilgeBelgeHtmlUret(window.bilgeFormVerisiniOku('dlk-f-firma'), true);
     const alanTip = {};
@@ -20911,6 +20979,15 @@ window.renderDilekceContent = function() {
     if (!tipEl || !container) return;
     const bilgePanel = document.getElementById('bilge-yfks-form-panel');
     const sahisPanel = document.getElementById('sahis-bilge-form-panel');
+    const firmaPanel = document.getElementById('firma-bilge-form-panel');
+    if(tipEl.value === 'FIRMA_BILGE_YFKS'){
+        if(bilgePanel) bilgePanel.classList.add('hidden');
+        if(sahisPanel) sahisPanel.classList.add('hidden');
+        window.firmaBilgeLegacyFormHazirla((items || [])[0] || {});
+        container.innerHTML = window.firmaBilgeHtmlUret(window.firmaBilgeVerisiniOku(), false);
+        return;
+    }
+    if(firmaPanel) firmaPanel.classList.add('hidden');
     if(tipEl.value === 'SAHIS_BILGE_YFKS'){
         if(bilgePanel) bilgePanel.classList.add('hidden');
         window.sahisBilgeLegacyFormHazirla();
