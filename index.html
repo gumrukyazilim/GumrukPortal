@@ -23828,6 +23828,19 @@ window.kcEksikDegisti = function(){
     window._kcBrutFarkEuro=window.parseParaTR(el ? el.value : '');
     window.kcYdisiDusumHesapla();
 };
+// YDIŞI OCR tutarı: Türkçe ve İngilizce binlik/ondalık ayracı.
+window.kcYdisiSayiOku = function(value){
+    if(typeof value === 'number') return Number.isFinite(value) && value >= 0 ? value : 0;
+    let str=String(value == null ? '' : value).trim().replace(/[^0-9.,]/g,'');
+    if(!str) return 0;
+    if(str.includes('.') && str.includes(',')){
+        str=str.lastIndexOf(',') > str.lastIndexOf('.') ? str.replace(/\./g,'').replace(',','.') : str.replace(/,/g,'');
+    }else if(str.includes(',')) str=str.replace(',','.');
+    else if(/^\d{1,3}(\.\d{3})+$/.test(str)) str=str.replace(/\./g,'');
+    const n=Number(str);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+};
+
 window.kcYdisiDusumHesapla = function(){
     const eksikEl=document.getElementById('kc-eksik'); if(!eksikEl) return;
     if(window._kcBrutFarkEuro == null){
@@ -23900,7 +23913,7 @@ window.kcAracSecildi = async function(idx){
             if(ydisiEl){
                 const raw=res ? (res.ydisi != null ? res.ydisi : res.yurtDisi) : null;
                 const found=raw != null && String(raw).trim() !== '' && /[0-9]/.test(String(raw));
-                ydisiEl.value=found ? format(window.parseParaTR(raw)) : '';
+                ydisiEl.value=found ? format(window.kcYdisiSayiOku(raw)) : '';
                 ydisiEl.dataset.ocrState=found ? 'read' : 'missing';
                 ydisiEl.placeholder=found ? '0,00' : 'Belgede YDIŞI verisi alınamadı';
                 ydisiEl.title=found ? 'Beyanname B Hesap Detayları kısmından otomatik okundu'+(res.dosyaAdi ? ': '+res.dosyaAdi : '') : 'Beyanname okuyucusu YDIŞI verisi döndürmedi; düşüm uygulanmadı.';
@@ -24007,14 +24020,14 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
     let cache = JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}');
     let key = `${firma}|${marka}|${sasi}`;
     // Cache geçerli mi? hem kdvm hem toplamVergi varsa cache'den ver, yoksa yeniden çek
-    if (cache[key] && cache[key].kdvm && cache[key].toplamVergi != null && cache[key].ydisi != null) {
+    if (cache[key] && cache[key].kdvm && cache[key].toplamVergi != null && cache[key].ydisi != null && cache[key].ydisiSurum >= 2) {
         console.log(`[KC] Beyanname KDVM cache: ${cache[key].kdvm} + Toplam ${cache[key].toplamVergi} (${cache[key].dosyaAdi})`);
         // Eski cache kayıtlarını araç kaydına taşı (bir kez; sonra sessiz kalır)
         window._kdvAracKaydinaYaz(sasi, cache[key]);
         return { ...cache[key], fromCache: true };
     }
     if (cache[key]) {
-        console.log(`[KC] Cache eksik (vergi veya YDIŞI alanı yok), yeniden çekiliyor: ${key}`);
+        console.log(`[KC] Cache eksik veya YDIŞI okuyucu sürümü eski, yeniden çekiliyor: ${key}`);
     }
 
     try {
@@ -24034,8 +24047,11 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
         }
         console.log(`[KC] ✅ Beyanname KDVM: ${data.kdvm} TL — Toplam Vergi: ${data.toplamVergi} TL — ${data.dosyaAdi} (${ms}ms)`);
         const ydisiRaw=data.ydisi != null ? data.ydisi : data.yurtDisi;
-        const ydisi=ydisiRaw != null && String(ydisiRaw).trim() !== "" && /[0-9]/.test(String(ydisiRaw)) ? window.parseParaTR(ydisiRaw) : null;
-        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, ydisi: ydisi, ydisiKaynak: data.ydisiKaynak || null, dosyaAdi: data.dosyaAdi };
+        const ydisiSurum=Number(data.ydisiSurum) || 0;
+        const ydisiKaynak=String(data.ydisiKaynak || '');
+        const ydisiGuvenli=ydisiSurum >= 2 && !/NAVLUN|SIGORTA|SİGORTA|CIF/i.test(ydisiKaynak);
+        const ydisi=ydisiGuvenli && ydisiRaw != null && String(ydisiRaw).trim() !== "" && /[0-9]/.test(String(ydisiRaw)) ? window.kcYdisiSayiOku(ydisiRaw) : null;
+        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, ydisi: ydisi, ydisiKaynak: ydisiKaynak || null, ydisiSurum: ydisiSurum, dosyaAdi: data.dosyaAdi };
         try { localStorage.setItem('gumruk_beyanname_kdvm_cache', JSON.stringify(cache)); } catch(e){}
         window._kdvAracKaydinaYaz(sasi, cache[key]); // kalıcı + senkron
         return { ...cache[key], fromCache: false };
