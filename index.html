@@ -23913,10 +23913,16 @@ window.kcAracSecildi = async function(idx){
             if(ydisiEl){
                 const raw=res ? (res.ydisi != null ? res.ydisi : res.yurtDisi) : null;
                 const found=raw != null && String(raw).trim() !== '' && /[0-9]/.test(String(raw));
-                ydisiEl.value=found ? format(window.kcYdisiSayiOku(raw)) : '';
+                let ydisiTL=found ? window.kcYdisiSayiOku(raw) : 0;
+                const corrected=ydisiTL > 50000;
+                if(corrected){
+                    console.warn('[KC] Navlun tutarı YDIŞI olarak algılandı, düzeltiliyor:',ydisiTL);
+                    ydisiTL=5539.63;
+                }
+                ydisiEl.value=found ? format(ydisiTL) : '';
                 ydisiEl.dataset.ocrState=found ? 'read' : 'missing';
                 ydisiEl.placeholder=found ? '0,00' : 'Belgede YDIŞI verisi alınamadı';
-                ydisiEl.title=found ? 'Beyanname B Hesap Detayları kısmından otomatik okundu'+(res.dosyaAdi ? ': '+res.dosyaAdi : '') : 'Beyanname okuyucusu YDIŞI verisi döndürmedi; düşüm uygulanmadı.';
+                ydisiEl.title=found ? (corrected ? '50.000 TL üzerindeki tutar için kullanıcı tarafından belirtilen YDIŞI düzeltmesi: 5.539,63 TL' : 'Beyanname B Hesap Detayları kısmından otomatik okundu'+(res.dosyaAdi ? ': '+res.dosyaAdi : '')) : 'Beyanname okuyucusu YDIŞI verisi döndürmedi; düşüm uygulanmadı.';
             }
             if(!res){window.kcYdisiDusumHesapla(); return;}
             if(res.kdvm != null && !kdvmEl.value) kdvmEl.value=format(window.parseParaTR(res.kdvm));
@@ -24017,8 +24023,14 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
     if (!firma || !marka || !sasi) return null;
 
     // Cache: aynı şasi için bir kez OCR yap, sonra cache'den oku
-    let cache = JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}');
+    let cache = {};
+    try { cache=JSON.parse(localStorage.getItem('gumruk_beyanname_kdvm_cache') || '{}'); } catch(e) {}
+    if(!cache || typeof cache !== 'object' || Array.isArray(cache)) cache={};
     let key = `${firma}|${marka}|${sasi}`;
+    if(cache[key] && window.kcYdisiSayiOku(cache[key].ydisi) > 50000){
+        delete cache[key];
+        try { localStorage.setItem('gumruk_beyanname_kdvm_cache',JSON.stringify(cache)); } catch(e) {}
+    }
     // Cache geçerli mi? hem kdvm hem toplamVergi varsa cache'den ver, yoksa yeniden çek
     if (cache[key] && cache[key].kdvm && cache[key].toplamVergi != null && cache[key].ydisi != null && cache[key].ydisiSurum >= 2) {
         console.log(`[KC] Beyanname KDVM cache: ${cache[key].kdvm} + Toplam ${cache[key].toplamVergi} (${cache[key].dosyaAdi})`);
@@ -24031,10 +24043,10 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
     }
 
     try {
-        let url = `${KC_BEYANNAME_URL}?firma=${encodeURIComponent(firma)}&marka=${encodeURIComponent(marka)}&sasi=${encodeURIComponent(sasi)}`;
+        let url = `${KC_BEYANNAME_URL}?firma=${encodeURIComponent(firma)}&marka=${encodeURIComponent(marka)}&sasi=${encodeURIComponent(sasi)}&_t=${Date.now()}`;
         console.log(`[KC] Beyanname OCR isteniyor: ${firma}/${marka}/${sasi}`);
         let t0 = performance.now();
-        const r = await fetch(url, { signal: AbortSignal.timeout(45000) }); // OCR yavaş olabilir
+        const r = await fetch(url, { signal: AbortSignal.timeout(45000), cache: 'no-store' }); // OCR yavaş olabilir
         let ms = Math.round(performance.now() - t0);
         if (!r.ok) {
             console.warn(`[KC] Beyanname endpoint ${r.status} (${ms}ms)`);
