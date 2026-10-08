@@ -4907,6 +4907,7 @@ div[style*="position: relative"] > input {
             <button class="btn-sm" style="border-color:var(--danger);color:var(--text-primary);display:flex;align-items:center;gap:8px;white-space:nowrap;" onclick="window.kcExportPDF()">
                 <i data-lucide="file-text" style="width:16px;height:16px;"></i> PDF Çıktısı
             </button>
+            <button type="button" class="btn-primary" onclick="window.kcDilekceyeGit()" style="background:#10b981;color:#fff;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-weight:600;font-size:13px;border:none;cursor:pointer;"><i data-lucide="file-signature" style="width:16px;height:16px;"></i> Kıymet Farkı Dilekçesi Üret</button>
         </div>
     </div>
 
@@ -4938,11 +4939,15 @@ div[style*="position: relative"] > input {
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:18px;">
                 <div>
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">EKSİK BEYAN (EUR)</label>
-                    <input type="text" inputmode="decimal" id="kc-eksik" placeholder="12.686" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                    <input type="text" inputmode="decimal" id="kc-eksik" placeholder="12.686" oninput="window.kcEksikDegisti()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                 </div>
                 <div>
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">DÖVİZ KURU (TL/EUR)</label>
-                    <input type="text" inputmode="decimal" id="kc-kur" placeholder="52,79620" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                    <input type="text" inputmode="decimal" id="kc-kur" placeholder="52,79620" oninput="window.kcYdisiDusumHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                </div>
+                <div>
+                    <label for="kc-ydisi-tl" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Beyannamede Y.DIŞI (TL) <span id="kc-ydisi-eur-hint" style="font-size:10px;color:var(--primary);font-weight:700;"></span></label>
+                    <input type="text" inputmode="decimal" id="kc-ydisi-tl" placeholder="0,00" oninput="window.kcYdisiDusumHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;font-weight:600;outline:none;">
                 </div>
                 <div>
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">TRT BANDROLÜ (%)</label>
@@ -23570,6 +23575,10 @@ window.kcHesapla = function() {
 };
 
 window.kcTemizle = function() {
+    window._kcAracRequest=(window._kcAracRequest || 0)+1; window._kcBrutFarkEuro=null;
+    const sel=document.getElementById('kc-arac-sec'); if(sel) sel.value='';
+    const yd=document.getElementById('kc-ydisi-tl'); if(yd) yd.value='';
+    const hint=document.getElementById('kc-ydisi-eur-hint'); if(hint) hint.textContent='';
     document.getElementById('kc-eksik').value = '';
     document.getElementById('kc-kur').value = '';
     document.getElementById('kc-dosya').value = '';
@@ -23813,6 +23822,37 @@ window.kcExportPDF = async function() {
     }
 };
 
+window.kcEksikDegisti = function(){
+    const el=document.getElementById('kc-eksik');
+    window._kcBrutFarkEuro=window.parseParaTR(el ? el.value : '');
+    window.kcYdisiDusumHesapla();
+};
+window.kcYdisiDusumHesapla = function(){
+    const eksikEl=document.getElementById('kc-eksik'); if(!eksikEl) return;
+    if(window._kcBrutFarkEuro == null){
+        const sel=document.getElementById('kc-arac-sec');
+        const d=sel && sel.value !== '' ? (window.declarationsData || [])[Number(sel.value)] : null;
+        const k=d ? window.parseParaTR(d.kiymet) : 0, f=d ? window.parseParaTR(d.fatura) : 0;
+        window._kcBrutFarkEuro=d ? (k > 0 ? (f > 0 ? Math.abs(k-f) : k) : 0) : window.parseParaTR(eksikEl.value);
+    }
+    const kurEl=document.getElementById('kc-kur'), ydisiEl=document.getElementById('kc-ydisi-tl');
+    const kur=window.parseParaTR(kurEl ? kurEl.value : ''), tl=window.parseParaTR(ydisiEl ? ydisiEl.value : '');
+    const euro=tl > 0 && kur > 0 ? tl/kur : 0;
+    const hint=document.getElementById('kc-ydisi-eur-hint');
+    const format=function(n){return Number(n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});};
+    if(hint) hint.textContent=tl > 0 ? (kur > 0 ? '(-'+format(euro)+' €)' : '(Düşüm için kur girin)') : '';
+    eksikEl.value=format(Math.max(0,window._kcBrutFarkEuro-euro));
+    window.kcHesapla();
+};
+window.kcDilekceyeGit = function(){
+    const sel=document.getElementById('kc-arac-sec');
+    const arac=sel && sel.value !== '' ? (window.declarationsData || [])[Number(sel.value)] : (window.currentDilekceItems || [])[0];
+    if(!arac){alert('Lütfen önce listeden bir araç seçin!'); return;}
+    window.currentDilekceItems=[arac];
+    window.renderView('sureDilekcesi');
+    setTimeout(function(){const tip=document.getElementById('dilekce-tipi'); if(tip){tip.value='KIYMET'; window.renderDilekceContent();}},120);
+};
+
 window.kcAracListesiDoldur = function(){
     const sel=document.getElementById('kc-arac-sec'); if(!sel) return;
     const selected=sel.value;
@@ -23838,20 +23878,23 @@ window.kcAracSecildi = async function(idx){
     dosyaEl.value=byn ? byn+' ('+aracText+')' : aracText;
     const kiymet=window.parseParaTR(d.kiymet), fatura=window.parseParaTR(d.fatura);
     const fark=kiymet > 0 ? (fatura > 0 ? Math.abs(kiymet-fatura) : kiymet) : 0;
+    window._kcBrutFarkEuro=fark;
+    const ydisiEl=document.getElementById('kc-ydisi-tl');
+    if(ydisiEl) ydisiEl.value=d.ydisi != null ? String(d.ydisi) : (d.yurtDisi != null ? String(d.yurtDisi) : '');
     eksikEl.value=fark > 0 ? format(fark) : '';
     delete kurEl.dataset.kcLoading;
     kurEl.value=''; kurEl.placeholder='52,79620'; kurEl.title=''; kurEl.style.borderColor=''; kurEl.style.background='';
     const kdvmEl=document.getElementById('kc-mevcut-kdvm'), tvEl=document.getElementById('kc-mevcut-toplam-vergi');
     if(kdvmEl){kdvmEl.value=''; kdvmEl.title='';}
     if(tvEl){tvEl.value=''; tvEl.title='';}
-    window.kcHesapla();
+    window.kcYdisiDusumHesapla();
     // Vergi sorgusu kur sorgusunu beklemeden çalışır; eski aracın sonucu uygulanmaz.
     if(kdvmEl && d.firma && d.marka && d.sasi && typeof window.fetchBeyannameKDVM === 'function'){
         window.fetchBeyannameKDVM(d.firma,d.marka,d.sasi).then(function(res){
             if(!current() || !res) return;
             if(res.kdvm != null && !kdvmEl.value) kdvmEl.value=format(window.parseParaTR(res.kdvm));
             if(tvEl && res.toplamVergi != null && !tvEl.value) tvEl.value=format(window.parseParaTR(res.toplamVergi));
-            window.kcHesapla();
+            window.kcYdisiDusumHesapla();
         }).catch(function(err){if(current()) console.warn('[KC] Beyanname verisi alınamadı:',err);});
     }
     const dateText=String(d.beynmCif || d.tarih || '').trim();
@@ -23882,10 +23925,11 @@ window.kcAracSecildi = async function(idx){
             else kurEl.placeholder='Kuru elle girin';
         }
     }
-    window.kcHesapla();
+    window.kcYdisiDusumHesapla();
 };
 
 window._kcInit = function() {
+    window._kcBrutFarkEuro=null;
     window.kcAracListesiDoldur();
     setTimeout(function() {
         if (document.getElementById('kc-eksik')) {
@@ -23893,7 +23937,7 @@ window._kcInit = function() {
             let eurKur = document.getElementById('calc-kur-eur');
             if (eurKur && eurKur.value && !document.getElementById('kc-kur').value && !document.getElementById('kc-kur').dataset.kcLoading) {
                 document.getElementById('kc-kur').value = eurKur.value;
-                window.kcHesapla();
+                window.kcYdisiDusumHesapla();
             }
         }
     }, 200);
@@ -24171,7 +24215,7 @@ window.openKiymetCezaFor = async function(idx) {
         dosyaEl.value = dosyaTxt;
 
         // Eksik beyan (kıymet - fatura)
-        if (eksikStr) eksikEl.value = eksikStr;
+        if (eksikStr) {eksikEl.value = eksikStr; window._kcBrutFarkEuro=window.parseParaTR(eksikStr);}
 
         // Kur — beyanname tarihinde "bir önceki iş gününün" TCMB kuru geçerli
         // (Gümrük Yönetmeliği: TCMB kuru 15:30'da yayınlanır, ertesi iş günü için geçerlidir)
