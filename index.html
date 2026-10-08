@@ -23581,6 +23581,7 @@ window.kcTemizle = function() {
     const hint=document.getElementById('kc-ydisi-eur-hint'); if(hint) hint.textContent='';
     document.getElementById('kc-eksik').value = '';
     document.getElementById('kc-kur').value = '';
+    delete document.getElementById('kc-kur').dataset.kcDateRequired;
     document.getElementById('kc-dosya').value = '';
     document.getElementById('kc-trt').value = '0,8';
     document.getElementById('kc-kdv').value = '20';
@@ -23840,7 +23841,11 @@ window.kcYdisiDusumHesapla = function(){
     const euro=tl > 0 && kur > 0 ? tl/kur : 0;
     const hint=document.getElementById('kc-ydisi-eur-hint');
     const format=function(n){return Number(n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});};
-    if(hint) hint.textContent=tl > 0 ? (kur > 0 ? '(-'+format(euro)+' € beyannameden düşüldü)' : '(Düşüm için kur bekleniyor)') : (ydisiEl && ydisiEl.dataset.ocrState === 'missing' ? '(YDIŞI belgeden alınamadı)' : '');
+    if(hint){
+        const state=ydisiEl ? ydisiEl.dataset.ocrState : '';
+        hint.textContent=tl > 0 ? (kur > 0 ? '(-'+format(euro)+' € düşüldü)' : '(Düşüm için kur bekleniyor)') : (state === 'read' ? '(Beyannamede YDIŞI yok)' : (state === 'missing' ? '(YDIŞI belgeden alınamadı)' : ''));
+        hint.style.color=tl > 0 && kur > 0 ? 'var(--success)' : 'var(--text-muted)';
+    }
     eksikEl.value=format(Math.max(0,window._kcBrutFarkEuro-euro));
     window.kcHesapla();
 };
@@ -23908,6 +23913,7 @@ window.kcAracSecildi = async function(idx){
     }
     if(ydisiEl && (!d.firma || !d.marka || !d.sasi)){ydisiEl.dataset.ocrState='missing'; ydisiEl.placeholder='Belge sorgusu için araç bilgileri eksik'; window.kcYdisiDusumHesapla();}
     const dateText=String(d.beynmCif || d.tarih || '').trim();
+    kurEl.dataset.kcDateRequired=dateText ? '1' : '';
     let rate=null;
     if(dateText && typeof window.fetchTCMBKurForDate === 'function'){
         kurEl.placeholder='TCMB kuru yükleniyor...'; kurEl.dataset.kcLoading='1';
@@ -23945,7 +23951,7 @@ window._kcInit = function() {
         if (document.getElementById('kc-eksik')) {
             window.kcHesapla();
             let eurKur = document.getElementById('calc-kur-eur');
-            if (eurKur && eurKur.value && !document.getElementById('kc-kur').value && !document.getElementById('kc-kur').dataset.kcLoading) {
+            if (eurKur && eurKur.value && !document.getElementById('kc-kur').value && !document.getElementById('kc-kur').dataset.kcLoading && !document.getElementById('kc-kur').dataset.kcDateRequired) {
                 document.getElementById('kc-kur').value = eurKur.value;
                 window.kcYdisiDusumHesapla();
             }
@@ -24029,7 +24035,7 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
         console.log(`[KC] ✅ Beyanname KDVM: ${data.kdvm} TL — Toplam Vergi: ${data.toplamVergi} TL — ${data.dosyaAdi} (${ms}ms)`);
         const ydisiRaw=data.ydisi != null ? data.ydisi : data.yurtDisi;
         const ydisi=ydisiRaw != null && String(ydisiRaw).trim() !== "" && /[0-9]/.test(String(ydisiRaw)) ? window.parseParaTR(ydisiRaw) : null;
-        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, ydisi: ydisi, dosyaAdi: data.dosyaAdi };
+        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, ydisi: ydisi, ydisiKaynak: data.ydisiKaynak || null, dosyaAdi: data.dosyaAdi };
         try { localStorage.setItem('gumruk_beyanname_kdvm_cache', JSON.stringify(cache)); } catch(e){}
         window._kdvAracKaydinaYaz(sasi, cache[key]); // kalıcı + senkron
         return { ...cache[key], fromCache: false };
