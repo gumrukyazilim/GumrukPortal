@@ -18580,7 +18580,7 @@ window.dilekceKIYMETViaGAS = async function() {
         kiymet: formatPara(kiymet),
         fark: formatPara(fark),
         distributor: distributor,
-        kiymetTarihi: yaziBilgileri.yaziTarih1 || "................",
+        kiymetTarihi: String(ilkArac.kiymGt || "").trim() || "................",
         dosyaNo: dosyaNo
     };
 
@@ -19561,7 +19561,7 @@ window.dilekceAracSecildi = function(idx){
         'dlk-f-kiymet_yazi_tarih_1': window._dlkIsoDate(yazi.yaziTarih1),
         'dlk-f-kiymet_yazi_tarih_2': window._dlkIsoDate(yazi.yaziTarih2),
         'dlk-f-dosya_no': yazi.gelenCevap || yazi.yaziNo1,
-        'dlk-f-kiymet_tarihi': window._dlkIsoDate(yazi.yaziTarih1)
+        'dlk-f-kiymet_tarihi': window._dlkIsoDate(String(d.kiymGt || '').trim())
     };
     Object.keys(yaziAlanlari).forEach(function(id){
         const el = document.getElementById(id);
@@ -21122,7 +21122,7 @@ window.renderDilekceContent = function() {
         fark: formatPara(farkBedeli),
         distributor: distributor,
         distFound: distFound,
-        kiymetTarihi: yaziTarih1 || "................",
+        kiymetTarihi: String(ilkArac.kiymGt || "").trim() || "................",
         tescilTarihi: ilkArac.tarih || "................",
         beynmCifTarihi: ilkArac.beynmCif || "................",
         gtip: ilkArac.gtip || "8704.21.31.00.00",
