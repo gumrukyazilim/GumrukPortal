@@ -18565,7 +18565,7 @@ window.dilekceKIYMETViaGAS = async function() {
     // Para formatı (renderDilekceContent ile aynı)
     const fatura = window.parseParaTR(ilkArac.fatura);
     const kiymet = window.parseParaTR(ilkArac.kiymet);
-    const fark = Math.abs(kiymet - fatura);
+    const fark = window.kiymetEksikBeyanFarki(kiymet, fatura);
     const formatPara = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const payload = {
@@ -19212,6 +19212,12 @@ window.redreseLegacyFormHazirla = function(arac){
     document.getElementById('redrese-arac-sec').addEventListener('change',function(){if(this.value === '') return; const d=(window.declarationsData || [])[Number(this.value)]; if(d){window.redreseAracDoldur(d); window.renderDilekceContent();}});
 };
 
+// Eksik beyan yalnızca pozitif kıymet artışıdır; fatura yoksa hesaplanmaz.
+window.kiymetEksikBeyanFarki = function(kiymet, fatura){
+    const k=window.parseParaTR(kiymet), f=window.parseParaTR(fatura);
+    return f > 0 && k > f ? k-f : 0;
+};
+
 window.DILEKCE_SABLONLARI = {
   kiymet_farki: {
     baslik: "Kıymet Farkı Kabul (GK 234)",
@@ -19711,7 +19717,7 @@ window.dilekceHtmlUret = function(key){
 
     // Hesaplanan: fark = tespit kıymet - beyan fatura (para biçimi)
     if(alanTip.fark && alanTip.fark.hesaplanan){
-        const fark = Math.abs(window.parseParaTR(raw.kiymet) - window.parseParaTR(raw.fatura));
+        const fark = window.kiymetEksikBeyanFarki(raw.kiymet, raw.fatura);
         raw.fark = (raw.kiymet !== '' || raw.fatura !== '') ? window._dlkPara(fark) : '';
         const fe = document.getElementById('dlk-f-fark');
         if(fe) fe.value = raw.fark;
@@ -21094,7 +21100,7 @@ window.renderDilekceContent = function() {
     // --- KIYMET VE FATURA HESAPLAMALARI ---
     let faturaBedeli = window.parseParaTR(ilkArac.fatura);
     let kiymetBedeli = window.parseParaTR(ilkArac.kiymet);
-    let farkBedeli = Math.abs(kiymetBedeli - faturaBedeli);
+    let farkBedeli = window.kiymetEksikBeyanFarki(kiymetBedeli, faturaBedeli);
     let formatPara = (num) => Number(num).toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
     const distributor = window.findDistributor(ilkArac.marka);
@@ -23456,7 +23462,7 @@ window.kcHesapla = function() {
     // ÖTV farkı    = (eksik TL + TRT) × ÖTV%          (ÖTV matrahına TRT dahil)
     // KDV farkı    = (eksik TL + TRT + ÖTV) × KDV%    (KDV matrahına ÖTV dahil)
     // Ceza         = (ÖTV farkı + KDV farkı) × katsayı (TRT cezaya girmez)
-    let eksik = window.kcSayiOku('kc-eksik');
+    let eksik = Math.max(0,window.kcSayiOku('kc-eksik'));
     let kur = window.kcSayiOku('kc-kur');
     let trt = window.kcSayiOku('kc-trt');
     let kdv = parseFloat(document.getElementById('kc-kdv').value || 20);
@@ -23481,7 +23487,7 @@ window.kcHesapla = function() {
     let otvFark = krs((adim1 + adim2) * (otvOranZincir / 100));
     let otvRow = document.getElementById('kc-otv-row');
     if (otvRow) otvRow.style.display = otvOranZincir > 0 ? 'flex' : 'none';
-    if (otvOranZincir > 0) {
+    {
         let otvEl = document.getElementById('kc-adim-otv');
         let otvDetEl = document.getElementById('kc-adim-otv-detay');
         let otvDispEl = document.getElementById('kc-otv-disp');
@@ -23847,7 +23853,7 @@ window.kcYdisiDusumHesapla = function(){
         const sel=document.getElementById('kc-arac-sec');
         const d=sel && sel.value !== '' ? (window.declarationsData || [])[Number(sel.value)] : null;
         const k=d ? window.parseParaTR(d.kiymet) : 0, f=d ? window.parseParaTR(d.fatura) : 0;
-        window._kcBrutFarkEuro=d ? (k > 0 ? (f > 0 ? Math.abs(k-f) : k) : 0) : window.parseParaTR(eksikEl.value);
+        window._kcBrutFarkEuro=d ? window.kiymetEksikBeyanFarki(k,f) : window.parseParaTR(eksikEl.value);
     }
     const kurEl=document.getElementById('kc-kur'), ydisiEl=document.getElementById('kc-ydisi-tl');
     const kur=window.parseParaTR(kurEl ? kurEl.value : ''), tl=window.parseParaTR(ydisiEl ? ydisiEl.value : '');
@@ -23858,6 +23864,14 @@ window.kcYdisiDusumHesapla = function(){
         const state=ydisiEl ? ydisiEl.dataset.ocrState : '';
         hint.textContent=tl > 0 ? (kur > 0 ? '(-'+format(euro)+' € düşüldü)' : '(Düşüm için kur bekleniyor)') : (state === 'read' ? '(Beyannamede YDIŞI yok)' : (state === 'missing' ? '(YDIŞI belgeden alınamadı)' : ''));
         hint.style.color=tl > 0 && kur > 0 ? 'var(--success)' : 'var(--text-muted)';
+        if(window._kcBrutFarkEuro === 0){
+            const sel=document.getElementById('kc-arac-sec');
+            const arac=sel && sel.value !== '' ? (window.declarationsData || [])[Number(sel.value)] : null;
+            hint.textContent=arac && window.parseParaTR(arac.fatura) <= 0 ? 'ℹ️ Fatura tutarı eksik. Eksik beyan hesaplanmadı.' : 'ℹ️ Eksik beyan yok (Fatura ≥ Gelen Kıymet). Ceza doğmaz.';
+            hint.style.color='var(--text-muted)';
+        }else if(window._kcBrutFarkEuro-euro <= 0){
+            hint.textContent='(-'+format(euro)+' € düşüldü) Net eksik beyan 0,00 €. Ceza doğmaz.';
+        }
     }
     eksikEl.value=format(Math.max(0,window._kcBrutFarkEuro-euro));
     window.kcHesapla();
@@ -23895,11 +23909,11 @@ window.kcAracSecildi = async function(idx){
     const aracText=[d.marka || '',d.model || ''].join(' ').trim()+' - '+String(d.sasi || '');
     dosyaEl.value=byn ? byn+' ('+aracText+')' : aracText;
     const kiymet=window.parseParaTR(d.kiymet), fatura=window.parseParaTR(d.fatura);
-    const fark=kiymet > 0 ? (fatura > 0 ? Math.abs(kiymet-fatura) : kiymet) : 0;
+    const fark=window.kiymetEksikBeyanFarki(kiymet,fatura);
     window._kcBrutFarkEuro=fark;
     const ydisiEl=document.getElementById('kc-ydisi-tl');
     if(ydisiEl){ydisiEl.value=''; ydisiEl.readOnly=true; ydisiEl.dataset.ocrState='loading'; ydisiEl.placeholder='Beyanname okunuyor...'; ydisiEl.title='YDIŞI yalnızca beyanname belgesinden alınır.';}
-    eksikEl.value=fark > 0 ? format(fark) : '';
+    eksikEl.value=format(fark);
     delete kurEl.dataset.kcLoading;
     kurEl.value=''; kurEl.placeholder='52,79620'; kurEl.title=''; kurEl.style.borderColor=''; kurEl.style.background='';
     const kdvmEl=document.getElementById('kc-mevcut-kdvm'), tvEl=document.getElementById('kc-mevcut-toplam-vergi');
@@ -24221,8 +24235,8 @@ window.openKiymetCezaFor = async function(idx) {
     // Eksik beyan = Gelen Kıymet − Fatura Tutarı
     let kiymetNum = window._kcParseNum(d.kiymet);
     let faturaNum = window._kcParseNum(d.fatura);
-    let eksikNum = kiymetNum - faturaNum;
-    let eksikStr = '';
+    let eksikNum = window.kiymetEksikBeyanFarki(kiymetNum,faturaNum);
+    let eksikStr = '0,00';
     if (kiymetNum > 0 && faturaNum > 0) {
         if (eksikNum <= 0) {
             if (typeof window.showToast === 'function') {
@@ -24235,9 +24249,9 @@ window.openKiymetCezaFor = async function(idx) {
         }
     } else if (kiymetNum > 0 && faturaNum === 0) {
         if (typeof window.showToast === 'function') {
-            window.showToast('⚠️ Fatura tutarı boş — eksik beyan = gelen kıymet kabul edildi. Fatura girilirse otomatik düşülür.', 'warn');
+            window.showToast('⚠️ Fatura tutarı boş — eksik beyan hesaplanmadı. Hesaplama için faturayı girin.', 'warn');
         }
-        eksikStr = kiymetNum.toFixed(2).replace('.', ',');
+        eksikStr = '0,00';
     } else if (kiymetNum === 0) {
         if (typeof window.showToast === 'function') {
             window.showToast('⚠️ Bu aracın gelen Kıymet Tutarı (€) boş — sadece sayfa açılıyor.', 'warn');
