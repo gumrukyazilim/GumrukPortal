@@ -4922,6 +4922,12 @@ div[style*="position: relative"] > input {
                 </div>
             </div>
 
+            <!-- PORTALDAN ARAÇ SEÇ (HIZLI DOLDUR) -->
+            <div style="margin-bottom:18px;">
+                <label for="kc-arac-sec" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;margin-bottom:6px;"><i data-lucide="car" style="width:14px;height:14px;color:var(--primary);"></i>Portaldan Araç Seç (Hızlı Doldur)</label>
+                <select id="kc-arac-sec" onchange="window.kcAracSecildi(this.value)" style="width:100%;padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-weight:600;outline:none;"><option value="">— Sistemdeki Araçlardan Seçin —</option></select>
+            </div>
+
             <!-- DOSYA NO -->
             <div style="margin-bottom:18px;">
                 <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">DOSYA NO / BEYANNAME (opsiyonel)</label>
@@ -23807,12 +23813,85 @@ window.kcExportPDF = async function() {
     }
 };
 
+window.kcAracListesiDoldur = function(){
+    const sel=document.getElementById('kc-arac-sec'); if(!sel) return;
+    const selected=sel.value;
+    const araclar=Array.isArray(window.declarationsData) ? window.declarationsData : [];
+    sel.innerHTML='<option value="">— Sistemdeki Araçlardan Seçin (Hızlı Doldur) —</option>'+araclar.map(function(d,i){
+        if(!d) return '';
+        const byn=String(d.beyanname || d.ozetBeyan || '');
+        const text=[d.marka || '',d.model || ''].join(' ').trim()+' ('+String(d.sasi || '').slice(-6)+') · '+String(d.firma || '')+(byn ? ' | Beyanname: '+byn : '');
+        return '<option value="'+i+'">'+window._dlkEsc(text)+'</option>';
+    }).join('');
+    sel.value=selected;
+};
+window.kcAracSecildi = async function(idx){
+    const request=(window._kcAracRequest || 0)+1; window._kcAracRequest=request;
+    if(idx === '' || idx == null) return;
+    const d=(window.declarationsData || [])[Number(idx)]; if(!d) return;
+    const dosyaEl=document.getElementById('kc-dosya'), eksikEl=document.getElementById('kc-eksik'), kurEl=document.getElementById('kc-kur');
+    if(!dosyaEl || !eksikEl || !kurEl) return;
+    const current=function(){return window._kcAracRequest === request && document.getElementById('kc-kur') === kurEl;};
+    const format=function(n){return Number(n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});};
+    const byn=String(d.beyanname || d.ozetBeyan || '').trim();
+    const aracText=[d.marka || '',d.model || ''].join(' ').trim()+' - '+String(d.sasi || '');
+    dosyaEl.value=byn ? byn+' ('+aracText+')' : aracText;
+    const kiymet=window.parseParaTR(d.kiymet), fatura=window.parseParaTR(d.fatura);
+    const fark=kiymet > 0 ? (fatura > 0 ? Math.abs(kiymet-fatura) : kiymet) : 0;
+    eksikEl.value=fark > 0 ? format(fark) : '';
+    delete kurEl.dataset.kcLoading;
+    kurEl.value=''; kurEl.placeholder='52,79620'; kurEl.title=''; kurEl.style.borderColor=''; kurEl.style.background='';
+    const kdvmEl=document.getElementById('kc-mevcut-kdvm'), tvEl=document.getElementById('kc-mevcut-toplam-vergi');
+    if(kdvmEl){kdvmEl.value=''; kdvmEl.title='';}
+    if(tvEl){tvEl.value=''; tvEl.title='';}
+    window.kcHesapla();
+    // Vergi sorgusu kur sorgusunu beklemeden çalışır; eski aracın sonucu uygulanmaz.
+    if(kdvmEl && d.firma && d.marka && d.sasi && typeof window.fetchBeyannameKDVM === 'function'){
+        window.fetchBeyannameKDVM(d.firma,d.marka,d.sasi).then(function(res){
+            if(!current() || !res) return;
+            if(res.kdvm != null && !kdvmEl.value) kdvmEl.value=format(window.parseParaTR(res.kdvm));
+            if(tvEl && res.toplamVergi != null && !tvEl.value) tvEl.value=format(window.parseParaTR(res.toplamVergi));
+            window.kcHesapla();
+        }).catch(function(err){if(current()) console.warn('[KC] Beyanname verisi alınamadı:',err);});
+    }
+    const dateText=String(d.beynmCif || d.tarih || '').trim();
+    let rate=null;
+    if(dateText && typeof window.fetchTCMBKurForDate === 'function'){
+        kurEl.placeholder='TCMB kuru yükleniyor...'; kurEl.dataset.kcLoading='1';
+        try{
+            const iso=window._dlkIsoDate(dateText);
+            const parts=iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if(!parts) throw new Error('Beyanname tarihi geçersiz');
+            const bd=new Date(Number(parts[1]),Number(parts[2])-1,Number(parts[3]));
+            if(bd.getFullYear() !== Number(parts[1]) || bd.getMonth() !== Number(parts[2])-1 || bd.getDate() !== Number(parts[3])) throw new Error('Beyanname tarihi geçersiz');
+            bd.setDate(bd.getDate()-1);
+            while(bd.getDay() === 0 || bd.getDay() === 6) bd.setDate(bd.getDate()-1);
+            const kurTarih=String(bd.getDate()).padStart(2,'0')+'.'+String(bd.getMonth()+1).padStart(2,'0')+'.'+bd.getFullYear();
+            rate=await window.fetchTCMBKurForDate(kurTarih);
+            if(current() && rate && rate.eur) kurEl.title='TCMB kur tarihi: '+(rate.date || kurTarih);
+        }catch(err){if(current()) console.warn('[KC] Tarih kur hesaplama hatası:',err);}
+        finally{if(current()){delete kurEl.dataset.kcLoading; kurEl.placeholder='52,79620';}}
+    }
+    if(!current()) return;
+    // Sorgu sürerken kullanıcı elle kur girmişse koru.
+    if(!kurEl.value){
+        if(rate && window.parseParaTR(rate.eur) > 0) kurEl.value=window.parseParaTR(rate.eur).toFixed(4).replace('.',',');
+        else{
+            const eurKur=document.getElementById('calc-kur-eur');
+            if(eurKur && eurKur.value){kurEl.value=eurKur.value; kurEl.title=dateText ? 'Tarihli TCMB kuru alınamadı; güncel kur kullanıldı. Tarihli kuru kontrol edin.' : 'Beyanname tarihi yok; güncel kur kullanıldı.';}
+            else kurEl.placeholder='Kuru elle girin';
+        }
+    }
+    window.kcHesapla();
+};
+
 window._kcInit = function() {
+    window.kcAracListesiDoldur();
     setTimeout(function() {
         if (document.getElementById('kc-eksik')) {
             window.kcHesapla();
             let eurKur = document.getElementById('calc-kur-eur');
-            if (eurKur && eurKur.value && !document.getElementById('kc-kur').value) {
+            if (eurKur && eurKur.value && !document.getElementById('kc-kur').value && !document.getElementById('kc-kur').dataset.kcLoading) {
                 document.getElementById('kc-kur').value = eurKur.value;
                 window.kcHesapla();
             }
