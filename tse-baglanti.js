@@ -166,51 +166,58 @@ window.TSE = {
 console.log("✓ TSE Bot ve 3'lü Evrak Paketi Modülü BAĞLI");
 
 // ==================== TSE AKILLI MENÜ BUTON ENTEGRASYONU ====================
-(function() {
-  function entegreEt() {
-    if (!window.openTseAkilliMenu || window.openTseAkilliMenu._has3LuHook) return;
-    var orig = window.openTseAkilliMenu;
-    window.openTseAkilliMenu = function(idx, ctx) {
-      orig.apply(this, arguments);
-      var arac = ctx === 'firm' 
-        ? (window.firmData && window.firmData[window.currentFirm] ? window.firmData[window.currentFirm][idx] : null) 
-        : (window.declarationsData ? window.declarationsData[idx] : null);
-      if (!arac) return;
-
-      setTimeout(function() {
-        var modal = document.getElementById('tse-akilli-modal');
-        if (!modal || modal.querySelector('#tse-3lu-paket-box')) return;
-
-        var bodyDiv = modal.querySelector('div[style*="padding:22px 24px 18px"]') || modal.querySelector('div > div:nth-child(2)');
-        if (!bodyDiv) return;
-
-        var box = document.createElement('div');
-        box.id = 'tse-3lu-paket-box';
-        box.style.cssText = 'margin-bottom:18px;padding:14px 16px;background:linear-gradient(135deg,rgba(37,99,235,0.14),rgba(59,130,246,0.08));border:2px solid #2563eb;border-radius:14px;text-align:center;box-shadow:0 4px 16px rgba(37,99,235,0.2);';
-        box.innerHTML = '<div style="font-size:11px;font-weight:800;color:#2563eb;letter-spacing:.6px;margin-bottom:8px;">⚡ TEK TIKLA TÜM EVRAKLAR (YEREL MOTOR)</div>' +
-          '<button type="button" id="btn-tse-3lu-action" style="width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;letter-spacing:.3px;box-shadow:0 4px 14px rgba(37,99,235,0.35);">' +
-          '📄 TEK TIKLA 3''LÜ PAKET ÜRET (APM + TSE Tutanağı + ULM)</button>' +
-          '<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">APMGumrukSablon.xlsx + ULM-03-FR-01-008 + ULM-03-FR-01-016</div>';
-
-        bodyDiv.insertBefore(box, bodyDiv.firstChild);
-
-        var actBtn = box.querySelector('#btn-tse-3lu-action');
-        if (actBtn) {
-          actBtn.onclick = function(e) {
-            e.stopImmediatePropagation();
-            modal.remove();
-            window.TSE.tse3LuPaketUret(arac);
-          };
-        }
-      }, 60);
-    };
-    window.openTseAkilliMenu._has3LuHook = true;
+(function () {
+  "use strict";
+  function butonuEkle(arac) {
+    const modal = document.getElementById("tse-akilli-modal");
+    if (!modal || !arac || modal.querySelector("#tse-3lu-paket-box")) return;
+    const panel = modal.firstElementChild;
+    const body = panel && panel.children[1];
+    if (!body) return;
+    const box = document.createElement("div");
+    box.id = "tse-3lu-paket-box";
+    box.style.cssText = "margin-bottom:18px;padding:14px;background:#eff6ff;border:2px solid #2563eb;border-radius:14px;";
+    const btn = document.createElement("button");
+    btn.id = "btn-tse-3lu-action";
+    btn.type = "button";
+    btn.textContent = "📄 TEK TIKLA 3'LÜ PAKET ÜRET (APM + TSE Tutanağı + ULM)";
+    btn.style.cssText = "width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;";
+    btn.addEventListener("click", async function (event) {
+      event.stopPropagation();
+      if (btn.disabled) return;
+      btn.disabled = true;
+      try {
+        await window.TSE.tse3LuPaketUret(arac);
+      } catch (err) {
+        console.error("TSE paket işlemi başarısız:", err);
+        alert("TSE paketi oluşturulamadı: " + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    box.appendChild(btn);
+    body.insertBefore(box, body.firstChild);
   }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', entegreEt);
-  } else {
-    entegreEt();
+  function entegreEt() {
+    const original = window.openTseAkilliMenu;
+    if (typeof original !== "function" || original._has3LuHook) return;
+    function wrapped(idx, ctx) {
+      const arac = ctx === "firm"
+        ? ((window.firmData || {})[window.currentFirm] || [])[idx]
+        : (window.declarationsData || [])[idx];
+      const result = original.apply(this, arguments);
+      if (arac) {
+        butonuEkle(arac);
+        requestAnimationFrame(function () { butonuEkle(arac); });
+      }
+      return result;
+    }
+    wrapped._has3LuHook = true;
+    window.openTseAkilliMenu = wrapped;
+  }
+  entegreEt();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", entegreEt, { once: true });
   }
   setInterval(entegreEt, 800);
 })();
