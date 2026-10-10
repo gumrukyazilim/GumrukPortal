@@ -6,9 +6,6 @@ window.TSE = {
     // Siyah ekranda yazan adresin birebir aynısı (Orijinal)
     api_url: 'https://aloof-overlabor-jailer.ngrok-free.dev',
 
-    // Yerel Python Otomasyon Servisi (tse_otomasyon.py --server)
-    local_engine_url: 'http://127.0.0.1:5000',
-
     firmaIdBul: function(firmaAdi) {
         if (!firmaAdi) return "1";
         const f = firmaAdi.toUpperCase();
@@ -99,71 +96,84 @@ window.TSE = {
     },
 
     tse3LuPaketUret: async function(arac) {
-        if (!arac || !arac.sasi) {
-            alert("❌ Şasi numarası bulunamadı!");
-            return;
+        if (!arac || !/^[A-HJ-NPR-Z0-9]{17}$/.test(String(arac.sasi || '').trim().toUpperCase())) {
+            alert('Geçerli 17 haneli şasi gerekli.'); return;
         }
-
-        const sasi = arac.sasi;
-        const marka = arac.marka || '';
-        const model = arac.model || '';
-
-        const onay = confirm(`📑 TSE 3'LÜ EVRAK PAKETİ OLUŞTURULACAK:\n\n` +
-            `Şasi: ${sasi}\n` +
-            `Araç: ${marka} ${model}\n\n` +
-            `Üretilecek Evraklar:\n` +
-            `1️⃣ APMGumrukSablon.xlsx (16 sütun)\n` +
-            `2️⃣ ULM-03-FR-01-008 (TSE Gümrük Tutanağı - Açıklama boş)\n` +
-            `3️⃣ ULM-03-FR-01-016 (Münferit Araç Onay Raporu)\n\n` +
-            `İşlem başlatılsın mı?`);
-
-        if (!onay) return;
-
-        try {
-            if (typeof showSyncToast === 'function') {
-                showSyncToast(`⏳ ${sasi} için 3'lü TSE paketi üretiliyor...`);
-            }
-
-            // Yerel tse_otomasyon.py servisine istek at
-            const response = await fetch(`${this.local_engine_url}/tse-package`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(arac)
-            });
-
-            const result = await response.json();
-
-            if (typeof hideSyncToast === 'function') {
-                hideSyncToast('', true);
-            }
-
-            if (result.success) {
-                alert(`✅ 3'LÜ TSE EVRAK PAKETİ BAŞARIYLA ÜRETİLDİ!\n\n` +
-                    `Araç: ${marka} ${model}\n` +
-                    `Yakıt: ${result.fuel || 'Otomatik'}\n` +
-                    `GTİP: ${result.gtip || 'Otomatik'}\n\n` +
-                    `📁 Dosyalar aracın klasörüne kaydedildi:\n` +
-                    `• 1. APM Gümrük Tablosu\n` +
-                    `• 2. TSE Başvuru Tutanağı\n` +
-                    `• 3. ULM Uygunluk Raporu`);
-            } else {
-                alert(`❌ Hata: ${result.error || 'İşlem tamamlanamadı'}`);
-            }
-        } catch (err) {
-            if (typeof hideSyncToast === 'function') {
-                hideSyncToast('', true);
-            }
-            // Yerel servis açık değilse bilgilendir
-            alert(`⚠️ Yerel Otomasyon Servisi (tse_otomasyon.py) açık değil!\n\n` +
-                `Lütfen terminalde şu komutu çalıştırın:\n` +
-                `python tse_otomasyon.py --server\n\n` +
-                `(Veya doğrudan sohbette asistana şasi numarasını ileterek Drive üzerinden hazırlatabilirsiniz).`);
-            console.error('TSE Paket Hatası:', err);
-        }
+        if (!arac.evrakLink) { alert('Aracın Drive evrak klasörü kayıtlı değil.'); return; }
+        if (!arac.firma) { alert('İthalatçı firma boş.'); return; }
+        const key = String(arac.sasi).trim().toUpperCase();
+        this._paketBekleyen = this._paketBekleyen || new Map();
+        if (this._paketBekleyen.has(key)) return this._paketBekleyen.get(key);
+        const task = (async () => {
+            tsePaketSonucGoster({message:'CoC bulutta okunuyor; 3 evrak hazırlanıyor…'});
+            try {
+                const result = await tsePaketJsonp(arac);
+                if (!result || !result.success) throw new Error(result && result.error || 'Bulut işlemi tamamlanamadı.');
+                if (!Array.isArray(result.files) || result.files.length !== 3) throw new Error('Bulut yanıtında üç belge bulunamadı.');
+                tsePaketSonucGoster(result);
+                return result;
+            } catch (err) {
+                tsePaketSonucGoster({error:err.message});
+                console.error('TSE bulut paket hatası:', err);
+            } finally { this._paketBekleyen.delete(key); }
+        })();
+        this._paketBekleyen.set(key,task);
+        return task;
     }
 };
 
 console.log("✓ TSE Bot ve 3'lü Evrak Paketi Modülü BAĞLI");
+
+
+// Google Apps Script JSONP: CORS kaynaklı POST sorunlarından bağımsız.
+window.TSE_GAS_URL = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+function tsePaketJsonp(arac) {
+    return new Promise(function(resolve,reject) {
+        const cb = '__tse3_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        const script = document.createElement('script');
+        const params = new URLSearchParams({action:'createTse3LuPaket',callback:cb,
+            sasi:String(arac.sasi).trim().toUpperCase(),evrakLink:arac.evrakLink,
+            firma:arac.firma,marka:arac.marka||'',model:arac.model||'',
+            antrepoAdi:arac.antrepoAdi||'',uretildigiUlke:arac.uretildigiUlke||'',
+            ithalatinYapildigiUlke:arac.ithalatinYapildigiUlke||''});
+        let settled=false;
+        function finish(error,result) {
+            if(settled)return;settled=true;clearTimeout(timer);script.remove();
+            window[cb]=function(){};
+            setTimeout(function(){delete window[cb];},60000);
+            if(error)reject(error);else resolve(result);
+        }
+        const timer=setTimeout(function(){finish(new Error('Bulut işlemi zaman aşımına uğradı. Yeniden tıklamadan önce Drive klasörünü kontrol edin.'));},300000);
+        window[cb]=function(result){finish(null,result);};
+        script.onerror=function(){finish(new Error('Apps Script bağlantısı kurulamadı.'));};
+        script.src=window.TSE_GAS_URL+'?'+params.toString();
+        document.head.appendChild(script);
+    });
+}
+function tsePaketSonucGoster(result) {
+    let box=document.getElementById('tse-3lu-paket-sonuc');
+    if(!box) {
+        box=document.createElement('div');box.id='tse-3lu-paket-sonuc';
+        box.style.cssText='margin-top:12px;padding:12px;border-radius:10px;background:#eff6ff;color:#0f172a;font-size:13px;line-height:1.5;overflow-wrap:anywhere;';
+        const anchor=document.getElementById('tse-3lu-paket-box');
+        if(anchor)anchor.appendChild(box);
+        else {
+            const overlay=document.createElement('div');
+            overlay.style.cssText='position:fixed;inset:0;z-index:1000000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65);padding:20px;';
+            const panel=document.createElement('div');panel.style.cssText='background:white;padding:20px;border-radius:16px;width:100%;max-width:520px;max-height:85vh;overflow:auto;';
+            const close=document.createElement('button');close.type='button';close.textContent='Kapat';close.onclick=function(){overlay.remove();};
+            panel.appendChild(close);panel.appendChild(box);overlay.appendChild(panel);document.body.appendChild(overlay);
+        }
+    }
+    box.replaceChildren();
+    const title=document.createElement('strong');title.textContent=result.error?'Paket oluşturulamadı: '+result.error:result.message||'3 evrak Drive klasörüne kaydedildi.';box.appendChild(title);
+    (result.files||[]).forEach(function(file){
+        const url=new URL(file.url);if(url.protocol!=='https:'||!['drive.google.com','docs.google.com'].includes(url.hostname))throw new Error('Geçersiz belge bağlantısı.');
+        const a=document.createElement('a');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=file.name;a.style.cssText='display:block;margin-top:8px;color:#1d4ed8;font-weight:700;';box.appendChild(a);
+    });
+    if(result.fuel){const p=document.createElement('div');p.textContent='Yakıt: '+result.fuel+' · GTİP: '+result.gtip;box.appendChild(p);}
+    if(result.warnings&&result.warnings.length){const p=document.createElement('div');p.textContent=result.warnings.join(' · ');box.appendChild(p);}
+}
 
 // ==================== TSE AKILLI MENÜ BUTON ENTEGRASYONU ====================
 (function () {
