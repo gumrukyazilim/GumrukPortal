@@ -184,6 +184,10 @@ function tsePaketSonucGoster(result) {
     const panel = modal.firstElementChild;
     const body = panel && panel.children[1];
     if (!body) return;
+    // Sonuç bağlantıları küçük ekranlarda da kaydırılarak erişilebilir kalsın.
+    panel.style.maxHeight = "calc(100vh - 32px)";
+    if (CSS.supports("height", "100dvh")) panel.style.maxHeight = "calc(100dvh - 32px)";
+    panel.style.overflowY = "auto";
     const box = document.createElement("div");
     box.id = "tse-3lu-paket-box";
     box.style.cssText = "margin-bottom:18px;padding:14px;background:#eff6ff;border:2px solid #2563eb;border-radius:14px;";
@@ -212,9 +216,12 @@ function tsePaketSonucGoster(result) {
     const original = window.openTseAkilliMenu;
     if (typeof original !== "function" || original._has3LuHook) return;
     function wrapped(idx, ctx) {
-      const arac = ctx === "firm"
+      const selected = ctx === "firm"
         ? ((window.firmData || {})[window.currentFirm] || [])[idx]
         : (window.declarationsData || [])[idx];
+      const arac = selected && Object.assign({}, selected, {
+        firma: selected.firma || (ctx === "firm" ? window.currentFirm : "")
+      });
       const result = original.apply(this, arguments);
       if (arac) {
         butonuEkle(arac);
