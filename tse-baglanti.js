@@ -105,7 +105,7 @@ window.TSE = {
         this._paketBekleyen = this._paketBekleyen || new Map();
         if (this._paketBekleyen.has(key)) return this._paketBekleyen.get(key);
         const task = (async () => {
-            tsePaketSonucGoster({message:'CoC bulutta okunuyor; 3 evrak hazırlanıyor…'});
+            tsePaketSonucGoster({message:'CoC bulutta okunuyor; 4 evrak hazırlanıyor…'});
             try {
                 const result = await tsePaketJsonp(arac);
                 if (!result || !result.success) throw new Error(result && result.error || 'Bulut işlemi tamamlanamadı.');
@@ -134,8 +134,11 @@ function tsePaketJsonp(arac) {
         const params = new URLSearchParams({action:'createTse3LuPaket',callback:cb,
             sasi:String(arac.sasi).trim().toUpperCase(),evrakLink:arac.evrakLink,
             firma:arac.firma,marka:arac.marka||'',model:arac.model||'',
-            antrepoAdi:arac.antrepoAdi||'',uretildigiUlke:arac.uretildigiUlke||'',
-            ithalatinYapildigiUlke:arac.ithalatinYapildigiUlke||''});
+            antrepoAdi:'Y.O.İ.G.M',uretildigiUlke:arac.uretildigiUlke||arac.menseUlke||'',
+            ithalatinYapildigiUlke:arac.cikisUlke||arac.ithalatUlkesi||arac.ithalatinYapildigiUlke||'',
+            basvuruNo:arac.basvuruNo||arac.tseBasvuruNo||'',basvuruTarihi:arac.basvuruTarihi||arac.tseBasvuruTarihi||'',
+            raporNo:arac.raporNo||arac.tseRaporNo||'',raporTarihi:arac.raporTarihi||'',
+            motorNo:arac.motorNo||arac.motorNumarasi||'',yetkili:arac.yetkili||arac.imzaYetkilisi||'',unvan:arac.unvan||''});
         let settled=false;
         function finish(error,result) {
             if(settled)return;settled=true;clearTimeout(timer);script.remove();
@@ -194,7 +197,7 @@ function tsePaketSonucGoster(result) {
     const btn = document.createElement("button");
     btn.id = "btn-tse-3lu-action";
     btn.type = "button";
-    btn.textContent = "📄 TEK TIKLA 3'LÜ PAKET ÜRET (APM + TSE Tutanağı + ULM)";
+    btn.textContent = "📄 TEK TIKLA 4'LÜ PAKET ÜRET (APM + TSE Tutanağı + ULM + Egzoz)";
     btn.style.cssText = "width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;";
     btn.addEventListener("click", async function (event) {
       event.stopPropagation();
