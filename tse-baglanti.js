@@ -136,6 +136,7 @@ function tsePaketJsonp(arac) {
             firma:arac.firma,marka:arac.marka||'',model:arac.model||'',
             antrepoAdi:'Y.O.İ.G.M',uretildigiUlke:arac.uretildigiUlke||arac.menseUlke||'',
             ithalatinYapildigiUlke:arac.cikisUlke||arac.ithalatUlkesi||arac.ithalatinYapildigiUlke||'',
+            gonderici:arac.gonderici||arac.ihracatci||'',
             basvuruNo:arac.basvuruNo||arac.tseBasvuruNo||'',basvuruTarihi:arac.basvuruTarihi||arac.tseBasvuruTarihi||'',
             raporNo:arac.raporNo||arac.tseRaporNo||'',raporTarihi:arac.raporTarihi||'',
             motorNo:arac.motorNo||arac.motorNumarasi||'',yetkili:arac.yetkili||arac.imzaYetkilisi||'',unvan:arac.unvan||'',
