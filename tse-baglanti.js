@@ -85,8 +85,8 @@ window.TSE = {
         btn.type = 'button';
         btn.className = 'icon-btn tse-paket-btn';
         btn.style.cssText = 'background:#2563eb; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-left:4px;';
-        btn.innerHTML = '📄 3\'lü Paket';
-        btn.title = 'APM Excel + TSE Tutanağı + ULM Raporu Üret';
+        btn.innerHTML = '📄 4\'lü Paket';
+        btn.title = 'APM Excel + TSE Tutanağı + ULM Raporu + Egzoz PDF Üret';
 
         btn.onclick = function(e) {
             e.stopImmediatePropagation();
@@ -109,7 +109,7 @@ window.TSE = {
             try {
                 const result = await tsePaketJsonp(arac);
                 if (!result || !result.success) throw new Error(result && result.error || 'Bulut işlemi tamamlanamadı.');
-                if (!Array.isArray(result.files) || !['apm','tse','ulm'].every(type=>result.files.some(file=>file.type===type))) throw new Error('Bulut yanıtında zorunlu APM, TSE ve ULM belgeleri bulunamadı.');
+                if (!Array.isArray(result.files) || !['apm','tse','ulm','egzoz'].every(type=>result.files.some(file=>file.type===type&&file.url))) throw new Error('Bulut yanıtında zorunlu APM, TSE Tutanağı, ULM ve Egzoz PDF belgelerinden biri eksik.');
                 tsePaketSonucGoster(result);
                 return result;
             } catch (err) {
