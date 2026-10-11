@@ -109,7 +109,7 @@ window.TSE = {
             try {
                 const result = await tsePaketJsonp(arac);
                 if (!result || !result.success) throw new Error(result && result.error || 'Bulut işlemi tamamlanamadı.');
-                if (!Array.isArray(result.files) || result.files.length !== 3) throw new Error('Bulut yanıtında üç belge bulunamadı.');
+                if (!Array.isArray(result.files) || !['apm','tse','ulm'].every(type=>result.files.some(file=>file.type===type))) throw new Error('Bulut yanıtında zorunlu APM, TSE ve ULM belgeleri bulunamadı.');
                 tsePaketSonucGoster(result);
                 return result;
             } catch (err) {
@@ -166,7 +166,7 @@ function tsePaketSonucGoster(result) {
         }
     }
     box.replaceChildren();
-    const title=document.createElement('strong');title.textContent=result.error?'Paket oluşturulamadı: '+result.error:result.message||'3 evrak Drive klasörüne kaydedildi.';box.appendChild(title);
+    const title=document.createElement('strong');title.textContent=result.error?'Paket oluşturulamadı: '+result.error:result.message||`${(result.files||[]).length} evrak Drive klasörüne kaydedildi.`;box.appendChild(title);
     (result.files||[]).forEach(function(file){
         const url=new URL(file.url);if(url.protocol!=='https:'||!['drive.google.com','docs.google.com'].includes(url.hostname))throw new Error('Geçersiz belge bağlantısı.');
         const a=document.createElement('a');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=file.name;a.style.cssText='display:block;margin-top:8px;color:#1d4ed8;font-weight:700;';box.appendChild(a);
