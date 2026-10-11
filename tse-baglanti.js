@@ -138,7 +138,9 @@ function tsePaketJsonp(arac) {
             ithalatinYapildigiUlke:arac.cikisUlke||arac.ithalatUlkesi||arac.ithalatinYapildigiUlke||'',
             basvuruNo:arac.basvuruNo||arac.tseBasvuruNo||'',basvuruTarihi:arac.basvuruTarihi||arac.tseBasvuruTarihi||'',
             raporNo:arac.raporNo||arac.tseRaporNo||'',raporTarihi:arac.raporTarihi||'',
-            motorNo:arac.motorNo||arac.motorNumarasi||'',yetkili:arac.yetkili||arac.imzaYetkilisi||'',unvan:arac.unvan||''});
+            motorNo:arac.motorNo||arac.motorNumarasi||'',yetkili:arac.yetkili||arac.imzaYetkilisi||'',unvan:arac.unvan||'',
+            art44:(arac.art44===true||(arac.evrakler&&arac.evrakler.ART44===true))?'1':'',
+            art45:(arac.art45===true||(arac.evrakler&&arac.evrakler.ART45===true))?'1':'',basvuruTuru:arac.basvuruTuru||''});
         let settled=false;
         function finish(error,result) {
             if(settled)return;settled=true;clearTimeout(timer);script.remove();
