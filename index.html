@@ -3030,6 +3030,9 @@ div[style*="position: relative"] > input {
                     <button type="button" id="bk-tara-btn" class="btn-sm no-print" onclick="window.manuelKlasorTara()" style="padding:4px 8px; font-size:11px;" title="Klasöre yeni yüklenen evrakları tara">
                         <i data-lucide="refresh-cw"></i> Evrakları Güncelle
                     </button>
+                    <button type="button" class="btn-sm no-print" onclick="if(confirm('Klasördeki TÜM evraklar yeniden okunacak (kayıtlı bilgiler silinmez, yalnızca boş alanlar doldurulur). Devam edilsin mi?')) window.manuelKlasorTara(true)" style="padding:4px 8px; font-size:11px;" title="Daha önce okunmuş evraklar dahil tümünü yeniden oku">
+                        <i data-lucide="rotate-ccw"></i> Tümünü Yeniden Oku
+                    </button>
                 </div>
                 <div class="no-print" style="width:100%; font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
                     <span id="bk-tara-durum"></span><span id="bk-son-tarama"></span>
@@ -13405,12 +13408,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     // Hızlı yol: listAracEvraklari (öncelikli adlar önde) + ocrAracEvrak 4'lü
     // paralel. Apps Script'te bu uçlar yoksa eski readAracEvraklari'na düşer.
     // Taranan veriler Firebase'e yazılır; kart açılışta Drive'ı yeniden taramaz.
-    window.aracTumEvraklariniCozumle = async function(arac, ilerleme) {
+    window.aracTumEvraklariniCozumle = async function(arac, ilerleme, tumunuOku) {
         if(!arac) return null;
         if(!arac.evrakLink) throw new Error('Araç klasörü tanımlı değil (evrakLink yok).');
         let rapor = { okunan: 0, bulunan: [], hatalar: [], atlanan: 0 };
         let alanlar = {}, transferler = [], taranan = {};
         let atlaListesi = function() {
+            if(tumunuOku) return Object.keys(taranan).map(function(id) { return id + ':' + taranan[id]; }).join(',');
             return Object.keys(arac.taranmisEvraklar || {}).map(function(id) { return id + ':' + arac.taranmisEvraklar[id]; }).join(',');
         };
         let isle = async function(f) {
@@ -13469,7 +13473,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         return rapor;
     };
 
-    window.manuelKlasorTara = async function() {
+    window.manuelKlasorTara = async function(tumunuOku) {
         let a = window._bkAktif;
         if(!a) return;
         let btn = document.getElementById('bk-tara-btn');
@@ -13477,7 +13481,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let yaz = function(m) { if(durum) durum.textContent = m; };
         if(btn) btn.disabled = true;
         try {
-            let r = await window.aracTumEvraklariniCozumle(a.d, yaz);
+            let r = await window.aracTumEvraklariniCozumle(a.d, yaz, tumunuOku === true);
             window.bkKartDoldur();
             yaz(r.okunan ? ('✅ ' + r.okunan + ' yeni evrak okundu' + (r.bulunan.length ? ': ' + r.bulunan.join(', ') : '')) : '✅ Klasörde yeni evrak yok');
             if(r.hatalar.length) yaz((durum ? durum.textContent : '') + ' · ⚠️ Okunamayan: ' + r.hatalar.join(', '));
