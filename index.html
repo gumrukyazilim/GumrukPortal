@@ -2956,6 +2956,13 @@ div[style*="position: relative"] > input {
         .byn-val { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: monospace; display: flex; align-items: center; gap: 6px; }
         .copy-btn { cursor: pointer; color: var(--primary); background: transparent; border: none; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
         .copy-btn:hover { background: rgba(59,130,246,0.15); }
+        .evrak-check-badge { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-muted); white-space: nowrap; }
+        .evrak-check-badge.ok { background: rgba(16,185,129,0.12); border-color: #10b981; color: #059669; }
+        .evrak-check-badge.bekliyor { background: rgba(245,158,11,0.12); border-color: #f59e0b; color: #b45309; }
+        .evrak-check-badge.eksik { background: rgba(239,68,68,0.10); border-color: #ef4444; color: #dc2626; }
+        .bk-hazir-tamam { background: rgba(16,185,129,0.15); color: #059669; }
+        .bk-hazir-bekliyor { background: rgba(245,158,11,0.15); color: #b45309; }
+        #bk-tara-btn[disabled] { opacity: .5; cursor: wait; }
         .bk-giris-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
         .bk-giris-grid label { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
         .bk-giris-grid input, .bk-giris-grid select, #bk-in-transfer { width: 100%; box-sizing: border-box; }
@@ -2971,6 +2978,8 @@ div[style*="position: relative"] > input {
             .byn-item { border: none !important; background: transparent !important; padding: 3px 0; }
             .byn-label, .byn-val, .byn-sec-title { color: #000 !important; }
             .copy-btn { display: none !important; }
+            .byn-status-bar { border: 1px solid #333 !important; background: transparent !important; }
+            .evrak-check-badge, #byn-hazir-durum-badge { background: transparent !important; color: #000 !important; border-color: #333 !important; }
         }
     </style>
 
@@ -2987,6 +2996,27 @@ div[style*="position: relative"] > input {
         </div>
 
         <div id="byn-print-area">
+            <!-- CANLI EVRAK VE HAZIRLIK ŞERİDİ -->
+            <div class="byn-status-bar" style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                    <span class="evrak-check-badge" id="chk-fatura">📄 Fatura</span>
+                    <span class="evrak-check-badge" id="chk-mrn">🚛 T2 / MRN</span>
+                    <span class="evrak-check-badge" id="chk-transfer">🏦 Transfer</span>
+                    <span class="evrak-check-badge" id="chk-tse">🏛️ TSE (GİAİ)</span>
+                    <span class="evrak-check-badge" id="chk-btk">📱 BTK (IMEI)</span>
+                    <span class="evrak-check-badge" id="chk-atr">📜 A.TR</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div id="byn-hazir-durum-badge" style="font-size:12px; font-weight:800; padding:4px 10px; border-radius:20px;"></div>
+                    <button type="button" id="bk-tara-btn" class="btn-sm no-print" onclick="window.manuelKlasorTara()" style="padding:4px 8px; font-size:11px;" title="Klasöre yeni yüklenen evrakları tara">
+                        <i data-lucide="refresh-cw"></i> Evrakları Güncelle
+                    </button>
+                </div>
+                <div class="no-print" style="width:100%; font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                    <span id="bk-tara-durum"></span><span id="bk-son-tarama"></span>
+                </div>
+            </div>
+
             <!-- 1. FİRMA SABİTLERİ VE SİSTEM GİRİŞİ -->
             <div class="byn-section">
                 <div class="byn-sec-title">🏢 1. Firma Sabitleri &amp; BİLGE Giriş Bilgileri</div>
@@ -3027,6 +3057,7 @@ div[style*="position: relative"] > input {
                     <div class="byn-item"><span class="byn-label">Giriş Gümrük Kapısı &amp; Kodu</span><span class="byn-val" id="bk-giris-gumruk">220200 - KAPIKULE</span></div>
                     <div class="byn-item"><span class="byn-label">Taşıyıcı Tır Plakası</span><span class="byn-val" id="bk-tir-plaka">-</span></div>
                     <div class="byn-item"><span class="byn-label">Özet Beyan No</span><span class="byn-val" id="bk-ozet-beyan">-</span></div>
+                    <div class="byn-item"><span class="byn-label">T2 / MRN No</span><span class="byn-val" id="bk-mrn">-</span></div>
                     <div class="byn-item"><span class="byn-label">Kap Adedi</span><span class="byn-val" id="bk-kap">1</span></div>
                 </div>
             </div>
@@ -3059,6 +3090,9 @@ div[style*="position: relative"] > input {
         <div class="byn-section no-print">
             <div class="byn-sec-title">✏️ Veri Girişi — Transfer Formu, TPS ve Taşıma</div>
             <div class="bk-giris-grid">
+                <div><label>Fatura No</label><input type="text" id="bk-in-fatura-no"></div>
+                <div><label>Fatura Tarihi (GG.AA.YYYY)</label><input type="text" id="bk-in-fatura-tarih"></div>
+                <div><label>T2 / MRN No</label><input type="text" id="bk-in-mrn"></div>
                 <div><label>Giriş Gümrük Kapısı</label><select id="bk-in-gumruk"></select></div>
                 <div><label>Taşıyıcı Tır Plakası</label><input type="text" id="bk-in-tir"></div>
                 <div><label>Özet Beyan No</label><input type="text" id="bk-in-ozet"></div>
@@ -13128,41 +13162,234 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         };
     };
 
-    // Aracın evraklarını işle ve kaydet. metin: Transfer Bildirim Formu metni,
-    // ek: { btkYaziNo, tseBelgeNo, atrNo, imei, tirPlaka, ozetBeyan, girisGumrukKodu }
+    // ─── KÜMÜLATİF BİRLEŞTİRME ──────────────────────────────────────────
+    // Evraklar farklı günlerde gelir: mevcut veri ASLA silinmez. Boş değerler
+    // yok sayılır; sadeceBos=true ise (otomatik tarama) dolu alanlara dokunulmaz.
+    // Transferler Belge ID'ye göre listeye eklenir/güncellenir.
+    window.aracVerisiBirlestir = function(arac, alanlar, transferler, sadeceBos, ekKayit) {
+        if(!arac) return false;
+        alanlar = alanlar || {};
+        transferler = (transferler || []).filter(Boolean);
+        let hedefSasi = String(arac.sasi || '').toLocaleUpperCase('tr');
+        let degisti = false;
+        let uygula = function(kayit) {
+            if(!kayit) return;
+            if(kayit !== arac && (!hedefSasi || String(kayit.sasi || '').toLocaleUpperCase('tr') !== hedefSasi)) return;
+            Object.keys(alanlar).forEach(function(k) {
+                let v = alanlar[k] == null ? '' : String(alanlar[k]).trim();
+                if(!v) return;
+                let mevcut = kayit[k] == null ? '' : String(kayit[k]).trim();
+                if(sadeceBos && mevcut) return;
+                if(mevcut !== v) { kayit[k] = (k === 'fatura' && !isNaN(parseFloat(v))) ? parseFloat(v) : v; degisti = true; }
+            });
+            transferler.forEach(function(t) {
+                let liste = Array.isArray(kayit.transferler) ? kayit.transferler.slice() : [];
+                let i = t.belgeId ? liste.findIndex(function(x) { return x.belgeId === t.belgeId; }) : -1;
+                if(i > -1) {
+                    // Eski kayıttaki dolu alanları koru, yenileri ekle
+                    let eski = liste[i], yeni = Object.assign({}, eski);
+                    Object.keys(t).forEach(function(k) { if(t[k]) yeni[k] = t[k]; });
+                    liste[i] = yeni;
+                } else liste.push(t);
+                kayit.transferler = liste;
+                if(t.bilgeBankaKodu && (!sadeceBos || !kayit.bilgeBankaKodu)) kayit.bilgeBankaKodu = t.bilgeBankaKodu;
+                degisti = true;
+            });
+            if(ekKayit) Object.keys(ekKayit).forEach(function(k) {
+                if(k === 'taranmisEvraklar') kayit.taranmisEvraklar = Object.assign({}, kayit.taranmisEvraklar || {}, ekKayit[k]);
+                else kayit[k] = ekKayit[k];
+                degisti = true;
+            });
+        };
+        uygula(arac);
+        (window.declarationsData || []).forEach(uygula);
+        Object.keys(window.firmData || {}).forEach(function(f) { (window.firmData[f] || []).forEach(uygula); });
+        return degisti;
+    };
+
+    // Aracın evraklarını işle ve kaydet (manuel giriş paneli). metin: Transfer
+    // Bildirim Formu metni, ek: { btkYaziNo, tseBelgeNo, atrNo, imei, ... }
     window.aracEvraklariniTaraVeKaydet = async function(arac, metin, ek) {
         if(!arac) return null;
-        ek = ek || {};
         let transfer = null;
         if(metin && String(metin).trim()) {
             transfer = await window.transferFormuAyristir(metin);
             if(!transfer.belgeId && !transfer.eftKodu) transfer = null;
         }
-
-        let alanlar = {};
-        ['btkYaziNo', 'tseBelgeNo', 'atrNo', 'imei', 'tirPlaka', 'ozetBeyan', 'girisGumrukKodu'].forEach(function(k) {
-            if(ek[k] !== undefined) alanlar[k] = String(ek[k]).trim();
-        });
-
-        let hedefSasi = String(arac.sasi || '').toLocaleUpperCase('tr');
-        let uygula = function(kayit) {
-            if(!kayit) return;
-            if(kayit !== arac && (!hedefSasi || String(kayit.sasi || '').toLocaleUpperCase('tr') !== hedefSasi)) return;
-            Object.keys(alanlar).forEach(function(k) { kayit[k] = alanlar[k]; });
-            if(transfer) {
-                let liste = Array.isArray(kayit.transferler) ? kayit.transferler.slice() : [];
-                let i = transfer.belgeId ? liste.findIndex(function(t) { return t.belgeId === transfer.belgeId; }) : -1;
-                if(i > -1) liste[i] = transfer; else liste.push(transfer);
-                kayit.transferler = liste;
-                if(transfer.bilgeBankaKodu) kayit.bilgeBankaKodu = transfer.bilgeBankaKodu;
-            }
-        };
-        uygula(arac);
-        (window.declarationsData || []).forEach(uygula);
-        Object.keys(window.firmData || {}).forEach(function(f) { (window.firmData[f] || []).forEach(uygula); });
-
-        window.saveData && window.saveData('decl');
+        if(window.aracVerisiBirlestir(arac, ek || {}, transfer ? [transfer] : [], false)) {
+            window.saveData && window.saveData('decl');
+        }
         return transfer;
+    };
+
+    // ─── EVRAK SINIFLANDIRICI (OCR metninden alan çıkarma) ──────────────
+    window.evrakMetniSiniflandir = async function(ad, metin) {
+        metin = String(metin || '');
+        let U = metin.toLocaleUpperCase('tr');
+        let A = String(ad || '').toLocaleUpperCase('tr').replace(/[_\-\.]+/g, ' ');
+        let al = function(re, src) { let m = (src || U).match(re); return m ? m[1].trim() : ''; };
+        let trTarih = function(s) {
+            let m = String(s || '').match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
+            if(!m) return '';
+            let y = m[3].length === 2 ? '20' + m[3] : m[3];
+            return m[1].padStart(2, '0') + '.' + m[2].padStart(2, '0') + '.' + y;
+        };
+        let ipucu = function(re) { return re.test(A) || re.test(U); };
+
+        let tur = '';
+        if(/TRANSFER/.test(A) || /TRANSFER\s*B[İI]LD[İI]R[İI]M/.test(U) || (/BELGE\s*ID/.test(U) && /\bBANKA\b/.test(U))) tur = 'transfer';
+        else if(/\b(T2|T 2|MRN|TRANSIT|TRANSİT|NCTS)\b/.test(A) || /\bMRN\b|TRANSIT ACCOMPANYING|TRANSİT REFAKAT/.test(U)) tur = 'mrn';
+        else if(/\bBTK\b|IMEI|İMEİ/.test(A) || /B[İI]LG[İI] TEKNOLOJ[İI]LER[İI]|\bBTK\b/.test(U)) tur = 'btk';
+        else if(/\bTSE\b|G[İI]A[İI]|UYGUNLUK/.test(A) || /TÜRK STANDARTLARI|İTHAL ARAÇ UYGUNLUK|\bTSE\b/.test(U)) tur = 'tse';
+        else if(/\bA ?TR\b|DOLA[ŞS]IM/.test(A) || /MOVEMENT CERTIFICATE|DOLAŞIM BELGESİ|\bA\.\s?TR\b/.test(U)) tur = 'atr';
+        else if(ipucu(/FATURA|INVOICE|RECHNUNG|FACTURE|FATTURA/)) tur = 'fatura';
+
+        let alanlar = {}, transfer = null;
+        if(tur === 'transfer') {
+            transfer = await window.transferFormuAyristir(metin);
+            if(!transfer.belgeId && !transfer.eftKodu) transfer = null;
+        } else if(tur === 'mrn') {
+            alanlar.mrnNo = al(/\b(\d{2}[A-Z]{2}[A-Z0-9]{14})\b/);
+            let kod = '';
+            (U.match(/\bTR\s?(\d{6})\b/g) || []).some(function(x) {
+                let k = x.replace(/\D/g, '');
+                if(window.GUMRUK_GIRIS_KODLARI.some(function(g) { return g.kod === k; })) { kod = k; return true; }
+            });
+            if(!kod) window.GUMRUK_GIRIS_KODLARI.some(function(g) {
+                let isim = g.ad.replace(/\s*Gümrük Müdürlüğü$/i, '').toLocaleUpperCase('tr');
+                if(U.indexOf(isim) > -1) { kod = g.kod; return true; }
+            });
+            alanlar.girisGumrukKodu = kod;
+        } else if(tur === 'btk') {
+            alanlar.btkYaziNo = al(/\b(\d{23})\b(?!\s*\/)/);
+            alanlar.imei = al(/(?:IMEI|İMEİ)[^\d]{0,40}(\d{15})\b/) || al(/\b(\d{15})\b/);
+        } else if(tur === 'tse') {
+            let otv = Object.keys(window.BEYANNAME_FIRMA_SABITLERI).map(function(k) { return window.BEYANNAME_FIRMA_SABITLERI[k].tpsOtvMuafiyetNo; });
+            let adaylar = (U.match(/\b\d{20,25}\s?\/\s?\d{1,2}\b/g) || []).map(function(x) { return x.replace(/\s/g, ''); });
+            alanlar.tseBelgeNo = adaylar.find(function(x) { return otv.indexOf(x) === -1; }) || '';
+        } else if(tur === 'atr') {
+            alanlar.atrNo = al(/\bN[O°º]\.?\s*[:\s]*([A-Z]{1,2}\s?\d{5,9})\b/) || al(/\b([A-Z]\s?\d{6,9})\b/);
+        } else if(tur === 'fatura') {
+            alanlar.faturaNo = al(/(?:INVOICE|RECHNUNGS?|FATURA|FACTURE|FATTURA)[\s\-]*(?:NO|NR|NUMBER|NUMMER|N°|#)\.?\s*[:#]?\s*([A-Z0-9][A-Z0-9\-\/]{2,})/);
+            alanlar.faturaTarihi = trTarih(al(/(?:INVOICE DATE|RECHNUNGSDATUM|FATURA TAR[İI]H[İI]|DATE|DATUM|TAR[İI]H)\s*[:\s]*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/));
+            let tutar = al(/(?:TOTAL|GESAMTBETRAG|GESAMT|SUMME|BRUTTO|TOPLAM|AMOUNT)[^\d\n]{0,30}([\d.,]{3,})/);
+            alanlar.fatura = tutar ? window.bkTutarNormalize(tutar) : '';
+        }
+        return { tur: tur, alanlar: alanlar, transfer: transfer };
+    };
+
+    // ─── GAS JSONP ───────────────────────────────────────────────────────
+    window.bkGasCagir = function(params, zamanAsimi) {
+        return new Promise(function(resolve, reject) {
+            let url = window.TSE_GAS_URL || 'https://script.google.com/macros/s/AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw/exec';
+            let cb = '_bkGas_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+            let s = document.createElement('script');
+            let bitir = function() { clearTimeout(t); delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); };
+            let t = setTimeout(function() { bitir(); reject(new Error('Apps Script zaman aşımı')); }, zamanAsimi || 330000);
+            window[cb] = function(sonuc) { bitir(); resolve(sonuc); };
+            s.onerror = function() { bitir(); reject(new Error('Apps Script bağlantı hatası')); };
+            params.callback = cb;
+            s.src = url + '?' + new URLSearchParams(params).toString();
+            document.body.appendChild(s);
+        });
+    };
+
+    // ─── DRIVE KLASÖRÜNÜ TARA, ÇÖZÜMLE, KÜMÜLATİF KAYDET ────────────────
+    window.aracTumEvraklariniCozumle = async function(arac, ilerleme) {
+        if(!arac) return null;
+        if(!arac.evrakLink) throw new Error('Araç klasörü tanımlı değil (evrakLink yok).');
+        let rapor = { okunan: 0, bulunan: [], hatalar: [], atlanan: 0 };
+        for(let tur = 0; tur < 5; tur++) {
+            let atla = Object.keys(arac.taranmisEvraklar || {}).map(function(id) { return id + ':' + arac.taranmisEvraklar[id]; });
+            if(ilerleme) ilerleme('Drive klasörü okunuyor…');
+            let s = await window.bkGasCagir({ action: 'readAracEvraklari', evrakLink: arac.evrakLink, atla: atla.join(',') });
+            if(!s || !s.success) {
+                let h = (s && s.error) || 'bilinmeyen hata';
+                if(/Geçersiz action/i.test(h)) h = 'Apps Script güncel değil: readAracEvraklari eklenip yeni sürüm olarak dağıtılmalı.';
+                throw new Error(h);
+            }
+            rapor.atlanan = s.atlanan || 0;
+            rapor.hatalar = rapor.hatalar.concat(s.hatalar || []);
+            let alanlar = {}, transferler = [], taranan = {};
+            for(let i = 0; i < (s.dosyalar || []).length; i++) {
+                let f = s.dosyalar[i];
+                if(ilerleme) ilerleme('Çözümleniyor: ' + f.ad);
+                let c = await window.evrakMetniSiniflandir(f.ad, f.metin);
+                Object.keys(c.alanlar).forEach(function(k) { if(c.alanlar[k] && !alanlar[k]) alanlar[k] = c.alanlar[k]; });
+                if(c.transfer) transferler.push(c.transfer);
+                if(c.tur) rapor.bulunan.push(f.ad + ' → ' + c.tur.toUpperCase());
+                let p = String(f.imza || '').split(':');
+                if(p[0]) taranan[p[0]] = p[1] || '';
+                rapor.okunan++;
+            }
+            window.aracVerisiBirlestir(arac, alanlar, transferler, true, {
+                taranmisEvraklar: taranan,
+                evrakTaramaTarihi: window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR')
+            });
+            if(!s.devamVar) break;
+        }
+        window.saveData && window.saveData('decl');
+        return rapor;
+    };
+
+    window.manuelKlasorTara = async function() {
+        let a = window._bkAktif;
+        if(!a) return;
+        let btn = document.getElementById('bk-tara-btn');
+        let durum = document.getElementById('bk-tara-durum');
+        let yaz = function(m) { if(durum) durum.textContent = m; };
+        if(btn) btn.disabled = true;
+        try {
+            let r = await window.aracTumEvraklariniCozumle(a.d, yaz);
+            window.bkKartDoldur();
+            yaz(r.okunan ? ('✅ ' + r.okunan + ' yeni evrak okundu' + (r.bulunan.length ? ': ' + r.bulunan.join(', ') : '')) : '✅ Klasörde yeni evrak yok');
+            if(r.hatalar.length) yaz((durum ? durum.textContent : '') + ' · ⚠️ Okunamayan: ' + r.hatalar.join(', '));
+        } catch(e) {
+            yaz('❌ ' + e.message);
+        } finally {
+            if(btn) btn.disabled = false;
+        }
+    };
+
+    // ─── EVRAK KONTROL MOTORU ────────────────────────────────────────────
+    window.bkEvrakKontrol = function(d) {
+        let dolu = function(v) { return v != null && String(v).trim() !== ''; };
+        let tr = (d.transferler || []).find(function(t) { return t.belgeId && t.bilgeBankaKodu; });
+        return [
+            { id: 'chk-fatura',   ok: dolu(d.faturaNo) && dolu(d.fatura) },
+            { id: 'chk-mrn',      ok: dolu(d.mrnNo) && dolu(d.girisGumrukKodu) },
+            { id: 'chk-transfer', ok: !!tr || (dolu(d.bilgeBankaKodu) && (d.transferler || []).some(function(t) { return dolu(t.belgeId); })) },
+            { id: 'chk-tse',      ok: dolu(d.tseBelgeNo) },
+            { id: 'chk-btk',      ok: dolu(d.btkYaziNo) },
+            { id: 'chk-atr',      ok: dolu(d.atrNo) }
+        ];
+    };
+
+    window.bkRozetleriBoya = function(d) {
+        let liste = window.bkEvrakKontrol(d);
+        let tarandi = !!d.evrakTaramaTarihi;
+        let eksik = 0;
+        liste.forEach(function(k) {
+            let el = document.getElementById(k.id);
+            if(!el) return;
+            if(!el.dataset.etiket) el.dataset.etiket = el.textContent.trim();
+            el.classList.remove('ok', 'bekliyor', 'eksik');
+            if(k.ok) { el.classList.add('ok'); el.textContent = el.dataset.etiket + ' ✅'; }
+            else {
+                eksik++;
+                // Klasör taranmış ve hâlâ yoksa kırmızı, henüz taranmadıysa turuncu
+                el.classList.add(tarandi ? 'eksik' : 'bekliyor');
+                el.textContent = el.dataset.etiket + (tarandi ? ' ❌ Eksik' : ' ⏳ Bekleniyor');
+            }
+        });
+        let b = document.getElementById('byn-hazir-durum-badge');
+        if(b) {
+            b.textContent = eksik ? '🟡 EVRAK BEKLENİYOR (' + eksik + ' Belge Eksik)' : '🟢 BEYANNAME TESCİLİNE HAZIR (Eksiksiz)';
+            b.className = eksik ? 'bk-hazir-bekliyor' : 'bk-hazir-tamam';
+        }
+        let t = document.getElementById('bk-son-tarama');
+        if(t) t.textContent = tarandi ? 'Son tarama: ' + d.evrakTaramaTarihi : 'Klasör henüz taranmadı';
+        return eksik;
     };
 
     window.bkKopyala = function(metin, btn) {
@@ -13210,7 +13437,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         yaz('bk-marka-model', [d.marka, d.model, d.yil].filter(Boolean).join(' / '), false);
         yaz('bk-gtip', d.gtip || ts['tse-gtipNo']);
         yaz('bk-fatura-tutar', d.fatura ? (window.formatNumber ? window.formatNumber(d.fatura) : d.fatura) + ' EUR' : '', false);
-        yaz('bk-fatura-no-tarih', [d.faturaNo, d.faturaTarih].filter(Boolean).join(' / '), false);
+        yaz('bk-fatura-no-tarih', [d.faturaNo, d.faturaTarihi || d.faturaTarih].filter(Boolean).join(' / '), false);
         yaz('bk-teslim', d.teslim || 'CIF', false);
         yaz('bk-mensei', d.mensei || ts['tse-uretildigiUlke'], false);
         yaz('bk-cikis-ulke', d.cikisUlke || ts['tse-ithalatUlkesi'], false);
@@ -13223,6 +13450,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(gEl) gEl.innerHTML = esc(gKod + ' - ' + (g ? g.ad.replace(/\s*Gümrük Müdürlüğü$/i, '').toLocaleUpperCase('tr') : '')) + kopyaBtn(gKod);
         yaz('bk-tir-plaka', d.tirPlaka || d.plaka);
         yaz('bk-ozet-beyan', d.ozetBeyan);
+        yaz('bk-mrn', d.mrnNo);
         yaz('bk-kap', sab.kapAdedi || '1');
 
         // 4. TPS izinleri
@@ -13257,15 +13485,19 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let set = function(id, v) { let el = document.getElementById(id); if(el) el.value = v || ''; };
         let sel = document.getElementById('bk-in-gumruk');
         if(sel && !sel.options.length) {
-            sel.innerHTML = window.GUMRUK_GIRIS_KODLARI.map(function(x) { return '<option value="' + x.kod + '">' + x.kod + ' - ' + esc(x.ad) + '</option>'; }).join('');
+            sel.innerHTML = '<option value="">— Seçiniz —</option>' + window.GUMRUK_GIRIS_KODLARI.map(function(x) { return '<option value="' + x.kod + '">' + x.kod + ' - ' + esc(x.ad) + '</option>'; }).join('');
         }
-        set('bk-in-gumruk', gKod);
+        set('bk-in-gumruk', d.girisGumrukKodu);
         set('bk-in-tir', d.tirPlaka || d.plaka);
         set('bk-in-ozet', d.ozetBeyan);
         set('bk-in-atr', d.atrNo);
         set('bk-in-tse', d.tseBelgeNo);
         set('bk-in-btk', d.btkYaziNo);
         set('bk-in-imei', d.imei || d.brut);
+        set('bk-in-fatura-no', d.faturaNo);
+        set('bk-in-fatura-tarih', d.faturaTarihi || d.faturaTarih);
+        set('bk-in-mrn', d.mrnNo);
+        window.bkRozetleriBoya(d);
         if(window.lucide) lucide.createIcons();
     };
 
@@ -13277,7 +13509,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let metin = metinEl ? metinEl.value : '';
         let t = await window.aracEvraklariniTaraVeKaydet(a.d, metin, {
             girisGumrukKodu: v('bk-in-gumruk'), tirPlaka: v('bk-in-tir'), ozetBeyan: v('bk-in-ozet'),
-            atrNo: v('bk-in-atr'), tseBelgeNo: v('bk-in-tse'), btkYaziNo: v('bk-in-btk'), imei: v('bk-in-imei')
+            atrNo: v('bk-in-atr'), tseBelgeNo: v('bk-in-tse'), btkYaziNo: v('bk-in-btk'), imei: v('bk-in-imei'),
+            faturaNo: v('bk-in-fatura-no'), faturaTarihi: v('bk-in-fatura-tarih'), mrnNo: v('bk-in-mrn')
         });
         if(metin.trim() && !t) alert('⚠️ Transfer Bildirim Formu metninde Belge ID veya Banka satırı bulunamadı.');
         else if(t && !t.bilgeBankaKodu) alert('⚠️ Banka ' + t.eftKodu + ' / şube ' + t.subeKodu + ' banka listesinde bulunamadı; il kodu eklenemedi.');
