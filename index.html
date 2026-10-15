@@ -2950,10 +2950,11 @@ div[style*="position: relative"] > input {
         .byn-kart-wrap { max-width: 920px; margin: 20px auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .byn-section { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .byn-sec-title { font-size: 13.5px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-        .byn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
-        .byn-item { background: var(--bg-elevated); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .byn-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
-        .byn-val { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: monospace; display: flex; align-items: center; gap: 6px; }
+        .byn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0; border-top: 1px solid #cbd5e1; border-left: 1px solid #cbd5e1; }
+        .byn-item { background: #ffffff; padding: 0; border-radius: 0; border: none; border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; display: flex; align-items: stretch; }
+        .byn-label { flex: 0 0 38%; box-sizing: border-box; background: #f8fafc; color: #1e293b; font-size: 13px; font-weight: 600; padding: 4px 8px; border-right: 1px solid #cbd5e1; display: flex; align-items: center; }
+        .byn-val { flex: 1; min-width: 0; background: #ffffff; color: #000000; font-size: 14.5px; font-weight: 700; padding: 4px 8px; font-family: monospace; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .byn-item[style*="span 2"] > .byn-label { flex-basis: 19%; }
         .copy-btn { cursor: pointer; color: var(--primary); background: transparent; border: none; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
         .copy-btn:hover { background: rgba(59,130,246,0.15); }
         .evrak-check-badge { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-muted); white-space: nowrap; }
@@ -2969,7 +2970,7 @@ div[style*="position: relative"] > input {
         .bk-giris-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
         .bk-giris-grid label { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
         .bk-giris-grid input, .bk-giris-grid select, #bk-in-transfer { width: 100%; box-sizing: border-box; }
-        @media (max-width: 600px) { .byn-item[style*="span 2"] { grid-column: auto !important; } .byn-item { flex-wrap: wrap; gap: 4px; } .byn-val { word-break: break-all; } }
+        @media (max-width: 600px) { .byn-item[style*="span 2"] { grid-column: auto !important; } .byn-label, .byn-item[style*="span 2"] > .byn-label { flex-basis: 42%; font-size: 12px; } .byn-val { word-break: break-all; font-size: 13.5px; } }
 
         @media print {
             @page { size: A4 portrait; margin: 4mm 6mm !important; }
@@ -2991,13 +2992,13 @@ div[style*="position: relative"] > input {
                 font-size: 10.5px !important; margin-bottom: 3px !important;
                 padding-bottom: 2px !important; color: #000 !important;
             }
-            .byn-grid { gap: 1px 10px !important; grid-template-columns: 1fr 1fr !important; }
+            .byn-grid { gap: 0 !important; grid-template-columns: 1fr 1fr !important; border-top: 1px solid #cbd5e1 !important; border-left: 1px solid #cbd5e1 !important; }
             .byn-item {
-                border: none !important; background: transparent !important;
-                padding: 1px 0 !important; min-height: 0 !important;
+                border: none !important; border-right: 1px solid #cbd5e1 !important; border-bottom: 1px solid #cbd5e1 !important;
+                background: #fff !important; padding: 0 !important; min-height: 0 !important; margin: 0 !important;
             }
-            .byn-label { font-size: 9px !important; color: #444 !important; }
-            .byn-val { font-size: 10px !important; color: #000 !important; }
+            .byn-label { font-size: 9.5pt !important; color: #000 !important; background: #f8fafc !important; padding: 2px 6px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .byn-val { font-size: 10.5pt !important; color: #000 !important; padding: 2px 6px !important; }
             #bk-bilge-banka-kod { font-size: 12px !important; color: #000 !important; }
             #byn-print-area [style*="margin-top:14px"] { margin-top: 4px !important; padding-top: 3px !important; }
             #byn-print-area [style*="margin-bottom:8px"] { margin-bottom: 3px !important; }
@@ -3074,7 +3075,7 @@ div[style*="position: relative"] > input {
                     <div class="byn-item"><span class="byn-label">Araç Fatura No &amp; Tarih</span><span class="byn-val" id="bk-arac-fatura-no-tarih">-</span></div>
                     <div class="byn-item"><span class="byn-label">Araç Fatura Tutarı</span><span class="byn-val" id="bk-arac-fatura-tutar">-</span></div>
                     <div class="byn-item"><span class="byn-label">Navlun Fatura No &amp; Tarih</span><span class="byn-val" id="bk-navlun-fatura-no-tarih">-</span></div>
-                    <div class="byn-item"><span class="byn-label">Navlun Tutarı (€)</span><span class="byn-val" id="bk-navlun-tutar">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Navlun &amp; Sigorta Tutarı (€)</span><span class="byn-val" id="bk-navlun-tutar">-</span></div>
                     <div class="byn-item"><span class="byn-label">Teslim Şekli</span><span class="byn-val" id="bk-teslim">-</span></div>
                     <div class="byn-item"><span class="byn-label">Menşe Ülke</span><span class="byn-val" id="bk-mensei">-</span></div>
                     <div class="byn-item"><span class="byn-label">Çıkış Ülkesi</span><span class="byn-val" id="bk-cikis-ulke">-</span></div>
@@ -3097,7 +3098,10 @@ div[style*="position: relative"] > input {
             <div class="byn-section">
                 <div class="byn-sec-title">📑 4. TPS İzinleri, 28. Kutu Banka ve Transfer Referansları</div>
                 <div class="byn-grid">
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">Araç Fatura No &amp; Tarih</span><span class="byn-val" id="bk-44-arac-fatura">-</span></div>
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">Navlun Fatura No &amp; Tarih</span><span class="byn-val" id="bk-44-navlun-fatura">-</span></div>
                     <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">A.TR Dolaşım Belgesi No &amp; Tarih</span><span class="byn-val" id="bk-atr">-</span></div>
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">TPS ÖTV Muafiyet No (234/1)</span><span class="byn-val" id="bk-44-otv-muaf">-</span></div>
                     <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">TPS İthal Araç Uygunluk Belgesi (TSE)</span><span class="byn-val" id="bk-tse">-</span></div>
                     <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">TPS BTK Cihaz (IMEI) Yazı No</span><span class="byn-val" id="bk-btk">-</span></div>
                     <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">Cihaz IMEI Numarası</span><span class="byn-val" id="bk-imei">-</span></div>
@@ -4370,7 +4374,7 @@ div[style*="position: relative"] > input {
             </div>
 
             <div class="modal-section">
-                <div class="modal-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span>Temel Bilgiler</span><button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);white-space:nowrap;" onclick="window.openTseSablonModalOrMulti()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button></div>
+                <div class="modal-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span>Temel Bilgiler</span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;"><button type="button" class="btn-sm" style="border-color:#10b981;color:#10b981;white-space:nowrap;" onclick="window.openBeyannameKartFromModal(false)"><i data-lucide="file-text"></i> Beyanname Kartı</button><button type="button" class="btn-sm" style="background:#10b981;color:#fff;border-color:#10b981;white-space:nowrap;" onclick="window.openBeyannameKartFromModal(true)"><i data-lucide="printer"></i> Kart Çıktısı Al</button><button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);white-space:nowrap;" onclick="window.openTseSablonModalOrMulti()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button></div></div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="input-group" style="margin:0;">
                         <label>Firma</label>
@@ -13690,22 +13694,37 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         yaz('bk-kap', sab.kapAdedi || '1');
 
         // 4. TPS izinleri
-        let duz = function(id, v, ph) { return '<span contenteditable="true" class="bk-duz" id="' + id + '" data-ph="' + ph + '">' + esc(v || '') + '</span>'; };
+        let duz = function(id, v, ph, es) { return '<span contenteditable="true" class="bk-duz" id="' + id + '" data-ph="' + ph + '"' + (es ? ' data-es="' + es + '"' : '') + '>' + esc(v || '') + '</span>'; };
         let atrEl = document.getElementById('bk-atr');
         if(atrEl) atrEl.innerHTML = duz('bk-atr-no', d.atrNo, 'No') + ' / ' + duz('bk-atr-tarih', d.atrTarih, 'GG.AA.YYYY') + kopyaBtn(d.atrNo);
         let html = function(id, h) { let el = document.getElementById(id); if(el) el.innerHTML = h; };
         let tutarYaz = function(v) { return v ? (window.formatNumber ? window.formatNumber(v) : v) : ''; };
-        html('bk-arac-fatura-no-tarih', duz('bk-fatura-no', d.faturaNo, 'No') + ' / ' + duz('bk-fatura-tarih', d.faturaTarih || d.faturaTarihi, 'GG.AA.YYYY') + kopyaBtn(d.faturaNo));
+        html('bk-arac-fatura-no-tarih', duz('bk-fatura-no', d.faturaNo, 'No', 'fno') + ' / ' + duz('bk-fatura-tarih', d.faturaTarih || d.faturaTarihi, 'GG.AA.YYYY', 'ftar') + kopyaBtn(d.faturaNo));
+        html('bk-44-arac-fatura', duz('bk-44-fatura-no', d.faturaNo, 'No', 'fno') + ' / ' + duz('bk-44-fatura-tarih', d.faturaTarih || d.faturaTarihi, 'GG.AA.YYYY', 'ftar') + kopyaBtn(d.faturaNo));
+        yaz('bk-44-otv-muaf', sab.tpsOtvMuafiyetNo);
         html('bk-arac-fatura-tutar', duz('bk-arac-fatura-tutar-val', tutarYaz(d.fatura), 'Tutar') + ' EUR' + kopyaBtn(d.fatura));
         // Navlun ayrı faturadır; yalnızca navlunun bedele dahil olmadığı teslim şekillerinde (EXW, FCA, FOB, FAS) istenir
         let teslim = String(d.teslim || 'CIF').toUpperCase().trim();
         if(/^(EXW|FCA|FOB|FAS)\b/.test(teslim)) {
-            html('bk-navlun-fatura-no-tarih', duz('bk-navlun-no', d.navlunFaturaNo, 'No') + ' / ' + duz('bk-navlun-tarih', d.navlunFaturaTarih, 'GG.AA.YYYY') + kopyaBtn(d.navlunFaturaNo));
-            html('bk-navlun-tutar', duz('bk-navlun-tutar-val', tutarYaz(d.navlunTutar), 'Tutar') + ' EUR' + kopyaBtn(d.navlunTutar));
+            html('bk-navlun-fatura-no-tarih', duz('bk-navlun-no', d.navlunFaturaNo, 'No', 'nno') + ' / ' + duz('bk-navlun-tarih', d.navlunFaturaTarih, 'GG.AA.YYYY', 'ntar') + kopyaBtn(d.navlunFaturaNo));
+            html('bk-44-navlun-fatura', duz('bk-44-navlun-no', d.navlunFaturaNo, 'No', 'nno') + ' / ' + duz('bk-44-navlun-tarih', d.navlunFaturaTarih, 'GG.AA.YYYY', 'ntar') + kopyaBtn(d.navlunFaturaNo));
+            let sigorta = (d.sigortaTutar == null || d.sigortaTutar === '') ? '50' : d.sigortaTutar;
+            html('bk-navlun-tutar', duz('bk-navlun-tutar-val', tutarYaz(d.navlunTutar), 'Tutar') + ' EUR + ' + duz('bk-sigorta-val', tutarYaz(sigorta), '50') + ' EUR Sigorta' + kopyaBtn(d.navlunTutar));
         } else {
             let dahil = '- (' + esc(teslim.split(/\s/)[0]) + ' Dahil)';
             html('bk-navlun-fatura-no-tarih', dahil);
             html('bk-navlun-tutar', dahil);
+            html('bk-44-navlun-fatura', '-');
+        }
+        // 2. ve 4. bölümdeki aynı fatura alanları birlikte güncellenir
+        let alan = document.getElementById('byn-print-area');
+        if(alan && !alan._bkEsitle) {
+            alan._bkEsitle = true;
+            alan.addEventListener('input', function(e) {
+                let es = e.target && e.target.dataset && e.target.dataset.es;
+                if(!es) return;
+                alan.querySelectorAll('[data-es="' + es + '"]').forEach(function(x) { if(x !== e.target) x.textContent = e.target.textContent; });
+            });
         }
         // Teknik alanlar: TSE şablonu → araç kaydı (CoC taraması dahil)
         let tek = function(k) { return ts['tse-' + k] || d[k] || ''; };
@@ -13721,7 +13740,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // 28. kutu banka + transferler (yalnızca gerçekten kayıtlı, tekil transferler)
         let transferler = window.bkTransferTekil(d.transferler);
         let son = transferler.length ? transferler[transferler.length - 1] : null;
-        let bankaKod = d.bilgeBankaKodu || (son && son.bilgeBankaKodu) || '';
+        let transferKodu = '';
+        transferler.some(function(t) {
+            let m = String(t.bilgeBankaKodu || '').replace(/\D/g, '').length === 12 ? [String(t.bilgeBankaKodu).replace(/\D/g, '')]
+                : [t.belgeId, t.bankaAdi, t.subeAdi, t.not].join(' ').match(/(?:^|\D)(\d{12})(?!\d)/);
+            if(m) { transferKodu = m[m.length - 1]; return true; }
+        });
+        let bankaKod = d.bilgeBankaKodu || transferKodu || (son && son.bilgeBankaKodu) || '';
         let ilVarsayilan = !!(son && son.ilVarsayilan && bankaKod === son.bilgeBankaKodu);
         if(!bankaKod && son && son.eftKodu && son.subeKodu) {
             let il = window.bkIlKoduMetinden((son.subeAdi || '') + ' ' + (son.bankaAdi || ''));
@@ -13803,7 +13828,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let navlun = document.getElementById('bk-navlun-no') ? {
             navlunFaturaNo: deger('bk-navlun-no'),
             navlunFaturaTarih: trTarih(deger('bk-navlun-tarih')),
-            navlunTutar: window.bkTutarNormalize(deger('bk-navlun-tutar-val'))
+            navlunTutar: window.bkTutarNormalize(deger('bk-navlun-tutar-val')),
+            sigortaTutar: window.bkTutarNormalize(deger('bk-sigorta-val')) || '50'
         } : null;
         let yakitHam = deger('bk-yakit-val') || '';
         let yakitSecenek = ['Benzin','Dizel','Elektrikli','Hibrit','Dizel+Elektrikli','Benzin+LPG','Benzin+CNG'].find(function(y) { return y.toLocaleLowerCase('tr') === yakitHam.toLocaleLowerCase('tr'); });
@@ -13871,6 +13897,15 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(metinEl && t) metinEl.value = '';
         window.bkKartDoldur();
         if(typeof window.showToast === 'function') window.showToast('✅ Bilgiler araca başarıyla kaydedildi', 'success');
+    };
+
+    window.openBeyannameKartFromModal = async function(hemenYazdir) {
+        let idx = parseInt((document.getElementById('decl-edit-idx') || {}).value, 10);
+        let ctx = window.currentModalContext || 'decl';
+        if(isNaN(idx) || idx < 0) { alert('Önce aracı kaydedin; kart kayıtlı araç için açılır.'); return; }
+        if(typeof window.closeDeclModal === 'function') window.closeDeclModal();
+        await window.openBeyannameKart(idx, ctx);
+        if(hemenYazdir && document.getElementById('byn-print-area')) setTimeout(function() { window.print(); }, 500);
     };
 
     window.openBeyannameKart = async function(idx, ctx) {
