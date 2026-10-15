@@ -3057,9 +3057,6 @@ div[style*="position: relative"] > input {
                     <div class="byn-item"><span class="byn-label">Rejim Kodu</span><span class="byn-val" id="bk-rejim">4000</span></div>
                     <div class="byn-item"><span class="byn-label">Alıcı / Satıcı İlişkisi</span><span class="byn-val" id="bk-iliski">6</span></div>
                 </div>
-                <div class="no-print" style="margin-top:8px; text-align:right;">
-                    <button type="button" class="copy-btn" onclick="window.bkBilgeGirisAyarla()">🔑 BİLGE girişini bu cihazda ayarla</button>
-                </div>
             </div>
 
             <!-- 2. ARAÇ VE FATURA BİLGİLERİ -->
@@ -12875,10 +12872,10 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             unvan:      'ŞAMNU GT OTOMOTİV'
         },
         'FF OTOMOTİV': {
-            kullanici:  '',
-            sifre:      '',
-            otvMuhaf:   '',
-            vergiNo:    '',
+            kullanici:  '55813357490',
+            sifre:      '15011973',
+            otvMuhaf:   '26243160111096081978046/1',
+            vergiNo:    '3851704324',
             unvan:      'FF OTOMOTİV'
         }
     };
@@ -13064,6 +13061,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             unvan: "ŞAMNU GT MOTORLU ARAÇLAR SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
             vergiNo: "4110376487",
             tpsOtvMuafiyetNo: "25243160111096067013069/1",
+            bilgeTc: "38476631862",
+            bilgeSifre: "26041981",
             rejimKodu: "4000",
             aliciSaticiIliskisi: "6",
             kapAdedi: "1"
@@ -13072,6 +13071,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             unvan: "FF OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ",
             vergiNo: "3851704324",
             tpsOtvMuafiyetNo: "26243160111096081978046/1",
+            bilgeTc: "55813357490",
+            bilgeSifre: "15011973",
             rejimKodu: "4000",
             aliciSaticiIliskisi: "6",
             kapAdedi: "1"
@@ -13164,12 +13165,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         }) || '';
     };
 
-    // BİLGE girişi: önce cihazdaki yerel ayar, yoksa mevcut BYN_FIRMA_CONFIG
+    // BİLGE girişi: firma sabitlerinden; yoksa BYN_FIRMA_CONFIG, en son eski cihaz kaydı
     window.bkBilgeGirisOku = function(firmaKey) {
+        let sab = window.BEYANNAME_FIRMA_SABITLERI[firmaKey] || {};
+        let cfg = (window.BYN_FIRMA_CONFIG && window.BYN_FIRMA_CONFIG[firmaKey]) || {};
         let kayit = {};
         try { kayit = (JSON.parse(localStorage.getItem('gumruk_bilge_giris') || '{}') || {})[firmaKey] || {}; } catch(e) {}
-        let cfg = (window.BYN_FIRMA_CONFIG && window.BYN_FIRMA_CONFIG[firmaKey]) || {};
-        return { tc: kayit.tc || cfg.kullanici || '', sifre: kayit.sifre || cfg.sifre || '' };
+        return { tc: sab.bilgeTc || cfg.kullanici || kayit.tc || '', sifre: sab.bilgeSifre || cfg.sifre || kayit.sifre || '' };
     };
 
     window.bkBilgeGirisAyarla = function() {
@@ -13576,7 +13578,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let sifreEl = document.getElementById('bk-sifre');
         if(sifreEl) sifreEl.innerHTML = giris.sifre
             ? '<span data-gizli="1" data-sifre="' + esc(giris.sifre) + '">••••••••</span> <button type="button" class="copy-btn no-print" title="Göster / Gizle" onclick="let s=this.previousElementSibling;let g=s.dataset.gizli===\'1\';s.textContent=g?s.dataset.sifre:\'••••••••\';s.dataset.gizli=g?\'0\':\'1\';">👁</button>' + kopyaBtn(giris.sifre)
-            : '- <button type="button" class="copy-btn no-print" onclick="window.bkBilgeGirisAyarla()" title="Bu cihazda BİLGE girişini ayarla">🔑 Ayarla</button>';
+            : '-';
         yaz('bk-otv-muaf', sab.tpsOtvMuafiyetNo);
         yaz('bk-rejim', sab.rejimKodu || '4000');
         yaz('bk-iliski', sab.aliciSaticiIliskisi || '6');
