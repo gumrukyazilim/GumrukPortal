@@ -2991,7 +2991,7 @@ div[style*="position: relative"] > input {
                 font-size: 10.5px !important; margin-bottom: 3px !important;
                 padding-bottom: 2px !important; color: #000 !important;
             }
-            .byn-grid { gap: 4px !important; grid-template-columns: 1fr 1fr !important; }
+            .byn-grid { gap: 1px 10px !important; grid-template-columns: 1fr 1fr !important; }
             .byn-item {
                 border: none !important; background: transparent !important;
                 padding: 1px 0 !important; min-height: 0 !important;
@@ -3065,9 +3065,16 @@ div[style*="position: relative"] > input {
                 <div class="byn-grid">
                     <div class="byn-item"><span class="byn-label">Şasi No (VIN)</span><span class="byn-val" id="bk-sasi">-</span></div>
                     <div class="byn-item"><span class="byn-label">Marka / Model / Yıl / Renk</span><span class="byn-val" id="bk-marka-model">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Araç Ticari Adı</span><span class="byn-val" id="bk-ticari-ad">-</span></div>
                     <div class="byn-item"><span class="byn-label">GTİP Kodu</span><span class="byn-val" id="bk-gtip">-</span></div>
-                    <div class="byn-item"><span class="byn-label">Fatura Tutarı</span><span class="byn-val" id="bk-fatura-tutar">-</span></div>
-                    <div class="byn-item"><span class="byn-label">Fatura No &amp; Tarih</span><span class="byn-val" id="bk-fatura-no-tarih">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Motor Gücü (kW)</span><span class="byn-val" id="bk-motor-guc">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Motor Silindir Hacmi (cm³)</span><span class="byn-val" id="bk-motor-hacim">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Silindir Sayısı</span><span class="byn-val" id="bk-silindir">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Yakıt Türü</span><span class="byn-val" id="bk-yakit">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Araç Fatura No &amp; Tarih</span><span class="byn-val" id="bk-arac-fatura-no-tarih">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Araç Fatura Tutarı</span><span class="byn-val" id="bk-arac-fatura-tutar">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Navlun Fatura No &amp; Tarih</span><span class="byn-val" id="bk-navlun-fatura-no-tarih">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Navlun Tutarı (€)</span><span class="byn-val" id="bk-navlun-tutar">-</span></div>
                     <div class="byn-item"><span class="byn-label">Teslim Şekli</span><span class="byn-val" id="bk-teslim">-</span></div>
                     <div class="byn-item"><span class="byn-label">Menşe Ülke</span><span class="byn-val" id="bk-mensei">-</span></div>
                     <div class="byn-item"><span class="byn-label">Çıkış Ülkesi</span><span class="byn-val" id="bk-cikis-ulke">-</span></div>
@@ -13321,6 +13328,50 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         return transfer;
     };
 
+    // ─── CoC TEKNİK ALANLAR (Madde 0.2.1 / 22 / 25 / 26 / 27) ──────────
+    window.bkCocTeknikAyristir = function(metin) {
+        let t = String(metin || '');
+        let al = function(reler) {
+            for(let i = 0; i < reler.length; i++) { let m = t.match(reler[i]); if(m && m[1]) return m[1].trim(); }
+            return '';
+        };
+        let sayi = function(v) { return String(v || '').replace(/\s/g, '').replace(',', '.'); };
+        let r = {};
+        r.ticariAd = al([
+            /(?:^|\n)\s*0\.2\.1\.?\s*(?:Ticari\s+ism[ie](?:\(leri\))?|Commercial\s+name\(?s?\)?|Handelsbezeichnung(?:\(en\))?)?\s*[:.]?\s*([^\n\r]+)/i,
+            /\b0\.2\.1[\s.:]+([^\n\r]+)/i,
+            /Ticari\s+ism[ie][\s:]+([^\n\r]+)/i
+        ]).replace(/\s+0$/, '').replace(/^[:.\s]+/, '');
+        r.silindirSayisi = al([
+            /Silindir(?:lerin)?\s+say[ıi]s[ıi][^\d\n]{0,40}(\d{1,2})\b/i,
+            /Number\s+(?:and\s+arrangement\s+)?of\s+cylinders[^\d\n]{0,40}(\d{1,2})\b/i,
+            /Anzahl\s+(?:und\s+Anordnung\s+)?der\s+Zylinder[^\d\n]{0,40}(\d{1,2})\b/i,
+            /(?:^|\n)\s*22\.?\s+[^\n\d]{0,60}(\d{1,2})\b/
+        ]);
+        r.silindirHacmi = sayi(al([
+            /(?:Silindir|Motor)\s+hacmi[^\d\n]{0,40}(\d[\d .,]{2,6})\s*(?:cm|ccm)/i,
+            /(?:Capacity|Hubraum)[^\d\n]{0,40}(\d[\d .,]{2,6})\s*(?:cm|ccm)/i,
+            /(?:^|\n)\s*25\.?\s+[^\n\d]{0,60}(\d[\d .,]{2,6})\s*(?:cm|ccm)/
+        ])).replace(/\.(?=\d{3}$)/, '');
+        r.motorGucu = sayi(al([
+            /(?:Azami|Maksimum|Maks\.?)\s+net\s+g[üu][çc][^\d\n]{0,40}(\d{2,4}(?:[.,]\d+)?)\s*kW/i,
+            /Maximum\s+(?:net\s+|continuous\s+rated\s+|hourly\s+)?(?:power|output)[^\d\n]{0,40}(\d{2,4}(?:[.,]\d+)?)\s*kW/i,
+            /(?:Nennleistung|Nutzleistung|Höchstleistung)[^\d\n]{0,40}(\d{2,4}(?:[.,]\d+)?)\s*kW/i,
+            /(?:^|\n)\s*27(?:\.[12])?\.?\s+[^\n\d]{0,60}(\d{2,4}(?:[.,]\d+)?)\s*kW/i
+        ]));
+        let yakitSatir = al([
+            /(?:^|\n)\s*26\.?\s+([^\n\r]+)/,
+            /(?:Yak[ıi]t|Fuel|Kraftstoff)(?:\s+t[üu]r[üu])?\s*[:]\s*([^\n\r]+)/i
+        ]).toLocaleUpperCase('tr').replace(/İ/g, 'I');
+        let hibrit = /OVC-HEV|NOVC-HEV|HYBRID|HIBRIT/.test(t.toLocaleUpperCase('tr').replace(/İ/g, 'I'));
+        if(/ELEKTR|ELECTRIC/.test(yakitSatir) && !/BENZIN|PETROL|DIZEL|DIESEL/.test(yakitSatir)) r.yakitTuru = 'Elektrikli';
+        else if(/DIZEL|DIESEL/.test(yakitSatir)) r.yakitTuru = hibrit ? 'Dizel+Elektrikli' : 'Dizel';
+        else if(/BENZIN|PETROL|GASOLINE/.test(yakitSatir)) r.yakitTuru = hibrit ? 'Hibrit' : 'Benzin';
+        else if(/HIBRIT|HYBRID/.test(yakitSatir)) r.yakitTuru = 'Hibrit';
+        else r.yakitTuru = '';
+        return r;
+    };
+
     // ─── EVRAK SINIFLANDIRICI (OCR metninden alan çıkarma) ──────────────
     window.evrakMetniSiniflandir = async function(ad, metin, arac) {
         metin = String(metin || '');
@@ -13393,6 +13444,12 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             alanlar.tirPlaka = plakaBul();
         } else if(tur === 'navlun') {
             alanlar.tirPlaka = plakaBul();
+            alanlar.navlunFaturaNo = al(/(?:INVOICE|RECHNUNGS?|FATURA|FACTURE|FATTURA)[\s\-]*(?:NO|NR|NUMBER|NUMMER|N°|#)\.?\s*[:#]?\s*([A-Z0-9][A-Z0-9\-\/]{0,})/);
+            if(alanlar.navlunFaturaNo) {
+                alanlar.navlunFaturaTarih = trTarih(al(/(?:INVOICE DATE|RECHNUNGSDATUM|FATURA TAR[II]H[II]|DATE|DATUM|TAR[II]H)\s*[:\s]*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/));
+                let nt = al(/(?:TOTAL|GESAMTBETRAG|GESAMT|SUMME|BRUTTO|TOPLAM|AMOUNT)[^\d\n]{0,30}([\d.,]{3,})/);
+                alanlar.navlunTutar = nt ? window.bkTutarNormalize(nt) : '';
+            }
         } else if(tur === 'btk') {
             alanlar.btkYaziNo = al(/\b(\d{23})\b(?!\s*\/)/);
             alanlar.imei = al(/(?:IMEI|IMEI)[^\d]{0,40}(\d{15})\b/) || al(/\b(\d{15})\b/);
@@ -13492,6 +13549,20 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         }
 
         if(kesinFatura) window.aracVerisiBirlestir(arac, kesinFatura, [], false, null, true);
+        // CoC TR (mevcut readCocTrPdf ucu): ticari ad, motor gücü, hacim, silindir, yakıt
+        let tsx = arac.tseSablon || {};
+        let teknikEksik = ['motorGucu', 'silindirHacmi', 'silindirSayisi', 'ticariAd', 'yakitTuru'].some(function(k) { return !arac[k] && !tsx['tse-' + k]; });
+        if(teknikEksik || tumunuOku) {
+            try {
+                if(ilerleme) ilerleme('CoC teknik bilgileri okunuyor…');
+                let coc = await window.bkGasCagir({ action: 'readCocTrPdf', evrakLink: arac.evrakLink }, 60000);
+                if(coc && coc.success && coc.text) {
+                    let tk = window.bkCocTeknikAyristir(coc.text);
+                    Object.keys(tk).forEach(function(k) { if(tk[k] && !alanlar[k]) alanlar[k] = tk[k]; });
+                    rapor.bulunan.push((coc.fileName || 'CoC TR') + ' → COC');
+                }
+            } catch(e) {}
+        }
         window.aracVerisiBirlestir(arac, alanlar, transferler, true, {
             taranmisEvraklar: taranan,
             evrakTaramaTarihi: window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR')
@@ -13604,7 +13675,6 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         yaz('bk-sasi', d.sasi);
         yaz('bk-marka-model', [d.marka || '-', d.model || '-', d.yil || '-', d.renk || 'BELİRTİLMEDİ'].join(' / '), false);
         yaz('bk-gtip', d.gtip || ts['tse-gtipNo']);
-        yaz('bk-fatura-tutar', d.fatura ? (window.formatNumber ? window.formatNumber(d.fatura) : d.fatura) + ' EUR' : '', false);
         yaz('bk-teslim', d.teslim || 'CIF', false);
         yaz('bk-mensei', window.bkMenseUlke(d), false);
         yaz('bk-cikis-ulke', window.bkCikisUlke(d), false);
@@ -13623,8 +13693,27 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let duz = function(id, v, ph) { return '<span contenteditable="true" class="bk-duz" id="' + id + '" data-ph="' + ph + '">' + esc(v || '') + '</span>'; };
         let atrEl = document.getElementById('bk-atr');
         if(atrEl) atrEl.innerHTML = duz('bk-atr-no', d.atrNo, 'No') + ' / ' + duz('bk-atr-tarih', d.atrTarih, 'GG.AA.YYYY') + kopyaBtn(d.atrNo);
-        let fatEl = document.getElementById('bk-fatura-no-tarih');
-        if(fatEl) fatEl.innerHTML = duz('bk-fatura-no', d.faturaNo, 'No') + ' / ' + duz('bk-fatura-tarih', d.faturaTarih || d.faturaTarihi, 'GG.AA.YYYY') + kopyaBtn(d.faturaNo);
+        let html = function(id, h) { let el = document.getElementById(id); if(el) el.innerHTML = h; };
+        let tutarYaz = function(v) { return v ? (window.formatNumber ? window.formatNumber(v) : v) : ''; };
+        html('bk-arac-fatura-no-tarih', duz('bk-fatura-no', d.faturaNo, 'No') + ' / ' + duz('bk-fatura-tarih', d.faturaTarih || d.faturaTarihi, 'GG.AA.YYYY') + kopyaBtn(d.faturaNo));
+        html('bk-arac-fatura-tutar', duz('bk-arac-fatura-tutar-val', tutarYaz(d.fatura), 'Tutar') + ' EUR' + kopyaBtn(d.fatura));
+        // Navlun ayrı faturadır; yalnızca navlunun bedele dahil olmadığı teslim şekillerinde (EXW, FCA, FOB, FAS) istenir
+        let teslim = String(d.teslim || 'CIF').toUpperCase().trim();
+        if(/^(EXW|FCA|FOB|FAS)\b/.test(teslim)) {
+            html('bk-navlun-fatura-no-tarih', duz('bk-navlun-no', d.navlunFaturaNo, 'No') + ' / ' + duz('bk-navlun-tarih', d.navlunFaturaTarih, 'GG.AA.YYYY') + kopyaBtn(d.navlunFaturaNo));
+            html('bk-navlun-tutar', duz('bk-navlun-tutar-val', tutarYaz(d.navlunTutar), 'Tutar') + ' EUR' + kopyaBtn(d.navlunTutar));
+        } else {
+            let dahil = '- (' + esc(teslim.split(/\s/)[0]) + ' Dahil)';
+            html('bk-navlun-fatura-no-tarih', dahil);
+            html('bk-navlun-tutar', dahil);
+        }
+        // Teknik alanlar: TSE şablonu → araç kaydı (CoC taraması dahil)
+        let tek = function(k) { return ts['tse-' + k] || d[k] || ''; };
+        html('bk-ticari-ad', duz('bk-ticari-ad-val', tek('ticariAd') || d.model, 'Ticari ad') + kopyaBtn(tek('ticariAd') || d.model));
+        html('bk-motor-guc', duz('bk-motor-guc-val', tek('motorGucu'), 'kW') + ' kW' + kopyaBtn(tek('motorGucu')));
+        html('bk-motor-hacim', duz('bk-motor-hacim-val', tek('silindirHacmi'), 'cm³') + ' cm³' + kopyaBtn(tek('silindirHacmi')));
+        html('bk-silindir', duz('bk-silindir-val', tek('silindirSayisi'), 'Adet') + ' Silindir');
+        html('bk-yakit', duz('bk-yakit-val', tek('yakitTuru'), 'Yakıt') + kopyaBtn(tek('yakitTuru')));
         yaz('bk-tse', d.tseBelgeNo);
         yaz('bk-btk', window.bkBtkNo(d.btkYaziNo));
         yaz('bk-imei', d.imei || d.brut);
@@ -13707,6 +13796,24 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let kod = metin(document.getElementById('bk-banka-kod-val')).replace(/\s/g, '');
         let faturaNo = metin(document.getElementById('bk-fatura-no'));
         let faturaTarih = trTarih(metin(document.getElementById('bk-fatura-tarih')));
+        let deger = function(id) { let el = document.getElementById(id); return el ? metin(el) : null; };
+        let sayiAl = function(v) { return v == null ? null : String(v).replace(/[^\d.,]/g, ''); };
+        let aracTutar = deger('bk-arac-fatura-tutar-val');
+        aracTutar = aracTutar ? parseFloat(window.bkTutarNormalize(aracTutar)) : null;
+        let navlun = document.getElementById('bk-navlun-no') ? {
+            navlunFaturaNo: deger('bk-navlun-no'),
+            navlunFaturaTarih: trTarih(deger('bk-navlun-tarih')),
+            navlunTutar: window.bkTutarNormalize(deger('bk-navlun-tutar-val'))
+        } : null;
+        let yakitHam = deger('bk-yakit-val') || '';
+        let yakitSecenek = ['Benzin','Dizel','Elektrikli','Hibrit','Dizel+Elektrikli','Benzin+LPG','Benzin+CNG'].find(function(y) { return y.toLocaleLowerCase('tr') === yakitHam.toLocaleLowerCase('tr'); });
+        let teknik = {
+            ticariAd: deger('bk-ticari-ad-val'),
+            motorGucu: sayiAl(deger('bk-motor-guc-val')),
+            silindirHacmi: sayiAl(deger('bk-motor-hacim-val')),
+            silindirSayisi: sayiAl(deger('bk-silindir-val')),
+            yakitTuru: yakitSecenek || yakitHam
+        };
 
         let transferler = [];
         document.querySelectorAll('#bk-transfer-listesi .bk-transfer-satir').forEach(function(row) {
@@ -13728,6 +13835,14 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(!k || (k !== d && (!hedefSasi || String(k.sasi || '').toLocaleUpperCase('tr') !== hedefSasi))) return;
             k.atrNo = atrNo; k.atrTarih = atrTarih;
             k.faturaNo = faturaNo; k.faturaTarih = faturaTarih; k.faturaManuel = !!(faturaNo || faturaTarih);
+            if(aracTutar && !isNaN(aracTutar)) k.fatura = aracTutar;
+            if(navlun) Object.assign(k, navlun);
+            k.tseSablon = Object.assign({}, k.tseSablon || {});
+            Object.keys(teknik).forEach(function(t) {
+                if(teknik[t] == null) return;
+                k[t] = teknik[t];
+                if(teknik[t] || k.tseSablon['tse-' + t]) k.tseSablon['tse-' + t] = teknik[t];
+            });
             k.bilgeBankaKodu = kod;
             k.transferler = window.bkTransferTekil(transferler);
         };
@@ -13737,7 +13852,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         window.saveData && window.saveData('decl');
         window.bkKartDoldur();
         let durum = document.getElementById('bk-tara-durum');
-        if(durum) durum.textContent = '💾 Kart üzerindeki fatura, A.TR, banka kodu ve transfer bilgileri araca kaydedildi.';
+        if(durum) durum.textContent = '💾 Kart üzerindeki teknik bilgiler, faturalar, A.TR, banka kodu ve transferler araca kaydedildi.';
         if(typeof window.showToast === 'function') window.showToast('✅ Bilgiler araca başarıyla kaydedildi', 'success');
     };
 
