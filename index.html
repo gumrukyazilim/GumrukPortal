@@ -2945,6 +2945,138 @@ div[style*="position: relative"] > input {
 
     </div>
 </template>
+<template id="tpl-beyannameKart">
+    <style>
+        .byn-kart-wrap { max-width: 920px; margin: 20px auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .byn-section { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .byn-sec-title { font-size: 13.5px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        .byn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+        .byn-item { background: var(--bg-elevated); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .byn-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+        .byn-val { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: monospace; display: flex; align-items: center; gap: 6px; }
+        .copy-btn { cursor: pointer; color: var(--primary); background: transparent; border: none; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .copy-btn:hover { background: rgba(59,130,246,0.15); }
+        .bk-giris-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .bk-giris-grid label { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        .bk-giris-grid input, .bk-giris-grid select, #bk-in-transfer { width: 100%; box-sizing: border-box; }
+        @media (max-width: 600px) { .byn-item[style*="span 2"] { grid-column: auto !important; } .byn-item { flex-wrap: wrap; gap: 4px; } .byn-val { word-break: break-all; } }
+
+        @media print {
+            body * { visibility: hidden; }
+            #byn-print-area, #byn-print-area * { visibility: visible; }
+            .app-wrap, .main-content, .view-area { position: static !important; overflow: visible !important; height: auto !important; }
+            #byn-print-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 12mm 10mm; background: #fff !important; color: #000 !important; box-sizing: border-box; }
+            .no-print { display: none !important; }
+            .byn-section { border: 1px solid #333 !important; box-shadow: none !important; margin-bottom: 12px; padding: 10px; background: transparent !important; break-inside: avoid; }
+            .byn-item { border: none !important; background: transparent !important; padding: 3px 0; }
+            .byn-label, .byn-val, .byn-sec-title { color: #000 !important; }
+            .copy-btn { display: none !important; }
+        }
+    </style>
+
+    <div class="byn-kart-wrap fade-in">
+        <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h1 style="font-size:20px; font-weight:800; margin:0;">📄 Beyanname Hazırlık &amp; İş Emri Kartı</h1>
+                <div id="byn-kart-alt-baslik" style="font-size:12px; color:var(--text-muted); margin-top:3px;"></div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-sm" onclick="window.renderView('declarations')"><i data-lucide="arrow-left"></i> Geri</button>
+                <button class="btn-primary" onclick="window.print()"><i data-lucide="printer"></i> Yazdır / PDF</button>
+            </div>
+        </div>
+
+        <div id="byn-print-area">
+            <!-- 1. FİRMA SABİTLERİ VE SİSTEM GİRİŞİ -->
+            <div class="byn-section">
+                <div class="byn-sec-title">🏢 1. Firma Sabitleri &amp; BİLGE Giriş Bilgileri</div>
+                <div class="byn-grid">
+                    <div class="byn-item"><span class="byn-label">Firma Unvanı</span><span class="byn-val" id="bk-unvan">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Vergi No</span><span class="byn-val" id="bk-vno">-</span></div>
+                    <div class="byn-item"><span class="byn-label">BİLGE Kullanıcı / TC</span><span class="byn-val" id="bk-tc">-</span></div>
+                    <div class="byn-item"><span class="byn-label">BİLGE Şifre</span><span class="byn-val" id="bk-sifre">-</span></div>
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">TPS ÖTV Muafiyet No (234/1)</span><span class="byn-val" id="bk-otv-muaf">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Rejim Kodu</span><span class="byn-val" id="bk-rejim">4000</span></div>
+                    <div class="byn-item"><span class="byn-label">Alıcı / Satıcı İlişkisi</span><span class="byn-val" id="bk-iliski">6</span></div>
+                </div>
+                <div class="no-print" style="margin-top:8px; text-align:right;">
+                    <button type="button" class="copy-btn" onclick="window.bkBilgeGirisAyarla()">🔑 BİLGE girişini bu cihazda ayarla</button>
+                </div>
+            </div>
+
+            <!-- 2. ARAÇ VE FATURA BİLGİLERİ -->
+            <div class="byn-section">
+                <div class="byn-sec-title">🚗 2. Araç, Fatura ve Menşe Bilgileri</div>
+                <div class="byn-grid">
+                    <div class="byn-item"><span class="byn-label">Şasi No (VIN)</span><span class="byn-val" id="bk-sasi">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Marka / Model / Yıl</span><span class="byn-val" id="bk-marka-model">-</span></div>
+                    <div class="byn-item"><span class="byn-label">GTİP Kodu</span><span class="byn-val" id="bk-gtip">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Fatura Tutarı</span><span class="byn-val" id="bk-fatura-tutar">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Fatura No &amp; Tarih</span><span class="byn-val" id="bk-fatura-no-tarih">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Teslim Şekli</span><span class="byn-val" id="bk-teslim">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Menşe Ülke</span><span class="byn-val" id="bk-mensei">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Çıkış Ülkesi</span><span class="byn-val" id="bk-cikis-ulke">-</span></div>
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">Gönderici / İhracatçı</span><span class="byn-val" id="bk-gonderici">-</span></div>
+                </div>
+            </div>
+
+            <!-- 3. GÜMRÜK VE TAŞIMA -->
+            <div class="byn-section">
+                <div class="byn-sec-title">🚛 3. Gümrük İdaresi ve Taşıma Bilgileri</div>
+                <div class="byn-grid">
+                    <div class="byn-item"><span class="byn-label">Giriş Gümrük Kapısı &amp; Kodu</span><span class="byn-val" id="bk-giris-gumruk">220200 - KAPIKULE</span></div>
+                    <div class="byn-item"><span class="byn-label">Taşıyıcı Tır Plakası</span><span class="byn-val" id="bk-tir-plaka">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Özet Beyan No</span><span class="byn-val" id="bk-ozet-beyan">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Kap Adedi</span><span class="byn-val" id="bk-kap">1</span></div>
+                </div>
+            </div>
+
+            <!-- 4. TPS, İZİN VE 28. KUTU BANKA BİLGİLERİ -->
+            <div class="byn-section">
+                <div class="byn-sec-title">📑 4. TPS İzinleri, 28. Kutu Banka ve Transfer Referansları</div>
+                <div class="byn-grid">
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">A.TR Dolaşım Belgesi</span><span class="byn-val" id="bk-atr">-</span></div>
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">TPS İthal Araç Uygunluk Belgesi (TSE)</span><span class="byn-val" id="bk-tse">-</span></div>
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">TPS BTK Cihaz (IMEI) Yazı No</span><span class="byn-val" id="bk-btk">-</span></div>
+                    <div class="byn-item" style="grid-column: span 2;"><span class="byn-label">Cihaz IMEI Numarası</span><span class="byn-val" id="bk-imei">-</span></div>
+                </div>
+
+                <!-- BİLGE 28. KUTU BİRLEŞİK BANKA KODU -->
+                <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--border);">
+                    <div style="font-size:11.5px; font-weight:800; color:var(--primary); margin-bottom:8px;">🏦 28. KUTU BANKA VE TRANSFER BİLDİRİMLERİ:</div>
+                    <div class="byn-grid" style="margin-bottom:10px;">
+                        <div class="byn-item" style="grid-column: span 2; background:rgba(59,130,246,0.08); border-color:var(--primary);">
+                            <span class="byn-label" style="color:var(--primary); font-weight:800;">BİLGE 28. Kutu Kodu (12 Hane)</span>
+                            <span class="byn-val" style="font-size:15px; color:var(--primary);" id="bk-bilge-banka-kod">-</span>
+                        </div>
+                    </div>
+                    <div id="bk-transfer-listesi"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VERİ GİRİŞİ (yazdırılmaz) -->
+        <div class="byn-section no-print">
+            <div class="byn-sec-title">✏️ Veri Girişi — Transfer Formu, TPS ve Taşıma</div>
+            <div class="bk-giris-grid">
+                <div><label>Giriş Gümrük Kapısı</label><select id="bk-in-gumruk"></select></div>
+                <div><label>Taşıyıcı Tır Plakası</label><input type="text" id="bk-in-tir"></div>
+                <div><label>Özet Beyan No</label><input type="text" id="bk-in-ozet"></div>
+                <div><label>A.TR Dolaşım Belgesi</label><input type="text" id="bk-in-atr"></div>
+                <div><label>TSE Belge No</label><input type="text" id="bk-in-tse" placeholder="26258681430848089744980/1"></div>
+                <div><label>BTK Yazı No</label><input type="text" id="bk-in-btk" placeholder="26459939121032089751870"></div>
+                <div><label>Cihaz IMEI</label><input type="text" id="bk-in-imei"></div>
+            </div>
+            <div style="margin-top:10px;">
+                <label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Transfer Bildirim Formu metni (yapıştırın — Belge ID, Banka, Şube, Tutar satırları okunur)</label>
+                <textarea id="bk-in-transfer" rows="5" placeholder="Belge ID: 26000000150887000218931&#10;Banka: 0015-TÜRKİYE VAKIFLAR BANKASI T.A.O.&#10;Şube: 00467-FOMARA BURSA ŞUBESİ&#10;Tutar: 77.000,00 EUR&#10;Tarih: 18.09.2026"></textarea>
+            </div>
+            <div style="margin-top:10px; text-align:right;">
+                <button type="button" class="btn-primary" onclick="window.bkVeriKaydet()"><i data-lucide="save"></i> Ayrıştır ve Kaydet</button>
+            </div>
+        </div>
+    </div>
+</template>
 <template id="tpl-beyanname">
     <div class="page-hdr fade-in">
         <div>
@@ -12857,6 +12989,327 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         }, 200);
     };
 
+    // ═══════════════════════════════════════════════════════════════════
+    // BEYANNAME HAZIRLIK & İŞ EMRİ KARTI
+    // Firma sabitleri, gümrük giriş kodları, Transfer Bildirim Formu
+    // ayrıştırıcı ve BİLGE 28. kutu 12 haneli banka kodu (EFT4+Şube5+İl3)
+    // NOT: Portal herkese açık GitHub Pages'te yayınlandığı için BİLGE TC ve
+    // şifreleri burada tutulmaz; cihazdaki localStorage ('gumruk_bilge_giris')
+    // ayarından okunur (yoksa mevcut BYN_FIRMA_CONFIG'e düşer).
+    // ═══════════════════════════════════════════════════════════════════
+    window.BEYANNAME_FIRMA_SABITLERI = {
+        "ŞAMNU GT": {
+            unvan: "ŞAMNU GT MOTORLU ARAÇLAR SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+            vergiNo: "4110376487",
+            tpsOtvMuafiyetNo: "25243160111096067013069/1",
+            rejimKodu: "4000",
+            aliciSaticiIliskisi: "6",
+            kapAdedi: "1"
+        },
+        "FF OTOMOTİV": {
+            unvan: "FF OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ",
+            vergiNo: "3851704324",
+            tpsOtvMuafiyetNo: "26243160111096081978046/1",
+            rejimKodu: "4000",
+            aliciSaticiIliskisi: "6",
+            kapAdedi: "1"
+        }
+    };
+
+    window.GUMRUK_GIRIS_KODLARI = [
+        { ad: "Kapıkule Gümrük Müdürlüğü", kod: "220200" },
+        { ad: "Hamzabeyli Gümrük Müdürlüğü", kod: "220300" },
+        { ad: "İpsala Gümrük Müdürlüğü", kod: "220400" },
+        { ad: "Yeşilköy Gümrük Müdürlüğü", kod: "342400" },
+        { ad: "Muratbey Gümrük Müdürlüğü", kod: "341200" },
+        { ad: "Erenköy Gümrük Müdürlüğü", kod: "341400" },
+        { ad: "Ambarlı Gümrük Müdürlüğü", kod: "340200" },
+        { ad: "Dilovası Gümrük Müdürlüğü", kod: "410800" },
+        { ad: "Çeşme Gümrük Müdürlüğü", kod: "350400" },
+        { ad: "Pendik Gümrük Müdürlüğü", kod: "341300" }
+    ];
+
+    // Araç kartındaki firma adını sabitler tablosundaki anahtara eşle
+    window.bkFirmaAnahtari = function(firma) {
+        let n = function(s) { return String(s || '').toLocaleUpperCase('tr').replace(/İ/g, 'I').replace(/[^A-ZÇĞÖŞÜ0-9]/g, ''); };
+        let f = n(firma);
+        if(!f) return '';
+        return Object.keys(window.BEYANNAME_FIRMA_SABITLERI).find(function(k) {
+            let kn = n(k);
+            return f === kn || f.indexOf(kn) === 0 || kn.indexOf(f) === 0;
+        }) || '';
+    };
+
+    // BİLGE girişi: önce cihazdaki yerel ayar, yoksa mevcut BYN_FIRMA_CONFIG
+    window.bkBilgeGirisOku = function(firmaKey) {
+        let kayit = {};
+        try { kayit = (JSON.parse(localStorage.getItem('gumruk_bilge_giris') || '{}') || {})[firmaKey] || {}; } catch(e) {}
+        let cfg = (window.BYN_FIRMA_CONFIG && window.BYN_FIRMA_CONFIG[firmaKey]) || {};
+        return { tc: kayit.tc || cfg.kullanici || '', sifre: kayit.sifre || cfg.sifre || '' };
+    };
+
+    window.bkBilgeGirisAyarla = function() {
+        let firmaKey = window._bkAktif && window._bkAktif.firmaKey;
+        if(!firmaKey) { alert('Bu araç için tanımlı firma sabiti yok (ŞAMNU GT / FF OTOMOTİV).'); return; }
+        let mevcut = window.bkBilgeGirisOku(firmaKey);
+        let tc = prompt(firmaKey + ' — BİLGE kullanıcı TC (yalnızca bu cihazda saklanır):', mevcut.tc);
+        if(tc === null) return;
+        let sifre = prompt(firmaKey + ' — BİLGE şifre (yalnızca bu cihazda saklanır):', mevcut.sifre);
+        if(sifre === null) return;
+        let tum = {};
+        try { tum = JSON.parse(localStorage.getItem('gumruk_bilge_giris') || '{}') || {}; } catch(e) {}
+        tum[firmaKey] = { tc: tc.trim(), sifre: sifre.trim() };
+        localStorage.setItem('gumruk_bilge_giris', JSON.stringify(tum));
+        window.bkKartDoldur();
+    };
+
+    // "77.000,00" / "77,000.00" / "77000" → "77000" (kuruş varsa "77000.5")
+    window.bkTutarNormalize = function(s) {
+        s = String(s || '').replace(/\s/g, '');
+        if(!s) return '';
+        let sonNokta = s.lastIndexOf('.'), sonVirgul = s.lastIndexOf(',');
+        if(sonNokta > -1 && sonVirgul > -1) {
+            s = sonVirgul > sonNokta ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+        } else if(sonVirgul > -1) {
+            s = /,\d{1,2}$/.test(s) ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+        } else if(sonNokta > -1 && !/\.\d{1,2}$/.test(s)) {
+            s = s.replace(/\./g, '');
+        }
+        let n = parseFloat(s);
+        return isNaN(n) ? '' : String(Math.round(n * 100) / 100);
+    };
+
+    // _bankaCache'ten EFT + şube koduna göre kayıt bul (baştaki sıfırlar esnek)
+    window.bkBankaBul = function(eftKodu, subeKodu) {
+        let cache = window._bankaCache || [];
+        let sn = function(v) { return String(v || '').replace(/\D/g, '').replace(/^0+/, ''); };
+        let e = sn(eftKodu), s = sn(subeKodu);
+        return cache.find(function(b) { return sn(b.eft_kodu) === e && sn(b.sube_kodu) === s; }) || null;
+    };
+
+    // Transfer Bildirim Formu metnini ayrıştır → 12 haneli BİLGE 28. kutu kodu
+    window.transferFormuAyristir = async function(metin) {
+        metin = String(metin || '');
+        let al = function(re) { let m = metin.match(re); return m ? m[1].trim() : ''; };
+
+        let belgeId = al(/Belge\s*ID\s*[:\s]+(\d{20,25})/i);
+        let bankaMetni = al(/(?:^|[\n\r])\s*Banka\s*[:\s]+([^\n\r]+)/i) || al(/Banka\s*[:\s]+([^\n\r]+)/i);
+        let subeMetni = al(/(?:^|[\n\r])\s*Şube\s*[:\s]+([^\n\r]+)/i) || al(/Şube\s*[:\s]+([^\n\r]+)/i);
+
+        let bm = bankaMetni.match(/^(\d{1,5})\s*[-–—]?\s*(.*)$/);
+        let sm = subeMetni.match(/^(\d{1,6})\s*[-–—]?\s*(.*)$/);
+        let eftKodu = bm ? bm[1].padStart(4, '0').slice(-4) : '';
+        let subeKodu = sm ? sm[1].padStart(5, '0').slice(-5) : '';
+
+        if(!window._bankaCache && typeof window.bankaVerisiYukle === 'function') {
+            try { await window.bankaVerisiYukle(); } catch(e) {}
+        }
+        let kayit = (eftKodu && subeKodu) ? window.bkBankaBul(eftKodu, subeKodu) : null;
+        let ilHam = kayit ? String(kayit.il_kodu || '').replace(/\D/g, '') : '';
+        let ilKodu = ilHam ? ilHam.padStart(3, '0').slice(-3) : '';
+
+        // Tutar / döviz / tarih (formda farklı etiketlerle gelebilir)
+        let tutarM = metin.match(/(?:Transfer\s*)?Tutar[ıi]?\s*[:\s]+([\d.,]+)\s*([A-Z]{3})?/i);
+        let doviz = (tutarM && tutarM[2]) || al(/D[öo]viz(?:\s*(?:Cinsi|Kodu))?\s*[:\s]+([A-Z]{3})/i);
+        let tarih = al(/(?:İşlem|Transfer|Valör|Bildirim)?\s*Tarih[i]?\s*[:\s]+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/i)
+            .replace(/[\/-]/g, '.').replace(/^(\d)\./, '0$1.').replace(/\.(\d)\./, '.0$1.');
+
+        return {
+            belgeId: belgeId,
+            bilgeBankaKodu: (eftKodu && subeKodu && ilKodu) ? eftKodu + subeKodu + ilKodu : '',
+            eftKodu: eftKodu,
+            subeKodu: subeKodu,
+            ilKodu: ilKodu,
+            bankaAdi: (kayit && kayit.banka_adi) || (bm ? bm[2].trim() : bankaMetni),
+            subeAdi: (sm ? sm[2].trim() : '') || (kayit && kayit.sube_adi) || subeMetni,
+            tutar: tutarM ? window.bkTutarNormalize(tutarM[1]) : '',
+            doviz: (doviz || '').toUpperCase(),
+            tarih: tarih
+        };
+    };
+
+    // Aracın evraklarını işle ve kaydet. metin: Transfer Bildirim Formu metni,
+    // ek: { btkYaziNo, tseBelgeNo, atrNo, imei, tirPlaka, ozetBeyan, girisGumrukKodu }
+    window.aracEvraklariniTaraVeKaydet = async function(arac, metin, ek) {
+        if(!arac) return null;
+        ek = ek || {};
+        let transfer = null;
+        if(metin && String(metin).trim()) {
+            transfer = await window.transferFormuAyristir(metin);
+            if(!transfer.belgeId && !transfer.eftKodu) transfer = null;
+        }
+
+        let alanlar = {};
+        ['btkYaziNo', 'tseBelgeNo', 'atrNo', 'imei', 'tirPlaka', 'ozetBeyan', 'girisGumrukKodu'].forEach(function(k) {
+            if(ek[k] !== undefined) alanlar[k] = String(ek[k]).trim();
+        });
+
+        let hedefSasi = String(arac.sasi || '').toLocaleUpperCase('tr');
+        let uygula = function(kayit) {
+            if(!kayit) return;
+            if(kayit !== arac && (!hedefSasi || String(kayit.sasi || '').toLocaleUpperCase('tr') !== hedefSasi)) return;
+            Object.keys(alanlar).forEach(function(k) { kayit[k] = alanlar[k]; });
+            if(transfer) {
+                let liste = Array.isArray(kayit.transferler) ? kayit.transferler.slice() : [];
+                let i = transfer.belgeId ? liste.findIndex(function(t) { return t.belgeId === transfer.belgeId; }) : -1;
+                if(i > -1) liste[i] = transfer; else liste.push(transfer);
+                kayit.transferler = liste;
+                if(transfer.bilgeBankaKodu) kayit.bilgeBankaKodu = transfer.bilgeBankaKodu;
+            }
+        };
+        uygula(arac);
+        (window.declarationsData || []).forEach(uygula);
+        Object.keys(window.firmData || {}).forEach(function(f) { (window.firmData[f] || []).forEach(uygula); });
+
+        window.saveData && window.saveData('decl');
+        return transfer;
+    };
+
+    window.bkKopyala = function(metin, btn) {
+        if(!metin) return;
+        let ok = function() { if(btn) { let e = btn.textContent; btn.textContent = '✅'; setTimeout(function() { btn.textContent = e; }, 1200); } };
+        if(navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(metin).then(ok).catch(function() { prompt('Manuel kopyala (Ctrl+C):', metin); });
+        } else { prompt('Manuel kopyala (Ctrl+C):', metin); }
+    };
+
+    // Kartı aktif araçtan doldur
+    window.bkKartDoldur = function() {
+        let a = window._bkAktif;
+        if(!a || !document.getElementById('byn-print-area')) return;
+        let d = a.d;
+        let esc = function(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+        let kopyaBtn = function(v) { return v ? ' <button type="button" class="copy-btn no-print" title="Kopyala" data-kopya="' + esc(v) + '" onclick="window.bkKopyala(this.dataset.kopya, this)">📋</button>' : ''; };
+        let yaz = function(id, v, kopya) {
+            let el = document.getElementById(id);
+            if(!el) return;
+            v = (v == null || v === '') ? '' : String(v);
+            el.innerHTML = (v ? esc(v) : '-') + (kopya !== false ? kopyaBtn(v) : '');
+        };
+        let ts = d.tseSablon || {};
+        let sab = window.BEYANNAME_FIRMA_SABITLERI[a.firmaKey] || {};
+        let giris = window.bkBilgeGirisOku(a.firmaKey);
+
+        let alt = document.getElementById('byn-kart-alt-baslik');
+        if(alt) alt.textContent = (d.firma || '-') + ' · ' + (d.marka || '') + ' ' + (d.model || '') + ' · Şasi: ' + (d.sasi || '-');
+
+        // 1. Firma sabitleri
+        yaz('bk-unvan', sab.unvan || d.firma);
+        yaz('bk-vno', sab.vergiNo);
+        yaz('bk-tc', giris.tc);
+        let sifreEl = document.getElementById('bk-sifre');
+        if(sifreEl) sifreEl.innerHTML = giris.sifre
+            ? '<span data-gizli="1" data-sifre="' + esc(giris.sifre) + '">••••••••</span> <button type="button" class="copy-btn no-print" title="Göster / Gizle" onclick="let s=this.previousElementSibling;let g=s.dataset.gizli===\'1\';s.textContent=g?s.dataset.sifre:\'••••••••\';s.dataset.gizli=g?\'0\':\'1\';">👁</button>' + kopyaBtn(giris.sifre)
+            : '- <button type="button" class="copy-btn no-print" onclick="window.bkBilgeGirisAyarla()" title="Bu cihazda BİLGE girişini ayarla">🔑 Ayarla</button>';
+        yaz('bk-otv-muaf', sab.tpsOtvMuafiyetNo);
+        yaz('bk-rejim', sab.rejimKodu || '4000');
+        yaz('bk-iliski', sab.aliciSaticiIliskisi || '6');
+
+        // 2. Araç, fatura, menşe
+        yaz('bk-sasi', d.sasi);
+        yaz('bk-marka-model', [d.marka, d.model, d.yil].filter(Boolean).join(' / '), false);
+        yaz('bk-gtip', d.gtip || ts['tse-gtipNo']);
+        yaz('bk-fatura-tutar', d.fatura ? (window.formatNumber ? window.formatNumber(d.fatura) : d.fatura) + ' EUR' : '', false);
+        yaz('bk-fatura-no-tarih', [d.faturaNo, d.faturaTarih].filter(Boolean).join(' / '), false);
+        yaz('bk-teslim', d.teslim || 'CIF', false);
+        yaz('bk-mensei', d.mensei || ts['tse-uretildigiUlke'], false);
+        yaz('bk-cikis-ulke', d.cikisUlke || ts['tse-ithalatUlkesi'], false);
+        yaz('bk-gonderici', d.gonderici);
+
+        // 3. Gümrük ve taşıma
+        let gKod = d.girisGumrukKodu || '220200';
+        let g = window.GUMRUK_GIRIS_KODLARI.find(function(x) { return x.kod === gKod; });
+        let gEl = document.getElementById('bk-giris-gumruk');
+        if(gEl) gEl.innerHTML = esc(gKod + ' - ' + (g ? g.ad.replace(/\s*Gümrük Müdürlüğü$/i, '').toLocaleUpperCase('tr') : '')) + kopyaBtn(gKod);
+        yaz('bk-tir-plaka', d.tirPlaka || d.plaka);
+        yaz('bk-ozet-beyan', d.ozetBeyan);
+        yaz('bk-kap', sab.kapAdedi || '1');
+
+        // 4. TPS izinleri
+        yaz('bk-atr', d.atrNo);
+        yaz('bk-tse', d.tseBelgeNo);
+        yaz('bk-btk', d.btkYaziNo);
+        yaz('bk-imei', d.imei || d.brut);
+
+        // 28. kutu banka + transferler
+        let transferler = Array.isArray(d.transferler) ? d.transferler : [];
+        let son = transferler.length ? transferler[transferler.length - 1] : null;
+        let bankaKod = d.bilgeBankaKodu || (son && son.bilgeBankaKodu) || '';
+        let bkEl = document.getElementById('bk-bilge-banka-kod');
+        if(bkEl) {
+            if(bankaKod) bkEl.innerHTML = esc(bankaKod) + kopyaBtn(bankaKod);
+            else if(son && son.eftKodu) bkEl.innerHTML = '<span style="color:var(--warning);font-size:12px;">' + esc(son.eftKodu + ' / ' + son.subeKodu) + ' · il kodu banka listesinde bulunamadı</span>';
+            else bkEl.textContent = '-';
+        }
+        let lst = document.getElementById('bk-transfer-listesi');
+        if(lst) {
+            lst.innerHTML = transferler.length ? transferler.map(function(t, n) {
+                let tutarTr = t.tutar ? Number(t.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+                return '<div class="byn-item" style="flex-direction:column;align-items:stretch;gap:4px;margin-bottom:8px;">' +
+                    '<div style="display:flex;justify-content:space-between;"><span class="byn-label">Transfer ' + (n + 1) + ' · Belge ID</span><span class="byn-val">' + esc(t.belgeId || '-') + kopyaBtn(t.belgeId) + '</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;"><span class="byn-label">Banka</span><span class="byn-val">' + esc((t.bankaAdi || '-') + ' — ' + (t.subeAdi || '-')) + '</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;"><span class="byn-label">Tutar</span><span class="byn-val">' + esc(tutarTr + ' ' + (t.doviz || '') + (t.tarih ? ' (' + t.tarih + ')' : '')) + '</span></div>' +
+                '</div>';
+            }).join('') : '<div style="font-size:12px;color:var(--text-muted);">Henüz Transfer Bildirim Formu işlenmedi.</div>';
+        }
+
+        // Veri giriş paneli (yazdırılmaz)
+        let set = function(id, v) { let el = document.getElementById(id); if(el) el.value = v || ''; };
+        let sel = document.getElementById('bk-in-gumruk');
+        if(sel && !sel.options.length) {
+            sel.innerHTML = window.GUMRUK_GIRIS_KODLARI.map(function(x) { return '<option value="' + x.kod + '">' + x.kod + ' - ' + esc(x.ad) + '</option>'; }).join('');
+        }
+        set('bk-in-gumruk', gKod);
+        set('bk-in-tir', d.tirPlaka || d.plaka);
+        set('bk-in-ozet', d.ozetBeyan);
+        set('bk-in-atr', d.atrNo);
+        set('bk-in-tse', d.tseBelgeNo);
+        set('bk-in-btk', d.btkYaziNo);
+        set('bk-in-imei', d.imei || d.brut);
+        if(window.lucide) lucide.createIcons();
+    };
+
+    window.bkVeriKaydet = async function() {
+        let a = window._bkAktif;
+        if(!a) return;
+        let v = function(id) { let el = document.getElementById(id); return el ? el.value : undefined; };
+        let metinEl = document.getElementById('bk-in-transfer');
+        let metin = metinEl ? metinEl.value : '';
+        let t = await window.aracEvraklariniTaraVeKaydet(a.d, metin, {
+            girisGumrukKodu: v('bk-in-gumruk'), tirPlaka: v('bk-in-tir'), ozetBeyan: v('bk-in-ozet'),
+            atrNo: v('bk-in-atr'), tseBelgeNo: v('bk-in-tse'), btkYaziNo: v('bk-in-btk'), imei: v('bk-in-imei')
+        });
+        if(metin.trim() && !t) alert('⚠️ Transfer Bildirim Formu metninde Belge ID veya Banka satırı bulunamadı.');
+        else if(t && !t.bilgeBankaKodu) alert('⚠️ Banka ' + t.eftKodu + ' / şube ' + t.subeKodu + ' banka listesinde bulunamadı; il kodu eklenemedi.');
+        if(metinEl && t) metinEl.value = '';
+        window.bkKartDoldur();
+    };
+
+    window.openBeyannameKart = async function(idx, ctx) {
+        let d = null;
+        if(ctx === 'decl') d = window.declarationsData[idx];
+        if(ctx === 'firm') d = window.firmData[window.currentFirm] && window.firmData[window.currentFirm][idx];
+        if(!d) return;
+
+        window._bkAktif = { d: d, idx: idx, ctx: ctx, firmaKey: window.bkFirmaAnahtari(d.firma) };
+        window.renderView('beyannameKart');
+        // Sayfa yenilenince boş kart açılmasın
+        localStorage.setItem('gumruk_last_view', ctx === 'firm' ? 'firmDetails' : 'declarations');
+        if(!document.getElementById('byn-print-area')) return;
+
+        if(!window._bankaCache && typeof window.bankaVerisiYukle === 'function') {
+            try { await window.bankaVerisiYukle(); } catch(e) {}
+        }
+        // İl kodu eksik kalmış transferleri banka listesiyle tamamla
+        (d.transferler || []).forEach(function(t) {
+            if(t.bilgeBankaKodu || !t.eftKodu || !t.subeKodu) return;
+            let k = window.bkBankaBul(t.eftKodu, t.subeKodu);
+            let il = k ? String(k.il_kodu || '').replace(/\D/g, '') : '';
+            if(il) { t.ilKodu = il.padStart(3, '0').slice(-3); t.bilgeBankaKodu = t.eftKodu + t.subeKodu + t.ilKodu; d.bilgeBankaKodu = t.bilgeBankaKodu; }
+        });
+        window.bkKartDoldur();
+    };
+
     // ─── ANA AÇMA FONKSİYONU ─────────────────────────────────────────────
     window.openBeyanname = function(idx, ctx) {
         let d = null;
@@ -13675,7 +14128,7 @@ document.addEventListener('click', function(e) {
                     ${d.evrakLink ? `<a href="${d.evrakLink}" target="_blank" class="icon-btn" style="color:var(--accent); display:inline-flex;" title="Evrak Klasörüne Git"><i data-lucide="paperclip"></i></a>` : `<span style="color:var(--text-muted); opacity:0.3; display:inline-flex;"><i data-lucide="minus"></i></span>`}
                     
                     <button type="button" class="icon-btn admin-only" style="color:#25D366;" onclick="window.sendWhatsApp(${i}, 'decl')" title="WhatsApp ile Müşteriye Bildir"><i data-lucide="message-circle"></i></button>
-                    <button type="button" class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyanname(${i}, 'decl')" title="Beyanname Üret"><i data-lucide="file-signature"></i></button>
+                    <button type="button" class="icon-btn admin-only" style="color:#10b981;" onclick="window.openBeyannameKart(${i}, 'decl')" title="Beyanname Hazırlık &amp; İş Emri Kartı"><i data-lucide="file-signature"></i></button>
                     <button type="button" class="icon-btn admin-only" onclick="window.openDeclVehicleModal(${i}, 'decl')"><i data-lucide="edit-3"></i></button>
                     <button type="button" class="icon-btn text-danger-btn admin-only" onclick="window.deleteDeclaration(${i})"><i data-lucide="trash-2"></i></button>
                 </div>
