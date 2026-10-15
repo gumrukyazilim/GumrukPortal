@@ -13151,8 +13151,63 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let kod = mrn.length >= 4 ? mrn.substring(2, 4) : '';
         return window.MRN_ULKE_MAP[kod] || d.cikisUlke || (d.tseSablon && d.tseSablon['tse-ithalatUlkesi']) || '004 — ALMANYA';
     };
+    // Şasinin ilk karakterlerinden (WMI) üretim ülkesi; tanınmazsa ''
+    window.bkVinUlke = function(sasi) {
+        let v = String(sasi || '').trim().toUpperCase();
+        if(v.length < 3) return '';
+        let c1 = v[0], c2 = v.slice(0, 2), c3 = v.slice(0, 3);
+        let ara = function(a, z) { return c2 >= a && c2 <= z; };
+        if(c3 === 'TRU' || c3 === 'TSM') return '064 — MACARİSTAN';
+        if(c3 === 'TMB' || c3 === 'TMA') return '061 — ÇEK CUMHURİYETİ';
+        if(c3 === 'U5Y' || c3 === 'U6Y') return '063 — SLOVAKYA';
+        if(c3 === 'UU1') return '066 — ROMANYA';
+        if(c1 === 'J') return '732 — JAPONYA';
+        if(c1 === '1' || c1 === '4' || c1 === '5' || c1 === '7') return '400 — AMERİKA BİRLEŞİK DEVLETLERİ';
+        if(c1 === '2') return '404 — KANADA';
+        if(c1 === '3') return '412 — MEKSİKA';
+        if(c1 === 'W') return '004 — ALMANYA';
+        if(c1 === 'L') return '720 — ÇİN HALK CUMHURİYETİ';
+        if(c1 === '6') return '800 — AVUSTRALYA';
+        if(ara('ZA', 'ZR')) return '005 — İTALYA';
+        if(ara('ZX', 'ZZ')) return '091 — SLOVENYA';
+        if(ara('SA', 'SM')) return '006 — BİRLEŞİK KRALLIK';
+        if(ara('SN', 'ST')) return '004 — ALMANYA';
+        if(ara('SU', 'SZ')) return '060 — POLONYA';
+        if(ara('VA', 'VE')) return '038 — AVUSTURYA';
+        if(ara('VF', 'VR')) return '001 — FRANSA';
+        if(ara('VS', 'VW')) return '011 — İSPANYA';
+        if(ara('TJ', 'TP')) return '061 — ÇEK CUMHURİYETİ';
+        if(ara('TR', 'TV')) return '064 — MACARİSTAN';
+        if(ara('TW', 'TZ') || c2 === 'T1') return '010 — PORTEKİZ';
+        if(ara('YA', 'YE')) return '017 — BELÇİKA';
+        if(ara('YF', 'YK')) return '032 — FİNLANDİYA';
+        if(ara('YS', 'YW')) return '030 — İSVEÇ';
+        if(ara('KL', 'KR')) return '728 — GÜNEY KORE CUMHURİYETİ';
+        if(ara('NL', 'NR')) return '052 — TÜRKİYE';
+        if(ara('AA', 'AH')) return '388 — GÜNEY AFRİKA CUMHURİYETİ';
+        if(ara('MA', 'ME')) return '664 — HİNDİSTAN';
+        if(ara('ML', 'MR')) return '680 — TAYLAND';
+        return '';
+    };
+    window.getMenseiFromVIN = function(sasi, marka) {
+        let u = window.bkVinUlke(sasi);
+        if(u) return u;
+        let m = String(marka || '').toLocaleUpperCase('tr');
+        if(/LEXUS|TOYOTA|HONDA|NISSAN|MAZDA|SUBARU|SUZUKI|MITSUBISHI|INFINITI/.test(m)) return '732 — JAPONYA';
+        if(/FERRARI|LAMBORGHINI|MASERATI|ALFA|FIAT/.test(m)) return '005 — İTALYA';
+        if(/CADILLAC|CHEVROLET|GMC|FORD|TESLA|DODGE|JEEP|RAM|LINCOLN/.test(m)) return '400 — AMERİKA BİRLEŞİK DEVLETLERİ';
+        if(/LAND ROVER|RANGE ROVER|JAGUAR|BENTLEY|ASTON MARTIN|ROLLS|MCLAREN|MINI/.test(m)) return '006 — BİRLEŞİK KRALLIK';
+        if(/BYD|CHERY|\bMG\b|GEELY/.test(m)) return '720 — ÇİN HALK CUMHURİYETİ';
+        if(/HYUNDAI|KIA|GENESIS|SSANGYONG/.test(m)) return '728 — GÜNEY KORE CUMHURİYETİ';
+        if(/VOLVO/.test(m)) return '030 — İSVEÇ';
+        return '004 — ALMANYA';
+    };
     window.bkMenseUlke = function(d) {
         let ts = d.tseSablon || {};
+        // Kartta elle düzeltilip kaydedildiyse o geçerli; değilse şasi (WMI) her şeyden önce gelir
+        if(d.menseiManuel && d.mensei) return d.mensei;
+        let vin = window.bkVinUlke(d.sasi);
+        if(vin) return vin;
         if(d.mensei) return d.mensei;
         if(ts['tse-uretildigiUlke']) return ts['tse-uretildigiUlke'];
         let m = String((d.marka || '') + ' ' + (d.model || '')).toLocaleUpperCase('tr').replace(/İ/g, 'I');
@@ -13256,6 +13311,11 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         return m ? m[1] : '';
     };
 
+    window.bkDovizNormalize = function(v) {
+        let d = String(v || '').trim().toUpperCase().replace('TL', 'TRY');
+        return ['EUR', 'USD', 'GBP', 'CHF', 'TRY', 'CAD', 'JPY'].indexOf(d) > -1 ? d : 'EUR';
+    };
+
     // Transfer Bildirim Formu metnini ayrıştır → 12 haneli BİLGE 28. kutu kodu
     window.transferFormuAyristir = async function(metin) {
         metin = String(metin || '');
@@ -13296,7 +13356,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             bankaAdi: (kayit && kayit.banka_adi) || (bm ? bm[2].trim() : bankaMetni),
             subeAdi: (sm ? sm[2].trim() : '') || (kayit && kayit.sube_adi) || subeMetni,
             tutar: tutarM ? window.bkTutarNormalize(tutarM[1]) : '',
-            doviz: (doviz || '').toUpperCase(),
+            doviz: window.bkDovizNormalize(doviz),
             tarih: tarih
         };
     };
@@ -13713,7 +13773,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         yaz('bk-marka-model', [d.marka || '-', d.model || '-', d.yil || '-', d.renk || 'BELİRTİLMEDİ'].join(' / '), false);
         yaz('bk-gtip', d.gtip || ts['tse-gtipNo']);
         yaz('bk-teslim', d.teslim || 'CIF', false);
-        yaz('bk-mensei', window.bkMenseUlke(d), false);
+        let menEl = document.getElementById('bk-mensei');
+        if(menEl) menEl.innerHTML = '<span contenteditable="true" class="bk-duz" id="bk-mensei-val" data-ph="Ülke">' + esc(window.bkMenseUlke(d)) + '</span>';
         yaz('bk-cikis-ulke', window.bkCikisUlke(d), false);
         yaz('bk-gonderici', d.gonderici);
 
@@ -13841,7 +13902,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             '<div class="byn-item"><span class="byn-label">Transfer ' + (n + 1) + ' · Belge ID</span>' +
                 '<span class="byn-val" style="white-space:nowrap; flex-wrap:nowrap;">' + duz('', t.belgeId, 'Belge ID').replace('id=""', 'data-alan="belgeId"') + (kopyaBtn ? kopyaBtn(t.belgeId) : '') + '</span></div>' +
             '<div class="byn-item"><span class="byn-label">Transfer Tutar &amp; Tarih</span>' +
-                '<span class="byn-val">' + duz('', tutarTr, 'Tutar').replace('id=""', 'data-alan="tutar"') + ' ' + duz('', t.doviz || 'EUR', 'Döviz').replace('id=""', 'data-alan="doviz"') +
+                '<span class="byn-val">' + duz('', tutarTr, 'Tutar').replace('id=""', 'data-alan="tutar"') + ' ' + duz('', window.bkDovizNormalize(t.doviz), 'Döviz').replace('id=""', 'data-alan="doviz"') +
                 ' (' + duz('', t.tarih, 'GG.AA.YYYY').replace('id=""', 'data-alan="tarih"') + ') · ' +
                 '<span style="font-family:inherit;font-weight:600;">' + duz('', banka, 'Banka — Şube').replace('id=""', 'data-alan="banka"') + '</span></span></div>' +
         '</div>';
@@ -13872,6 +13933,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let kod = metin(document.getElementById('bk-banka-kod-val')).replace(/\s/g, '');
         let faturaNo = metin(document.getElementById('bk-fatura-no'));
         let faturaTarih = trTarih(metin(document.getElementById('bk-fatura-tarih')));
+        let menseiYeni = metin(document.getElementById('bk-mensei-val'));
+        let menseiOtomatik = window.bkMenseUlke(Object.assign({}, d, { menseiManuel: false }));
         let deger = function(id) { let el = document.getElementById(id); return el ? metin(el) : null; };
         let sayiAl = function(v) { return v == null ? null : String(v).replace(/[^\d.,]/g, ''); };
         let aracTutar = deger('bk-arac-fatura-tutar-val');
@@ -13900,7 +13963,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
                 belgeId: al('belgeId').replace(/\s/g, ''),
                 eftKodu: row.dataset.eft || '', subeKodu: row.dataset.sube || '', ilKodu: row.dataset.il || '',
                 bankaAdi: (banka[0] || '').trim(), subeAdi: banka.slice(1).join(' — ').trim(),
-                tutar: window.bkTutarNormalize(al('tutar')), doviz: (al('doviz') || '').toUpperCase(), tarih: trTarih(al('tarih'))
+                tutar: window.bkTutarNormalize(al('tutar')), doviz: window.bkDovizNormalize(al('doviz')), tarih: trTarih(al('tarih'))
             };
             if(!t.belgeId && !t.bankaAdi && !t.tutar) return;   // boş satır
             let satirKod = window.bkKod12Bul(al('banka')) || row.dataset.kod || '';
@@ -13918,6 +13981,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(!k || (k !== d && (!hedefSasi || String(k.sasi || '').toLocaleUpperCase('tr') !== hedefSasi))) return;
             k.atrNo = atrNo; k.atrTarih = atrTarih;
             k.faturaNo = faturaNo; k.faturaTarih = faturaTarih; k.faturaManuel = !!(faturaNo || faturaTarih);
+            if(menseiYeni && menseiYeni !== menseiOtomatik) { k.mensei = menseiYeni; k.menseiManuel = true; }
+            else if(!menseiYeni || menseiYeni === menseiOtomatik) { k.menseiManuel = false; }
             if(aracTutar && !isNaN(aracTutar)) k.fatura = aracTutar;
             if(navlun) Object.assign(k, navlun);
             k.tseSablon = Object.assign({}, k.tseSablon || {});
