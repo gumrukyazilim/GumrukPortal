@@ -11667,7 +11667,9 @@ function loadFromLocal() {
         saveToLocal();
         showSyncToast("Firebase'e kaydediliyor...");
         clearTimeout(cloudSaveTimeout);
+        window._bekleyenKayit = true;
         cloudSaveTimeout=setTimeout(async()=>{
+            window._bekleyenKayit = false;
             if(window._firebaseSave){
                 
                 // GÜVENLİK KİLİDİ 2: Eğer liste boşsa ve bulutu silmek üzereyse uyar!
@@ -11713,6 +11715,11 @@ function loadFromLocal() {
     }
 
     window.forceCloudSync=function(){loadAllData();};
+
+    // Kayıt buluta gitmeden sayfa yenilenir/kapanırsa uyar (değişiklik kaybolmasın)
+    window.addEventListener('beforeunload', function(e){
+        if(window._bekleyenKayit){ e.preventDefault(); e.returnValue = ''; return ''; }
+    });
 
     // Firebase Real-time Listener referansı
     window._gelecekListener = null;
@@ -17831,10 +17838,11 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
             if(!window.firmData[r.firma])window.firmData[r.firma]=[];
             if(!window.firmData[r.firma].find(x=>x.sasi===r.sasi))window.firmData[r.firma].unshift({...r});
         }else{
-            window.declarationsData[i]=r;
+            // Formda olmayan alanlar (tseSablon, köprü alanları) silinmesin: birleştir
+            window.declarationsData[i]=Object.assign({}, window.declarationsData[i], r);
             if(window.firmData[r.firma]){
                 let fi=window.firmData[r.firma].findIndex(x=>x.sasi===os);
-                if(fi!==-1)window.firmData[r.firma][fi]=r;
+                if(fi!==-1)window.firmData[r.firma][fi]=Object.assign({}, window.firmData[r.firma][fi], r);
             }
         }
     }else{
@@ -17844,9 +17852,9 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
             window.firmData[window.currentFirm].unshift({...r});
             if(!window.declarationsData.find(x=>x.sasi===r.sasi))window.declarationsData.unshift({...r});
         }else{
-            window.firmData[window.currentFirm][i]=r;
+            window.firmData[window.currentFirm][i]=Object.assign({}, window.firmData[window.currentFirm][i], r);
             let di=window.declarationsData.findIndex(x=>x.sasi===os);
-            if(di!==-1)window.declarationsData[di]=r;
+            if(di!==-1)window.declarationsData[di]=Object.assign({}, window.declarationsData[di], r);
         }
     }
 
