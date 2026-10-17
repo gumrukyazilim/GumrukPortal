@@ -2777,6 +2777,41 @@ div[style*="position: relative"] > input {
     padding-right: 8px !important;
   }
 }
+
+/* ===== GELEN ARAÇLAR: MOBİLDE KATLANABİLİR ARAÇ ÇUBUĞU ===== */
+/* Yalnızca .decl-toolbar etkilenir; diğer sayfaların .toolbar'ları değişmez. */
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.mobile-toolbar-bar { display: none; }
+@media (max-width: 768px) {
+    /* Mobilde büyük kutu varsayılan olarak gizlidir */
+    .toolbar.decl-toolbar {
+        display: none !important;
+    }
+    /* Butona dokunulduğunda yumuşakça açılır */
+    .toolbar.decl-toolbar.mobile-open {
+        display: flex !important;
+        flex-direction: column !important;
+        margin-bottom: 10px !important;
+        animation: fadeIn 0.2s ease-in-out;
+    }
+    /* Sadece mobilde görünen ince açma/kapama çubuğu */
+    .mobile-toolbar-bar {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        margin-bottom: 6px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+    }
+}
+/* Bilgisayarda ince çubuk görünmez, normal toolbar çalışır */
+@media (min-width: 769px) {
+    .mobile-toolbar-bar {
+        display: none !important;
+    }
+}
 </style>
 
 </head>
@@ -3929,7 +3964,18 @@ div[style*="position: relative"] > input {
 </template>
 
 <template id="tpl-declarations"> 
-        <div class="toolbar fade-in" style="margin-top:0;">
+    <!-- SADECE MOBİLDE GÖRÜNEN İNCE ŞERİT -->
+    <div class="mobile-toolbar-bar">
+        <div style="font-size:12px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:6px;">
+            <span style="font-size:14px;">📂</span>
+            <span id="mobile-filter-label">Açık İşlemler</span>
+        </div>
+        <button type="button" class="btn-sm" onclick="window.toggleMobileToolbar()" style="padding:4px 8px; font-size:11px; display:inline-flex; align-items:center; gap:4px; border-color:var(--border);">
+            <i data-lucide="settings-2" style="width:13px; height:13px;"></i>
+            <span id="mobile-toggle-text">İşlemler ⌄</span>
+        </button>
+    </div>
+        <div class="toolbar decl-toolbar fade-in" style="margin-top:0;">
         <div class="toolbar-left">
             <select id="decl-status-filter" onchange="window.renderDeclarationsTable()" style="width:220px;padding:8px 12px;">
                 <option value="all">Tüm Araçlar</option>
@@ -22472,6 +22518,29 @@ window.renderDilekceContent = function() {
     container.innerHTML = icerik;
 };
 // ================= ALT MENÜ (BNAV) VE 3 ÇİZGİ MOTORU =================
+
+// ================= GELEN ARAÇLAR: MOBİL ARAÇ ÇUBUĞU AÇ/KAPAT =================
+window.toggleMobileToolbar = function() {
+    const tb = document.querySelector('#view-container .decl-toolbar');
+    const txt = document.getElementById('mobile-toggle-text');
+    if (!tb) return;
+
+    tb.classList.toggle('mobile-open');
+    if (txt) {
+        txt.innerText = tb.classList.contains('mobile-open') ? 'Kapat ⌃' : 'İşlemler ⌄';
+    }
+};
+
+// Filtre değiştiğinde mobildeki başlığa da yansıt:
+const _origRenderDecl = window.renderDeclarationsTable;
+window.renderDeclarationsTable = function() {
+    if (typeof _origRenderDecl === 'function') _origRenderDecl.apply(this, arguments);
+    const filterEl = document.getElementById('decl-status-filter');
+    const labelEl = document.getElementById('mobile-filter-label');
+    if (filterEl && labelEl && filterEl.selectedIndex >= 0) {
+        labelEl.innerText = filterEl.options[filterEl.selectedIndex].text;
+    }
+};
 
 </script>
 <!-- ⚙ ARDİYE TARİFE AYARLARI — fiyatların tek kaynağı GAS deposu -->
