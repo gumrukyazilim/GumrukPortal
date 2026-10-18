@@ -13645,7 +13645,9 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // Tutar / döviz / tarih / fatura bilgisi
         let tutarM = metin.match(/Toplam\s+Tutar[ıi]?\s*[:\s]+(\d[\d.,]*)/) || metin.match(/(?:Transfer\s*)?Tutar[ıi]?\s*[:\s]+(\d[\d.,]*)/i);
         let doviz = al(/\b([A-Z]{3})\s*-\s*[A-ZÇĞİÖŞÜ]{3,}/) || al(/D[öo]viz(?:\s*(?:Cinsi|Kodu|T[üu]r[üu]))?\s*[:\s]+([A-Z]{3})\b/);
-        let tarih = al(/Belge\s+Tarihi\s*[:\s]+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/i) || al(/(?:İşlem|Transfer|Valör|Bildirim)?\s*Tarih[i]?\s*[:\s]+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/i);
+        // "Belge Tarihi 18.05.2026" (iki noktasız) ya da değer ayrı sütunda; yoksa formdaki ilk geçerli GG.AA.YYYY
+        let tarih = al(/Belge\s*Tarihi[\s:]*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/i) || al(/(?:İşlem|Transfer|Valör|Bildirim)?\s*Tarih[i]?[\s:]+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/i) ||
+            al(/Belge\s*Tarihi[\s\S]{0,250}?(\d{2}[.\/-]\d{2}[.\/-]\d{4})/i) || al(/(?:^|[^\d.])(\d{2}\.\d{2}\.(?:20[1-3]\d))(?![\d.])/);
         tarih = tarih.replace(/[\/-]/g, '.').replace(/^(\d)\./, '0$1.').replace(/\.(\d)\./, '.0$1.');
         let faturaBilgisi = al(/Fatura\s+Bilgisi[ \t]*:?[ \t]*([^\n]+)/i).split(/[\s,;]+/).filter(function(x) { return /\d/.test(x) && x.length >= 3; });
 
@@ -13799,7 +13801,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         r.motorGucu = gucler.length ? String(Math.round(Math.max.apply(null, gucler) * 10) / 10).replace(/\.0$/, '') : '';
 
         // 26 Yakıt (+ 23.1 OVC-HEV / NOVC-HEV ise hibrit)
-        let etiketYak = /(?:Kraftstoff(?:art)?|Fuel(?:\s+type)?|Yak[ıi]t(?:\s+t[üu]r[üu])?)(?!\s*(?:verbrauch|consumption|t[üu]ketim|tank|system|sistem|cell|h[üu]cre))\s*[:.]?/;
+        let etiketYak = /(?:Kraftstoff(?:art)?|Antriebs(?:art)?|Fuel(?:[\s_]?type)?|Yak[ıi]t(?:\s*t[üu]r[üu])?)(?!\s*(?:verbrauch|consumption|t[üu]ketim|tank|system|sistem|cell|h[üu]cre))\s*[:.]?/;
         let yakitlar = pencereler(etiketYak, 45).map(function(v) {
             let m = UP(v).match(/\b(BENZIN|PETROL|GASOLINE|UNLEADED|KURŞUNSUZ|KURSUNSUZ|SUPER|DIESEL|DIZEL|MOTORIN|ELEKTR\w*|ELECTRIC\w*|LPG|CNG|WASSERSTOFF|HYDROGEN|HIDROJEN)/);
             return m ? m[1] : '';
@@ -14119,7 +14121,9 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let kws = [], km, kr = /(\d{2,4}(?:[.,]\d)?)\s*KW\b/g;
             while((km = kr.exec(U))) { let n = parseFloat(km[1].replace(',', '.')); if(n >= 20 && n <= 1500) kws.push(n); }
             if(kws.length) tk.motorGucu = String(Math.max.apply(null, kws)).replace(/\.0$/, '');
-            let ym = U.match(/\b(PLUG[\s-]?IN|HYBRID|HYBRIDE|H[I]BR[I]T|BENZIN|PETROL|GASOLINE|DIESEL|D[I]ZEL|ELEKTRO|ELECTRIC|ELEKTR[I]KL[I])\b/);
+            let yEt = U.match(/(?:KRAFTSTOFF(?:ART)?|ANTRIEBS(?:ART)?|YAKIT(?:\s*T[UÜ]R[UÜ])?|FUEL(?:[\s_]?TYPE)?)[\s:.]*([A-ZÇĞÖŞÜ]+)/);
+            let ym = (yEt && /^(PLUG|HYBRID|HIBRIT|BENZIN|PETROL|GASOLINE|DIESEL|DIZEL|ELEKTRO|ELECTRIC|ELEKTRIK)/.test(yEt[1]) ? [yEt[0], yEt[1]] : null) ||
+                U.match(/\b(PLUG[\s-]?IN|HYBRID|HYBRIDE|H[I]BR[I]T|BENZIN|PETROL|GASOLINE|DIESEL|D[I]ZEL|ELEKTRO|ELECTRIC|ELEKTR[I]KL[I])\b/);
             if(ym) tk.yakitTuru = /PLUG|HYBRID|HIBRIT/.test(ym[1]) ? 'Hibrit' : /BENZIN|PETROL|GASOLINE/.test(ym[1]) ? 'Benzin' : /DIESEL|DIZEL/.test(ym[1]) ? 'Dizel' : 'Elektrikli';
             let zm = U.match(/\b(\d{1,2})\s*(?:ZYLINDER|CYLINDERS?|S[I]L[I]ND[I]R)\b/);
             if(zm && +zm[1] >= 1 && +zm[1] <= 16) tk.silindirSayisi = zm[1];
@@ -14191,7 +14195,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(!arac) return null;
         if(!arac.evrakLink) throw new Error('Araç klasörü tanımlı değil (evrakLink yok).');
         let rapor = { okunan: 0, bulunan: [], hatalar: [], atlanan: 0 };
-        let alanlar = {}, transferler = [], taranan = {}, kesinFatura = null, cocKlasor = {}, cocOylar = {}, adayEn = {}, tasimaBelgesi = false, navlunFatura = null;
+        let alanlar = {}, transferler = [], taranan = {}, kesinFatura = null, cocKlasor = {}, cocOylar = {}, adayEn = {}, tasimaBelgesi = false, navlunFatura = null, plakaAdaylar = [];
         let k44Fatura = null, k44Navlun = null, k44Transferler = [], k44Atr = null, faturaBulunan = null;
         let COC_RE = /\bCOC\b|KONFORMIT|CERTIFICATE OF CONFORMITY|UYGUNLUK BELGES|ARTIKEL\s*4[45]|\bART\.?\s*4[45]\b|§\s*21\b|EINZELGENEHMIGUNG|DATENBEST|EINZELFAHRZEUG/;
         let atlaListesi = function() {
@@ -14225,6 +14229,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(c.tur === 'navlun' && c.alanlar.navlunFaturaNo && c.alanlar.navlunTutar && !navlunFatura) navlunFatura = c.alanlar;
             if(c.tur === 'mrn' || /\bCMR\b|FRACHTBRIEF|TRANSIT\s+ACCOMPANYING|TRANS[İI]T\s+REFAKAT|VERSANDBEGLEITDOKUMENT|[ÖO]ZET\s+BEYAN/i.test(String(f.metin || ''))) tasimaBelgesi = true;
             (c.adaylar || []).forEach(function(a) {
+                if(a.k === 'tirPlaka' && a.v) plakaAdaylar.push(a);
                 let e = adayEn[a.k];
                 if(!e || a.o < e.o) adayEn[a.k] = { v: a.v, o: a.o, ad: f.ad };
                 else if(a.o === e.o && typeof a.v === 'object') Object.keys(a.v).forEach(function(x) { if(a.v[x] && !e.v[x]) e.v[x] = a.v[x]; });
@@ -14285,6 +14290,21 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // Fatura no / tarih: bedeli tutan ticari fatura → herhangi bir ticari fatura → 44. kutu
         // Tır plakası: kaynak önceliği (ordino → T1 → navlun faturası → CMR → ihracat beyannamesi)
         if(adayEn.tirPlaka) alanlar.tirPlaka = adayEn.tirPlaka.v;
+        // Öncelikli evrakta tek plaka varsa (ordino: "34 BC 6052") dorse plakası CMR / T1-T2 / diğer evraklardan tamamlanır
+        let pNorm = function(p) { return String(p || '').toUpperCase().replace(/\s+/g, ''); };
+        let pBol = function(v) { return String(v || '').split(/\s*\/\s*/).map(function(x) { return x.trim(); }).filter(Boolean); };
+        if(alanlar.tirPlaka && pBol(alanlar.tirPlaka).length === 1) {
+            let cekici = pBol(alanlar.tirPlaka)[0], dorse = '';
+            let sirali = plakaAdaylar.slice().sort(function(a, b) { return a.o - b.o; });
+            // Önce aynı çekiciyi içeren çift plakalı evrak, sonra tek (farklı) plakalı evrak
+            sirali.some(function(a) {
+                let ps = pBol(a.v);
+                if(ps.length > 1 && ps.some(function(p) { return pNorm(p) === pNorm(cekici); })) { dorse = ps.find(function(p) { return pNorm(p) !== pNorm(cekici); }) || ''; return !!dorse; }
+                return false;
+            });
+            if(!dorse) sirali.some(function(a) { let ps = pBol(a.v); if(ps.length === 1 && pNorm(ps[0]) !== pNorm(cekici)) { dorse = ps[0]; return true; } return false; });
+            if(dorse) alanlar.tirPlaka = cekici + ' / ' + dorse;
+        }
         ['gonderici', 'teslim', 'cikisUlke'].forEach(function(k) { if(!alanlar[k] && adayEn[k]) alanlar[k] = adayEn[k].v; });
         // Tarihler yalnızca tam ve makul yıllıysa kullanılır ("10-05-261" gibi OCR kırpıntıları alınmaz)
         let gecerliTarih = function(t) { t = String(t || ''); let y = parseInt(t.slice(-4), 10); return /^\d{2}\.\d{2}\.\d{4}$/.test(t) && y >= 2015 && y <= 2035 ? t : ''; };
@@ -14354,6 +14374,11 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let v = cocTr[k] || cocKlasor[k] || cocMetin[k] || (adayEn.teknik && adayEn.teknik.v[k]);
             if(v) cocTeknik[k] = v;
         });
+        let gtipKayit = arac.gtip || tsx['tse-gtipNo'] || alanlar.gtip;
+        if(gtipKayit && (cocTeknik.yakitTuru || arac.yakitTuru || tsx['tse-yakitTuru'])) {
+            let yDogru = window.dogrulaYakitVeGtip(cocTeknik.yakitTuru || arac.yakitTuru || tsx['tse-yakitTuru'], gtipKayit);
+            if(yDogru) cocTeknik.yakitTuru = yDogru;
+        }
         if(Object.keys(cocTeknik).length) {
             window.aracVerisiBirlestir(arac, cocTeknik, [], false);
             let hedef = String(arac.sasi || '').toLocaleUpperCase('tr');
@@ -14371,7 +14396,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(!tumunuOku) {
             let kesin = {};
             if(navlunFatura) ['navlunFaturaNo', 'navlunFaturaTarih', 'navlunTutar', 'sigortaTutar', 'navlunToplam'].forEach(function(k) { if(navlunFatura[k]) kesin[k] = navlunFatura[k]; });
-            if(adayEn.tirPlaka && adayEn.tirPlaka.o <= 5) kesin.tirPlaka = adayEn.tirPlaka.v;
+            if(adayEn.tirPlaka && adayEn.tirPlaka.o <= 5 && alanlar.tirPlaka) kesin.tirPlaka = alanlar.tirPlaka;
             if(Object.keys(kesin).length) window.aracVerisiBirlestir(arac, kesin, [], false);
         }
         // Tümünü Yeniden Oku: A.TR ve navlun faturası (no, tarih, navlun, sigorta) bulunduysa kayıtlıyı günceller
@@ -14507,6 +14532,17 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
                 { id: "26000000100887000136229/1", metin: "102.000 EUR ( 11.08.2026 )" }
             ]
         }
+    };
+    // GTİP fasıl alt pozisyonu yakıtı kanunen belirler; GTİP benzinliyse kart asla "Dizel" yazmaz
+    window.dogrulaYakitVeGtip = function(yakit, gtip) {
+        let g = String(gtip || '').replace(/[^0-9]/g, '');
+        let bas = function(l) { return l.some(function(p) { return g.indexOf(p) === 0; }); };
+        if(bas(['870321', '870322', '870323', '870324', '870431', '870432'])) return 'Benzin';
+        if(bas(['870331', '870332', '870333', '870421', '870422'])) return 'Dizel';
+        if(bas(['870340', '870360'])) return 'Hibrit';               // benzin + elektrik (8703.60 şarj edilebilir)
+        if(bas(['870350', '870370'])) return 'Dizel+Elektrikli';     // dizel + elektrik (8703.70 şarj edilebilir)
+        if(bas(['870380'])) return 'Elektrikli';
+        return String(yakit || '');
     };
     window.bkKilitBul = function(d) {
         let sasiTemiz = String((d && d.sasi) || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -14705,7 +14741,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         html('bk-motor-guc', duz('bk-motor-guc-val', tek('motorGucu'), '-') + birim('kW') + kopyaBtn(tek('motorGucu')));
         html('bk-motor-hacim', duz('bk-motor-hacim-val', tek('silindirHacmi'), '-') + birim('cm³') + kopyaBtn(tek('silindirHacmi')));
         html('bk-silindir', duz('bk-silindir-val', tek('silindirSayisi'), '-') + birim('Silindir'));
-        html('bk-yakit', duz('bk-yakit-val', tek('yakitTuru'), 'Yakıt') + kopyaBtn(tek('yakitTuru')));
+        let yakitKart = window.dogrulaYakitVeGtip(tek('yakitTuru'), d.gtip || ts['tse-gtipNo']);
+        html('bk-yakit', duz('bk-yakit-val', yakitKart, 'Yakıt') + kopyaBtn(yakitKart));
         yaz('bk-tse', d.tseBelgeNo ? d.tseBelgeNo + (d.tseTarih ? ' / ' + d.tseTarih : '') : '');
         yaz('bk-btk', window.bkBtkNo(d.btkYaziNo));
         yaz('bk-imei', d.imei || d.brut);
