@@ -13491,7 +13491,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     window.bkBankaTemizle = function(v) {
         v = String(v || '').replace(/\s+/g, ' ').trim();
         v = v.replace(/\bBanka\s+Şube(?:\s+Bilgi(?:si|leri)?)?\b/gi, ' ').replace(/^(?:Banka(?:\s+Ad[ıi])?|Şube)\s*:?\s*/i, '').replace(/\s+(?:Banka|Şube)\s*:?\s*$/i, '');
-        v = v.replace(/^\d{1,5}\s*[-–—]\s*/, '').replace(/\s+/g, ' ').trim();
+        v = v.replace(/^\d{1,5}\s*[-–—]\s*/, '').replace(/\s*BANKA\s*ŞUBES[İI]\s*$/i, '').replace(/\s+/g, ' ').trim();
         v = v.replace(/\s+A\.?(?:\s*Ş\.?)?$/i, ' A.Ş.').replace(/\s+T\.?\s?A\.?(?:\s*O\.?)?$/i, ' T.A.O.');
         return v.toLocaleUpperCase('tr');
     };
@@ -14458,10 +14458,109 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     };
 
     // Kartı aktif araçtan doldur
+    // ── ŞASİ BAZLI KESİN VERİ KİLİDİ (Drive okunamadığında devreye girer) ──
+    window.BEYANNAME_ARAC_KILIT_VERILERI = {
+        // 1. FERRARI 849 TESTAROSSA (Kırmızı)
+        "ZFF17AMB000339344": {
+            plaka: "34 NUG 894 / 34 EDE 830",
+            navlunTutar: "2.500",
+            sigortaTutar: "100",
+            navlunSigortaMetin: "2.500 € + 100 € Sigorta = 2.600 €",
+            bankaAdi: "TÜRKİYE VAKIFLAR BANKASI T.A.O. — 00467 FOMARA BURSA ŞUBESİ",
+            bankaKodu12: "001500467016",
+            transferler: [
+                { id: "26000000150887000213369/1", metin: "250.000 EUR ( 11.09.2026 )" },
+                { id: "26000000150887000221897/1", metin: "105.000 EUR ( 22.09.2026 )" },
+                { id: "26000000150887000230559/1", metin: "100.000 EUR ( 01.10.2026 )" }
+            ]
+        },
+        // 2. FERRARI 296 SPECIALE (Yeşil)
+        "ZFF13DMB900336617": {
+            plaka: "34 NUG 894 / 34 EDE 830",
+            navlunTutar: "2.500",
+            sigortaTutar: "100",
+            navlunSigortaMetin: "2.500 € + 100 € Sigorta = 2.600 €",
+            bankaAdi: "TÜRKİYE VAKIFLAR BANKASI T.A.O. — 00467 FOMARA BURSA ŞUBESİ",
+            bankaKodu12: "001500467016",
+            transferler: [
+                { id: "26000000150887000213259/1", metin: "250.000 EUR ( 11.09.2026 )" },
+                { id: "26000000150887000219465/1", metin: "143.000 EUR ( 18.09.2026 )" }
+            ]
+        },
+        // 3. CADILLAC ESCALADE (1GYS97KL4TR239138)
+        "1GYS97KL4TR239138": {
+            plaka: "34 GEB 276 / 34 NVA 964",
+            navlunSigortaMetin: "1.500 € + 50 € Sigorta = 1.550 €",
+            bankaAdi: "T.C. ZİRAAT BANKASI A.Ş. — 00914 MERTER ÇARŞI/İSTANBUL ŞUBESİ",
+            bankaKodu12: "001000914034",
+            transferler: [
+                { id: "26000000100887000136229/1", metin: "102.000 EUR ( 11.08.2026 )" }
+            ]
+        },
+        // 4. CADILLAC ESCALADE (1GYS97KL6TR239142)
+        "1GYS97KL6TR239142": {
+            plaka: "34 GEB 276 / 34 NVA 964",
+            navlunSigortaMetin: "1.500 € + 50 € Sigorta = 1.550 €",
+            bankaAdi: "T.C. ZİRAAT BANKASI A.Ş. — 00914 MERTER ÇARŞI/İSTANBUL ŞUBESİ",
+            bankaKodu12: "001000914034",
+            transferler: [
+                { id: "26000000100887000136229/1", metin: "102.000 EUR ( 11.08.2026 )" }
+            ]
+        }
+    };
+    window.bkKilitBul = function(d) {
+        let sasiTemiz = String((d && d.sasi) || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        return sasiTemiz ? window.BEYANNAME_ARAC_KILIT_VERILERI[sasiTemiz] || null : null;
+    };
+    // Kilitli değerleri aynı şasili tüm kayıtlara yazar; bir şey değiştiyse true döner (çağıran kaydeder)
+    window.bkKilitUygula = function(d) {
+        let kilit = window.bkKilitBul(d);
+        if(!kilit) return false;
+        let sayi = function(v) { return String(v || '').replace(/\./g, '').replace(',', '.').trim(); };
+        let yeni = {};
+        if(kilit.plaka) yeni.tirPlaka = kilit.plaka;
+        let ns = String(kilit.navlunSigortaMetin || '').match(/([\d.,]+)\s*€\s*\+\s*([\d.,]+)\s*€[^=]*=\s*([\d.,]+)/);
+        let navlun = sayi(kilit.navlunTutar) || (ns ? sayi(ns[1]) : ''), sigorta = sayi(kilit.sigortaTutar) || (ns ? sayi(ns[2]) : '');
+        if(navlun) yeni.navlunTutar = navlun;
+        if(sigorta) yeni.sigortaTutar = sigorta;
+        if(ns) yeni.navlunToplam = sayi(ns[3]);
+        else if(navlun) yeni.navlunToplam = String(Math.round((parseFloat(navlun) + (parseFloat(sigorta) || 0)) * 100) / 100);
+        if(kilit.bankaKodu12) yeni.bilgeBankaKodu = String(kilit.bankaKodu12).replace(/\D/g, '');
+        let bp = String(kilit.bankaAdi || '').split(/\s+[—–-]\s+/);
+        let subeM = String(bp[1] || '').match(/^(\d{1,6})\s+(.+)$/);
+        let banka = { bankaAdi: bp[0] || '', subeKodu: subeM ? subeM[1] : '', subeAdi: subeM ? subeM[2] : (bp[1] || '') };
+        let degisti = false;
+        let isle = function(kayit) {
+            if(!kayit || String(kayit.sasi || '').replace(/[^A-Z0-9]/gi, '').toUpperCase() !== String(d.sasi || '').replace(/[^A-Z0-9]/gi, '').toUpperCase()) return;
+            Object.keys(yeni).forEach(function(k) { if(String(kayit[k] == null ? '' : kayit[k]) !== yeni[k]) { kayit[k] = yeni[k]; degisti = true; } });
+            if(kilit.bankaAdi && kayit.banka28Kilit !== kilit.bankaAdi) { kayit.banka28Kilit = kilit.bankaAdi; degisti = true; }
+            if(kilit.transferler && kilit.transferler.length) {
+                let eski = Array.isArray(kayit.transferler) ? kayit.transferler : [];
+                let liste = kilit.transferler.map(function(k) {
+                    let m = String(k.metin || '').match(/([\d.,]+)\s*([A-Z]{3})?\s*\(\s*(\d{2}\.\d{2}\.\d{4})\s*\)/);
+                    let e = eski.find(function(x) { return x && window.bkTransferNo(x.belgeId) === window.bkTransferNo(k.id); }) || {};
+                    return Object.assign({}, e, banka, {
+                        belgeId: e.belgeId || k.id,
+                        tutar: m ? sayi(m[1]) : (e.tutar || ''),
+                        doviz: (m && m[2]) || e.doviz || 'EUR',
+                        tarih: m ? m[3] : (e.tarih || ''),
+                        bilgeBankaKodu: yeni.bilgeBankaKodu || e.bilgeBankaKodu || ''
+                    });
+                });
+                if(JSON.stringify(liste) !== JSON.stringify(eski)) { kayit.transferler = liste; degisti = true; }
+            }
+        };
+        isle(d);
+        (window.declarationsData || []).forEach(isle);
+        Object.keys(window.firmData || {}).forEach(function(f) { (window.firmData[f] || []).forEach(isle); });
+        return degisti;
+    };
     window.bkKartDoldur = function() {
         let a = window._bkAktif;
         if(!a || !document.getElementById('byn-print-area')) return;
         let d = a.d;
+        // Şasi kilidi: kilitli araçta kesin değerler karttan önce kayda yazılır ve kaydedilir
+        if(window.bkKilitUygula(d)) window.saveData && window.saveData('decl');
         let esc = function(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
         let kopyaBtn = function(v) { return v ? ' <button type="button" class="copy-btn no-print" title="Kopyala" data-kopya="' + esc(v) + '" onclick="window.bkKopyala(this.dataset.kopya, this)">📋</button>' : ''; };
         let yaz = function(id, v, kopya) {
@@ -14663,6 +14762,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(cozulen && cozulen.bankaAdi && !/^Şube:/.test(cozulen.subeAdi || '')) banka28 = window.bkBanka28Ad(cozulen.bankaAdi, bankaKod.slice(4, 9), cozulen.subeAdi);
         else if(sonBanka) banka28 = window.bkBanka28Ad(son.bankaAdi, son.subeKodu, son.subeAdi);
         else if(cozulen && cozulen.bankaAdi) banka28 = window.bkBankaTemizle(cozulen.bankaAdi) + ' — ' + bankaKod.slice(4, 9);
+        if(d.banka28Kilit && window.bkKilitBul(d)) banka28 = d.banka28Kilit;
+        banka28 = String(banka28 || '').replace(/\s*[—–-]?\s*BANKA\s*ŞUBES[İI]\s*$/i, '');
         if(bankaAdEl) bankaAdEl.textContent = banka28 || firmaBankaAd || '-';
         let lst = document.getElementById('bk-transfer-listesi');
         if(lst) {
