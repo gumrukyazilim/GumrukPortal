@@ -13800,12 +13800,15 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // 27 Motor gücü: metindeki en büyük kW (27.1-27.4, Nettoleistung, Azami güç...) — 20..1500
         let gucler = [], km, kwRe = /(\d{2,4}(?:[.,]\d+)?)\s*kW\b/gi;
         while((km = kwRe.exec(duz))) gucler.push(parseFloat(km[1].replace(',', '.')));
-        pencereler(/(?:H[öo]chste\s+Nutzleistung|Maximale\s+Nettoleistung|Nennleistung|Maximum\s+(?:net\s+)?power|(?:Azami|Maksimum)\s+(?:net\s+)?g[üu][çc])[^:]{0,60}:/, 30).forEach(function(v) {
+        pencereler(/(?:H[öo]chste\s+Nutzleistung|Maximale\s+Nettoleistung|Nennleistung|Maximum\s+(?:net\s+)?power|(?:Azami|Maksimum)\s+(?:net\s+|kullan[ıi]labilir\s+)?g[üu][çc])[^:]{0,60}:/, 30).forEach(function(v) {
             // "27.1 Höchste Nutzleistung: 27.1 294 bei 5600" → madde numarası atlanır
             v = v.replace(/^\s*2[78]\.[1-4]\.?(?=\s)/, '');
             let m = v.match(/^\s*(\d{2,4}(?:[.,]\d+)?)\s*(?:@|kW|bei|at|\/|$|\s)/i);
             if(m) gucler.push(parseFloat(m[1].replace(',', '.')));
         });
+        // "27.1 …: 294.00 @ 5600" — 27.1 madde numarasından sonraki ilk 2-4 haneli sayı
+        let m271 = duz.match(/(?:^|[^\d.])27\.1\.?(?![\d])[^\d\n]{1,80}?(\d{2,4}(?:[.,]\d+)?)/);
+        if(m271 && parseFloat(m271[1].replace(',', '.')) > 35) gucler.push(parseFloat(m271[1].replace(',', '.')));
         // CoC madde numaraları (27.1 – 27.4) ve 30 kW altı değerler motor gücü sayılmaz
         gucler = gucler.filter(function(n) { return n >= 30 && n <= 1500 && !/^2[78]\.[1-4]$/.test(String(n)); });
         r.motorGucu = gucler.length ? String(Math.round(Math.max.apply(null, gucler) * 10) / 10).replace(/\.0$/, '') : '';
@@ -14501,55 +14504,95 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
 
     // Kartı aktif araçtan doldur
     // ── ŞASİ BAZLI KESİN VERİ KİLİDİ (Drive okunamadığında devreye girer) ──
-    window.BEYANNAME_ARAC_KILIT_VERILERI = {
-        // 1. FERRARI 849 TESTAROSSA (Kırmızı)
+    window.BEYANNAME_KILIT_VERILER = {
+        // 1. AUDI RS3 SPORTBACK
+        "WUAZZZGYXTA500259": {
+            motorGucu: 294, silindirHacmi: 2480, silindirSayisi: 5, yakitTuru: "Benzin", ticariAd: "RS 3 Sportback",
+            tirPlaka: "34 RGH 202 / 34 ZK 4925",
+            faturaNo: "40", faturaTarih: "11.09.2026", faturaTutar: "77.000 EUR",
+            navlunFaturaNoTarih: "TEK2026000000908 / 30.09.2026",
+            navlunSigortaMetin: "2.550 € + 50 € Sigorta = 2.600 €",
+            atrBilgisi: "A370962 / 23.09.2026",
+            bankaAdi: "TÜRKİYE VAKIFLAR BANKASI T.A.O. — 00467 FOMARA BURSA ŞUBESİ", bilgeBankaKodu: "001500467016",
+            gonderici: "23DE000809946 - CK VIP RENT GMBH",
+            transferler: [
+                { id: "26000000150887000218931/1", metin: "77.000 EUR ( 18.09.2026 )" }
+            ]
+        },
+        // 2. FERRARI 849 TESTAROSSA (Kırmızı)
         "ZFF17AMB000339344": {
-            plaka: "34 NUG 894 / 34 EDE 830",
-            navlunTutar: "2.500",
-            sigortaTutar: "100",
+            motorGucu: 611, silindirHacmi: 3990, silindirSayisi: 8, yakitTuru: "Hibrit", ticariAd: "Ferrari 849 Testarossa",
+            tirPlaka: "34 NUG 894 / 34 EDE 830",
+            faturaNo: "2026-04", faturaTarih: "10.09.2026", faturaTutar: "455.000 EUR",
+            navlunFaturaNoTarih: "TEK2026000000901 / 29.09.2026",
             navlunSigortaMetin: "2.500 € + 100 € Sigorta = 2.600 €",
-            bankaAdi: "TÜRKİYE VAKIFLAR BANKASI T.A.O. — 00467 FOMARA BURSA ŞUBESİ",
-            bankaKodu12: "001500467016",
+            atrBilgisi: "X 619700 / 24.09.2026",
+            bankaAdi: "TÜRKİYE VAKIFLAR BANKASI T.A.O. — 00467 FOMARA BURSA ŞUBESİ", bilgeBankaKodu: "001500467016",
+            gonderici: "24AT000895704 - BP TRADE GMBH",
             transferler: [
                 { id: "26000000150887000213369/1", metin: "250.000 EUR ( 11.09.2026 )" },
                 { id: "26000000150887000221897/1", metin: "105.000 EUR ( 22.09.2026 )" },
                 { id: "26000000150887000230559/1", metin: "100.000 EUR ( 01.10.2026 )" }
             ]
         },
-        // 2. FERRARI 296 SPECIALE (Yeşil)
+        // 3. FERRARI 296 SPECIALE (Yeşil)
         "ZFF13DMB900336617": {
-            plaka: "34 NUG 894 / 34 EDE 830",
-            navlunTutar: "2.500",
-            sigortaTutar: "100",
+            motorGucu: 515, silindirHacmi: 2992, silindirSayisi: 6, yakitTuru: "Hibrit", ticariAd: "296 Speciale",
+            tirPlaka: "34 NUG 894 / 34 EDE 830",
+            faturaNo: "2026-03", faturaTarih: "10.09.2026", faturaTutar: "393.000 EUR",
+            navlunFaturaNoTarih: "TEK2026000000900 / 29.09.2026",
             navlunSigortaMetin: "2.500 € + 100 € Sigorta = 2.600 €",
-            bankaAdi: "TÜRKİYE VAKIFLAR BANKASI T.A.O. — 00467 FOMARA BURSA ŞUBESİ",
-            bankaKodu12: "001500467016",
+            atrBilgisi: "X 619699 / 24.09.2026",
+            bankaAdi: "TÜRKİYE VAKIFLAR BANKASI T.A.O. — 00467 FOMARA BURSA ŞUBESİ", bilgeBankaKodu: "001500467016",
+            gonderici: "24AT000895704 - BP TRADE GMBH",
             transferler: [
                 { id: "26000000150887000213259/1", metin: "250.000 EUR ( 11.09.2026 )" },
                 { id: "26000000150887000219465/1", metin: "143.000 EUR ( 18.09.2026 )" }
             ]
         },
-        // 3. CADILLAC ESCALADE (1GYS97KL4TR239138)
+        // 4. CADILLAC ESCALADE (1GYS97KL4TR239138)
         "1GYS97KL4TR239138": {
-            plaka: "34 GEB 276 / 34 NVA 964",
+            motorGucu: 313, silindirHacmi: 6162, silindirSayisi: 8, yakitTuru: "Benzin", ticariAd: "Escalade",
+            tirPlaka: "34 GEB 276 / 34 NVA 964",
+            faturaNo: "702333", faturaTarih: "10.08.2026", faturaTutar: "102.000 EUR",
+            navlunFaturaNoTarih: "ELU2026000000243 / 21.09.2026",
             navlunSigortaMetin: "1.500 € + 50 € Sigorta = 1.550 €",
-            bankaAdi: "T.C. ZİRAAT BANKASI A.Ş. — 00914 MERTER ÇARŞI/İSTANBUL ŞUBESİ",
-            bankaKodu12: "001000914034",
+            atrBilgisi: "A891771 / 15.09.2026",
+            bankaAdi: "T.C. ZİRAAT BANKASI A.Ş. — 00914 MERTER ÇARŞI/İSTANBUL ŞUBESİ", bilgeBankaKodu: "001000914034",
+            gonderici: "26DE001038629 - SCHUBERT AUTOMOBILE FRANKFURT GMBH",
             transferler: [
                 { id: "26000000100887000136229/1", metin: "102.000 EUR ( 11.08.2026 )" }
             ]
         },
-        // 4. CADILLAC ESCALADE (1GYS97KL6TR239142)
+        // 5. CADILLAC ESCALADE (1GYS97KL6TR239142)
         "1GYS97KL6TR239142": {
-            plaka: "34 GEB 276 / 34 NVA 964",
+            motorGucu: 313, silindirHacmi: 6162, silindirSayisi: 8, yakitTuru: "Benzin", ticariAd: "Escalade",
+            tirPlaka: "34 GEB 276 / 34 NVA 964",
+            faturaNo: "702334", faturaTarih: "10.08.2026", faturaTutar: "102.000 EUR",
+            navlunFaturaNoTarih: "ELU2026000000242 / 21.09.2026",
             navlunSigortaMetin: "1.500 € + 50 € Sigorta = 1.550 €",
-            bankaAdi: "T.C. ZİRAAT BANKASI A.Ş. — 00914 MERTER ÇARŞI/İSTANBUL ŞUBESİ",
-            bankaKodu12: "001000914034",
+            atrBilgisi: "A891772 / 15.09.2026",
+            bankaAdi: "T.C. ZİRAAT BANKASI A.Ş. — 00914 MERTER ÇARŞI/İSTANBUL ŞUBESİ", bilgeBankaKodu: "001000914034",
+            gonderici: "26DE001038629 - SCHUBERT AUTOMOBILE FRANKFURT GMBH",
             transferler: [
                 { id: "26000000100887000136229/1", metin: "102.000 EUR ( 11.08.2026 )" }
             ]
+        },
+        // 6. LEXUS LX600 (JTJGB7CXXT4096904) — kesinlikle benzin
+        "JTJGB7CXXT4096904": {
+            motorGucu: 305, silindirHacmi: 3445, silindirSayisi: 6, yakitTuru: "Benzin", ticariAd: "Lexus LX 600",
+            faturaNo: "70", faturaTarih: "29.07.2026", faturaTutar: "120.000 EUR",
+            teslimSekli: "CIF/İSTANBUL",
+            navlunSigortaMetin: "CIF Dahil",
+            atrBilgisi: "A037195 / 30.07.2026",
+            bankaAdi: "TÜRKİYE VAKIFLAR BANKASI T.A.O. — 00467 FOMARA BURSA ŞUBESİ", bilgeBankaKodu: "001500467016",
+            gonderici: "25DE000971273 - MY GARAGE GMBH",
+            transferler: [
+                { id: "26000000150887000116144/1", metin: "120.000 EUR ( 18.05.2026 )" }
+            ]
         }
     };
+    window.BEYANNAME_ARAC_KILIT_VERILERI = window.BEYANNAME_KILIT_VERILER;
     // GTİP fasıl alt pozisyonu yakıtı kanunen belirler; GTİP benzinliyse kart asla "Dizel" yazmaz
     window.dogrulaYakitVeGtip = function(yakit, gtip) {
         let g = String(gtip || '').replace(/[^0-9]/g, '');
@@ -14571,7 +14614,22 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(!kilit) return false;
         let sayi = function(v) { return String(v || '').replace(/\./g, '').replace(',', '.').trim(); };
         let yeni = {};
-        if(kilit.plaka) yeni.tirPlaka = kilit.plaka;
+        if(kilit.tirPlaka || kilit.plaka) yeni.tirPlaka = kilit.tirPlaka || kilit.plaka;
+        let ikili = function(v) { let p = String(v || '').split(/\s+\/\s+/); return [String(p[0] || '').trim(), String(p[1] || '').trim()]; };
+        if(kilit.faturaNo) yeni.faturaNo = String(kilit.faturaNo);
+        if(kilit.faturaTarih) yeni.faturaTarih = kilit.faturaTarih;
+        if(kilit.navlunFaturaNoTarih) { let nf = ikili(kilit.navlunFaturaNoTarih); if(nf[0]) yeni.navlunFaturaNo = nf[0]; if(nf[1]) yeni.navlunFaturaTarih = nf[1]; }
+        if(kilit.atrBilgisi) { let at = ikili(kilit.atrBilgisi); if(at[0]) yeni.atrNo = at[0]; if(at[1]) yeni.atrTarih = at[1]; }
+        if(kilit.gonderici) yeni.gonderici = kilit.gonderici;
+        if(kilit.teslimSekli) { yeni.teslimKart = kilit.teslimSekli; yeni.teslim = kilit.teslimSekli.split('/')[0].trim(); }
+        let teknikKilit = {};
+        ['motorGucu', 'silindirHacmi', 'silindirSayisi', 'yakitTuru', 'ticariAd'].forEach(function(k) {
+            if(kilit[k] == null || kilit[k] === '') return;
+            if(k === 'motorGucu' && d.motorGucuManuel) return;
+            teknikKilit[k] = String(kilit[k]);
+        });
+        Object.assign(yeni, teknikKilit);
+        let faturaKilit = kilit.faturaTutar ? parseFloat(sayi(String(kilit.faturaTutar).replace(/[^\d.,]/g, ''))) : 0;
         let ns = String(kilit.navlunSigortaMetin || '').match(/([\d.,]+)\s*€\s*\+\s*([\d.,]+)\s*€[^=]*=\s*([\d.,]+)/);
         let navlun = sayi(kilit.navlunTutar) || (ns ? sayi(ns[1]) : ''), sigorta = sayi(kilit.sigortaTutar) || (ns ? sayi(ns[2]) : '');
         if(navlun && !d.navlunManuel) yeni.navlunTutar = navlun;
@@ -14579,7 +14637,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(d.navlunManuel) {}
         else if(ns) yeni.navlunToplam = sayi(ns[3]);
         else if(navlun) yeni.navlunToplam = String(Math.round((parseFloat(navlun) + (parseFloat(sigorta) || 0)) * 100) / 100);
-        if(kilit.bankaKodu12) yeni.bilgeBankaKodu = String(kilit.bankaKodu12).replace(/\D/g, '');
+        if(kilit.bilgeBankaKodu || kilit.bankaKodu12) yeni.bilgeBankaKodu = String(kilit.bilgeBankaKodu || kilit.bankaKodu12).replace(/\D/g, '');
         let bp = String(kilit.bankaAdi || '').split(/\s+[—–-]\s+/);
         let subeM = String(bp[1] || '').match(/^(\d{1,6})\s+(.+)$/);
         let banka = { bankaAdi: bp[0] || '', subeKodu: subeM ? subeM[1] : '', subeAdi: subeM ? subeM[2] : (bp[1] || '') };
@@ -14588,6 +14646,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(!kayit || String(kayit.sasi || '').replace(/[^A-Z0-9]/gi, '').toUpperCase() !== String(d.sasi || '').replace(/[^A-Z0-9]/gi, '').toUpperCase()) return;
             Object.keys(yeni).forEach(function(k) { if(String(kayit[k] == null ? '' : kayit[k]) !== yeni[k]) { kayit[k] = yeni[k]; degisti = true; } });
             if(kilit.bankaAdi && kayit.banka28Kilit !== kilit.bankaAdi) { kayit.banka28Kilit = kilit.bankaAdi; degisti = true; }
+            if(faturaKilit && kayit.fatura !== faturaKilit) { kayit.fatura = faturaKilit; degisti = true; }
+            if(kilit.faturaNo && !kayit.faturaManuel) { kayit.faturaManuel = true; degisti = true; }
+            // Teknik bilgiler kartta TSE şablonundan önce okunur; şablon da kilitli değerle güncellenir
+            if(Object.keys(teknikKilit).length) {
+                kayit.tseSablon = Object.assign({}, kayit.tseSablon || {});
+                Object.keys(teknikKilit).forEach(function(k) { if(String(kayit.tseSablon['tse-' + k] == null ? '' : kayit.tseSablon['tse-' + k]) !== teknikKilit[k]) { kayit.tseSablon['tse-' + k] = teknikKilit[k]; degisti = true; } });
+            }
             if(kilit.transferler && kilit.transferler.length) {
                 let eski = Array.isArray(kayit.transferler) ? kayit.transferler : [];
                 let liste = kilit.transferler.map(function(k) {
@@ -14765,7 +14830,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(mgEl) mgEl.dataset.ilk = mgEl.textContent;
         html('bk-motor-hacim', duz('bk-motor-hacim-val', tek('silindirHacmi'), '-') + birim('cm³') + kopyaBtn(tek('silindirHacmi')));
         html('bk-silindir', duz('bk-silindir-val', tek('silindirSayisi'), '-') + birim('Silindir'));
-        let yakitKart = window.dogrulaYakitVeGtip(tek('yakitTuru'), d.gtip || ts['tse-gtipNo']);
+        let kilitKart = window.bkKilitBul(d);
+        let yakitKart = kilitKart && kilitKart.yakitTuru ? kilitKart.yakitTuru : window.dogrulaYakitVeGtip(tek('yakitTuru'), d.gtip || ts['tse-gtipNo']);
         html('bk-yakit', duz('bk-yakit-val', yakitKart, 'Yakıt') + kopyaBtn(yakitKart));
         yaz('bk-tse', d.tseBelgeNo ? d.tseBelgeNo + (d.tseTarih ? ' / ' + d.tseTarih : '') : '');
         yaz('bk-btk', window.bkBtkNo(d.btkYaziNo));
