@@ -13732,7 +13732,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let n = parseInt(m[1].replace(/[.\s]/g, ''), 10);
             return n >= 50 && n <= 10000 ? String(n) : '';
         };
-        r.silindirHacmi = enSik(pencereler(etiketHac, 60).map(hacBul).filter(Boolean));
+        r.silindirHacmi = enSik(pencereler(/(?:Motor|Silindir)\s+hacmi\s*(?:\(\s*cm\s*[3³]\s*\))?\s*[:.,]?/, 60).map(hacBul).filter(Boolean))
+            || enSik(pencereler(etiketHac, 60).map(hacBul).filter(Boolean));
 
         // 27 Motor gücü: metindeki en büyük kW (27.1-27.4, Nettoleistung, Azami güç...) — 20..1500
         let gucler = [], km, kwRe = /(\d{2,4}(?:[.,]\d+)?)\s*kW\b/gi;
@@ -13830,21 +13831,6 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let k44Atr = U.match(new RegExp('A\\.?\\s?TR\\s+DOLA[SŞ]IM\\s+BELGES[I]\\s+V\\s+([A-Z]?\\s?\\d{5,10})\\s*\\\\?#\\s*' + K44_TARIH));
         if(k44Atr) kutu44.atr = { no: k44Atr[1].replace(/\s+/g, ' ').trim(), tarih: trTarih(k44Atr[2]) };
         // Beyanname (taslak / redrese): yalnızca 44. kutu referansları okunur; içindeki "A.TR", "NAVLUN", tutarlar evrak sanılmaz
-        let beyanname = !/\bT ?2\b|TRANSIT|\bMRN\b|NCTS/.test(A) && (/BEYANNAME/.test(A) || /G[UÜ]MR[UÜ]K\s+BEYANNAMES[I]/.test(U) || (kutu44.transferler.length + (kutu44.fatura ? 1 : 0) + (kutu44.navlun ? 1 : 0) >= 2 && /44\s*EK\s*B[I]LG|BEYAN/.test(U)));
-
-        let tur = '';
-        // Yalnızca 44. kutu referansı geçen evrak (beyanname taslağı) transfer formu sayılmaz
-        let U44 = U.replace(/TRANSFER\s+B[I]LD[I]R[I]M\s+FORMU\s+V\s+[0-9\/]+\s*#\s*\d{2}[-.\/]\d{2}[-.\/]\d{2,4}/g, ' ');
-        if(beyanname) tur = 'beyanname';
-        else if(/TRANSFER/.test(A) || /TRANSFER\s*B[II]LD[II]R[II]M/.test(U44) || (/BELGE\s*ID/.test(U) && /\bBANKA\b/.test(U))) tur = 'transfer';
-        else if(/\b(T2|T 2|MRN|TRANSIT|TRANSIT|NCTS)\b/.test(A) || /\bMRN\b|TRANSIT ACCOMPANYING|TRANSIT REFAKAT/.test(U)) tur = 'mrn';
-        else if(/\bBTK\b|IMEI|IMEI/.test(A) || /B[II]LG[II] TEKNOLOJ[II]LER[II]|\bBTK\b/.test(U)) tur = 'btk';
-        else if(/\bTSE\b|G[II]A[II]|UYGUNLUK/.test(A) || /TÜRK STANDARTLARI|ITHAL ARAÇ UYGUNLUK|\bTSE\b/.test(U)) tur = 'tse';
-        else if(/\bA ?TR\b|DOLA[ŞS]IM/.test(A) || /MOVEMENT CERTIFICATE|WARENVERKEHRSBESCHEINIGUNG|DOLAŞIM BELGESI|\bA\.\s?TR\b/.test(U)) tur = 'atr';
-        // CoC / Artikel 44-45 / AB uygunluk belgesi: teknik veriler (fatura ya da navlun sanılmaz)
-        else if(/\bCOC\b|ARTI[CK](?:LE|EL)?\s*4[45]|\bART\.?\s*4[45]\b|KONFORMIT|UYGUNLUK BELGES|UYYUMLULUK|\bAB[\s-]*UY|CERTIFICATE OF CONFORMITY|EINZELGENEHMIGUNG/.test(A)
-            || /CERTIFICATE OF CONFORMITY|ÜBEREINSTIMMUNGSBESCHEINIGUNG|EINZELGENEHMIGUNG|UYGUNLUK BELGES|DATENBEST/.test(U.slice(0, 4000))
-            || (/\b0\.2\.1\b/.test(U) && /\b27\.1\b/.test(U))) tur = 'coc';
         // Navlun / nakliye faturaları araç faturası sayılmaz. Asıl ticari fatura,
         // içindeki tutarlardan biri araç bedeline (d.fatura) eşit olandır.
         let aracBedeli = arac ? parseFloat(String(arac.fatura || '').replace(',', '.')) : NaN;
@@ -13853,13 +13839,53 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let n = parseFloat(window.bkTutarNormalize(x));
             return !isNaN(n) && Math.abs(n - aracBedeli) < 1;
         });
-        let navlunAd = /\bCMR\b|NAVLUN|FREIGHT|FRACHT|SPEDITION|NAKL[II]YE|\bATI\b|TRANSPORT|TAŞIMA|TASIMA/.test(A);
-        let navlunIcerik = /\bCMR\b|FRACHTBRIEF|NAVLUN|FREIGHT|FRACHT|SPEDITION|NAKL[II]YE|TRANSPORTKOSTEN|\bATI\b/.test(U)
-            || (bedelBiliniyor && /TRANSPORT|TAŞIMA|TASIMA/.test(U));
-        if(tur) {}
-        else if(navlunAd) tur = 'navlun';
-        else if(ipucu(/FATURA|INVOICE|RECHNUNG|FACTURE|FATTURA/)) tur = (faturaEslesti || !navlunIcerik) ? 'fatura' : 'navlun';
-        else if(navlunIcerik) tur = 'navlun';
+
+        // EVRAK TÜRÜ İÇERİKTEN: dosya adı "Scan_001.pdf", "CamScanner 18.10.2026.pdf" olabilir.
+        // Her tür için resmi başlık / anahtar kelime parmak izleri puanlanır, en yüksek puanlı tür seçilir.
+        let PARMAK_IZI = {
+            beyanname: [[/G[UÜ]MR[UÜ]K\s+BEYANNAMES[I]/, 10], [/44\s*EK\s*B[I]LG/, 3], [/BEYAN\s+SAH[I]B[I]/, 3], [/\bBEYANNAME\b/, 3],
+                [/\b\d{8}\s?I?M\d{8}\b/, 4], [/\bGVM\b|\bKDVM\b|[OÖ]DEMEN[I]N\s+ERTELENME|HESAP\s+DETAYLARI/, 3]],
+            transfer: [[/TRANSFER\s+B[I]LD[I]R[I]M\s+FORMU\s+SORGULAMA/, 12], [/TRANSFER\s+YAPILAN\s+F[I]RMA/, 5], [/D[OÖ]V[I]Z\s+KAYNA[GĞ]I/, 4],
+                [/BELGE\s*ID/, 2], [/KALAN\s+TUTAR/, 2], [/GELEN\s+SW[I]FT|SWIFT\s+MESAJ|\bDEKONT\b/, 4], [/T\.?\s?C\.?\s+T[I]CARET\s+BAKANLI/, 2]],
+            atr: [[/WARENVERKEHRSBESCHEINIGUNG/, 12], [/MOVEMENT\s+CERTIFICATE/, 12], [/S[I]CHTVERMERK\s+DER\s+ZOLLSTELLE/, 8], [/DOLA[ŞS]IM\s+BELGES[I]/, 4],
+                [/\bA\.\s?TR\.?\s*(?:N[RO°º]|№)/, 5], [/BESTIMMUNGSSTAAT|AUSFUHRSTAAT/, 2]],
+            coc: [[/CERTIFICATE\s+OF\s+CONFORMITY/, 12], [/[UÜ]BEREINSTIMMUNGSBESCHEINIGUNG/, 12], [/\bAT\s+UYGUNLUK\s+BELGES[I]/, 12], [/EINZELGENEHMIGUNG/, 10],
+                [/ART[I]KEL\s*4[45]/, 6], [/2018\s?\/\s?858/, 4], [/KRAFTFAHRT[\s-]*BUNDESAMT/, 4], [/\b0\.2\.1\b/, 2], [/\b27\.1\b/, 2],
+                [/HUBRAUM|MOTOR\s+HACM[I]|ENGINE\s+CAPACITY|S[I]L[I]ND[I]R\s+HACM[I]/, 2]],
+            tse: [[/G[I]A[I]\s+G[UÜ]MR[UÜ]K\s+SATIR/, 12], [/T[UÜ]RK\s+STANDARTLARI\s+ENST/, 8], [/[I]THAL\s+ARA[CÇ]\s+UYGUNLUK/, 6], [/\bTSE\b/, 2], [/\bG[I]A[I]\b/, 2]],
+            btk: [[/B[I]LG[I]\s+TEKNOLOJ[I]LER[I]\s+VE\s+[I]LET[I][ŞS][I]M/, 12], [/BTK\s+C[I]HAZ/, 12], [/\bIMEI\b/, 2], [/\bBTK\b/, 2]],
+            mrn: [[/TRANS[I]T\s+(?:ACCOMPANYING|REFAKAT)/, 12], [/\bMRN\b/, 4], [/\bNCTS\b/, 4]],
+            navlun: [[/NAVLUN/, 4], [/\bFREIGHT\b|\bFRACHT(?!BRIEF)/, 4], [/ORD[I]NO/, 2], [/(?:TA[ŞS]IMA|NAKL[I]YE)\s+BEDEL/, 4], [/ULUSLARARASI\s+TA[ŞS]IMA/, 3],
+                [/311\s*1?4\s*\/\s*1|3111\s*4\s*\/\s*1/, 3], [/TEK\s?TRANS|\bELU\d{6}/, 2], [/SPEDITION|TRANSPORTKOSTEN/, 2],
+                [/TA[ŞS]IMA\s+SENE[DT]|\bCMR\b|FRACHTBRIEF|LETTRE\s+DE\s+VOITURE/, 6]],
+            // Bilgi amaçlı okunan, kart alanı doldurmayan evraklar (fatura / CoC sanılmasın diye ayrı türler)
+            ihracat: [[/AUSFUHRBEGLEITDOKUMENT|EXPORT\s+ACCOMPANYING/, 12], [/AUSFUHRZOLLSTELLE|AUSGANGSZOLLSTELLE|CUSTOMS\s+OFFICE\s+OF\s+EXIT|OFFICE\s+OF\s+EXPORT/, 10],
+                [/ART\s+DER\s+ANMELDUNG|DECLARATION\s+TYPE/, 4], [/VERSENDER|EXPORTER/, 2]],
+            mense: [[/CERTIFICATE\s+OF\s+ORIGIN/, 10], [/MEN[ŞS]E\s+(?:SERT[I]F[I]KASI|[ŞS]AHADETNAMES[I])/, 10], [/URSPRUNGSZEUGNIS/, 10]],
+            rapor: [[/ULA[ŞS]IM\s+(?:VE\s+LOJ[I]ST[I]K\s+)?S[I]STEMLER[I]\s+MERKEZ/, 12], [/ARA[CÇ]\s+[I]NCELEME\s+FORMU/, 10], [/ONAYA\s+UYGUNLUK\s+RAPORU/, 10]],
+            etiket: [[/BUILT\s+DATE|MADE\s+IN\s+[A-Z]+/, 5], [/HERSTELLDATUM|PRODUCTION\s+DATE/, 3]],
+            fatura: [[/RECHNUNG|\bINVOICE\b|COMMERCIAL\s+INVOICE/, 3], [/\bFATURA\b/, 1], [/FAHRGESTELL|\bFIN\b|\bVIN\b|CHASSIS|ŞAS[I]\s+NO/, 2],
+                [/NETTO[\s-]*EXPORT|RECHNUNGSBETRAG|NET\s+PRICE|RECHNUNGSPREIS/, 4], [/\bMARKE\b|\bMODELL\b|FAHRZEUG/, 1]]
+        };
+        let puan = {};
+        Object.keys(PARMAK_IZI).forEach(function(k) { puan[k] = PARMAK_IZI[k].reduce(function(t, p) { return t + (p[0].test(U) ? p[1] : 0); }, 0); });
+        // Araç bedeli geçen gerçek fatura (Rechnung/Invoice + şasi/tutar başlıkları), noter onaylı dosyada
+        // ihracat beyannamesiyle birlikte taranmış olsa bile fatura sayılır
+        if(faturaEslesti) puan.fatura += puan.fatura >= 6 ? 20 : 4;
+        puan.beyanname += 3 * (kutu44.transferler.length + (kutu44.fatura ? 1 : 0) + (kutu44.navlun ? 1 : 0));
+        let tur = Object.keys(puan).sort(function(a, b) { return puan[b] - puan[a]; })[0];
+        if(puan[tur] < 4) {
+            // İçerik yetersizse (boş / okunamayan tarama) son çare dosya adı
+            tur = '';
+            if(/TRANSFER/.test(A)) tur = 'transfer';
+            else if(/\b(T2|T 2|MRN|TRANSIT|NCTS)\b/.test(A)) tur = 'mrn';
+            else if(/\bBTK\b|IMEI/.test(A)) tur = 'btk';
+            else if(/\bTSE\b|G[II]A[II]/.test(A)) tur = 'tse';
+            else if(/\bA ?TR\b|DOLA[ŞS]IM/.test(A)) tur = 'atr';
+            else if(/\bCOC\b|ARTI[CK](?:LE|EL)?\s*4[45]|KONFORMIT|UYGUNLUK BELGES|UYYUMLULUK/.test(A)) tur = 'coc';
+            else if(/NAVLUN|FREIGHT|FRACHT|NAKL[II]YE/.test(A)) tur = 'navlun';
+            else if(/FATURA|INVOICE|RECHNUNG/.test(A)) tur = 'fatura';
+        }
 
         let alanlar = {}, transfer = null;
         if(tur === 'transfer') {
@@ -13908,16 +13934,22 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(navlunN) alanlar.navlunTutar = String(navlunN);
             if(sigortaN) alanlar.sigortaTutar = String(sigortaN);
         } else if(tur === 'btk') {
-            alanlar.btkYaziNo = al(/\b(\d{23})\b(?!\s*\/)/);
+            alanlar.btkYaziNo = al(/\b(\d{23})\b(?!\s*\/)/) || al(/\b(\d{23})\s*\/\s*\d{1,2}\b/);
+            alanlar.btkTarih = tarihler[0] || '';
             alanlar.imei = al(/(?:IMEI|IMEI)[^\d]{0,40}(\d{15})\b/) || al(/\b(\d{15})\b/);
         } else if(tur === 'tse') {
             let otv = Object.keys(window.BEYANNAME_FIRMA_SABITLERI).map(function(k) { return window.BEYANNAME_FIRMA_SABITLERI[k].tpsOtvMuafiyetNo; });
             let adaylar = (U.match(/\b\d{20,25}\s?\/\s?\d{1,2}\b/g) || []).map(function(x) { return x.replace(/\s/g, ''); });
             alanlar.tseBelgeNo = adaylar.find(function(x) { return otv.indexOf(x) === -1; }) || '';
+            if(alanlar.tseBelgeNo) {
+                let i = U.indexOf(alanlar.tseBelgeNo.split('/')[0]);
+                let yakin = i > -1 ? U.slice(Math.max(0, i - 200), i + 300) : '';
+                alanlar.tseTarih = trTarih((yakin.match(/\b\d{1,2}[.\/-]\d{1,2}[.\/-]20\d{2}\b/) || [''])[0]) || (tarihler[0] || '');
+            }
         } else if(tur === 'atr') {
             // "A.TR. № И 0000325308" — numara 6-10 hane, önünde Kiril/Latin seri harfi olabilir
             let an = U.match(/\bA\.?\s?TR\.?\s*(?:N[RO°º]\.?|№)?\s*:?\s*([A-ZА-ЯЁ]{1,2})?\s*(\d{5,10})\b/);
-            alanlar.atrNo = an ? (an[1] || '') + an[2] : (al(/(?:№|\bN[RO°º]\.?)\s*[:\s]*([A-ZА-ЯЁ]?\s?\d{6,10})\b/) || al(/\bA ?TR\s+([A-Z]?\s?\d{5,10})\b/, A)).replace(/\s+/g, '');
+            alanlar.atrNo = an ? (an[1] && an[1] !== 'A' ? an[1] + ' ' + an[2] : (an[1] || '') + an[2]) : (al(/(?:№|\bN[RO°º]\.?)\s*[:\s]*([A-ZА-ЯЁ]?\s?\d{6,10})\b/) || al(/\bA ?TR\s+([A-Z]?\s?\d{5,10})\b/, A)).replace(/\s+/g, '');
             let gecerli = function(src) { return (src.match(/\b\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4}\b/g) || []).map(trTarih).filter(function(x) { let y = parseInt(x.slice(-4), 10); return y >= 2015 && y <= 2035; }); };
             let k12 = U.search(/\b12\.?\s*(?:SICHTVERMERK|BESCHEINIGUNG|CUSTOMS|GÜMRÜK|VISA)/), k13 = U.search(/\b13\.?\s*(?:ERKLÄRUNG|ERKLARUNG|DECLARATION|IHRACATÇI|BEYAN)/);
             let t12 = k12 > -1 ? gecerli(U.slice(k12, k13 > k12 ? k13 : k12 + 600)) : [];
@@ -13944,6 +13976,23 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let INC = '(EXW|FCA|FAS|FOB|CFR|CIF|CPT|CIP|DAP|DPU|DDP)';
             let teslim = U.match(new RegExp('(?:INCOTERMS?|LIEFERUNG|LIEFERBEDINGUNG\\w*|DELIVERY|TESL[I]M\\w*)[^\\n]{0,60}?\\b' + INC + '\\b')) || U.match(new RegExp('\\b' + INC + '\\b[^\\n]{0,30}INCOTERMS'));
             if(teslim) alanlar.teslim = teslim[1];
+            // Gönderici: fatura başlığındaki ilk şirket unvanı (alıcı Türk firması değil)
+            let SIRKET = /\b(GMBH|AG|S\.?\s?P\.?\s?A\.?|S\.?R\.?L\.?|LTD|LIMITED|LLC|INC|B\.V\.|KG|SARL|S\.A\.|OY|AB)\b\.?/;
+            let satirlar = metin.split(/\n|•|·/).map(function(x) { return x.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+            for(let i = 0; i < Math.min(satirlar.length, 40); i++) {
+                let su = satirlar[i].toLocaleUpperCase('tr').replace(/İ/g, 'I');
+                let m = su.match(SIRKET);
+                if(!m || /T[UÜ]RK|ISTANBUL|OTOMOT|MOTORLU|SANAY|T[I]CARET|A\.?\s?Ş|LIM[I]TED\s+Ş|FIRMA|COMPANY|SAYIN/.test(su)) continue;
+                let ad = su.slice(0, m.index + m[0].length).replace(/^.*?(?:VON|FROM|SELLER|VERKÄUFER)\s*:?\s*/, '').replace(/[,;:.]+$/, '').trim();
+                if(ad.length >= 4 && ad.length <= 70) { alanlar.gonderici = ad; break; }
+            }
+            // Çıkış ülkesi: satıcının ülkesi (MRN varsa kartta o önceliklidir)
+            let ULKE = [[/DEUTSCHLAND|GERMANY|\bD-\d{5}\b/, '004 — ALMANYA'], [/ÖSTERREICH|OSTERREICH|AUSTRIA|\bA-\d{4}\b|KUFSTEIN|WIEN\b/, '038 — AVUSTURYA'],
+                [/ITALIA|ITALY|\bI-\d{5}\b/, '005 — İTALYA'], [/FRANCE|FRANKREICH/, '001 — FRANSA'], [/NEDERLAND|NETHERLANDS|HOLLAND/, '003 — HOLLANDA'],
+                [/BELGI(?:QUE|UM|EN)/, '017 — BELÇİKA'], [/BULGARIA|БЪЛГАРИЯ/, '068 — BULGARİSTAN'], [/SCHWEIZ|SWITZERLAND|SUISSE/, '039 — İSVİÇRE'], [/UNITED KINGDOM|\bUK\b|ENGLAND/, '006 — BİRLEŞİK KRALLIK']];
+            let bas = U.slice(0, 1500);
+            let ulke = ULKE.find(function(x) { return x[0].test(bas); });
+            if(ulke) alanlar.cikisUlke = ulke[1];
         }
         return { tur: tur, alanlar: alanlar, transfer: transfer, faturaEslesti: tur === 'fatura' && faturaEslesti, kutu44: kutu44 };
     };
@@ -13972,7 +14021,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(!arac) return null;
         if(!arac.evrakLink) throw new Error('Araç klasörü tanımlı değil (evrakLink yok).');
         let rapor = { okunan: 0, bulunan: [], hatalar: [], atlanan: 0 };
-        let alanlar = {}, transferler = [], taranan = {}, kesinFatura = null, cocKlasor = {};
+        let alanlar = {}, transferler = [], taranan = {}, kesinFatura = null, cocKlasor = {}, cocOylar = {};
         let k44Fatura = null, k44Navlun = null, k44Transferler = [], k44Atr = null, faturaBulunan = null;
         let COC_RE = /\bCOC\b|KONFORMIT|CERTIFICATE OF CONFORMITY|UYGUNLUK BELGES|ARTIKEL\s*4[45]|\bART\.?\s*4[45]\b|§\s*21\b|EINZELGENEHMIGUNG|DATENBEST|EINZELFAHRZEUG/;
         let atlaListesi = function() {
@@ -13985,7 +14034,18 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let adMetin = (String(f.ad || '') + ' ' + String(f.metin || '').slice(0, 3000)).toLocaleUpperCase('tr').replace(/İ/g, 'I');
             if(c.tur === 'coc' || (!c.tur && COC_RE.test(adMetin))) {
                 let tk = window.bkCocTeknikAyristir(f.metin);
-                Object.keys(tk).forEach(function(k) { if(tk[k] && !cocKlasor[k]) cocKlasor[k] = tk[k]; });
+                let trCoc = /AT\s+UYGUNLUK\s+BELGES|MOTOR\s+HACM[I]|S[I]L[I]ND[I]R\s+SAYISI|[CÇ]EV[I]R[I]D[I]R/.test(adMetin);
+                Object.keys(tk).forEach(function(k) {
+                    if(!tk[k]) return;
+                    let oy = cocOylar[k] = cocOylar[k] || {};
+                    // Türkçe (yeminli tercüme) CoC'nin oyu iki sayılır: İngilizce OCR'ın "2002" gibi hatalarını yener
+                    oy[tk[k]] = (oy[tk[k]] || 0) + (trCoc ? 2 : 1);
+                    // kW: belgelerdeki en büyük değer; diğerleri: en çok tekrarlanan değer
+                    let adaylar = Object.keys(oy);
+                    cocKlasor[k] = k === 'motorGucu'
+                        ? adaylar.sort(function(a, b) { return parseFloat(b) - parseFloat(a); })[0]
+                        : adaylar.sort(function(a, b) { return oy[b] - oy[a]; })[0];
+                });
                 if(Object.keys(tk).some(function(k) { return tk[k]; })) c.tur = 'coc';
             }
             if(c.faturaEslesti && c.alanlar.faturaNo) kesinFatura = { faturaNo: c.alanlar.faturaNo, faturaTarih: c.alanlar.faturaTarih };
@@ -14328,7 +14388,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         html('bk-motor-hacim', duz('bk-motor-hacim-val', tek('silindirHacmi'), '-') + birim('cm³') + kopyaBtn(tek('silindirHacmi')));
         html('bk-silindir', duz('bk-silindir-val', tek('silindirSayisi'), '-') + birim('Silindir'));
         html('bk-yakit', duz('bk-yakit-val', tek('yakitTuru'), 'Yakıt') + kopyaBtn(tek('yakitTuru')));
-        yaz('bk-tse', d.tseBelgeNo);
+        yaz('bk-tse', d.tseBelgeNo ? d.tseBelgeNo + (d.tseTarih ? ' / ' + d.tseTarih : '') : '');
         yaz('bk-btk', window.bkBtkNo(d.btkYaziNo));
         yaz('bk-imei', d.imei || d.brut);
 
@@ -14605,10 +14665,10 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             '.bk-pdf-klon .byn-section{border:1px solid #64748b!important;border-radius:6px!important;padding:4px 7px!important;margin:0 0 4px 0!important;background:#fff!important;box-shadow:none!important;}' +
             '.bk-pdf-klon .byn-sec-title{font-size:11px!important;font-weight:800!important;color:#0f172a!important;margin:0 0 4px 0!important;padding-bottom:2px!important;border-bottom:1px solid #cbd5e1!important;text-transform:uppercase!important;}' +
             '.bk-pdf-klon .byn-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:3px 6px!important;border:none!important;}' +
-            '.bk-pdf-klon .byn-item{border:1px solid #cbd5e1!important;border-radius:4px!important;padding:2px 5px!important;background:#fff!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:6px!important;min-height:0!important;margin:0!important;}' +
+            '.bk-pdf-klon .byn-item{border:1px solid #cbd5e1!important;border-radius:4px!important;padding:3px 5px!important;line-height:1.25!important;background:#fff!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:6px!important;min-height:0!important;margin:0!important;}' +
             '.bk-pdf-klon .byn-item[style*="span 2"]{grid-column:span 2!important;}' +
-            '.bk-pdf-klon .byn-label{flex:0 0 auto!important;max-width:45%!important;font-size:10px!important;line-height:1.2!important;font-weight:600!important;color:#334155!important;background:transparent!important;border:none!important;padding:0!important;}' +
-            '.bk-pdf-klon .byn-val{flex:1 1 auto!important;justify-content:flex-end!important;text-align:right!important;font-size:10.5px!important;line-height:1.2!important;font-weight:700!important;color:#000!important;font-family:monospace!important;padding:0!important;word-break:break-word!important;}' +
+            '.bk-pdf-klon .byn-label{flex:0 0 auto!important;max-width:45%!important;font-size:10px!important;line-height:1.25!important;font-weight:600!important;color:#334155!important;background:transparent!important;border:none!important;padding:0!important;}' +
+            '.bk-pdf-klon .byn-val{flex:1 1 auto!important;justify-content:flex-end!important;text-align:right!important;font-size:10.5px!important;line-height:1.25!important;font-weight:700!important;color:#000!important;font-family:monospace!important;padding:0!important;word-break:break-word!important;}' +
             '.bk-pdf-klon .bk-duz{border:none!important;background:transparent!important;padding:0!important;}' +
             '.bk-pdf-klon .bk-duz:empty::before{content:"-"!important;color:#000!important;}' +
             '.bk-pdf-klon [style*="margin-top:14px"]{margin-top:4px!important;padding-top:3px!important;}' +
