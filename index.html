@@ -3002,6 +3002,7 @@ div[style*="position: relative"] > input {
         .bk-duz { outline: none; border-bottom: 1px dashed var(--primary); min-width: 24px; display: inline-block; padding: 0 2px; cursor: text; }
         .bk-duz:focus { background: rgba(59,130,246,0.10); }
         .bk-duz:empty::before { content: attr(data-ph); color: var(--text-muted); font-weight: 400; }
+        .bk-duz:empty + .bk-birim { display: none; }
         .bk-giris-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
         .bk-giris-grid label { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
         .bk-giris-grid input, .bk-giris-grid select, #bk-in-transfer { width: 100%; box-sizing: border-box; }
@@ -13619,51 +13620,84 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
 
     // ─── CoC TEKNİK ALANLAR (Madde 0.2.1 / 22 / 25 / 26 / 27) ──────────
     window.bkCocTeknikAyristir = function(metin) {
-        let t = String(metin || '');
-        let al = function(reler) {
-            for(let i = 0; i < reler.length; i++) { let m = t.match(reler[i]); if(m && m[1]) return m[1].trim(); }
+        let t = String(metin || '').replace(/\r/g, '');
+        let satirlar = t.split('\n').map(function(x) { return x.replace(/\s+/g, ' ').trim(); });
+        // Yeni bir CoC maddesi mi? ("27.1 Maksimum ...", "25. Hubraum ...")
+        let maddeSatiri = function(x) { return /^\d{1,2}(?:\.\d{1,2}){0,3}\.?\s+\S/.test(x) && !/^\d+(?:[.,]\d+)?\s*(?:@|kW|cm|ccm|Sıralı|Sirali|in\s+Reihe|V\b)/i.test(x); };
+        // Etiketten sonraki değer: aynı satırda yoksa (tablo PDF'lerinde) sonraki dolu satırda
+        let deger = function(etiketRe, gecerli) {
+            for(let i = 0; i < satirlar.length; i++) {
+                let m = satirlar[i].match(etiketRe);
+                if(!m) continue;
+                let kalan = satirlar[i].slice(m.index + m[0].length).replace(/^\s*(?:\[[^\]]*\]|\([^)]*\))?\s*[:：]?\s*/, '').trim();
+                let adaylar = [kalan];
+                if(!kalan || /[:：]\s*$/.test(kalan)) for(let j = i + 1; j < Math.min(i + 3, satirlar.length); j++) {
+                    if(!satirlar[j]) continue;
+                    if(maddeSatiri(satirlar[j])) break;
+                    adaylar.push(satirlar[j]); break;
+                }
+                for(let k = 0; k < adaylar.length; k++) { let v = gecerli(adaylar[k]); if(v) return v; }
+            }
             return '';
         };
-        let sayi = function(v) { return String(v || '').replace(/\s/g, '').replace(',', '.'); };
+        let bos = function(v) { return !v || /^[-–—.\s]*$/.test(v) || /^(?:yok|hay[ıi]r|nein|no|none|keine)$/i.test(v.trim()); };
         let r = {};
-        r.ticariAd = al([
-            /(?:^|\n)\s*0\.2\.1\.?\s*(?:Ticari\s+(?:ism[ie]|isim)(?:\(leri\))?|Commercial\s+name\(?s?\)?|Handelsbezeichnung(?:\(en\))?)?\s*[:.]?\s*([^\n\r]+)/i,
-            /\b0\.2\.1[\s.:]+([^\n\r]+)/i,
-            /Ticari\s+(?:ism[ie]|isim)[\s:]+([^\n\r]+)/i
-        ]).replace(/\s+0$/, '').replace(/^[:.\s]+/, '');
-        r.silindirSayisi = al([
-            /Silindir(?:lerin)?\s+say[ıi]s[ıi][^\d\n]{0,40}(\d{1,2})\b/i,
-            /Number\s+(?:and\s+arrangement\s+)?of\s+cylinders[^\d\n]{0,40}(\d{1,2})\b/i,
-            /Anzahl\s+(?:und\s+Anordnung\s+)?der\s+Zylinder[^\d\n]{0,40}(\d{1,2})\b/i,
-            /(?:^|\n)\s*24\.?\s*(?:Silindir\s+Say[ıi]s[ıi]|Anzahl\s+(?:und\s+Anordnung\s+)?der\s+Zylinder|Number\s+(?:and\s+arrangement\s+)?of\s+cylinders)?[^\n\d]{0,40}(\d{1,2})\b/i
-        ]);
-        r.silindirHacmi = sayi(al([
-            /(?:Silindir|Motor)\s+hacmi[^\d\n]{0,40}(\d[\d .,]{2,6})\s*(?:cm|ccm)/i,
-            /(?:Capacity|Hubraum)[^\d\n]{0,40}(\d[\d .,]{2,6})\s*(?:cm|ccm)/i,
-            /(?:^|\n)\s*25\.?\s+[^\n\d]{0,60}(\d[\d .,]{2,6})\s*(?:cm|ccm)/,
-            /(?:^|\n)\s*25\.?\s*(?:Motor\s+Hacmi|Silindir\s+Hacmi|Hubraum|Engine\s+capacity|Cylinder\s+capacity|Displacement)[^\d\n]{0,20}(\d{1,2}[.\s]?\d{3}|\d{3})(?![\d.,])/i,
-            /(?:Hubraum|Displacement|Engine\s+capacity)[^\d\n]{0,10}(\d{1,2}[.\s]?\d{3}|\d{3})(?![\d.,])/i
-        ])).replace(/\.(?=\d{3}$)/, '');
-        r.motorGucu = sayi(al([
-            /(?:Azami|Maksimum|Maks\.?)\s+net\s+g[üu][çc][^\d\n]{0,40}(\d{2,4}(?:[.,]\d+)?)\s*kW/i,
-            /Maximum\s+(?:net\s+|continuous\s+rated\s+|hourly\s+)?(?:power|output)[^\d\n]{0,40}(\d{2,4}(?:[.,]\d+)?)\s*kW/i,
-            /(?:Nennleistung|Nutzleistung|Höchstleistung)[^\d\n]{0,40}(\d{2,4}(?:[.,]\d+)?)\s*kW/i,
-            /(?:^|\n)\s*27(?:\.[12])?\.?\s+[^\n\d]{0,60}(\d{2,4}(?:[.,]\d+)?)\s*kW/i,
-            /(?:^|\n)\s*27(?:\.1)?\.?\s*(?:Maksimum\s+(?:Kullan[ıi]labilir\s+)?G[üu][çc]|Azami\s+Net\s+G[üu][çc]|Maximale\s+Nettoleistung|Maximum\s+net\s+power|Nennleistung)?[^\d\n]{0,40}(\d{2,4}(?:[.,]\d+)?)\s*(?:kW|@)/i,
-            /Nettoleistung[^\d\n]{0,20}(\d{2,4}(?:[.,]\d+)?)\s*(?:kW|@)/i
-        ])).replace(/\.0+$/, '');
-        let yakitSatir = al([
-            /(?:^|\n)\s*26\.?\s+([^\n\r]+)/,
-            /(?:Yak[ıi]t|Fuel|Kraftstoff)(?:\s+t[üu]r[üu])?\s*[:]\s*([^\n\r]+)/i,
-            /(?:Yak[ıi]t(?:\s+T[üu]r[üu])?|Kraftstoff(?:art)?|Fuel)\s*[:\-]?\s*([A-Za-zÇĞİÖŞÜçğıöşü][A-Za-zÇĞİÖŞÜçğıöşü\-\/ ]{2,30})/i
-        ]).toLocaleUpperCase('tr').replace(/İ/g, 'I');
-        let hibrit = /OVC-HEV|NOVC-HEV|HYBRID|HIBRIT/.test(t.toLocaleUpperCase('tr').replace(/İ/g, 'I'));
+
+        // 0.2.1 Ticari ad — etiketin kendisi ("Ticari Adı:") asla değer sayılmaz
+        r.ticariAd = deger(/(?:^|\s)0\.2\.1\.?\s*(?:Ticari\s+(?:Ad[ıi]|[İIi]sim(?:leri)?|ism[ie])(?:\(leri\))?|Commercial\s+name\(?s?\)?|Handelsbezeichnung(?:\(en\))?)?/i, function(v) {
+            v = v.replace(/^(?:Ticari\s+(?:Ad[ıi]|[İIi]sim(?:leri)?|ism[ie])|Commercial\s+names?|Handelsbezeichnung(?:en)?)\s*[:.]?\s*/i, '').replace(/\s+0$/, '').trim();
+            return bos(v) || /^0\.2/.test(v) ? '' : v;
+        });
+
+        // 24 Silindir sayısı — yalnızca 1..16 arası tam sayı (ÖTV oranı, gürültü vb. asla)
+        let silindirGecerli = function(v) { let m = String(v).match(/^\s*(\d{1,2})(?!\s*[.,]\d)(?!\d)/); let n = m ? parseInt(m[1], 10) : 0; return n >= 1 && n <= 16 ? String(n) : ''; };
+        r.silindirSayisi = deger(/(?:^|\s)24\.?\s*(?=Silindir|Anzahl|Number|Zylinder|Cylinder)|Silindir(?:lerin)?\s+say[ıi]s[ıi](?:\s+ve\s+d[üu]zeni)?|Anzahl\s+(?:und\s+Anordnung\s+)?der\s+Zylinder|Number\s+(?:and\s+arrangement\s+)?of\s+cylinders/i,
+            function(v) { return silindirGecerli(v.replace(/^(?:Silindir[^:]*|Anzahl[^:]*|Number[^:]*):\s*/i, '')); });
+
+        // 25 Silindir hacmi (cm³) — 50..10000
+        let hacimGecerli = function(v) {
+            let m = String(v).match(/(\d{1,2}[.\s]\d{3}|\d{2,5})(?![\d,])/);
+            if(!m) return '';
+            let n = parseInt(m[1].replace(/[.\s]/g, ''), 10);
+            return n >= 50 && n <= 10000 ? String(n) : '';
+        };
+        r.silindirHacmi = deger(/(?:^|\s)25\.?\s*(?=Motor|Silindir|Hubraum|Engine|Cylinder|Capacity|Displacement)|(?:Motor|Silindir)\s+hacmi|Hubraum|Engine\s+capacity|Cylinder\s+capacity|Displacement/i,
+            function(v) { return hacimGecerli(v.replace(/^(?:Motor\s+Hacmi|Silindir\s+Hacmi|Hubraum|Engine\s+capacity|Cylinder\s+capacity|Displacement)\s*(?:\[[^\]]*\])?\s*:?\s*/i, '')); });
+
+        // 27 / 27.1 Motor gücü (kW) — "294.00 @ 5600" → 294; 5..1500
+        let gucGecerli = function(v) {
+            let m = String(v).match(/(\d{1,4}(?:[.,]\d+)?)\s*(?:kW|@|\/|$|\s)/i);
+            if(!m) return '';
+            let n = parseFloat(m[1].replace(',', '.'));
+            if(!(n >= 5 && n <= 1500)) return '';
+            return String(Math.round(n * 10) / 10).replace(/\.0$/, '');
+        };
+        r.motorGucu = deger(/(?:^|\s)27(?:\.[12])?\.?\s*(?=Maks|Azami|Maxim|Nenn|Nutz|Höchst|Net)|(?:Azami|Maksimum|Maks\.?)\s+(?:Kullan[ıi]labilir\s+|net\s+)?g[üu][çc]|Maximum\s+(?:net\s+|continuous\s+rated\s+|hourly\s+)?(?:power|output)|Maximale\s+Nettoleistung|Nettoleistung|Nennleistung|Nutzleistung|Höchstleistung/i,
+            function(v) { return gucGecerli(v.replace(/^[^\d:]*:\s*/, '')); });
+
+        // 26 Yakıt — 23.1 hibrit satırı doluysa ya da OVC-/NOVC-HEV geçiyorsa hibrit
+        let U = function(x) { return String(x || '').toLocaleUpperCase('tr').replace(/İ/g, 'I'); };
+        let yakitSatir = U(deger(/(?:^|\s)26\.?\s*(?=Yak|Kraft|Fuel)|Yak[ıi]t(?:\s+t[üu]r[üu])?|Kraftstoff(?:art)?|Fuel(?:\s+type)?/i,
+            function(v) { v = v.replace(/^(?:Yak[ıi]t(?:\s+T[üu]r[üu])?|Kraftstoff(?:art)?|Fuel(?:\s+type)?)\s*:?\s*/i, ''); return /^(?:BENZ|PETROL|GASOLINE|SUPER|D[İIı]ZEL|DIESEL|ELEKT|ELECTR|H[İIı]BR[İIı]T|HYBRID|LPG|CNG|WASSERSTOFF|HYDROGEN)/i.test(v) && !/T[üu]ket|consumption|Verbrauch/i.test(v) ? v : ''; }));
+        let hibritSatir = U(deger(/(?:^|\s)23\.1\.?\s*|Hibrit\s+Ara[çc]\s+T[üu]r[üu]|Hybrid(?:elektro)?[-\s]?(?:vehicle|Fahrzeug)/i, function(v) { v = v.replace(/^[^:]*:\s*/, ''); return bos(v) ? '' : v; }));
+        let hibrit = /\bN?OVC-HEV\b/.test(U(t)) || /HEV|HYBRID|HIBRIT|OVC/.test(hibritSatir);
         if(/ELEKTR|ELECTRIC/.test(yakitSatir) && !/BENZIN|PETROL|DIZEL|DIESEL/.test(yakitSatir)) r.yakitTuru = 'Elektrikli';
         else if(/DIZEL|DIESEL/.test(yakitSatir)) r.yakitTuru = hibrit ? 'Dizel+Elektrikli' : 'Dizel';
-        else if(/BENZIN|PETROL|GASOLINE/.test(yakitSatir)) r.yakitTuru = hibrit ? 'Hibrit' : 'Benzin';
+        else if(/BENZIN|PETROL|GASOLINE|SUPER/.test(yakitSatir)) r.yakitTuru = hibrit ? 'Hibrit' : 'Benzin';
         else if(/HIBRIT|HYBRID/.test(yakitSatir)) r.yakitTuru = 'Hibrit';
         else r.yakitTuru = '';
         return r;
+    };
+
+    // Kayıtlı teknik değeri kartta göstermeden önce doğrula (eski hatalı kayıtlar: "80" silindir, "Ticari Adı:")
+    window.bkTeknikGecerli = function(k, v) {
+        v = String(v == null ? '' : v).trim();
+        if(!v) return '';
+        if(k === 'silindirSayisi') { let n = parseInt(v, 10); return /^\d{1,2}$/.test(v) && n >= 1 && n <= 16 ? String(n) : ''; }
+        if(k === 'ticariAd') { v = v.replace(/^(?:0\.2\.1\.?\s*)?(?:Ticari\s+(?:Ad[ıi]|[İIi]sim(?:leri)?|ism[ie])|Commercial\s+names?|Handelsbezeichnung(?:en)?)\s*[:.]?\s*/i, '').trim(); return /^[-–—.:\s]*$/.test(v) ? '' : v; }
+        if(k === 'motorGucu') { let n = parseFloat(v.replace(',', '.')); return n >= 5 && n <= 1500 ? v.replace(/\.0+$/, '') : ''; }
+        if(k === 'silindirHacmi') { let n = parseInt(v.replace(/[.\s]/g, ''), 10); return n >= 50 && n <= 10000 ? String(n) : ''; }
+        return v;
     };
 
     // ─── EVRAK SINIFLANDIRICI (OCR metninden alan çıkarma) ──────────────
@@ -14085,11 +14119,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             });
         }
         // Teknik alanlar: TSE şablonu → araç kaydı (CoC taraması dahil)
-        let tek = function(k) { return ts['tse-' + k] || d[k] || ''; };
-        html('bk-ticari-ad', duz('bk-ticari-ad-val', tek('ticariAd') || d.model, 'Ticari ad') + kopyaBtn(tek('ticariAd') || d.model));
-        html('bk-motor-guc', duz('bk-motor-guc-val', tek('motorGucu'), 'kW') + ' kW' + kopyaBtn(tek('motorGucu')));
-        html('bk-motor-hacim', duz('bk-motor-hacim-val', tek('silindirHacmi'), 'cm³') + ' cm³' + kopyaBtn(tek('silindirHacmi')));
-        html('bk-silindir', duz('bk-silindir-val', tek('silindirSayisi'), 'Adet') + ' Silindir');
+        // Geçersiz eski kayıtlar ("80" silindir, "Ticari Adı:") gösterilmez; birim yalnızca değer varken görünür
+        let tek = function(k) { return window.bkTeknikGecerli(k, ts['tse-' + k]) || window.bkTeknikGecerli(k, d[k]) || ''; };
+        let birim = function(b) { return '<span class="bk-birim"> ' + b + '</span>'; };
+        html('bk-ticari-ad', duz('bk-ticari-ad-val', tek('ticariAd') || d.model, '-') + kopyaBtn(tek('ticariAd') || d.model));
+        html('bk-motor-guc', duz('bk-motor-guc-val', tek('motorGucu'), '-') + birim('kW') + kopyaBtn(tek('motorGucu')));
+        html('bk-motor-hacim', duz('bk-motor-hacim-val', tek('silindirHacmi'), '-') + birim('cm³') + kopyaBtn(tek('silindirHacmi')));
+        html('bk-silindir', duz('bk-silindir-val', tek('silindirSayisi'), '-') + birim('Silindir'));
         html('bk-yakit', duz('bk-yakit-val', tek('yakitTuru'), 'Yakıt') + kopyaBtn(tek('yakitTuru')));
         yaz('bk-tse', d.tseBelgeNo);
         yaz('bk-btk', window.bkBtkNo(d.btkYaziNo));
