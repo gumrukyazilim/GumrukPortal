@@ -3011,6 +3011,13 @@ div[style*="position: relative"] > input {
         .bk-giris-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
         .bk-giris-grid label { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
         .bk-giris-grid input, .bk-giris-grid select, #bk-in-transfer { width: 100%; box-sizing: border-box; }
+        /* Kopyala düğmeli hücreler: metin daralıp kırılır, 📋 küçülmeden metnin hemen sağında durur */
+        @media screen {
+            .byn-val > .bk-duz, .byn-val > span:not(.bk-birim) { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; word-break: break-all; line-height: 1.35; }
+            .byn-val > .bk-duz:has(+ .copy-btn), .byn-val > span:not(.bk-birim):has(+ .copy-btn) { max-width: calc(100% - 34px); }
+            .byn-val > .copy-btn, .byn-val .copy-btn { flex-shrink: 0; position: static; float: none; transform: none; margin: 0; padding: 2px 4px; font-size: 13px; }
+        }
+        @media screen and (max-width: 768px) { .byn-val .bk-duz { font-size: 11px; } }
         @media (max-width: 600px) { .byn-item[style*="span 2"] { grid-column: auto !important; } .byn-label, .byn-item[style*="span 2"] > .byn-label { flex-basis: 42%; font-size: 12px; } .byn-val { word-break: break-all; font-size: 13.5px; } }
 
         @media print {
