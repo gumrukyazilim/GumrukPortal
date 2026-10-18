@@ -13285,6 +13285,59 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         { re: /\b(CADILLAC|CHEVROLET|GMC)\b/, ulke: "400 — AMERİKA BİRLEŞİK DEVLETLERİ" },
         { re: /\b(LAND ROVER|RANGE ROVER|BENTLEY)\b/, ulke: "006 — BİRLEŞİK KRALLIK" }
     ];
+    // TPS ÖTV 234/1 muafiyet belgesi yoksa kartta yazılacak açıklama:
+    // "İhtiyaca Binaen DEMC (%oran ÖTV — sınıf)". Kayıtlı ÖTV oranı varsa o kullanılır.
+    window.getOtvDemcAck = function(arac) {
+        let a = arac || {}, ts = a.tseSablon || {};
+        let ilk = function() { for(let i = 0; i < arguments.length; i++) { let v = arguments[i]; if(v != null && String(v).trim() !== '') return String(v).trim(); } return ''; };
+        let sayi = function(v) { let m = String(v || '').replace(/\s/g, '').match(/\d+(?:[.,]\d+)?/); return m ? parseFloat(m[0].replace(',', '.')) : 0; };
+        let U = function(v) { return String(v || '').toLocaleUpperCase('tr').replace(/İ/g, 'I'); };
+        let yakit = U(ilk(a.yakitTuru, a.yakit, ts['tse-yakitTuru']));
+        let gtip = String(ilk(a.gtip, ts['tse-gtipNo'])).replace(/[^\d]/g, '');
+        let cc = sayi(ilk(a.silindirHacmi, a.motorHacmi, a.cc, ts['tse-silindirHacmi'], /^\s*\d{3,4}\s*(?:cc|cm|ccm)?\s*$/i.test(a.motor || '') ? a.motor : ''));
+        if(cc > 0 && cc < 20) cc = Math.round(cc * 1000);          // "2.0" litre yazılmışsa
+        let kw = sayi(ilk(a.motorGucu, a.kw, ts['tse-motorGucu']));
+        let cekis = U([a.ceker, a.dortCeker === true ? '4X4' : a.dortCeker, a.model, a.ticariAd, ts['tse-ticariAd']].filter(Boolean).join(' '));
+        let dortCeker = /4X4|AWD|4WD|4MATIC|QUATTRO|XDRIVE|4MOTION|ALL4|4XMOTION|ALLRAD/.test(cekis);
+        let kayitli = sayi(ilk(a.otvOrani, a.otvOran, a.otv));
+        if(kayitli > 0 && kayitli <= 3) kayitli = Math.round(kayitli * 100);   // 0,8 → %80
+        let yaz = function(oran, sinif) { return 'İhtiyaca Binaen DEMC (%' + (kayitli || oran) + ' ÖTV — ' + sinif + ')'; };
+
+        if(/^8711/.test(gtip) || /MOTOSIKLET|MOTORCYCLE/.test(yakit + ' ' + cekis))
+            return cc > 250 ? yaz(37, '87.11 Motosiklet (>250 cm³)') : yaz(8, '87.11 Motosiklet (≤250 cm³)');
+        if(/^8704/.test(gtip))
+            return dortCeker ? yaz(50, '87.04 Eşya Taşımaya Mahsus 4x4 Kamyonet') : yaz(4, '87.04 Eşya Taşımaya Mahsus Araç (Kamyonet/Ticari)');
+        let ev = /^870380/.test(gtip) || (/ELEKTR|ELECTRIC|BEV/.test(yakit) && !/BENZIN|DIZEL|DIESEL|PETROL|HIBRIT|HYBRID|\+/.test(yakit));
+        if(ev) return kw > 160 ? yaz(50, '87.03 Elektrikli Araç (>160 kW)') : yaz(10, '87.03 Elektrikli Araç (≤160 kW)');
+        let phev = /^8703[67]0/.test(gtip) || /PLUG|PHEV|OVC-HEV|\bOVC\b|SARJ EDILEBILIR/.test(yakit + ' ' + cekis);
+        let hev = !phev && (/^8703[45]0/.test(gtip) || /HIBRIT|HYBRID|HEV|\+ELEKTR/.test(yakit));
+        if(phev) {
+            if(cc && cc <= 1600) return yaz(45, '87.03 Plug-in Hibrit (≤1600 cm³)');
+            if(cc && cc <= 1800) return yaz(85, '87.03 Plug-in Hibrit (1600-1800 cm³)');
+            return yaz(150, '87.03 Plug-in Hibrit (>1800 cm³)');
+        }
+        if(hev) return yaz(cc > 2500 ? 220 : (cc > 1800 ? 150 : 80), '87.03 Hibrit Binek Otomobil');
+        let tur = /DIZEL|DIESEL/.test(yakit) || /^87033[2-3]/.test(gtip) ? 'Dizel' : 'Benzinli';
+        if(cc > 2000) return yaz(220, '87.03 ' + tur + ' Binek (>2000 cm³)');
+        if(cc > 1600) return yaz(150, '87.03 ' + tur + ' Binek (1600-2000 cm³)');
+        if(cc > 0) return yaz(80, '87.03 ' + tur + ' Binek (≤1600 cm³)');
+        return kayitli ? 'İhtiyaca Binaen DEMC (%' + kayitli + ' ÖTV)' : 'İhtiyaca Binaen DEMC';
+    };
+
+    // Teslim şekli: CIF → CIF/İSTANBUL, EXW → EXW/<çıkış ülkesi> (bulunamazsa ALMANYA). Kartta elle düzeltildiyse o.
+    window.getTeslimSekliFormatted = function(d) {
+        d = d || {};
+        if(d.teslimKart) return d.teslimKart;
+        let t = String(d.teslim || 'CIF').toLocaleUpperCase('tr').trim();
+        if(t.indexOf('/') > -1) return t;
+        if(/^CIF\b/.test(t)) return 'CIF/İSTANBUL';
+        if(/^EXW\b/.test(t)) {
+            let u = String(window.bkCikisUlke ? window.bkCikisUlke(d) : (d.cikisUlke || '')).split('—').pop().trim();
+            return 'EXW/' + (u ? u.toLocaleUpperCase('tr') : 'ALMANYA');
+        }
+        return t;
+    };
+
     window.bkCikisUlke = function(d) {
         let mrn = String(d.mrnNo || d.ozetBeyan || '').trim().toUpperCase();
         let kod = mrn.length >= 4 ? mrn.substring(2, 4) : '';
@@ -13905,7 +13958,14 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(sifreEl) sifreEl.innerHTML = giris.sifre
             ? '<span data-gizli="1" data-sifre="' + esc(giris.sifre) + '">••••••••</span> <button type="button" class="copy-btn no-print" title="Göster / Gizle" onclick="let s=this.previousElementSibling;let g=s.dataset.gizli===\'1\';s.textContent=g?s.dataset.sifre:\'••••••••\';s.dataset.gizli=g?\'0\':\'1\';">👁</button>' + kopyaBtn(giris.sifre)
             : '-';
-        yaz('bk-otv-muaf', sab.tpsOtvMuafiyetNo);
+        let otvHucre = function(id, valId) {
+            let el = document.getElementById(id);
+            if(!el) return;
+            if(sab.tpsOtvMuafiyetNo) { yaz(id, sab.tpsOtvMuafiyetNo); return; }
+            let ack = d.otvMuafiyetAck || window.getOtvDemcAck(d);
+            el.innerHTML = '<span contenteditable="true" class="bk-duz" id="' + valId + '" data-ph="ÖTV açıklaması">' + esc(ack) + '</span>' + kopyaBtn(ack);
+        };
+        otvHucre('bk-otv-muaf', 'bk-otv-muaf-val');
         yaz('bk-rejim', sab.rejimKodu || '4000');
         yaz('bk-iliski', sab.aliciSaticiIliskisi || '6');
 
@@ -13913,7 +13973,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         yaz('bk-sasi', d.sasi);
         yaz('bk-marka-model', [d.marka || '-', d.model || '-', d.yil || '-', d.renk || 'BELİRTİLMEDİ'].join(' / '), false);
         yaz('bk-gtip', d.gtip || ts['tse-gtipNo']);
-        yaz('bk-teslim', d.teslim || 'CIF', false);
+        let teslimEl = document.getElementById('bk-teslim');
+        if(teslimEl) teslimEl.innerHTML = '<span contenteditable="true" class="bk-duz" id="bk-teslim-val" data-ph="Teslim">' + esc(window.getTeslimSekliFormatted(d)) + '</span>';
         let menEl = document.getElementById('bk-mensei');
         if(menEl) menEl.innerHTML = '<span contenteditable="true" class="bk-duz" id="bk-mensei-val" data-ph="Ülke">' + esc(window.bkMenseUlke(d)) + '</span>';
         yaz('bk-cikis-ulke', window.bkCikisUlke(d), false);
@@ -13939,7 +14000,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let tutarYaz = function(v) { return v ? (window.formatNumber ? window.formatNumber(v) : v) : ''; };
         html('bk-arac-fatura-no-tarih', duz('bk-fatura-no', d.faturaNo, 'No', 'fno') + ' / ' + duz('bk-fatura-tarih', d.faturaTarih || d.faturaTarihi, 'GG.AA.YYYY', 'ftar') + kopyaBtn(d.faturaNo));
         html('bk-44-arac-fatura', duz('bk-44-fatura-no', d.faturaNo, 'No', 'fno') + ' / ' + duz('bk-44-fatura-tarih', d.faturaTarih || d.faturaTarihi, 'GG.AA.YYYY', 'ftar') + kopyaBtn(d.faturaNo));
-        yaz('bk-44-otv-muaf', sab.tpsOtvMuafiyetNo);
+        otvHucre('bk-44-otv-muaf', 'bk-44-otv-muaf-val');
         html('bk-arac-fatura-tutar', duz('bk-arac-fatura-tutar-val', tutarYaz(d.fatura), 'Tutar') + ' EUR' + kopyaBtn(d.fatura));
         // Navlun ayrı faturadır; yalnızca navlunun bedele dahil olmadığı teslim şekillerinde (EXW, FCA, FOB, FAS) istenir
         let teslim = String(d.teslim || 'CIF').toUpperCase().trim();
@@ -14079,6 +14140,12 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let faturaNo = metin(document.getElementById('bk-fatura-no'));
         let faturaTarih = trTarih(metin(document.getElementById('bk-fatura-tarih')));
         let menseiYeni = metin(document.getElementById('bk-mensei-val'));
+        let otvOto = window.getOtvDemcAck(d), otvAckYeni = null;
+        let otvSecilen = [metin(document.getElementById('bk-otv-muaf-val')), metin(document.getElementById('bk-44-otv-muaf-val'))]
+            .find(function(v) { return v && v !== (d.otvMuafiyetAck || otvOto); });
+        if(otvSecilen) otvAckYeni = otvSecilen === otvOto ? '' : otvSecilen;
+        let teslimYeni = null, teslimGirilen = metin(document.getElementById('bk-teslim-val'));
+        if(teslimGirilen) { let tOto = window.getTeslimSekliFormatted(Object.assign({}, d, { teslimKart: '' })); teslimYeni = teslimGirilen.toLocaleUpperCase('tr') === tOto ? '' : teslimGirilen.toLocaleUpperCase('tr'); }
         let vNoYeni = metin(document.getElementById('bk-vno-val')).replace(/\s/g, '');
         if(vNoYeni && d.firma && vNoYeni !== window.getFirmaVergiNo(d.firma)) {
             window.firmMeta = window.firmMeta || {};
@@ -14132,6 +14199,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(!k || (k !== d && (!hedefSasi || String(k.sasi || '').toLocaleUpperCase('tr') !== hedefSasi))) return;
             k.atrNo = atrNo; k.atrTarih = atrTarih;
             k.faturaNo = faturaNo; k.faturaTarih = faturaTarih; k.faturaManuel = !!(faturaNo || faturaTarih);
+            if(otvAckYeni !== null) k.otvMuafiyetAck = otvAckYeni;
+            if(teslimYeni !== null) k.teslimKart = teslimYeni;
             if(menseiYeni && menseiYeni !== menseiOtomatik) { k.mensei = menseiYeni; k.menseiManuel = true; }
             else if(!menseiYeni || menseiYeni === menseiOtomatik) { k.menseiManuel = false; }
             if(aracTutar && !isNaN(aracTutar)) k.fatura = aracTutar;
@@ -14229,14 +14298,14 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let kap = document.createElement('div');
         kap.style.cssText = 'position:fixed;top:0;left:-99999px;width:794px;background:#fff;z-index:-9999;pointer-events:none;';
         kap.innerHTML = '<style>' +
-            '.bk-pdf-klon{width:794px!important;max-width:794px!important;min-width:794px!important;margin:0!important;padding:16px 20px!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif!important;display:block!important;overflow:hidden!important;}' +
-            '.bk-pdf-klon .byn-section{border:1px solid #64748b!important;border-radius:6px!important;padding:5px 8px!important;margin:0 0 5px 0!important;background:#fff!important;box-shadow:none!important;}' +
+            '.bk-pdf-klon{width:794px!important;max-width:794px!important;min-width:794px!important;margin:0!important;padding:12px 16px!important;line-height:1.2!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif!important;display:block!important;overflow:hidden!important;}' +
+            '.bk-pdf-klon .byn-section{border:1px solid #64748b!important;border-radius:6px!important;padding:4px 7px!important;margin:0 0 4px 0!important;background:#fff!important;box-shadow:none!important;}' +
             '.bk-pdf-klon .byn-sec-title{font-size:11px!important;font-weight:800!important;color:#0f172a!important;margin:0 0 4px 0!important;padding-bottom:2px!important;border-bottom:1px solid #cbd5e1!important;text-transform:uppercase!important;}' +
             '.bk-pdf-klon .byn-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:3px 6px!important;border:none!important;}' +
-            '.bk-pdf-klon .byn-item{border:1px solid #cbd5e1!important;border-radius:4px!important;padding:2.5px 6px!important;background:#fff!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:6px!important;min-height:0!important;margin:0!important;}' +
+            '.bk-pdf-klon .byn-item{border:1px solid #cbd5e1!important;border-radius:4px!important;padding:2px 5px!important;background:#fff!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:6px!important;min-height:0!important;margin:0!important;}' +
             '.bk-pdf-klon .byn-item[style*="span 2"]{grid-column:span 2!important;}' +
-            '.bk-pdf-klon .byn-label{flex:0 0 auto!important;max-width:45%!important;font-size:9.5px!important;font-weight:600!important;color:#334155!important;background:transparent!important;border:none!important;padding:0!important;}' +
-            '.bk-pdf-klon .byn-val{flex:1 1 auto!important;justify-content:flex-end!important;text-align:right!important;font-size:10.5px!important;font-weight:700!important;color:#000!important;font-family:monospace!important;padding:0!important;word-break:break-word!important;}' +
+            '.bk-pdf-klon .byn-label{flex:0 0 auto!important;max-width:45%!important;font-size:10px!important;line-height:1.2!important;font-weight:600!important;color:#334155!important;background:transparent!important;border:none!important;padding:0!important;}' +
+            '.bk-pdf-klon .byn-val{flex:1 1 auto!important;justify-content:flex-end!important;text-align:right!important;font-size:10.5px!important;line-height:1.2!important;font-weight:700!important;color:#000!important;font-family:monospace!important;padding:0!important;word-break:break-word!important;}' +
             '.bk-pdf-klon .bk-duz{border:none!important;background:transparent!important;padding:0!important;}' +
             '.bk-pdf-klon .bk-duz:empty::before{content:"-"!important;color:#000!important;}' +
             '.bk-pdf-klon [style*="margin-top:14px"]{margin-top:4px!important;padding-top:3px!important;}' +
