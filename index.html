@@ -13424,15 +13424,55 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         };
         return { navlun: oku('calc-navlun'), sigorta: oku('calc-sigorta') };
     };
+    // "26000000150887000213259/1" ile "26000000150887000213259" aynı transferdir
+    window.bkTransferNo = function(id) { return String(id || '').replace(/\s/g, '').replace(/\/\d{1,3}$/, ''); };
     window.bkTransferTekil = function(liste) {
         let gor = {}, sonuc = [];
         (Array.isArray(liste) ? liste : []).forEach(function(t) {
             if(!t || !(t.belgeId || t.eftKodu || t.bankaAdi || t.tutar || t.not)) return;
-            let k = t.belgeId || [t.eftKodu, t.subeKodu, t.bankaAdi, t.tutar, t.tarih, t.not].join('|');
-            if(gor[k] !== undefined) { sonuc[gor[k]] = Object.assign({}, sonuc[gor[k]], t); return; }
-            gor[k] = sonuc.length; sonuc.push(t);
+            let no = window.bkTransferNo(t.belgeId);
+            let k = no || [t.eftKodu, t.subeKodu, t.bankaAdi, t.tutar, t.tarih, t.not].join('|');
+            if(gor[k] !== undefined) {
+                let eski = sonuc[gor[k]], yeni = Object.assign({}, eski);
+                Object.keys(t).forEach(function(a) { if(t[a] !== '' && t[a] != null && t[a] !== false) yeni[a] = t[a]; });
+                if(String(eski.belgeId || '').indexOf('/') > -1) yeni.belgeId = eski.belgeId;
+                sonuc[gor[k]] = yeni; return;
+            }
+            gor[k] = sonuc.length; sonuc.push(Object.assign({}, t));
+        });
+        // Banka alanları tek kaynaktan: Belge ID / tutar / tarih taşımayan "yalnız banka" kaydı satır olmaz,
+        // banka bilgisi diğer transferlere aktarılır. Tek banka varsa bankası boş satırlar (Kutu 44) da doldurulur.
+        let BANKA = ['eftKodu', 'subeKodu', 'ilKodu', 'bankaAdi', 'subeAdi', 'bilgeBankaKodu', 'ilVarsayilan'];
+        let gercek = sonuc.filter(function(t) { return t.belgeId || t.tutar || t.tarih; });
+        let bankali = sonuc.filter(function(t) { return t.bankaAdi || t.eftKodu; });
+        let bankaAnahtar = {};
+        bankali.forEach(function(t) { bankaAnahtar[(t.eftKodu || '') + (t.subeKodu || '') || t.bankaAdi] = true; });
+        let kaynak = Object.keys(bankaAnahtar).length === 1 ? bankali[0] : null;
+        if(gercek.length) sonuc = gercek;
+        if(kaynak) sonuc = sonuc.map(function(t) {
+            if(t.bankaAdi || t.eftKodu) return t;
+            let y = Object.assign({}, t);
+            BANKA.forEach(function(a) { if(kaynak[a] != null && kaynak[a] !== '') y[a] = kaynak[a]; });
+            return y;
         });
         return sonuc;
+    };
+    // Transfer satırında kısa banka adı: "VakıfBank — Fomara Bursa"
+    window.bkBankaKisa = function(bankaAdi, subeAdi) {
+        let U = function(v) { return String(v || '').toLocaleUpperCase('tr'); };
+        let baslik = function(v) { return String(v || '').toLocaleLowerCase('tr').replace(/(^|[\s\-\/(])(\S)/g, function(m, a, b) { return a + b.toLocaleUpperCase('tr'); }); };
+        let b = U(bankaAdi);
+        let KISA = [[/VAKIF KATILIM/, 'Vakıf Katılım'], [/ZİRAAT KATILIM/, 'Ziraat Katılım'], [/EMLAK KATILIM/, 'Emlak Katılım'],
+            [/VAKIFLAR BANKASI|VAKIFBANK/, 'VakıfBank'], [/ZİRAAT/, 'Ziraat Bankası'], [/HALK BANK/, 'Halkbank'], [/İŞ BANKASI|IS BANKASI/, 'İş Bankası'],
+            [/GARANTİ/, 'Garanti BBVA'], [/YAPI VE KREDİ|YAPI KREDİ/, 'Yapı Kredi'], [/AKBANK/, 'Akbank'], [/FİNANSBANK|\bQNB\b/, 'QNB'],
+            [/DENİZBANK/, 'DenizBank'], [/KUVEYT TÜRK/, 'Kuveyt Türk'], [/TÜRKİYE FİNANS/, 'Türkiye Finans'], [/EKONOMİ BANKASI|\bTEB\b/, 'TEB'],
+            [/\bING\b/, 'ING'], [/HSBC/, 'HSBC'], [/ŞEKERBANK/, 'Şekerbank'], [/ALBARAKA/, 'Albaraka'], [/ODEA/, 'Odeabank'], [/FİBABANKA/, 'Fibabanka'], [/ANADOLUBANK/, 'Anadolubank']];
+        let k = KISA.find(function(x) { return x[0].test(b); });
+        let ad = k ? k[1] : String(bankaAdi || '').replace(/\s+Şube\b.*$/i, '').trim();
+        let sube = String(subeAdi || '');
+        if(!sube) { let m = String(bankaAdi || '').match(/Şube\s*:?\s*(.+)$/i); sube = m ? m[1] : ''; }
+        sube = sube.replace(/^\s*\d{1,6}\s*[-–—]?\s*/, '').replace(/^Şube:?\s*/i, '').replace(/\s*ŞUBES[İI]\s*$/i, '').replace(/\s*ŞUBE\s*$/i, '').trim();
+        return [ad, sube ? baslik(sube) : ''].filter(Boolean).join(' — ');
     };
 
     // Araç kartındaki firma adını sabitler tablosundaki anahtara eşle
@@ -13526,7 +13566,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         metin = String(metin || '');
         let al = function(re) { let m = metin.match(re); return m ? m[1].trim() : ''; };
 
-        let belgeId = al(/Belge\s*ID\s*[:\s]+(\d{20,25})/i);
+        let belgeId = al(/Belge\s*ID\s*[:\s]+(\d{20,25})/i) || al(/(?:^|\D)(\d{23})(?!\d)/);
         let bankaMetni = al(/(?:^|[\n\r])\s*Banka\s*[:\s]+([^\n\r]+)/i) || al(/Banka\s*[:\s]+([^\n\r]+)/i);
         let subeMetni = al(/(?:^|[\n\r])\s*Şube\s*[:\s]+([^\n\r]+)/i) || al(/Şube\s*[:\s]+([^\n\r]+)/i);
 
@@ -13546,8 +13586,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(!ilKodu && eftKodu && subeKodu) { ilKodu = '016'; ilVarsayilan = true; }
 
         // Tutar / döviz / tarih (formda farklı etiketlerle gelebilir)
-        let tutarM = metin.match(/(?:Transfer\s*)?Tutar[ıi]?\s*[:\s]+([\d.,]+)\s*([A-Z]{3})?/i);
-        let doviz = (tutarM && tutarM[2]) || al(/D[öo]viz(?:\s*(?:Cinsi|Kodu))?\s*[:\s]+([A-Z]{3})/i);
+        let tutarM = metin.match(/Toplam\s+Tutar[ıi]?\s*[:\s]+(\d[\d.,]*)\s*([A-Z]{3}\b)?/) || metin.match(/(?:Transfer\s*)?Tutar[ıi]?\s*[:\s]+(\d[\d.,]*)\s*([A-Z]{3}\b)?/i);
+        let doviz = al(/D[öo]viz(?:\s*(?:Cinsi|Kodu|T[üu]r[üu]))?\s*[:\s]+([A-Z]{3})\b/) || (tutarM && tutarM[2]) || '';
         let tarih = al(/(?:İşlem|Transfer|Valör|Bildirim)?\s*Tarih[i]?\s*[:\s]+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/i)
             .replace(/[\/-]/g, '.').replace(/^(\d)\./, '0$1.').replace(/\.(\d)\./, '.0$1.');
 
@@ -13589,7 +13629,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             });
             transferler.forEach(function(t) {
                 let liste = Array.isArray(kayit.transferler) ? kayit.transferler.slice() : [];
-                let i = t.belgeId ? liste.findIndex(function(x) { return x.belgeId === t.belgeId; }) : -1;
+                let i = t.belgeId ? liste.findIndex(function(x) { return window.bkTransferNo(x.belgeId) === window.bkTransferNo(t.belgeId); }) : -1;
                 if(i > -1) {
                     // Eski kayıttaki dolu alanları koru, yenileri ekle
                     let eski = liste[i], yeni = Object.assign({}, eski);
@@ -13775,21 +13815,26 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // Beyanname 44. kutu referansları: "Fatura V ABC123 #12-10-26", "Transfer Bildirim Formu V 24/1 #12.10.2026"
         let K44_TARIH = '(\\d{2}[-.\\/]\\d{2}[-.\\/]\\d{2,4})';
         let kutu44 = { fatura: null, navlun: null, transferler: [] };
-        let k44Re = new RegExp('(NAVLUN\\s+|NAKL[I]YE\\s+)?FATURA(?:SI)?\\s+V\\s+([A-Z0-9\\-_\\/]+)\\s*#\\s*' + K44_TARIH, 'g'), k44;
+        let k44Re = new RegExp('(NAVLUN\\s+|NAKL[I]YE\\s+)?FATURA(?:SI)?\\s+V\\s+([A-Z0-9\\-_\\/]+)\\s*\\\\?#\\s*' + K44_TARIH, 'g'), k44;
         while((k44 = k44Re.exec(U))) {
             let ref = { no: k44[2], tarih: trTarih(k44[3]) };
             if(k44[1]) { if(!kutu44.navlun) kutu44.navlun = ref; }
             else if(!kutu44.fatura) kutu44.fatura = ref;
         }
-        let k44TrRe = new RegExp('TRANSFER\\s+B[I]LD[I]R[I]M\\s+FORMU\\s+V\\s+([0-9\\/]+)\\s*#\\s*' + K44_TARIH, 'g');
+        let k44TrRe = new RegExp('TRANSFER\\s+B[I]LD[I]R[I]M\\s+FORMU\\s+V\\s+(?:\\S+\\s+){0,3}?(\\d[\\d\\/]{2,30})\\s*\\\\?#\\s*' + K44_TARIH, 'g');
         while((k44 = k44TrRe.exec(U))) {
-            if(!kutu44.transferler.some(function(x) { return x.belgeId === k44[1]; })) kutu44.transferler.push({ belgeId: k44[1], tarih: trTarih(k44[2]), kaynak: 'Kutu 44' });
+            if(!kutu44.transferler.some(function(x) { return window.bkTransferNo(x.belgeId) === window.bkTransferNo(k44[1]); })) kutu44.transferler.push({ belgeId: k44[1], tarih: trTarih(k44[2]), kaynak: 'Kutu 44' });
         }
+        let k44Atr = U.match(new RegExp('A\\.?\\s?TR\\s+DOLA[SŞ]IM\\s+BELGES[I]\\s+V\\s+([A-Z]?\\s?\\d{5,10})\\s*\\\\?#\\s*' + K44_TARIH));
+        if(k44Atr) kutu44.atr = { no: k44Atr[1].replace(/\s+/g, ' ').trim(), tarih: trTarih(k44Atr[2]) };
+        // Beyanname (taslak / redrese): yalnızca 44. kutu referansları okunur; içindeki "A.TR", "NAVLUN", tutarlar evrak sanılmaz
+        let beyanname = !/\bT ?2\b|TRANSIT|\bMRN\b|NCTS/.test(A) && (/BEYANNAME/.test(A) || /G[UÜ]MR[UÜ]K\s+BEYANNAMES[I]/.test(U) || (kutu44.transferler.length + (kutu44.fatura ? 1 : 0) + (kutu44.navlun ? 1 : 0) >= 2 && /44\s*EK\s*B[I]LG|BEYAN/.test(U)));
 
         let tur = '';
         // Yalnızca 44. kutu referansı geçen evrak (beyanname taslağı) transfer formu sayılmaz
         let U44 = U.replace(/TRANSFER\s+B[I]LD[I]R[I]M\s+FORMU\s+V\s+[0-9\/]+\s*#\s*\d{2}[-.\/]\d{2}[-.\/]\d{2,4}/g, ' ');
-        if(/TRANSFER/.test(A) || /TRANSFER\s*B[II]LD[II]R[II]M/.test(U44) || (/BELGE\s*ID/.test(U) && /\bBANKA\b/.test(U))) tur = 'transfer';
+        if(beyanname) tur = 'beyanname';
+        else if(/TRANSFER/.test(A) || /TRANSFER\s*B[II]LD[II]R[II]M/.test(U44) || (/BELGE\s*ID/.test(U) && /\bBANKA\b/.test(U))) tur = 'transfer';
         else if(/\b(T2|T 2|MRN|TRANSIT|TRANSIT|NCTS)\b/.test(A) || /\bMRN\b|TRANSIT ACCOMPANYING|TRANSIT REFAKAT/.test(U)) tur = 'mrn';
         else if(/\bBTK\b|IMEI|IMEI/.test(A) || /B[II]LG[II] TEKNOLOJ[II]LER[II]|\bBTK\b/.test(U)) tur = 'btk';
         else if(/\bTSE\b|G[II]A[II]|UYGUNLUK/.test(A) || /TÜRK STANDARTLARI|ITHAL ARAÇ UYGUNLUK|\bTSE\b/.test(U)) tur = 'tse';
@@ -13838,8 +13883,16 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             // Navlun faturasındaki ayrı kalemler (TEK TRANS vb.): "NAVLUN BEDELİ: 2.450 EUR", "SİGORTA BEDELİ: 100 EUR"
             let nb = al(/NAVLUN\s+(?:BEDEL[I]|[UÜ]CRET[I]|TUTARI)\s*[:=]?\s*(?:€|EUR|EURO)?\s*(\d[\d.,]*)/) || al(/(?:FRACHTKOSTEN|TRANSPORTKOSTEN|FREIGHT\s+(?:CHARGES?|COSTS?))\s*[:=]?\s*(?:€|EUR)?\s*(\d[\d.,]*)/);
             let sb = al(/S[I]GORTA\s+(?:BEDEL[I]|[UÜ]CRET[I]|TUTARI|PR[I]M[I])\s*[:=]?\s*(?:€|EUR|EURO)?\s*(\d[\d.,]*)/) || al(/(?:VERSICHERUNG(?:SKOSTEN)?|INSURANCE)\s*[:=]?\s*(?:€|EUR)?\s*(\d[\d.,]*)/);
-            if(nb && parseFloat(window.bkTutarNormalize(nb)) > 0) alanlar.navlunTutar = window.bkTutarNormalize(nb);
-            if(sb && parseFloat(window.bkTutarNormalize(sb)) > 0) alanlar.sigortaTutar = window.bkTutarNormalize(sb);
+            let sbSatir = al(/S[I]GORTA\s+(?:BEDEL[I]|[UÜ]CRET[I]|TUTARI|PR[I]M[I])[^\d\n]{0,15}(\d[\d.,]*)/);
+            if(sbSatir) sb = sbSatir;
+            let tp = al(/[OÖ]DENECEK\s+TUTAR[^\d\n]{0,15}(\d[\d.,]*)/) || al(/GENEL\s+TOPLAM[^\d\n]{0,15}(\d[\d.,]*)/) || al(/(?:TOPLAM\s+TUTAR|FATURA\s+TOPLAMI|TOTAL\s+AMOUNT|AMOUNT\s+DUE|GESAMTBETRAG|ZAHLBETRAG|ENDBETRAG)[^\d\n]{0,15}(\d[\d.,]*)/);
+            let sayiN = function(v) { let n = parseFloat(window.bkTutarNormalize(v)); return n > 0 ? n : 0; };
+            let toplamN = sayiN(tp), sigortaN = sayiN(sb), navlunN = sayiN(nb);
+            if(toplamN && sigortaN && toplamN > sigortaN) navlunN = Math.round((toplamN - sigortaN) * 100) / 100;
+            else if(!navlunN && toplamN) navlunN = toplamN;
+            if(toplamN) alanlar.navlunToplam = String(toplamN);
+            if(navlunN) alanlar.navlunTutar = String(navlunN);
+            if(sigortaN) alanlar.sigortaTutar = String(sigortaN);
         } else if(tur === 'btk') {
             alanlar.btkYaziNo = al(/\b(\d{23})\b(?!\s*\/)/);
             alanlar.imei = al(/(?:IMEI|IMEI)[^\d]{0,40}(\d{15})\b/) || al(/\b(\d{15})\b/);
@@ -13861,6 +13914,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let tutar = al(/(?:TOTAL|GESAMTBETRAG|GESAMT|SUMME|BRUTTO|TOPLAM|AMOUNT)[^\d\n]{0,30}([\d.,]{3,})/);
             alanlar.fatura = tutar ? window.bkTutarNormalize(tutar) : '';
         }
+        if(kutu44.atr && !alanlar.atrNo) { alanlar.atrNo = kutu44.atr.no; alanlar.atrTarih = kutu44.atr.tarih; }
         return { tur: tur, alanlar: alanlar, transfer: transfer, faturaEslesti: tur === 'fatura' && faturaEslesti, kutu44: kutu44 };
     };
 
@@ -13969,11 +14023,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // Çok parçalı transfer: 44. kutudaki her "Transfer Bildirim Formu V ..." ayrı satır (formun kendisi okunduysa tekrar eklenmez)
         let tamTransferler = transferler.concat(Array.isArray(arac.transferler) ? arac.transferler : []);
         k44Transferler.forEach(function(t) {
-            let rakam = t.belgeId.replace(/\D/g, '');
-            let zatenVar = tamTransferler.some(function(x) {
-                let b = String((x && x.belgeId) || '');
-                return b === t.belgeId || (rakam.length >= 6 && b.replace(/\D/g, '').indexOf(rakam) > -1);
-            });
+            let no = window.bkTransferNo(t.belgeId);
+            let zatenVar = tamTransferler.some(function(x) { return x && window.bkTransferNo(x.belgeId) === no; });
             if(!zatenVar) transferler.push(t);
         });
         // CoC TR (mevcut readCocTrPdf ucu): ticari ad, motor gücü, hacim, silindir, yakıt
@@ -14011,7 +14062,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // Tümünü Yeniden Oku: A.TR ve navlun faturası (no, tarih, navlun, sigorta) bulunduysa kayıtlıyı günceller
         if(tumunuOku) {
             let yeni = {};
-            ['atrNo', 'atrTarih', 'navlunFaturaNo', 'navlunFaturaTarih', 'navlunTutar', 'sigortaTutar'].forEach(function(k) { if(alanlar[k]) yeni[k] = alanlar[k]; });
+            ['atrNo', 'atrTarih', 'navlunFaturaNo', 'navlunFaturaTarih', 'navlunTutar', 'sigortaTutar', 'navlunToplam'].forEach(function(k) { if(alanlar[k]) yeni[k] = alanlar[k]; });
             if(Object.keys(yeni).length) window.aracVerisiBirlestir(arac, yeni, [], false);
         }
         window.aracVerisiBirlestir(arac, alanlar, transferler, true, {
@@ -14179,6 +14230,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let eskiVarsayilan = !d.navlunFaturaNo && sayi(d.navlunTutar) === 1850 && (!sayi(d.sigortaTutar) || sayi(d.sigortaTutar) === 50);
             let hm = window.bkHesapNavlun();
             let nKayit = eskiVarsayilan ? 0 : sayi(d.navlunTutar), sKayit = eskiVarsayilan ? 0 : sayi(d.sigortaTutar);
+            if(!nKayit && sayi(d.navlunToplam) > sKayit) nKayit = Math.round((sayi(d.navlunToplam) - sKayit) * 100) / 100;
             let navlunN = nKayit || sayi(hm.navlun), sigortaN = sKayit || sayi(hm.sigorta) || (navlunN ? 50 : 0);
             let hesaptan = !nKayit && !!sayi(hm.navlun);
             let topla = function(a, b) { return trSayi(sayi(a) + sayi(b)); };
@@ -14236,7 +14288,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
 
         // 28. kutu banka + transferler (yalnızca gerçekten kayıtlı, tekil transferler)
         let transferler = window.bkTransferTekil(d.transferler);
-        let son = transferler.length ? transferler[transferler.length - 1] : null;
+        let son = transferler.slice().reverse().find(function(t) { return t.bankaAdi || t.eftKodu; }) || (transferler.length ? transferler[transferler.length - 1] : null);
         let transferKodu = '';
         transferler.some(function(t) {
             let m = String(t.bilgeBankaKodu || '').replace(/\D/g, '').length === 12 ? [String(t.bilgeBankaKodu).replace(/\D/g, '')]
@@ -14259,11 +14311,11 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let sonBanka = son ? [son.bankaAdi, son.subeAdi].filter(Boolean).join(' — ') : '';
         if(window.bkKod12Bul(sonBanka) && window.bkKod12Bul(sonBanka) === sonBanka.replace(/\D/g, '')) sonBanka = '';
         let bankaAdEl = document.getElementById('bk-banka-ad');
-        if(bankaAdEl) bankaAdEl.textContent = (cozulen && cozulen.tamAd) || sonBanka || '-';
+        if(bankaAdEl) bankaAdEl.textContent = sonBanka || (cozulen && cozulen.tamAd) || '-';
         let lst = document.getElementById('bk-transfer-listesi');
         if(lst) {
             lst.innerHTML = '<div class="byn-grid" id="bk-tr-grid" style="border-top:none;">' +
-                transferler.map(function(t, n) { return window.bkTransferSatiri(t, n, duz, kopyaBtn); }).join('') + '</div>' +
+                transferler.filter(function(t) { return t.belgeId || t.tutar || t.tarih; }).sort(function(x, y) { let g = function(t) { let m = String(t.tarih || '').match(/(\d{2})\.(\d{2})\.(\d{4})/); return m ? m[3] + m[2] + m[1] : '99999999'; }; return g(x) < g(y) ? -1 : g(x) > g(y) ? 1 : 0; }).map(function(t, n) { return window.bkTransferSatiri(t, n, duz, kopyaBtn); }).join('') + '</div>' +
                 '<button type="button" id="bk-tr-ekle" class="copy-btn no-print" style="margin-top:4px;" onclick="window.bkTransferSatirEkle()">➕ Transfer satırı ekle</button>';
         }
 
@@ -14291,19 +14343,24 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     // Düzenlenebilir transfer satırı (Belge ID / Banka — Şube / Tutar Döviz / Tarih)
     window.bkTransferSatiri = function(t, n, duz, kopyaBtn) {
         t = t || {};
-        let tutarTr = t.tutar ? Number(t.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+        let tutarTr = t.tutar ? Number(t.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '';
+        let bid = /^\d{20,25}$/.test(String(t.belgeId || '').trim()) ? String(t.belgeId).trim() + '/1' : (t.belgeId || '');
+        let ea = function(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
         let banka = [t.bankaAdi, t.subeAdi].filter(Boolean).join(' — ');
         // Banka alanına yalnızca 12 haneli kod yazılmışsa banka / şube adını göster
         let kod12 = (String(t.bilgeBankaKodu || '').replace(/\D/g, '').length === 12 ? String(t.bilgeBankaKodu).replace(/\D/g, '') : '') || window.bkKod12Bul(banka);
         let coz = kod12 ? window.cozumleBilgeBankaKodu(kod12) : null;
-        if(coz && (!banka || banka.replace(/\D/g, '') === kod12)) banka = coz.tamAd;
-        return '<div class="bk-transfer-satir" style="display:contents;" data-eft="' + (t.eftKodu || '') + '" data-sube="' + (t.subeKodu || '') + '" data-il="' + (t.ilKodu || '') + '" data-kod="' + (kod12 || '') + '">' +
+        let hamBanka = t.bankaAdi || '', hamSube = t.subeAdi || '';
+        if(coz && (!banka || banka.replace(/\D/g, '') === kod12)) { banka = coz.tamAd; hamBanka = coz.bankaAdi; hamSube = coz.subeAdi; }
+        let kisa = banka ? window.bkBankaKisa(hamBanka, hamSube) || banka : '';
+        return '<div class="bk-transfer-satir" style="display:contents;" data-eft="' + (t.eftKodu || '') + '" data-sube="' + (t.subeKodu || '') + '" data-il="' + (t.ilKodu || '') + '" data-kod="' + (kod12 || '') + '"' +
+            ' data-banka-ham="' + ea(hamBanka) + '" data-sube-ham="' + ea(hamSube) + '" data-banka-kisa="' + ea(kisa) + '">' +
             '<div class="byn-item"><span class="byn-label">Transfer ' + (n + 1) + ' · Belge ID</span>' +
-                '<span class="byn-val" style="white-space:nowrap; flex-wrap:nowrap;">' + duz('', t.belgeId, 'Belge ID').replace('id=""', 'data-alan="belgeId"') + (kopyaBtn ? kopyaBtn(t.belgeId) : '') + '</span></div>' +
+                '<span class="byn-val" style="white-space:nowrap; flex-wrap:nowrap;">' + duz('', bid, 'Belge ID').replace('id=""', 'data-alan="belgeId"') + (kopyaBtn ? kopyaBtn(bid) : '') + '</span></div>' +
             '<div class="byn-item"><span class="byn-label">Transfer Tutar &amp; Tarih</span>' +
                 '<span class="byn-val">' + duz('', tutarTr, 'Tutar').replace('id=""', 'data-alan="tutar"') + ' ' + duz('', window.bkDovizNormalize(t.doviz), 'Döviz').replace('id=""', 'data-alan="doviz"') +
                 ' (' + duz('', t.tarih, 'GG.AA.YYYY').replace('id=""', 'data-alan="tarih"') + ') · ' +
-                '<span style="font-family:inherit;font-weight:600;">' + duz('', banka, 'Banka — Şube').replace('id=""', 'data-alan="banka"') + '</span></span></div>' +
+                '<span style="font-family:inherit;font-weight:600;">' + duz('', kisa, 'Banka — Şube').replace('id=""', 'data-alan="banka"') + '</span></span></div>' +
         '</div>';
     };
     window.bkTransferSatirEkle = function() {
@@ -14382,6 +14439,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
                 bankaAdi: (banka[0] || '').trim(), subeAdi: banka.slice(1).join(' — ').trim(),
                 tutar: window.bkTutarNormalize(al('tutar')), doviz: window.bkDovizNormalize(al('doviz')), tarih: trTarih(al('tarih'))
             };
+            if(row.dataset.bankaKisa && al('banka') === row.dataset.bankaKisa) { t.bankaAdi = row.dataset.bankaHam || t.bankaAdi; t.subeAdi = row.dataset.subeHam || t.subeAdi; }
             if(!t.belgeId && !t.bankaAdi && !t.tutar) return;   // boş satır
             let satirKod = window.bkKod12Bul(al('banka')) || row.dataset.kod || '';
             let coz = satirKod ? window.cozumleBilgeBankaKodu(satirKod) : null;
