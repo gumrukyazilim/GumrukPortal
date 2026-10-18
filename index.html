@@ -3007,6 +3007,7 @@ div[style*="position: relative"] > input {
         .bk-duz:focus { background: rgba(59,130,246,0.10); }
         .bk-duz:empty::before { content: attr(data-ph); color: var(--text-muted); font-weight: 400; }
         .bk-duz:empty + .bk-birim { display: none; }
+        @media print { .bk-tr-tarih-kap:has(> .bk-duz:empty) { display: none !important; } }
         .bk-giris-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
         .bk-giris-grid label { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
         .bk-giris-grid input, .bk-giris-grid select, #bk-in-transfer { width: 100%; box-sizing: border-box; }
@@ -13464,6 +13465,26 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         return sonuc;
     };
     // Transfer satırında kısa banka adı: "VakıfBank — Fomara Bursa"
+    // Gönderici: "26DE001038629 - SCHUBERT AUTOMOBILE FRANKFURT GMBH". Kayıttaki gümrük kodu korunur;
+    // kod yoksa gönderici listesinde unvanı eşleşen firmanın kodu alınır. Unvan faturadan gelir.
+    window.bkGondericiBirlestir = function(mevcut, mevcutKod, yeniUnvan) {
+        let KOD = /\b(\d{2}[A-Z]{2}\d{7,12})\b/;
+        mevcut = String(mevcut || '').trim();
+        let km = mevcut.match(KOD);
+        let kod = km ? km[1] : String(mevcutKod || '').trim();
+        let eskiUnvan = mevcut.replace(KOD, '').replace(/^[\s\-–—:]+|[\s\-–—:]+$/g, '').trim();
+        let yeni = String(yeniUnvan || '').trim();
+        let yk = yeni.match(KOD);
+        if(yk) { kod = kod || yk[1]; yeni = yeni.replace(KOD, '').replace(/^[\s\-–—:]+|[\s\-–—:]+$/g, '').trim(); }
+        let unvan = yeni || eskiUnvan;
+        if(!kod && unvan && Array.isArray(window.GondericiList)) {
+            let n = function(v) { return String(v || '').toLocaleUpperCase('tr').replace(/İ/g, 'I').replace(/\b(GMBH|AG|KG|CO|LTD|SPA|SRL|INH)\b/g, '').replace(/[^A-Z0-9ÇĞÖŞÜ]/g, ''); };
+            let u = n(unvan);
+            let g = u.length >= 5 && window.GondericiList.find(function(x) { let a = n(x.ad); return a.length >= 5 && (u.indexOf(a) > -1 || a.indexOf(u) > -1); });
+            if(g) kod = g.id;
+        }
+        return kod ? (unvan ? kod + ' - ' + unvan : kod) : unvan;
+    };
     // Banka unvanı: form başlığı çöpü ("Banka Şube", "Banka:", "Şube") atılır, kesik unvan tamamlanır ("… BANKASI A" → "A.Ş.")
     window.bkBankaTemizle = function(v) {
         v = String(v || '').replace(/\s+/g, ' ').trim();
@@ -14161,7 +14182,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(!arac) return null;
         if(!arac.evrakLink) throw new Error('Araç klasörü tanımlı değil (evrakLink yok).');
         let rapor = { okunan: 0, bulunan: [], hatalar: [], atlanan: 0 };
-        let alanlar = {}, transferler = [], taranan = {}, kesinFatura = null, cocKlasor = {}, cocOylar = {}, adayEn = {};
+        let alanlar = {}, transferler = [], taranan = {}, kesinFatura = null, cocKlasor = {}, cocOylar = {}, adayEn = {}, tasimaBelgesi = false;
         let k44Fatura = null, k44Navlun = null, k44Transferler = [], k44Atr = null, faturaBulunan = null;
         let COC_RE = /\bCOC\b|KONFORMIT|CERTIFICATE OF CONFORMITY|UYGUNLUK BELGES|ARTIKEL\s*4[45]|\bART\.?\s*4[45]\b|§\s*21\b|EINZELGENEHMIGUNG|DATENBEST|EINZELFAHRZEUG/;
         let atlaListesi = function() {
@@ -14192,6 +14213,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(c.tur === 'fatura' && c.alanlar.faturaNo && !faturaBulunan) faturaBulunan = { faturaNo: c.alanlar.faturaNo, faturaTarih: c.alanlar.faturaTarih };
             Object.keys(c.alanlar).forEach(function(k) { if(c.alanlar[k] && !alanlar[k]) alanlar[k] = c.alanlar[k]; });
             if(c.transfer) transferler.push(c.transfer);
+            if(c.tur === 'mrn' || /\bCMR\b|FRACHTBRIEF|TRANSIT\s+ACCOMPANYING|TRANS[İI]T\s+REFAKAT|VERSANDBEGLEITDOKUMENT|[ÖO]ZET\s+BEYAN/i.test(String(f.metin || ''))) tasimaBelgesi = true;
             (c.adaylar || []).forEach(function(a) {
                 let e = adayEn[a.k];
                 if(!e || a.o < e.o) adayEn[a.k] = { v: a.v, o: a.o, ad: f.ad };
@@ -14333,16 +14355,18 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
                 Object.keys(cocTeknik).forEach(function(t) { k.tseSablon['tse-' + t] = cocTeknik[t]; });
             });
         }
+        // Gönderici: faturadan yalnızca unvan gelse de kayıttaki gümrük kodu (26DE…) korunur
+        if(alanlar.gonderici) alanlar.gonderici = window.bkGondericiBirlestir(arac.gonderici, arac.gondericiKodu, alanlar.gonderici);
         // Tümünü Yeniden Oku: A.TR ve navlun faturası (no, tarih, navlun, sigorta) bulunduysa kayıtlıyı günceller
         if(tumunuOku) {
             let yeni = {};
             ['atrNo', 'atrTarih', 'navlunFaturaNo', 'navlunFaturaTarih', 'navlunTutar', 'sigortaTutar', 'navlunToplam', 'tirPlaka', 'cikisUlke', 'gonderici'].forEach(function(k) { if(alanlar[k]) yeni[k] = alanlar[k]; });
             if(Object.keys(yeni).length) window.aracVerisiBirlestir(arac, yeni, [], false);
         }
-        window.aracVerisiBirlestir(arac, alanlar, transferler, true, {
+        window.aracVerisiBirlestir(arac, alanlar, transferler, true, Object.assign(tasimaBelgesi ? { tasimaBelgesiVar: true } : {}, {
             taranmisEvraklar: taranan,
             evrakTaramaTarihi: window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR')
-        });
+        }));
         window.saveData && window.saveData('decl');
         return rapor;
     };
@@ -14372,7 +14396,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let tr = (d.transferler || []).find(function(t) { return t.belgeId && t.bilgeBankaKodu; });
         return [
             { id: 'chk-fatura',   ok: dolu(d.faturaNo) && dolu(d.fatura) },
-            { id: 'chk-mrn',      ok: dolu(d.mrnNo) && dolu(d.girisGumrukKodu) },
+            // Özet beyan / MRN no ya da klasörde okunmuş taşıma belgesi (T1/T2, CMR, özet beyan) yeterli
+            { id: 'chk-mrn',      ok: dolu(d.mrnNo) || dolu(d.ozetBeyan) || dolu(d.mrn) || !!d.tasimaBelgesiVar },
             { id: 'chk-transfer', ok: !!tr || (dolu(d.bilgeBankaKodu) && (d.transferler || []).some(function(t) { return dolu(t.belgeId); })) },
             { id: 'chk-tse',      ok: dolu(d.tseBelgeNo) },
             { id: 'chk-btk',      ok: dolu(d.btkYaziNo) },
@@ -14458,14 +14483,16 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
 
         // 2. Araç, fatura, menşe
         yaz('bk-sasi', d.sasi);
-        yaz('bk-marka-model', [d.marka || '-', d.model || '-', d.yil || '-', d.renk || 'BELİRTİLMEDİ'].join(' / '), false);
+        let mmEl = document.getElementById('bk-marka-model');
+        if(mmEl) mmEl.innerHTML = '<div class="bk-mm-satir" style="flex:1 1 100%;width:100%;font-weight:700;line-height:1.3;">' + esc([d.marka || '-', d.model || '-'].join(' / ')) + '</div>' +
+            '<div class="bk-mm-satir" style="flex:1 1 100%;width:100%;font-weight:600;font-size:0.9em;line-height:1.3;margin-top:3px;">' + esc([d.yil || '-', d.renk || 'BELİRTİLMEDİ'].join(' / ')) + '</div>';
         yaz('bk-gtip', d.gtip || ts['tse-gtipNo']);
         let teslimEl = document.getElementById('bk-teslim');
         if(teslimEl) teslimEl.innerHTML = '<span contenteditable="true" class="bk-duz" id="bk-teslim-val" data-ph="Teslim">' + esc(window.getTeslimSekliFormatted(d)) + '</span>';
         let menEl = document.getElementById('bk-mensei');
         if(menEl) menEl.innerHTML = '<span contenteditable="true" class="bk-duz" id="bk-mensei-val" data-ph="Ülke">' + esc(window.bkMenseUlke(d)) + '</span>';
         yaz('bk-cikis-ulke', window.bkCikisUlke(d), false);
-        yaz('bk-gonderici', d.gonderici);
+        yaz('bk-gonderici', (d.gonderici || d.gondericiKodu) ? window.bkGondericiBirlestir(d.gonderici, d.gondericiKodu, '') : '');
 
         // 3. Gümrük ve taşıma
         let gKod = d.girisGumrukKodu || '220200';
@@ -14684,8 +14711,9 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
                 '<span class="byn-val" style="white-space:nowrap; flex-wrap:nowrap;">' + duz('', bid, 'Belge ID').replace('id=""', 'data-alan="belgeId"') + (kopyaBtn ? kopyaBtn(bid) : '') + '</span></div>' +
             '<div class="byn-item"><span class="byn-label">Transfer Tutar &amp; Tarih</span>' +
                 '<span class="byn-val">' + duz('', tutarTr, 'Tutar').replace('id=""', 'data-alan="tutar"') + ' ' + duz('', window.bkDovizNormalize(t.doviz), 'Döviz').replace('id=""', 'data-alan="doviz"') +
-                ' (' + duz('', t.tarih, 'GG.AA.YYYY').replace('id=""', 'data-alan="tarih"') + ') · ' +
-                '<span style="font-family:inherit;font-weight:600;">' + duz('', kisa, 'Banka — Şube').replace('id=""', 'data-alan="banka"') + '</span></span></div>' +
+                // Tarih boşsa yazdırma / PDF'te parantez hiç basılmaz; banka adı satırda gösterilmez (28. kutuda yazıyor), kayıt için gizli tutulur
+                '<span class="bk-tr-tarih-kap"> ( ' + duz('', t.tarih, 'tarih').replace('id=""', 'data-alan="tarih"') + ' )</span>' +
+                '<span data-alan="banka" style="display:none;">' + ea(kisa) + '</span></span></div>' +
         '</div>';
     };
     window.bkTransferSatirEkle = function() {
@@ -14892,6 +14920,9 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             '.bk-pdf-klon .byn-val{flex:1 1 auto!important;justify-content:flex-end!important;text-align:right!important;font-size:10.5px!important;line-height:1.25!important;font-weight:700!important;color:#000!important;font-family:monospace!important;padding:0!important;word-break:break-word!important;}' +
             '.bk-pdf-klon .bk-duz{border:none!important;background:transparent!important;padding:0!important;}' +
             '.bk-pdf-klon .bk-duz:empty::before{content:"-"!important;color:#000!important;}' +
+            '.bk-pdf-klon .bk-tr-tarih-kap:has(> .bk-duz:empty){display:none!important;}' +
+            '.bk-pdf-klon #bk-marka-model{display:block!important;}' +
+            '.bk-pdf-klon .bk-mm-satir{display:block!important;line-height:1.3!important;white-space:normal!important;}' +
             '.bk-pdf-klon [style*="margin-top:14px"]{margin-top:4px!important;padding-top:3px!important;}' +
             '.bk-pdf-klon [style*="margin-bottom:8px"]{margin-bottom:3px!important;}' +
             '</style>';
