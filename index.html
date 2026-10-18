@@ -13801,10 +13801,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let gucler = [], km, kwRe = /(\d{2,4}(?:[.,]\d+)?)\s*kW\b/gi;
         while((km = kwRe.exec(duz))) gucler.push(parseFloat(km[1].replace(',', '.')));
         pencereler(/(?:H[öo]chste\s+Nutzleistung|Maximale\s+Nettoleistung|Nennleistung|Maximum\s+(?:net\s+)?power|(?:Azami|Maksimum)\s+(?:net\s+)?g[üu][çc])[^:]{0,60}:/, 30).forEach(function(v) {
+            // "27.1 Höchste Nutzleistung: 27.1 294 bei 5600" → madde numarası atlanır
+            v = v.replace(/^\s*2[78]\.[1-4]\.?(?=\s)/, '');
             let m = v.match(/^\s*(\d{2,4}(?:[.,]\d+)?)\s*(?:@|kW|bei|at|\/|$|\s)/i);
             if(m) gucler.push(parseFloat(m[1].replace(',', '.')));
         });
-        gucler = gucler.filter(function(n) { return n >= 20 && n <= 1500; });
+        // CoC madde numaraları (27.1 – 27.4) ve 30 kW altı değerler motor gücü sayılmaz
+        gucler = gucler.filter(function(n) { return n >= 30 && n <= 1500 && !/^2[78]\.[1-4]$/.test(String(n)); });
         r.motorGucu = gucler.length ? String(Math.round(Math.max.apply(null, gucler) * 10) / 10).replace(/\.0$/, '') : '';
 
         // 26 Yakıt (+ 23.1 OVC-HEV / NOVC-HEV ise hibrit)
@@ -14012,6 +14015,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let sb = al(/S[I]GORTA\s+(?:BEDEL[I]|[UÜ]CRET[I]|TUTARI|PR[I]M[I])\s*[:=]?\s*(?:€|EUR|EURO)?\s*(\d[\d.,]*)/) || al(/(?:VERSICHERUNG(?:SKOSTEN)?|INSURANCE)\s*[:=]?\s*(?:€|EUR)?\s*(\d[\d.,]*)/);
             let sbSatir = al(/S[I]GORTA\s+(?:BEDEL[I]|[UÜ]CRET[I]|TUTARI|PR[I]M[I])[^\d\n]{0,15}(\d[\d.,]*)/);
             if(sbSatir) sb = sbSatir;
+            // Etiketsiz sigorta kalemi: "SİGORTA 50,00 EUR", "INSURANCE AMOUNT: 50 EUR"
+            if(!sb) sb = al(/(?:^|[^A-Z])S[I]GORTA\s*:?\s*(\d[\d.,]*)\s*(?:€|EUR|EURO)\b/) || al(/INSURANCE\s+(?:AMOUNT|FEE|COST)\s*[:=]?\s*(?:€|EUR)?\s*(\d[\d.,]*)/);
             let sbDahil = al(/(\d[\d.,]*)\s*(?:€|EUR|EURO)\s+S[I]GORTA\s+BEDEL[I]\s+DAH[I]L/);
             let tp = al(/[OÖ]DENECEK\s+TUTAR(?!\s*\(TL\))[^\d\n]{0,15}(\d[\d.,]*)/) || al(/GENEL\s+TOPLAM[^\d\n]{0,15}(\d[\d.,]*)/) || al(/(?:TOPLAM\s+TUTAR|FATURA\s+TOPLAMI|TOTAL\s+AMOUNT|AMOUNT\s+DUE|GESAMTBETRAG|ZAHLBETRAG|ENDBETRAG)[^\d\n]{0,15}(\d[\d.,]*)/);
             let sayiN = function(v) { let n = parseFloat(window.bkTutarNormalize(v)); return n > 0 ? n : 0; };
@@ -14127,6 +14132,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(hm) { let n = parseInt(hm[1].replace(/[.\s]/g, ''), 10); if(n >= 50 && n <= 10000) tk.silindirHacmi = String(n); }
             let kws = [], km, kr = /(\d{2,4}(?:[.,]\d)?)\s*KW\b/g;
             while((km = kr.exec(U))) { let n = parseFloat(km[1].replace(',', '.')); if(n >= 20 && n <= 1500) kws.push(n); }
+            kws = kws.filter(function(n) { return n >= 30 && !/^2[78]\.[1-4]$/.test(String(n)); });
             if(kws.length) tk.motorGucu = String(Math.max.apply(null, kws)).replace(/\.0$/, '');
             let yEt = U.match(/(?:KRAFTSTOFF(?:ART)?|ANTRIEBS(?:ART)?|YAKIT(?:\s*T[UÜ]R[UÜ])?|FUEL(?:[\s_]?TYPE)?)[\s:.]*([A-ZÇĞÖŞÜ]+)/);
             let ym = (yEt && /^(PLUG|HYBRID|HIBRIT|BENZIN|PETROL|GASOLINE|DIESEL|DIZEL|ELEKTRO|ELECTRIC|ELEKTRIK)/.test(yEt[1]) ? [yEt[0], yEt[1]] : null) ||
@@ -14381,6 +14387,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let v = cocTr[k] || cocKlasor[k] || cocMetin[k] || (adayEn.teknik && adayEn.teknik.v[k]);
             if(v) cocTeknik[k] = v;
         });
+        if(arac.motorGucuManuel) delete cocTeknik.motorGucu;
         let gtipKayit = arac.gtip || tsx['tse-gtipNo'] || alanlar.gtip;
         if(gtipKayit && (cocTeknik.yakitTuru || arac.yakitTuru || tsx['tse-yakitTuru'])) {
             let yDogru = window.dogrulaYakitVeGtip(cocTeknik.yakitTuru || arac.yakitTuru || tsx['tse-yakitTuru'], gtipKayit);
@@ -14402,14 +14409,17 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // Normal taramada da: asıl navlun faturası ve etiketli kaynaktan plaka kayıttakinin önüne geçer
         if(!tumunuOku) {
             let kesin = {};
-            if(navlunFatura) ['navlunFaturaNo', 'navlunFaturaTarih', 'navlunTutar', 'sigortaTutar', 'navlunToplam'].forEach(function(k) { if(navlunFatura[k]) kesin[k] = navlunFatura[k]; });
+            if(navlunFatura && !arac.navlunManuel) ['navlunFaturaNo', 'navlunFaturaTarih', 'navlunTutar', 'sigortaTutar', 'navlunToplam'].forEach(function(k) { if(navlunFatura[k]) kesin[k] = navlunFatura[k]; });
             if(adayEn.tirPlaka && adayEn.tirPlaka.o <= 5 && alanlar.tirPlaka) kesin.tirPlaka = alanlar.tirPlaka;
             if(Object.keys(kesin).length) window.aracVerisiBirlestir(arac, kesin, [], false);
         }
         // Tümünü Yeniden Oku: A.TR ve navlun faturası (no, tarih, navlun, sigorta) bulunduysa kayıtlıyı günceller
         if(tumunuOku) {
             let yeni = {};
-            ['atrNo', 'atrTarih', 'navlunFaturaNo', 'navlunFaturaTarih', 'navlunTutar', 'sigortaTutar', 'navlunToplam', 'tirPlaka', 'cikisUlke', 'gonderici'].forEach(function(k) { if(alanlar[k]) yeni[k] = alanlar[k]; });
+            ['atrNo', 'atrTarih', 'navlunFaturaNo', 'navlunFaturaTarih', 'navlunTutar', 'sigortaTutar', 'navlunToplam', 'tirPlaka', 'cikisUlke', 'gonderici'].forEach(function(k) {
+                if(arac.navlunManuel && /^(navlunTutar|sigortaTutar|navlunToplam)$/.test(k)) return;
+                if(alanlar[k]) yeni[k] = alanlar[k];
+            });
             if(Object.keys(yeni).length) window.aracVerisiBirlestir(arac, yeni, [], false);
         }
         window.aracVerisiBirlestir(arac, alanlar, transferler, true, Object.assign(tasimaBelgesi ? { tasimaBelgesiVar: true } : {}, {
@@ -14564,9 +14574,10 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(kilit.plaka) yeni.tirPlaka = kilit.plaka;
         let ns = String(kilit.navlunSigortaMetin || '').match(/([\d.,]+)\s*€\s*\+\s*([\d.,]+)\s*€[^=]*=\s*([\d.,]+)/);
         let navlun = sayi(kilit.navlunTutar) || (ns ? sayi(ns[1]) : ''), sigorta = sayi(kilit.sigortaTutar) || (ns ? sayi(ns[2]) : '');
-        if(navlun) yeni.navlunTutar = navlun;
-        if(sigorta) yeni.sigortaTutar = sigorta;
-        if(ns) yeni.navlunToplam = sayi(ns[3]);
+        if(navlun && !d.navlunManuel) yeni.navlunTutar = navlun;
+        if(sigorta && !d.navlunManuel) yeni.sigortaTutar = sigorta;
+        if(d.navlunManuel) {}
+        else if(ns) yeni.navlunToplam = sayi(ns[3]);
         else if(navlun) yeni.navlunToplam = String(Math.round((parseFloat(navlun) + (parseFloat(sigorta) || 0)) * 100) / 100);
         if(kilit.bankaKodu12) yeni.bilgeBankaKodu = String(kilit.bankaKodu12).replace(/\D/g, '');
         let bp = String(kilit.bankaAdi || '').split(/\s+[—–-]\s+/);
@@ -14695,20 +14706,24 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             let eskiVarsayilan = !d.navlunFaturaNo && sayi(d.navlunTutar) === 1850 && (!sayi(d.sigortaTutar) || sayi(d.sigortaTutar) === 50);
             let hm = window.bkHesapNavlun();
             let nKayit = eskiVarsayilan ? 0 : sayi(d.navlunTutar), sKayit = eskiVarsayilan ? 0 : sayi(d.sigortaTutar);
-            if(sayi(d.navlunToplam) > sKayit && (!nKayit || (Math.abs(nKayit + sKayit - sayi(d.navlunToplam)) > 0.01 && Math.abs(nKayit - sayi(d.navlunToplam)) > 0.01))) nKayit = Math.round((sayi(d.navlunToplam) - sKayit) * 100) / 100;
+            if(!d.navlunManuel && sayi(d.navlunToplam) > sKayit && (!nKayit || (Math.abs(nKayit + sKayit - sayi(d.navlunToplam)) > 0.01 && Math.abs(nKayit - sayi(d.navlunToplam)) > 0.01))) nKayit = Math.round((sayi(d.navlunToplam) - sKayit) * 100) / 100;
             let varsayilan = !nKayit && !sayi(hm.navlun);
-            let navlunN = nKayit || sayi(hm.navlun) || 1850, sigortaN = sKayit || sayi(hm.sigorta) || 50;
+            // Hiç veri yoksa tutar uydurulmaz: boş "Navlun Giriniz" alanı + 50 € sigorta
+            let navlunN = nKayit || sayi(hm.navlun) || 0, sigortaN = sKayit || sayi(hm.sigorta) || 50;
             let hesaptan = !nKayit && !!sayi(hm.navlun);
             let topla = function(a, b) { return trSayi(sayi(a) + sayi(b)); };
-            html('bk-navlun-tutar', duz('bk-navlun-tutar-val', navlunN ? trSayi(navlunN) : '', 'Tutar') + ' € + ' + duz('bk-sigorta-val', sigortaN ? trSayi(sigortaN) : '', 'Sigorta') + ' € Sigorta' +
+            html('bk-navlun-tutar', duz('bk-navlun-tutar-val', navlunN ? trSayi(navlunN) : '', navlunN ? 'Tutar' : 'Navlun Giriniz') + ' € + ' + duz('bk-sigorta-val', sigortaN ? trSayi(sigortaN) : '', 'Sigorta') + ' € Sigorta' +
                 '<span id="bk-navlun-toplam-kap"' + (navlunN ? '' : ' style="display:none;"') + '> = <b id="bk-navlun-toplam">' + esc(topla(navlunN, sigortaN)) + '</b> €</span>' +
                 (hesaptan ? ' <span class="no-print" style="font-size:10px;color:var(--warning);font-family:inherit;" title="Navlun faturası bulunamadı; hesap makinesindeki son navlun / sigorta kullanıldı">(hesap makinesinden)</span>' : '') +
-                (varsayilan ? ' <span class="no-print" style="font-size:10px;color:var(--warning);font-family:inherit;" title="Navlun faturası, CMR dökümü ve hesap makinesi değeri bulunamadı; EXW varsayılanı kullanıldı">(varsayılan)</span>' : '') +
+                (varsayilan ? ' <span class="no-print" style="font-size:10px;color:var(--warning);font-family:inherit;" title="Navlun faturası, CMR dökümü ve hesap makinesi değeri bulunamadı; tutarı elle girin">(navlun faturası bulunamadı)</span>' : '') +
                 kopyaBtn(navlunN ? trSayi(navlunN) : ''));
             let nVal = document.getElementById('bk-navlun-tutar-val'), sVal = document.getElementById('bk-sigorta-val');
             // Kaydet'te otomatik gelen değer araca yazılmasın diye işaretlenir
             if(nVal) nVal.dataset.oto = nKayit ? '' : String(navlunN || '');
             if(sVal) sVal.dataset.oto = sKayit ? '' : String(sigortaN || '');
+            // Kaydet'te elle değiştirilip değiştirilmediği bu ilk değerle karşılaştırılır
+            if(nVal) { nVal.dataset.ilk = nVal.textContent; if(!navlunN) nVal.style.color = 'var(--warning, #f59e0b)'; }
+            if(sVal) sVal.dataset.ilk = sVal.textContent;
             let nTop = document.getElementById('bk-navlun-tutar');
             if(nTop && !nTop._bkTopla) {
                 nTop._bkTopla = true;
@@ -14746,6 +14761,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let birim = function(b) { return '<span class="bk-birim"> ' + b + '</span>'; };
         html('bk-ticari-ad', duz('bk-ticari-ad-val', tek('ticariAd') || d.model, '-') + kopyaBtn(tek('ticariAd') || d.model));
         html('bk-motor-guc', duz('bk-motor-guc-val', tek('motorGucu'), '-') + birim('kW') + kopyaBtn(tek('motorGucu')));
+        let mgEl = document.getElementById('bk-motor-guc-val');
+        if(mgEl) mgEl.dataset.ilk = mgEl.textContent;
         html('bk-motor-hacim', duz('bk-motor-hacim-val', tek('silindirHacmi'), '-') + birim('cm³') + kopyaBtn(tek('silindirHacmi')));
         html('bk-silindir', duz('bk-silindir-val', tek('silindirSayisi'), '-') + birim('Silindir'));
         let yakitKart = window.dogrulaYakitVeGtip(tek('yakitTuru'), d.gtip || ts['tse-gtipNo']);
@@ -14934,6 +14951,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             navlunTutar: (function() { let el = document.getElementById('bk-navlun-tutar-val'), v = window.bkTutarNormalize(deger('bk-navlun-tutar-val')); return el && el.dataset.oto && v === window.bkTutarNormalize(el.dataset.oto) ? '' : v; })(),
             sigortaTutar: (function() { let el = document.getElementById('bk-sigorta-val'), v = window.bkTutarNormalize(deger('bk-sigorta-val')); return el && el.dataset.oto && v === window.bkTutarNormalize(el.dataset.oto) ? '' : v; })()
         } : null;
+        let elle = function(id) { let el = document.getElementById(id); return !!el && el.dataset.ilk !== undefined && metin(el) !== el.dataset.ilk.replace(/\u00a0/g, ' ').trim(); };
+        let navlunElle = elle('bk-navlun-tutar-val') || elle('bk-sigorta-val'), motorElle = elle('bk-motor-guc-val');
         let yakitHam = deger('bk-yakit-val') || '';
         let yakitSecenek = ['Benzin','Dizel','Elektrikli','Hibrit','Dizel+Elektrikli','Benzin+LPG','Benzin+CNG'].find(function(y) { return y.toLocaleLowerCase('tr') === yakitHam.toLocaleLowerCase('tr'); });
         let teknik = {
@@ -14977,6 +14996,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             else if(!menseiYeni || menseiYeni === menseiOtomatik) { k.menseiManuel = false; }
             if(aracTutar && !isNaN(aracTutar)) k.fatura = aracTutar;
             if(navlun) Object.assign(k, navlun);
+            if(navlun && navlunElle) {
+                // Elle girilen navlun / sigorta: toplam yeniden hesaplanır, taramalar üzerine yazmaz
+                let nE = parseFloat(window.bkTutarNormalize(deger('bk-navlun-tutar-val'))) || 0, sE = parseFloat(window.bkTutarNormalize(deger('bk-sigorta-val'))) || 0;
+                if(nE) { k.navlunTutar = String(nE); k.sigortaTutar = sE ? String(sE) : ''; k.navlunToplam = String(Math.round((nE + sE) * 100) / 100); k.navlunManuel = true; }
+            }
+            if(k.navlunTutar) { k.navlunBedeli = k.navlunTutar; k.sigortaBedeli = k.sigortaTutar || ''; }
+            if(motorElle && teknik.motorGucu) k.motorGucuManuel = true;
             k.tseSablon = Object.assign({}, k.tseSablon || {});
             Object.keys(teknik).forEach(function(t) {
                 if(teknik[t] == null) return;
