@@ -3058,9 +3058,8 @@ div[style*="position: relative"] > input {
             </div>
             <div class="no-print" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <button class="btn-sm" onclick="window.renderView('declarations')"><i data-lucide="arrow-left"></i> Geri</button>
-                <button class="btn-primary" onclick="window.saveBeyannameKartVerileri()" style="background:#3b82f6;" title="Kart üzerinde elle düzenlenen vergi no, A.TR, banka kodu ve transferleri kaydet"><i data-lucide="save"></i> Kaydet</button>
-                <button class="btn-primary" onclick="window.printBeyannameKart()" style="background:#10b981;"><i data-lucide="printer"></i> Yazdır</button>
-                <button class="btn-sm" onclick="window.downloadBeyannameKartPDF()" style="background:#ef4444; color:#fff; border:none;"><i data-lucide="download"></i> PDF İndir</button>
+                <button class="btn-primary" onclick="window.saveBeyannameKartVerileri()" style="background:#3b82f6;" title="Kart üzerinde elle düzenlenen vergi no, A.TR, banka kodu ve transferleri kaydet">💾 Bilgileri Araca Kaydet</button>
+                <button class="btn-sm" onclick="window.downloadBeyannameKartPDF()" style="background:#ef4444; color:#fff; border:none;">📄 PDF İndir</button>
             </div>
         </div>
 
@@ -4436,7 +4435,7 @@ div[style*="position: relative"] > input {
             </div>
 
             <div class="modal-section">
-                <div class="modal-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span>Temel Bilgiler</span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;"><button type="button" class="btn-sm" style="border-color:#10b981;color:#10b981;white-space:nowrap;" onclick="window.openBeyannameKartFromModal(false)"><i data-lucide="file-text"></i> Beyanname Kartı</button><button type="button" class="btn-sm" style="background:#10b981;color:#fff;border-color:#10b981;white-space:nowrap;" onclick="window.openBeyannameKartFromModal(true)"><i data-lucide="printer"></i> Kart Çıktısı Al</button><button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);white-space:nowrap;" onclick="window.openTseSablonModalOrMulti()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button></div></div>
+                <div class="modal-section-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span>Temel Bilgiler</span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;"><button type="button" class="btn-sm" style="border-color:#10b981;color:#10b981;white-space:nowrap;" onclick="window.openBeyannameKartFromModal(false)">📄 Beyanname Kartı</button><button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);white-space:nowrap;" onclick="window.openTseSablonModalOrMulti()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button></div></div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div class="input-group" style="margin:0;">
                         <label>Firma</label>
@@ -14216,12 +14215,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         sure = setTimeout(geriAl, 60000);
     };
 
-    // PDF İndir: kartın A4 düzeninde bir kopyası html2pdf ile üretilir (mobil / PC aynı çıktı).
+    // PDF İndir: kart 794px (A4) genişliğinde sıkılaştırılmış bir kopyadan üretilir; içerik
+    // A4'ten uzun olsa bile sayfaya sığacak şekilde küçültülür, çıktı her zaman TEK SAYFA olur.
     // Mobilde paylaşım menüsü açılır (Dosyalara Kaydet / Yazdır), olmazsa doğrudan indirilir.
     window.downloadBeyannameKartPDF = function() {
         let alan = document.getElementById('byn-print-area');
         if(!alan) return;
-        if(typeof html2pdf === 'undefined') { window.printBeyannameKart(); return; }
+        if(typeof html2pdf === 'undefined') { alert('PDF modülü yüklenemedi.'); return; }
         let sasiEl = document.getElementById('bk-sasi');
         let sasi = ((sasiEl && sasiEl.innerText) || '').replace(/📋/g, '').trim() || 'EVRAK';
         let dosyaAdi = 'BEYANNAME_IS_EMRI_' + sasi.replace(/[^\w\-]+/g, '_') + '.pdf';
@@ -14229,23 +14229,23 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let kap = document.createElement('div');
         kap.style.cssText = 'position:fixed;top:0;left:-99999px;width:794px;background:#fff;z-index:-9999;pointer-events:none;';
         kap.innerHTML = '<style>' +
-            '.bk-pdf-klon{width:100%;box-sizing:border-box;padding:0;background:#fff;color:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}' +
-            '.bk-pdf-klon .byn-section{background:#fff!important;border:1px solid #333!important;box-shadow:none!important;border-radius:4px!important;margin-bottom:6px!important;padding:6px 8px!important;}' +
-            '.bk-pdf-klon .byn-sec-title{color:#000!important;margin-bottom:4px!important;padding-bottom:3px!important;}' +
-            '.bk-pdf-klon .byn-grid{grid-template-columns:1fr 1fr!important;}' +
+            '.bk-pdf-klon{width:794px!important;max-width:794px!important;min-width:794px!important;margin:0!important;padding:16px 20px!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif!important;display:block!important;overflow:hidden!important;}' +
+            '.bk-pdf-klon .byn-section{border:1px solid #64748b!important;border-radius:6px!important;padding:5px 8px!important;margin:0 0 5px 0!important;background:#fff!important;box-shadow:none!important;}' +
+            '.bk-pdf-klon .byn-sec-title{font-size:11px!important;font-weight:800!important;color:#0f172a!important;margin:0 0 4px 0!important;padding-bottom:2px!important;border-bottom:1px solid #cbd5e1!important;text-transform:uppercase!important;}' +
+            '.bk-pdf-klon .byn-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:3px 6px!important;border:none!important;}' +
+            '.bk-pdf-klon .byn-item{border:1px solid #cbd5e1!important;border-radius:4px!important;padding:2.5px 6px!important;background:#fff!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:6px!important;min-height:0!important;margin:0!important;}' +
             '.bk-pdf-klon .byn-item[style*="span 2"]{grid-column:span 2!important;}' +
-            '.bk-pdf-klon .byn-label{flex-basis:38%!important;font-size:12px!important;}' +
-            '.bk-pdf-klon .byn-item[style*="span 2"] > .byn-label{flex-basis:19%!important;}' +
-            '.bk-pdf-klon .byn-val{font-size:13px!important;word-break:normal!important;}' +
-            '.bk-pdf-klon .byn-label{color:#000!important;background:#f8fafc!important;}' +
-            '.bk-pdf-klon .byn-val{color:#000!important;}' +
-            '.bk-pdf-klon .bk-duz{border:none!important;background:transparent!important;}' +
+            '.bk-pdf-klon .byn-label{flex:0 0 auto!important;max-width:45%!important;font-size:9.5px!important;font-weight:600!important;color:#334155!important;background:transparent!important;border:none!important;padding:0!important;}' +
+            '.bk-pdf-klon .byn-val{flex:1 1 auto!important;justify-content:flex-end!important;text-align:right!important;font-size:10.5px!important;font-weight:700!important;color:#000!important;font-family:monospace!important;padding:0!important;word-break:break-word!important;}' +
+            '.bk-pdf-klon .bk-duz{border:none!important;background:transparent!important;padding:0!important;}' +
             '.bk-pdf-klon .bk-duz:empty::before{content:"-"!important;color:#000!important;}' +
+            '.bk-pdf-klon [style*="margin-top:14px"]{margin-top:4px!important;padding-top:3px!important;}' +
+            '.bk-pdf-klon [style*="margin-bottom:8px"]{margin-bottom:3px!important;}' +
             '</style>';
         let klon = alan.cloneNode(true);
         klon.removeAttribute('id');
         klon.className = 'bk-pdf-klon';
-        klon.querySelectorAll('.no-print, .copy-btn, .byn-status-bar, #bk-tr-ekle').forEach(function(el) { el.remove(); });
+        klon.querySelectorAll('.no-print, .copy-btn, button, .byn-status-bar').forEach(function(el) { el.remove(); });
         klon.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
         klon.querySelectorAll('[id]').forEach(function(el) { el.removeAttribute('id'); });
         kap.appendChild(klon);
@@ -14253,15 +14253,28 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
 
         let temizle = function() { if(kap.parentNode) kap.parentNode.removeChild(kap); };
         let opt = {
-            margin: [5, 6, 5, 6],
+            margin: 0,
             filename: dosyaAdi,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'], avoid: '.byn-section' }
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
         };
         if(typeof showSyncToast === 'function') showSyncToast('PDF hazırlanıyor...');
-        html2pdf().set(opt).from(klon).toPdf().get('pdf').then(async function(pdf) {
+        let is = html2pdf().set(opt).from(klon);
+        is.toCanvas().get('canvas').then(function(canvas) {
+            return is.toPdf().get('pdf').then(function(taslak) {
+                // Tek sayfa kilidi: görüntü A4 (210x297, 4 mm kenar) içine oranı korunarak sığdırılır
+                let pdf = taslak, eski = pdf.getNumberOfPages();
+                pdf.addPage('a4', 'portrait');
+                for(let k = 0; k < eski; k++) pdf.deletePage(1);
+                pdf.setPage(1);
+                let kenar = 4, enMax = 210 - 2 * kenar, boyMax = 297 - 2 * kenar;
+                let en = enMax, boy = canvas.height * enMax / canvas.width;
+                if(boy > boyMax) { en = en * boyMax / boy; boy = boyMax; }
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', (210 - en) / 2, kenar, en, boy);
+                return pdf;
+            });
+        }).then(async function(pdf) {
             temizle();
             let mobil = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             if(mobil && navigator.share && navigator.canShare && typeof File === 'function') {
@@ -14281,8 +14294,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         }).catch(function(err) {
             temizle();
             console.error('Beyanname kartı PDF hatası:', err);
-            if(typeof hideSyncToast === 'function') hideSyncToast('PDF üretilemedi, yazdırma açılıyor', false);
-            window.printBeyannameKart();
+            if(typeof hideSyncToast === 'function') hideSyncToast('PDF üretilemedi', false);
+            alert('PDF üretilemedi: ' + ((err && err.message) || 'Bilinmeyen hata'));
         });
     };
 
