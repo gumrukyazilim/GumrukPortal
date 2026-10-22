@@ -30,6 +30,7 @@
     </script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -37,6 +38,21 @@
     <script>
         // KRİTİK: gelecekData'yi en başta boş dizi olarak başlat (undefined çökmesini önler)
         window.gelecekData = [];
+        // SİLİNENLER LİSTESİ: Gelecek Araçlar'dan silinen şasiler { SASI: {silinme, firma, ...} }.
+        // Buluttaki portal_data_test/gelecekSilinen ile senkron tutulur; hiçbir yükleme,
+        // yerel yedek veya başka cihazdaki eski kopya silinen aracı geri getiremez.
+        window.gelecekSilinen = {};
+        try { var _gs = localStorage.getItem('gumrukGelecekSilinen'); if(_gs && _gs !== 'null') window.gelecekSilinen = JSON.parse(_gs) || {}; } catch(e) {}
+        window.sasiAnahtar = function(s){ return String(s == null ? '' : s).toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+        window.gelecekSilinenAyarla = function(obj){
+            window.gelecekSilinen = (obj && typeof obj === 'object' && !Array.isArray(obj)) ? obj : {};
+            try { localStorage.setItem('gumrukGelecekSilinen', JSON.stringify(window.gelecekSilinen)); } catch(e) {}
+        };
+        window.gelecekSilinenFiltrele = function(liste){
+            if(!Array.isArray(liste)) return [];
+            var sil = window.gelecekSilinen || {};
+            return liste.filter(function(d){ return d && !(d.sasi && sil[window.sasiAnahtar(d.sasi)]); });
+        };
         window.declarationsData = [];
         window.firmData = {};
         window.firmMeta = {};
@@ -2814,6 +2830,177 @@ div[style*="position: relative"] > input {
 }
 </style>
 
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SLATE DARK TEMA KATMANI — bu blok silinirse tasarım eski haline döner -->
+<!-- Yalnızca koyu temayı (:root:not(.light-mode)) etkiler; açık tema aynen -->
+<!-- kalır. Kâğıt belgeler (.tcgb-*, .byn-*, dilekçe, PDF) ve @media print -->
+<!-- bu katmanın kapsamı dışındadır.                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<style id="slate-dark-tema">
+/* ── A. PALET ───────────────────────────────────────────────────────── */
+:root { --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace; }
+:root:not(.light-mode) {
+  --bg-main:      #0B0F17;
+  --bg-surface:   #131B2E;
+  --bg-surface-hover: #18223A;
+  --bg-elevated:  #18223A;
+  --bg-card:      #131B2E;
+  --bg-hover:     #1C2740;
+  --input-bg:     #0F1626;
+  --border:       #1E293B;
+  --border-active: rgba(56,189,248,.55);
+  --text-primary:   #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted:     #64748B;
+  --primary:       #38BDF8;
+  --primary-hover: #0EA5E9;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.35);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,.45);
+  --shadow-xl: 0 20px 50px rgba(0,0,0,.55);
+  --shadow-blue: 0 4px 16px rgba(56,189,248,.18);
+  color-scheme: dark;
+}
+:root:not(.light-mode) body { background: var(--bg-main); color: var(--text-primary); }
+
+/* ── B. SIDEBAR & MARKA ─────────────────────────────────────────────── */
+:root:not(.light-mode) .sidebar {
+  background: var(--bg-surface) !important;
+  border-right: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+:root:not(.light-mode) .sidebar-brand {
+  background: #0F1626 !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: inset 0 -2px 0 rgba(56,189,248,.35);
+}
+:root:not(.light-mode) .sidebar-brand::before,
+:root:not(.light-mode) .sidebar-brand::after { background: rgba(56,189,248,.04); }
+:root:not(.light-mode) .sidebar-section-label { color: var(--text-muted) !important; }
+:root:not(.light-mode) .nav-btn { color: var(--text-secondary) !important; }
+:root:not(.light-mode) .nav-btn:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+:root:not(.light-mode) .nav-btn.active {
+  background: rgba(56,189,248,.10) !important;
+  color: var(--primary) !important;
+  box-shadow: inset 0 0 0 1px rgba(56,189,248,.18) !important;
+}
+:root:not(.light-mode) .sidebar-footer { border-top: 1px solid var(--border) !important; }
+
+/* ── C. ÜST HEADER ──────────────────────────────────────────────────── */
+:root:not(.light-mode) .top-header {
+  background: rgba(11,15,23,.85) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+:root:not(.light-mode) .search-wrap input { background: var(--input-bg) !important; border-color: var(--border) !important; }
+
+/* ── D. KARTLAR / STAT KARTLARI / MODALLAR ──────────────────────────── */
+:root:not(.light-mode) .card,
+:root:not(.light-mode) .stat-card,
+:root:not(.light-mode) .result-panel {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+:root:not(.light-mode) .stat-card:hover { border-color: #2A3A55 !important; box-shadow: var(--shadow-md) !important; }
+:root:not(.light-mode) .result-total {
+  background: linear-gradient(135deg, #0F1E33, #13304A) !important;
+  border: 1px solid rgba(56,189,248,.30) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+:root:not(.light-mode) .modal-box {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-xl) !important;
+}
+:root:not(.light-mode) .modal-header,
+:root:not(.light-mode) .modal-footer { border-color: var(--border) !important; }
+:root:not(.light-mode) .modal-footer { background: var(--bg-surface) !important; }
+
+/* ── E. TABLOLAR ────────────────────────────────────────────────────── */
+:root:not(.light-mode) .table-wrap { border-color: var(--border) !important; }
+:root:not(.light-mode) .data-table th {
+  background: var(--bg-elevated) !important;
+  color: var(--text-secondary) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+:root:not(.light-mode) .data-table td { border-bottom: 1px solid var(--border) !important; }
+:root:not(.light-mode) .data-table tbody tr:nth-child(even) td { background: rgba(255,255,255,.02) !important; }
+:root:not(.light-mode) .data-table tbody tr:hover td { background: rgba(56,189,248,.08) !important; }
+:root:not(.light-mode) .declaration-row.selected td,
+:root:not(.light-mode) tr.selected td {
+  background-color: rgba(56,189,248,.12) !important;
+  border-left-color: var(--primary) !important;
+}
+@media (min-width: 769px) {
+  :root:not(.light-mode) .data-table th { padding: 12px 16px !important; position: sticky; top: 0; z-index: 2; }
+  :root:not(.light-mode) .data-table td { padding: 14px 16px !important; line-height: 1.5; }
+  :root:not(.light-mode) .mevzuat-table th,
+  :root:not(.light-mode) .mevzuat-table td { padding: 12px 14px !important; }
+}
+
+/* ── F. FORM / INPUT ────────────────────────────────────────────────── */
+:root:not(.light-mode) input:not([type=checkbox]):not([type=radio]):not(.tcgb-input):not(.byn-val),
+:root:not(.light-mode) select,
+:root:not(.light-mode) textarea {
+  border-color: var(--border);
+}
+:root:not(.light-mode) input:focus,
+:root:not(.light-mode) select:focus,
+:root:not(.light-mode) textarea:focus {
+  border-color: var(--border-active) !important;
+  box-shadow: 0 0 0 3px rgba(56,189,248,.15) !important;
+  outline: none;
+}
+:root:not(.light-mode) input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.6); }
+
+/* ── G. TEKNİK KODLAR: ŞASİ, GTİP, TİP ONAY (her iki tema, sadece ekran) ── */
+@media screen {
+  [style*="font-family:monospace"],
+  [style*="font-family: monospace"],
+  [style*="font-family:mono"],
+  .sasi-no, .tcgb-input,
+  #byn-sasi, #bk-sasi, #trm-tipOnay, #res-gtip-mini {
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+  }
+}
+
+/* ── H. MOBİL (≤768px) ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root:not(.light-mode) .nav-btn { min-height: 44px; }
+  :root:not(.light-mode) .pro-bnav-btn,
+  :root:not(.light-mode) .bnav-btn { min-height: 48px; }
+  :root:not(.light-mode) .mobile-toolbar-bar { min-height: 44px; padding: 8px 12px !important; }
+  :root:not(.light-mode) .mobile-toolbar-bar button { min-height: 36px; }
+  :root:not(.light-mode) .toolbar.decl-toolbar.mobile-open { gap: 8px !important; padding: 10px !important; }
+  :root:not(.light-mode) .table-wrap { -webkit-overflow-scrolling: touch; }
+  :root:not(.light-mode) .pro-bottom-nav {
+    background: rgba(19,27,46,.96) !important;
+    border-top: 1px solid var(--border) !important;
+    box-shadow: 0 -6px 24px rgba(0,0,0,.45) !important;
+  }
+  :root:not(.light-mode) .mobile-toolbar-bar { background: var(--bg-surface); border-color: var(--border); }
+}
+
+/* ── I. KÂĞIT BELGELER: koyu zeminde ayrışsın (içerikleri değişmez) ──── */
+@media screen {
+  :root:not(.light-mode) .tcgb-container,
+  :root:not(.light-mode) #dlk-preview { box-shadow: 0 0 0 1px #1E293B, 0 12px 32px rgba(0,0,0,.5); }
+}
+
+/* ── J. SCROLLBAR & SEÇİM ───────────────────────────────────────────── */
+:root:not(.light-mode) ::-webkit-scrollbar-thumb { background: #1E293B; }
+:root:not(.light-mode) ::-webkit-scrollbar-thumb:hover { background: #334155; }
+:root:not(.light-mode) ::selection { background: rgba(56,189,248,.30); color: #F1F5F9; }
+</style>
+
 </head>
 <body>
 
@@ -5462,7 +5649,7 @@ div[style*="position: relative"] > input {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, query, orderByChild, startAt, endAt } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getDatabase, ref, set, get, onValue, query, orderByChild, startAt, endAt, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 // Auth UI ekran geçişleri (Aşama 1)
 window.showLogin = function() {
@@ -5683,6 +5870,20 @@ window._firebaseSave = async function(payload) {
             }
         } catch(e) { console.warn("Çakışma kontrolü yapılamadı (kayıt normal devam ediyor):", e.message); }
 
+        // 3.2 SİLİNENLER LİSTESİ: tam kayıt (set) bu yolu da yazar. Listeyi bu cihazın
+        // belleğinden değil BULUTTAN taze al ki başka cihazın eklediği/kaldırdığı kayıt
+        // ezilmesin; silinen şasiler gelecekData'ya hiçbir eski kopyadan geri yazılmasın.
+        try {
+            const silSnap = await get(ref(db, 'portal_data_test/gelecekSilinen'));
+            if (typeof window.gelecekSilinenAyarla === 'function') window.gelecekSilinenAyarla(silSnap.exists() ? silSnap.val() : {});
+        } catch(e) { console.warn("Silinenler listesi okunamadı, yerel kopya kullanılıyor:", e.message); }
+        payload.gelecekSilinen = window.gelecekSilinen || {};
+        if (typeof window.gelecekSilinenFiltrele === 'function') {
+            const _glHam = Array.isArray(payload.gelecekData) ? payload.gelecekData : Object.values(payload.gelecekData || {});
+            payload.gelecekData = window.gelecekSilinenFiltrele(_glHam);
+            if (payload.gelecekData.length !== _glHam.length) window.gelecekData = payload.gelecekData;
+        }
+
         payload._meta = { updatedAt: Date.now(), device: window._cihazKimligi || 'bilinmiyor' };
 
         // 3.5 KRİTİK: Firebase BOŞ dizi/nesneyi 'null' sayıp SAKLAMAZ. Bu yüzden
@@ -5720,6 +5921,60 @@ window._firebaseLoad = async function() {
         if(snapshot.exists()) return snapshot.val();
         return null;
     } catch(e) { console.error("Firebase load error:", e); return null; }
+};
+
+// GELECEK ARAÇ SİLME — HEDEFLİ: tüm veriyi üzerine yazmaz, yalnızca iki yola dokunur:
+//  1) portal_data_test/gelecekSilinen/{SASI}  → silinenler listesi (bot ve diğer cihazlar okur)
+//  2) portal_data_test/gelecekData             → transaction ile yalnız bu şasi çıkarılır
+// Gelen Araçlar (decl), firma, kıymet, cari verilerine DOKUNMAZ; çakışma uyarısı gerekmez.
+// Döner: { ok:true, liste:[...] } | { ok:false, hata:'...' }
+window._fbGelecekSil = async function(arac) {
+    const rol = localStorage.getItem('gumruk_role') || 'admin';
+    if (rol !== 'admin') return { ok:false, hata:'Admin yetkisi yok (rol: ' + rol + ')' };
+    if (!arac) return { ok:false, hata:'Araç bulunamadı' };
+    const S = window.sasiAnahtar(arac.sasi);
+    try {
+        // Önce silinenler listesine yaz: transaction ile bot arasında yarış olsa bile
+        // bot bu kaydı görüp aracı yeniden eklemez.
+        if (S) {
+            await set(ref(db, 'portal_data_test/gelecekSilinen/' + S), {
+                silinme: Date.now(),
+                cihaz: window._cihazKimligi || 'bilinmiyor',
+                firma: String(arac.firma || ''), marka: String(arac.marka || ''), model: String(arac.model || '')
+            });
+        }
+        const imza = S ? null : JSON.stringify(arac);
+        const sonuc = await runTransaction(ref(db, 'portal_data_test/gelecekData'), function(cur) {
+            const liste = Array.isArray(cur) ? cur : (cur && typeof cur === 'object' ? Object.values(cur) : []);
+            const kalan = liste.filter(function(d) {
+                if (!d) return false;
+                return S ? window.sasiAnahtar(d.sasi) !== S : JSON.stringify(d) !== imza;
+            });
+            return kalan.length ? kalan : null; // Firebase boş diziyi saklamaz
+        });
+        if (!sonuc.committed) return { ok:false, hata:'Bulut işlemi tamamlanmadı' };
+        if (S) window.gelecekSilinen[S] = window.gelecekSilinen[S] || { silinme: Date.now() };
+        if (typeof window.gelecekSilinenAyarla === 'function') window.gelecekSilinenAyarla(window.gelecekSilinen);
+        const v = sonuc.snapshot.val();
+        const liste = Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+        return { ok:true, liste: window.gelecekSilinenFiltrele(liste) };
+    } catch(e) {
+        console.error("❌ Gelecek araç silinemedi:", e);
+        return { ok:false, hata:(e && e.message) || 'bilinmeyen hata' };
+    }
+};
+
+// Silinen bir şasi portalda bilerek yeniden eklenirse listeden kaldır.
+window._fbGelecekSilinenKaldir = async function(sasi) {
+    const S = window.sasiAnahtar(sasi);
+    if (!S) return true;
+    // Yerel kopya eski olabilir; buluttaki kaydı her durumda kaldır (yoksa işlem zararsız).
+    try {
+        await set(ref(db, 'portal_data_test/gelecekSilinen/' + S), null);
+        delete window.gelecekSilinen[S];
+        window.gelecekSilinenAyarla(window.gelecekSilinen);
+        return true;
+    } catch(e) { console.error("❌ Silinenler listesinden kaldırılamadı:", e); return false; }
 };
 window._fbRef = ref;
 window._fbGet = get;
@@ -6552,7 +6807,7 @@ window.closeGelecekModal = function() {
     document.getElementById('gelecek-modal')?.classList.add('hidden');
 };
 
-window.saveGelecekEntry = function() {
+window.saveGelecekEntry = async function() {
     let val = id => document.getElementById(id)?.value?.trim() || '';
     let firma = val('gm-firma');
     let marka = val('gm-marka');
@@ -6575,13 +6830,22 @@ window.saveGelecekEntry = function() {
         eklenmeTarihi: window.formatTRDate(new Date())
     };
     
+    // Daha önce silinmiş bir şasi bilerek yeniden giriliyorsa silinenler listesinden çıkar;
+    // aksi halde kayıt sırasındaki filtre aracı yeniden eleyebilir.
+    if(entry.sasi && typeof window._fbGelecekSilinenKaldir === 'function') {
+        if(!(await window._fbGelecekSilinenKaldir(entry.sasi))) {
+            alert('⚠️ Bu şasi daha önce silinmişti ve silinenler listesinden çıkarılamadı. Bağlantıyı kontrol edip tekrar deneyin.');
+            return;
+        }
+    }
+
     let idx = window._gelecekEditIdx;
     if(idx >= 0 && window.gelecekData[idx]) {
         Object.assign(window.gelecekData[idx], entry);
     } else {
         window.gelecekData.unshift(entry);
     }
-    
+
     window.saveGelecekData();
     window.closeGelecekModal();
     window.renderGelecekTable();
@@ -6658,11 +6922,25 @@ window.gelecekAracGeldi = function(idx) {
     alert('✅ ' + d.marka + ' ' + d.model + ' Gelen Araçlar\'a aktarıldı!');
 };
 
-window.gelecekAracSil = function(idx) {
+window.gelecekAracSil = async function(idx) {
+    let d = (window.gelecekData || [])[idx];
+    if(!d) return;
     if(!confirm('Bu aracı silmek istediğinize emin misiniz?')) return;
-    window.gelecekData.splice(idx, 1);
-    window.saveGelecekData();
+    if(typeof window._fbGelecekSil !== 'function') {
+        alert('⚠️ Bulut bağlantısı hazır değil; araç silinmedi. Sayfayı yenileyip tekrar deneyin.');
+        return;
+    }
+    // Hedefli silme: önce bulutta silinir, ancak başarılıysa ekrandan kalkar.
+    let sonuc = await window._fbGelecekSil(d);
+    if(!sonuc.ok) {
+        alert('⚠️ Araç silinemedi: ' + sonuc.hata + '\nAraç listede bırakıldı.');
+        return;
+    }
+    window.gelecekData = sonuc.liste;
+    try { localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData)); } catch(e){}
     window.renderGelecekTable();
+    if(typeof window.updateDashboardStats === 'function') window.updateDashboardStats();
+    if(typeof showSyncToast === 'function') showSyncToast('🗑️ ' + ((d.marka||'') + ' ' + (d.model||'')).trim() + ' silindi', true);
 };
 // Tarih çeviricileri — gelecek modalı için
 window.trToIso = function(tr) {
@@ -11644,7 +11922,7 @@ function loadFromLocal() {
         // gelecekData'yi localStorage'dan yükle (yoksa boş dizi)
         let gd = localStorage.getItem('gumrukGelecekData');
         if(gd && gd !== "null") {
-            window.gelecekData = JSON.parse(gd);
+            window.gelecekData = window.gelecekSilinenFiltrele(JSON.parse(gd));
         } else {
             window.gelecekData = [];
         }
@@ -11782,6 +12060,8 @@ Object.keys(varsayilanMeta).forEach(function(fn){
     else if(!window.firmMeta[fn].vergiNo) window.firmMeta[fn].vergiNo = varsayilanMeta[fn].vergiNo;
 });
                 if(data.cariData) window.cariData = data.cariData;
+		// Silinenler listesi (bulut esas): aşağıdaki hiçbir kaynak silinen aracı geri getiremez
+		window.gelecekSilinenAyarla(data.gelecekSilinen || {});
 		// Gelecek araçlar: bulutta varsa onu kullan (normalize), yoksa yerel yedekten kurtar
 		if(data.gelecekData) {
 		    window.gelecekData = Array.isArray(data.gelecekData) ? data.gelecekData : Object.values(data.gelecekData);
@@ -11789,7 +12069,7 @@ Object.keys(varsayilanMeta).forEach(function(fn){
 		    try { var _lg = localStorage.getItem('gumrukGelecekData'); window.gelecekData = (_lg && _lg !== 'null') ? JSON.parse(_lg) : []; }
 		    catch(e) { window.gelecekData = []; }
 		}
-		if(!Array.isArray(window.gelecekData)) window.gelecekData = [];
+		window.gelecekData = window.gelecekSilinenFiltrele(window.gelecekData);
 if(data.ekGonderici) {
     localStorage.setItem('gumruk_ek_gonderici', JSON.stringify(data.ekGonderici));
     data.ekGonderici.forEach(function(g) {
@@ -11840,7 +12120,7 @@ if(data.ekGonderici) {
                 
                 if(snapshot.exists() && snapshot.val() !== null) {
                     let gelenVeri = snapshot.val();
-                    window.gelecekData = Array.isArray(gelenVeri) ? gelenVeri : Object.values(gelenVeri);
+                    window.gelecekData = window.gelecekSilinenFiltrele(Array.isArray(gelenVeri) ? gelenVeri : Object.values(gelenVeri));
                     // Yerel yedeği güncel tut
                     try { localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData)); } catch(e){}
 
@@ -11851,7 +12131,10 @@ if(data.ekGonderici) {
                     // bu "gerçekten boş" DA olabilir "henüz yazılmadı/yazılamadı" DA.
                     // Kayıp yaşanmasın diye bellekteki veriyi EZMİYORUZ; sadece bellek
                     // zaten boşsa tabloyu boş göster.
-                    if(!Array.isArray(window.gelecekData)) window.gelecekData = [];
+                    // Bellekteki kopya korunur ama silinen şasiler ayıklanır (son araç silindiğinde
+                    // eski kopyanın onu geri yazmasını engeller).
+                    window.gelecekData = window.gelecekSilinenFiltrele(Array.isArray(window.gelecekData) ? window.gelecekData : []);
+                    try { localStorage.setItem('gumrukGelecekData', JSON.stringify(window.gelecekData)); } catch(e){}
                     if(typeof window.renderGelecekTable === 'function') window.renderGelecekTable();
                 }
             }, function(error) {
@@ -11871,6 +12154,15 @@ if(data.ekGonderici) {
             
             window._mainDataListener = window._fbOnValue(mainRef, function(snapshot) {
                 if(!snapshot.exists()) return;
+
+                // Silinenler listesi bulut esastır; başka cihazdan/bottan gelen değişikliği hemen uygula
+                try {
+                    let _sv = snapshot.val() || {};
+                    window.gelecekSilinenAyarla(_sv.gelecekSilinen || {});
+                    let _onceki = (window.gelecekData || []).length;
+                    window.gelecekData = window.gelecekSilinenFiltrele(window.gelecekData || []);
+                    if(window.gelecekData.length !== _onceki && typeof window.renderGelecekTable === 'function') window.renderGelecekTable();
+                } catch(e) {}
                 
                 // Kendi yaptığım değişikliği tekrar yükleme (sonsuz döngü olmasın)
                 if(window._kendiYazma) {
