@@ -6750,9 +6750,10 @@ window.openGelecekModal = function() {
                     <div class="input-group" style="margin:0; grid-column:span 2;"><label>Not</label><textarea id="gm-not" rows="2"></textarea></div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
                 <button class="btn-sm" onclick="window.closeGelecekModal()">İptal</button>
                 <button type="button" class="btn-sm" style="border-color:var(--accent);color:var(--accent);" onclick="window.openTseSablonModalFromGelecek()"><i data-lucide="file-spreadsheet"></i> TSE Şablonu</button>
+                <button type="button" id="gm-4lu-paket-btn" class="btn-sm" style="border-color:#7c3aed;color:#a855f7;font-weight:700;white-space:normal;text-align:left;max-width:100%;" onclick="window.gelecekDortluPaketUret()" title="APM Excel + TSE Tutanağı + ULM Raporu + Egzoz PDF"><i data-lucide="layers"></i> ⚡ 4'lü Paket Üret (APM + Tutanak + ULM + Egzoz)</button>
                 <button class="btn-primary" onclick="window.saveGelecekEntry()"><i data-lucide="save"></i> Kaydet</button>
             </div>
         </div>`;
@@ -6839,6 +6840,13 @@ window.saveGelecekEntry = async function() {
         }
     }
 
+    // Kaydetmeden önce üretilmiş 4'lü paket varsa (aynı şasi) bağlantılarını araca ekle
+    let bekPaket = window._gelecekBekleyenPaket;
+    if(bekPaket && entry.sasi && window.sasiAnahtar && bekPaket.sasi === window.sasiAnahtar(entry.sasi)) {
+        ['evrakLink','tsePaket','tseEgzozPdfUrl'].forEach(function(k){ if(bekPaket[k]) entry[k] = bekPaket[k]; });
+        window._gelecekBekleyenPaket = null;
+    }
+
     let idx = window._gelecekEditIdx;
     if(idx >= 0 && window.gelecekData[idx]) {
         Object.assign(window.gelecekData[idx], entry);
@@ -6898,16 +6906,30 @@ window.gelecekAracGeldi = function(idx) {
     };
     // Gelecek'te TSE Şablonu doldurulmuşsa Gelen kayıtlarına taşı
     if (d.tseSablon) yeniKayit.tseSablon = d.tseSablon;
-    
+    // Yoldayken üretilmiş belgeler (4'lü paket, egzoz, CoC) ve paket motorunun kullandığı
+    // ülke bilgileri de taşınır: araç antrepoya indiğinde evraklar hazır görünür.
+    let tasinacakAlanlar = ['tsePaket','tseEgzozPdfUrl','cocUrl','cocTrUrl','ordinoUrl','uretildigiUlke','cikisUlke'];
+    tasinacakAlanlar.forEach(function(k){ if(d[k]) yeniKayit[k] = d[k]; });
+    // Araç Gelen'de/firma arşivinde zaten varsa: eksik belge alanlarını tamamla (dolu alanı ezme)
+    let eksikleriTamamla = function(hedef) {
+        ['evrakLink','tseSablon'].concat(tasinacakAlanlar).forEach(function(k){ if(yeniKayit[k] && !hedef[k]) hedef[k] = yeniKayit[k]; });
+    };
+
     // Declarations'a ekle
-    if(!window.declarationsData.find(function(x){ return x.sasi === d.sasi; })) {
+    let mevcutDecl = window.declarationsData.find(function(x){ return x.sasi === d.sasi; });
+    if(!mevcutDecl) {
         window.declarationsData.unshift(yeniKayit);
+    } else {
+        eksikleriTamamla(mevcutDecl);
     }
-    
+
     // Firma'ya ekle
     if(!window.firmData[d.firma]) window.firmData[d.firma] = [];
-    if(!window.firmData[d.firma].find(function(x){ return x.sasi === d.sasi; })) {
+    let mevcutFirm = window.firmData[d.firma].find(function(x){ return x.sasi === d.sasi; });
+    if(!mevcutFirm) {
         window.firmData[d.firma].unshift(yeniKayit);
+    } else {
+        eksikleriTamamla(mevcutFirm);
     }
     
     // Gelecek'ten sil
@@ -6954,6 +6976,183 @@ window.isoToTr = function(iso) {
     let parts = iso.split('-');
     if(parts.length !== 3) return iso; // kullanıcı elle TR formatı yazmışsa olduğu gibi bırak
     return parts[2] + '.' + parts[1] + '.' + parts[0];
+};
+
+// ═══════════════════════════════════════════════════════════════
+// GELECEK ARAÇ — TEK TIKLA 4'LÜ PAKET (APM + TSE Tutanağı + ULM + Egzoz)
+// Gelen Araçlar'daki motoru (window.TSE.tse3LuPaketUret, tse-baglanti.js) AYNEN
+// kullanır; burada yalnızca veri toplanır, Drive klasörü sağlanır ve sonuç
+// bağlantıları Gelecek Araç kaydına yazılır.
+// ═══════════════════════════════════════════════════════════════
+window._gelecekBekleyenPaket = null; // henüz kaydedilmemiş yeni araç için {sasi, evrakLink, tsePaket, ...}
+
+// Aracın Drive klasörünü bulur, yoksa oluşturur ("Eksik Klasör Oluştur" ile aynı servis: action=ensure).
+window.gelecekKlasorSagla = function(arac) {
+    return new Promise(function(resolve, reject) {
+        if (!window._KLASOR_GAS_URL) { reject(new Error('Drive klasör servisi adresi tanımlı değil.')); return; }
+        var cb = 'gmKlasorCB_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        var script = document.createElement('script');
+        var timer = setTimeout(function() { bitir(new Error('Drive klasör servisi yanıt vermedi (zaman aşımı).')); }, 30000);
+        function bitir(err, url) {
+            clearTimeout(timer);
+            window[cb] = function() {};
+            setTimeout(function() { delete window[cb]; }, 60000);
+            script.remove();
+            if (err) reject(err); else resolve(url);
+        }
+        window[cb] = function(res) {
+            if (res && res.success && res.url) bitir(null, res.url);
+            else bitir(new Error((res && res.error) || 'Drive klasörü oluşturulamadı.'));
+        };
+        script.onerror = function() { bitir(new Error('Drive klasör servisine bağlanılamadı.')); };
+        script.src = window._KLASOR_GAS_URL + '?action=ensure' +
+            '&firma=' + encodeURIComponent(arac.firma || '') +
+            '&marka=' + encodeURIComponent(arac.marka || '') +
+            '&sasi=' + encodeURIComponent(arac.sasi || '') +
+            '&callback=' + cb;
+        document.body.appendChild(script);
+    });
+};
+
+// Şasi klasörünü TÜM Drive arşivinde ara (botun kullandığı köprü: action=klasorAra).
+// Klasör adı firma/marka yazımından bağımsız bulunur; her eşleşme içindeki dosya adlarıyla döner.
+window.KOPRU_GAS_URL = window.KOPRU_GAS_URL || 'https://script.google.com/macros/s/AKfycbwnsVHo7ylW1fDNCn9Ch7l4G6epmtpUEjgQEspjYDAqRrV67y_bJV6QfmjJwdJeDDVQ/exec';
+window.gelecekKlasorAraSasi = async function(sasi) {
+    var ctrl = new AbortController();
+    // Klasör adıyla bulunursa birkaç saniye; arşivde yoksa köprü tüm ağacı gezer (~75 sn ölçüldü).
+    var timer = setTimeout(function() { ctrl.abort(); }, 150000);
+    try {
+        var res = await fetch(window.KOPRU_GAS_URL + '?action=klasorAra&sasi=' + encodeURIComponent(sasi), { signal: ctrl.signal });
+        var txt = await res.text();
+        var b = txt.indexOf('{'), s = txt.lastIndexOf('}');
+        if (b < 0 || s < 0) throw new Error('köprü yanıtı okunamadı');
+        var d = JSON.parse(txt.slice(b, s + 1));
+        if (!d || !d.success) return [];
+        return Array.isArray(d.eslesenler) && d.eslesenler.length ? d.eslesenler : [{ url: d.url, yol: d.yol || d.ad || '', dosyalar: d.dosyalar || [] }];
+    } finally { clearTimeout(timer); }
+};
+window._klasorId = function(link) {
+    var m = String(link || '').match(/folders\/([A-Za-z0-9_-]+)/) || String(link || '').match(/[?&]id=([A-Za-z0-9_-]+)/);
+    return m ? m[1] : '';
+};
+// Adaylardan paketi üretebilecek klasörü seç: CoC adlı PDF > herhangi PDF > kayıttaki klasör.
+// Kayıttaki klasör varsa, ancak içinde PDF bulunan başka bir klasör çıkarsa ondan vazgeçilir.
+window._gelecekKlasorSec = function(adaylar, mevcutLink) {
+    var pdf = function(n) { return /\.pdf$/i.test(String(n || '')); };
+    var coc = function(n) { return pdf(n) && /coc|conformity|uygunluk|bereinstimmung/i.test(String(n || '')); };
+    var mevcutId = window._klasorId(mevcutLink);
+    var puanli = (adaylar || []).filter(function(a) { return a && a.url; }).map(function(a) {
+        var ds = a.dosyalar || [];
+        return { a: a, puan: (ds.some(coc) ? 100 : 0) + (ds.some(pdf) ? 10 : 0) + (mevcutId && window._klasorId(a.url) === mevcutId ? 1 : 0) };
+    }).sort(function(x, y) { return y.puan - x.puan; });
+    if (!puanli.length) return null;
+    if (mevcutId && puanli[0].puan < 10) return null; // PDF'li aday yok: kayıttaki klasörle devam
+    return puanli[0].a;
+};
+
+// Paket için araç verisini topla: kayıtlı araç (düzenleme) + modaldaki güncel değerler
+// + bu şasinin TSE şablonu (kayıttaki tseSablon ya da yerel önbellek).
+window._gelecekPaketVerisi = function() {
+    var val = function(id) { var el = document.getElementById(id); return el && el.value ? String(el.value).trim() : ''; };
+    var idx = window._gelecekEditIdx;
+    var kayit = (idx >= 0 && window.gelecekData && window.gelecekData[idx]) ? window.gelecekData[idx] : null;
+    var arac = Object.assign({}, kayit || {});
+    var modal = { firma: val('gm-firma'), marka: val('gm-marka'), model: val('gm-model'), yil: val('gm-yil'),
+        renk: val('gm-renk'), sasi: val('gm-sasi'), gtip: val('gm-gtip'), gonderici: val('gm-gonderici'),
+        fatura: val('gm-fatura'), cikisUlke: val('gm-cikisUlke') };
+    Object.keys(modal).forEach(function(k) { if (modal[k]) arac[k] = modal[k]; });
+    arac.sasi = String(arac.sasi || '').trim().toUpperCase();
+    if (arac.firma) arac.firma = (window.sanitizeFirmaAdi ? window.sanitizeFirmaAdi(arac.firma) : arac.firma).toUpperCase();
+    var ts = arac.tseSablon || null;
+    if (!ts && arac.sasi) { try { ts = JSON.parse(localStorage.getItem('gumruk_tse_sablon_' + arac.sasi) || 'null'); } catch (e) {} }
+    if (ts) {
+        if (!arac.uretildigiUlke && ts['tse-uretildigiUlke']) arac.uretildigiUlke = ts['tse-uretildigiUlke'];
+        if (!arac.cikisUlke && ts['tse-ithalatUlkesi']) arac.cikisUlke = ts['tse-ithalatUlkesi'];
+        if (!arac.marka && ts['tse-marka']) arac.marka = ts['tse-marka'];
+        if (!arac.model && ts['tse-ticariAd']) arac.model = ts['tse-ticariAd'];
+    }
+    var bek = window._gelecekBekleyenPaket;
+    var S = window.sasiAnahtar ? window.sasiAnahtar(arac.sasi) : arac.sasi;
+    if (!arac.evrakLink && bek && bek.sasi === S && bek.evrakLink) arac.evrakLink = bek.evrakLink;
+    return arac;
+};
+
+// Üretilen bağlantıları Gelecek Araç kaydına yaz. Kayıt yoksa (yeni araç) Kaydet'e kadar beklet.
+window._gelecekPaketBagla = function(sasi, ek) {
+    var S = window.sasiAnahtar ? window.sasiAnahtar(sasi) : String(sasi || '').toUpperCase();
+    var liste = window.gelecekData || [];
+    var idx = liste.findIndex(function(d) { return d && (window.sasiAnahtar ? window.sasiAnahtar(d.sasi) : d.sasi) === S; });
+    if (idx >= 0) {
+        Object.assign(liste[idx], ek);
+        window.saveGelecekData();
+        if (typeof window.renderGelecekTable === 'function') window.renderGelecekTable();
+        return true;
+    }
+    var b = window._gelecekBekleyenPaket;
+    window._gelecekBekleyenPaket = Object.assign((b && b.sasi === S) ? b : { sasi: S }, ek);
+    return false;
+};
+
+window.gelecekDortluPaketUret = async function() {
+    var btn = document.getElementById('gm-4lu-paket-btn');
+    if (btn && btn.disabled) return;
+    var arac = window._gelecekPaketVerisi();
+    if (!arac.sasi) {
+        alert('⚠️ 4\'lü Paket üretebilmek için lütfen Şasi No alanını doldurun.');
+        var el = document.getElementById('gm-sasi'); if (el) el.focus();
+        return;
+    }
+    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(arac.sasi)) { alert('⚠️ Şasi No 17 haneli olmalı (I, O, Q harfleri kullanılmaz).'); return; }
+    if (!arac.firma || !arac.marka) { alert('⚠️ Drive klasörü için Firma ve Marka alanları gerekli.'); return; }
+    if (!window.TSE || typeof window.TSE.tse3LuPaketUret !== 'function') {
+        alert('⚠️ TSE paket modülü (tse-baglanti.js) yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+    try {
+        // 1) Şasi klasörünü arşivde ara (CoC hangi klasördeyse o kullanılır).
+        var adaylar = [], aramaHatasi = '';
+        if (typeof showSyncToast === 'function') showSyncToast('🔎 Şasi klasörü Drive arşivinde aranıyor… (ilk kez gelen araçta 1-2 dk sürebilir)');
+        try { adaylar = await window.gelecekKlasorAraSasi(arac.sasi); }
+        catch (e) { aramaHatasi = e.message || String(e); console.warn('Şasi klasörü araması yapılamadı:', e); }
+        var secilen = window._gelecekKlasorSec(adaylar, arac.evrakLink);
+        var klasorNotu = '';
+        if (secilen && window._klasorId(secilen.url) !== window._klasorId(arac.evrakLink)) {
+            if (arac.evrakLink) klasorNotu = 'Araç kaydındaki Drive klasöründe PDF yoktu; CoC bulunan klasör kullanıldı ve araca bağlandı:\n' + (secilen.yol || secilen.url);
+            arac.evrakLink = secilen.url;
+            window._gelecekPaketBagla(arac.sasi, { evrakLink: arac.evrakLink });
+        }
+        var bosKopyalar = (adaylar || []).filter(function(a) {
+            return a && a.url && window._klasorId(a.url) !== window._klasorId(arac.evrakLink) && !(a.dosyalar || []).length;
+        });
+        if (bosKopyalar.length) klasorNotu += (klasorNotu ? '\n\n' : '') + 'Bu şasi adına boş kopya klasör(ler) var; Drive\'dan silebilirsiniz:\n' + bosKopyalar.map(function(a) { return '• ' + (a.yol || a.url); }).join('\n');
+        // 2) Arşivde hiç klasör yoksa oluştur (firma/marka/şasi).
+        if (!arac.evrakLink) {
+            if (aramaHatasi) throw new Error('Şasi klasörü Drive arşivinde aranamadı (' + aramaHatasi + '). Yanlış/boş klasör açılmasın diye işlem durduruldu; biraz sonra tekrar deneyin.');
+            if (typeof showSyncToast === 'function') showSyncToast('📁 Drive klasörü hazırlanıyor…');
+            arac.evrakLink = await window.gelecekKlasorSagla(arac);
+            window._gelecekPaketBagla(arac.sasi, { evrakLink: arac.evrakLink });
+        }
+        if (klasorNotu) alert('ℹ️ ' + klasorNotu);
+        // Mevcut motor: CoC'u klasörde okur, 4 evrakı üretip klasöre yükler, sonuç panelini gösterir.
+        var sonuc = await window.TSE.tse3LuPaketUret(arac);
+        if (!sonuc || !sonuc.success) return; // hata motorun kendi panelinde gösterildi
+        var bul = function(t) { var f = (sonuc.files || []).find(function(x) { return x.type === t; }); return f ? f.url : ''; };
+        var paket = { apmUrl: bul('apm'), tutanakUrl: bul('tse'), ulmUrl: bul('ulm'), egzozUrl: bul('egzoz'),
+            uretimTarihi: window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR') };
+        var ek = { evrakLink: arac.evrakLink, tsePaket: paket };
+        if (paket.egzozUrl) ek.tseEgzozPdfUrl = paket.egzozUrl; // Gelen Araçlar akışı egzozu bu alandan "hazır" sayar
+        var kaydedildi = window._gelecekPaketBagla(arac.sasi, ek);
+        if (typeof hideSyncToast === 'function') {
+            hideSyncToast(kaydedildi ? '✅ 4\'lü paket araca bağlandı' : '✅ Paket hazır — Kaydet\'e basınca araca bağlanacak', true);
+        }
+    } catch (err) {
+        if (typeof hideSyncToast === 'function') hideSyncToast('⚠️ 4\'lü paket üretilemedi', false);
+        console.error('Gelecek 4\'lü paket hatası:', err);
+        alert('⚠️ 4\'lü paket üretilemedi: ' + err.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+    }
 };
 
 // Gelecek modalı için Gönderici/GTİP autocomplete (mevcut da- fonksiyonlarının gm- kopyası)
