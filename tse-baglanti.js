@@ -178,6 +178,14 @@ function tsePaketSonucGoster(result) {
         const a=document.createElement('a');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=file.name;a.style.cssText='display:block;margin-top:8px;color:#1d4ed8;font-weight:700;';box.appendChild(a);
     });
     if(result.fuel){const p=document.createElement('div');p.textContent='Yakıt: '+result.fuel+(result.yakitTahrik?' ('+result.yakitTahrik+')':'')+' · GTİP: '+result.gtip;box.appendChild(p);}
+    // Orijinal CoC ↔ CoC_TR çapraz kontrolü: uyumsuzluk kırmızı kutuda, kontrol yapılamadıysa gri bilgi satırı.
+    (result.caprazUyarilar||[]).forEach(function(u){
+        const uyumsuz=result.caprazKontrol&&result.caprazKontrol.durum==='uyumsuz'&&/^⚠️/.test(u);
+        const p=document.createElement('div');p.textContent=u;
+        p.style.cssText=uyumsuz?'margin-top:10px;padding:10px;border:2px solid #dc2626;border-radius:8px;background:#fef2f2;color:#991b1b;font-weight:700;':'margin-top:8px;color:#64748b;';
+        box.appendChild(p);
+    });
+    if(result.caprazKontrol&&result.caprazKontrol.durum==='dogrulandi'){const p=document.createElement('div');p.textContent='✅ Orijinal CoC ile CoC_TR çapraz doğrulandı ('+(result.caprazKontrol.dogrulanan||[]).length+' alan).';p.style.cssText='margin-top:8px;color:#15803d;font-weight:600;';box.appendChild(p);}
     if(result.warnings&&result.warnings.length){const p=document.createElement('div');p.textContent=result.warnings.join(' · ');box.appendChild(p);}
 }
 
