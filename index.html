@@ -17247,6 +17247,38 @@ window._gtipSadeceKod = function(deger) {
     return p || s;
 };
 
+// APM 14./15. sütun (Üretildiği / İthalatın Yapıldığı Ülke): TSE yalnız saf ülke adını kabul eder.
+// Gümrük biçimindeki "004 — ALMANYA", "04-ALMANYA", "038 - AVUSTURYA" → "ALMANYA" / "AVUSTURYA".
+// Gümrük listesinde farklı yazılan ülkeler TSE listesindeki adına çevrilir; sonuç TSE seçim
+// listesinde varsa oradaki yazımla (ör. "Hong Kong") döner. Kod içermeyen ad ayraçla bölünmez.
+window._ULKE_TSE_ESLEME = {
+    'AMERİKA BİRLEŞİK DEVLETLERİ': 'AMERİKA', 'ABD': 'AMERİKA', 'USA': 'AMERİKA',
+    'BİRLEŞİK KRALLIK': 'İNGİLTERE', 'GÜNEY KORE CUMHURİYETİ': 'G.KORE', 'GÜNEY KORE': 'G.KORE',
+    'KORE CUMHURİYETİ': 'G.KORE', 'ÇİN HALK CUMHURİYETİ': 'ÇİN', 'GÜNEY AFRİKA CUMHURİYETİ': 'GÜNEY AFRİKA',
+    'ÇEKYA': 'ÇEK CUMHURİYETİ'
+};
+window._ulkeSadeceAd = function(val) {
+    var s = String(val == null ? '' : val).trim();
+    if (!s) return '';
+    s = s.replace(/^\s*\d+\s*[-–—_.:\/)]*\s*/, '').trim();
+    var buyuk = s.toLocaleUpperCase('tr');
+    buyuk = window._ULKE_TSE_ESLEME[buyuk] || buyuk;
+    var liste = document.getElementById('tse-uretildigiUlke');
+    if (liste) {
+        for (var i = 0; i < liste.options.length; i++) {
+            var o = liste.options[i].value;
+            if (o && o.toLocaleUpperCase('tr') === buyuk) return o;
+        }
+    }
+    return buyuk;
+};
+// TSE şablon alanına yazılacak değer: ülke → saf ad, GTİP → yalnız kod, diğerleri aynen.
+window._tseAlanDegeri = function(id, deger) {
+    if (id === 'tse-uretildigiUlke' || id === 'tse-ithalatUlkesi') return window._ulkeSadeceAd(deger);
+    if (id === 'tse-gtipNo') return window._gtipSadeceKod(deger);
+    return deger;
+};
+
 window._TSE_ALANLAR = [
     'tse-aracCinsi','tse-marka','tse-tip','tse-varyant','tse-versiyon',
     'tse-kategori','tse-imalTarihi','tse-ticariAd','tse-aracTanitimNo',
@@ -17519,7 +17551,7 @@ window._tseSmartFill = (function() {
             }
         }
 
-        el.value = value;
+        el.value = window._tseAlanDegeri(id, value);
         if (sourceKey) el.dataset.smartFillSource = sourceKey;
         el.style.outline = '2px solid var(--success, #10b981)';
         setTimeout(function() { if (el) el.style.outline = ''; }, 1500);
@@ -18115,8 +18147,8 @@ window.tseSablonFormYukle = function() {
         window._TSE_ALANLAR.forEach(function(id) {
             var el = document.getElementById(id);
             if (!el || kayit[id] === undefined) return;
-            // Eski kayıtlarda GTİP "kod - açıklama" olarak saklanmış olabilir
-            el.value = (id === 'tse-gtipNo') ? window._gtipSadeceKod(kayit[id]) : kayit[id];
+            // Eski kayıtlarda GTİP "kod - açıklama", ülke "004 — ALMANYA" olarak saklanmış olabilir
+            el.value = window._tseAlanDegeri(id, kayit[id]);
         });
         return true;
     } catch(e) { return false; }
@@ -18267,7 +18299,7 @@ window.tseSablonApmFromDrive = function(evrakLink, expectedSasi) {
             if (!el || !alanMap[id]) return;
             var mevcut = (el.value || '').trim();
             if (mevcut) { atlandi++; return; }   // ⛔ Dolu alana dokunma
-            el.value = alanMap[id];
+            el.value = window._tseAlanDegeri(id, alanMap[id]);
             dolduruldu++;
         });
 
@@ -19066,8 +19098,8 @@ window.tseSablonKaydet = function() {
         v('tse-tipOnayNo'),
         window.tseTarihFormatla(v('tse-tipOnayTarihi')),
         v('tse-antrepoAdi'),
-        v('tse-uretildigiUlke'),
-        v('tse-ithalatUlkesi'),
+        window._ulkeSadeceAd(v('tse-uretildigiUlke')),   // XLS'e SADECE ülke adı (gümrük kodu değil)
+        window._ulkeSadeceAd(v('tse-ithalatUlkesi')),
         window._gtipSadeceKod(v('tse-gtipNo'))   // XLS'e SADECE kod (açıklama değil)
     ];
 
