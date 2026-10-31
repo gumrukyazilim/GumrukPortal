@@ -3000,6 +3000,10 @@ div[style*="position: relative"] > input {
 :root:not(.light-mode) ::-webkit-scrollbar-thumb:hover { background: #334155; }
 :root:not(.light-mode) ::selection { background: rgba(56,189,248,.30); color: #F1F5F9; }
 </style>
+<style>
+/* Yakıt/tahrik rozeti ve GTİP uyarısı yalnızca ekranda görünür. */
+@media print { .bk-yakit-ek, .yakit-rozet, .yakit-gtip-uyari { display: none !important; } }
+</style>
 
 </head>
 <body>
@@ -4686,9 +4690,14 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0; grid-column:span 2;">
                         <label>GTİP Kodu <button type="button" class="icon-btn" style="display:inline-flex; width:20px; height:20px; margin-left:10px;" onclick="window.addGTIPPrompt()"><i data-lucide="plus"></i></button></label>
                         <div class="firm-search-wrap">
-                            <input type="text" id="da-gtip" oninput="window.filterGTIP(this.value)" onblur="setTimeout(function(){let l=document.getElementById('da-gtip-list');if(l)l.classList.remove('show');},300)" autocomplete="off">
+                            <input type="text" id="da-gtip" oninput="window.filterGTIP(this.value); window.daYakitDurumGuncelle && window.daYakitDurumGuncelle()" onblur="setTimeout(function(){let l=document.getElementById('da-gtip-list');if(l)l.classList.remove('show');},300)" autocomplete="off">
                             <div id="da-gtip-list" class="autocomplete-list"></div>
                         </div>
+                    </div>
+                    <div class="input-group" style="margin:0; grid-column:span 2;">
+                        <label>Yakıt / Tahrik Tipi <span style="font-weight:400; color:var(--text-secondary);">(CoC 23 · 23.1 · 26'dan otomatik; gerekirse elle seçin)</span></label>
+                        <select id="da-yakitTahrik" onchange="window.daYakitDurumGuncelle()"></select>
+                        <div id="da-yakit-durum" style="margin-top:6px; min-height:18px;"></div>
                     </div>
                     <div class="input-group" style="margin:0;"><label>Özet Beyan No</label><input type="text" id="da-ozetBeyan"></div>
                     <div class="input-group" style="margin:0;"><label>Beyanname No</label><input type="text" id="da-beyanname"></div>
@@ -6844,7 +6853,7 @@ window.saveGelecekEntry = async function() {
     // Kaydetmeden önce üretilmiş 4'lü paket varsa (aynı şasi) bağlantılarını araca ekle
     let bekPaket = window._gelecekBekleyenPaket;
     if(bekPaket && entry.sasi && window.sasiAnahtar && bekPaket.sasi === window.sasiAnahtar(entry.sasi)) {
-        ['evrakLink','tsePaket','tseEgzozPdfUrl'].forEach(function(k){ if(bekPaket[k]) entry[k] = bekPaket[k]; });
+        ['evrakLink','tsePaket','tseEgzozPdfUrl','hibritSinifi','yakitTuru'].forEach(function(k){ if(bekPaket[k]) entry[k] = bekPaket[k]; });
         window._gelecekBekleyenPaket = null;
     }
 
@@ -6909,7 +6918,7 @@ window.gelecekAracGeldi = function(idx) {
     if (d.tseSablon) yeniKayit.tseSablon = d.tseSablon;
     // Yoldayken üretilmiş belgeler (4'lü paket, egzoz, CoC) ve paket motorunun kullandığı
     // ülke bilgileri de taşınır: araç antrepoya indiğinde evraklar hazır görünür.
-    let tasinacakAlanlar = ['tsePaket','tseEgzozPdfUrl','cocUrl','cocTrUrl','ordinoUrl','uretildigiUlke','cikisUlke'];
+    let tasinacakAlanlar = ['tsePaket','tseEgzozPdfUrl','cocUrl','cocTrUrl','ordinoUrl','uretildigiUlke','cikisUlke','hibritSinifi','yakitTuru','yakitTahrikManuel'];
     tasinacakAlanlar.forEach(function(k){ if(d[k]) yeniKayit[k] = d[k]; });
     // Araç Gelen'de/firma arşivinde zaten varsa: eksik belge alanlarını tamamla (dolu alanı ezme)
     let eksikleriTamamla = function(hedef) {
@@ -7143,6 +7152,9 @@ window.gelecekDortluPaketUret = async function() {
             uretimTarihi: window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR') };
         var ek = { evrakLink: arac.evrakLink, tsePaket: paket };
         if (paket.egzozUrl) ek.tseEgzozPdfUrl = paket.egzozUrl; // Gelen Araçlar akışı egzozu bu alandan "hazır" sayar
+        // CoC 23.1 hibrit sınıfı ve TSE yakıt terimi: kart rozeti ve GTİP uyumu için araca yazılır.
+        if (sonuc.hibritSinifi) ek.hibritSinifi = sonuc.hibritSinifi;
+        if (sonuc.fuel) ek.yakitTuru = sonuc.fuel;
         var kaydedildi = window._gelecekPaketBagla(arac.sasi, ek);
         if (typeof hideSyncToast === 'function') {
             hideSyncToast(kaydedildi ? '✅ 4\'lü paket araca bağlandı' : '✅ Paket hazır — Kaydet\'e basınca araca bağlanacak', true);
@@ -14301,6 +14313,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         }).filter(Boolean);
         let yU = yakitlar.join(' ');
         let hibrit = /\bN?OVC[\s-]?HEV\b/.test(UP(duz));
+        // 23.1 hibrit sınıfı: NOVC (şarj edilemeyen) OVC'yi de içerdiğinden önce aranır.
+        r.hibritSinifi = /\bNOVC[\s-]?HEV\b/.test(UP(duz)) ? 'NOVC-HEV' : /\bOVC[\s-]?HEV\b/.test(UP(duz)) ? 'OVC-HEV' : '';
         if(/DIESEL|DIZEL|MOTORIN/.test(yU)) r.yakitTuru = hibrit ? 'Dizel+Elektrikli' : 'Dizel';
         else if(/BENZIN|PETROL|GASOLINE|UNLEADED|KUR[ŞS]UNSUZ|SUPER/.test(yU)) r.yakitTuru = hibrit ? 'Hibrit' : 'Benzin';
         else if(/ELEKTR|ELECTRIC/.test(yU)) r.yakitTuru = hibrit ? 'Hibrit' : 'Elektrikli';
@@ -14866,7 +14880,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // Teknik veri önceliği: CoC TR → klasördeki CoC / Artikel 44-45 → araçtaki CoC metni → mevcut kayıt
         let cocMetin = arac.cocText ? window.bkCocTeknikAyristir(arac.cocText) : {};
         let cocTeknik = {};
-        ['motorGucu', 'silindirHacmi', 'silindirSayisi', 'yakitTuru', 'ticariAd'].forEach(function(k) {
+        ['motorGucu', 'silindirHacmi', 'silindirSayisi', 'yakitTuru', 'ticariAd', 'hibritSinifi'].forEach(function(k) {
             let v = cocTr[k] || cocKlasor[k] || cocMetin[k] || (adayEn.teknik && adayEn.teknik.v[k]);
             if(v) cocTeknik[k] = v;
         });
@@ -15083,6 +15097,82 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(bas(['870350', '870370'])) return 'Dizel+Elektrikli';     // dizel + elektrik (8703.70 şarj edilebilir)
         if(bas(['870380'])) return 'Elektrikli';
         return String(yakit || '');
+    };
+    // ── Yakıt / tahrik tipi (CoC 23 tam elektrik, 23.1 hibrit sınıfı, 26 yakıt) ─────────────────
+    // tse: TSE APM "Yakıt Türü" listesindeki karşılık (APM/tutanak bu listeden başka değer kabul etmez).
+    // gtip: hibrit/elektrik sınıflarında GTİP'in başlaması gereken alt pozisyon.
+    window.YAKIT_TAHRIK = {
+        'SAF ELEKTRİKLİ':        { tse: 'Elektrikli',       gtip: '8703.80', rozet: 'elektrik', uyari: 'Saf Elektrikli' },
+        'BENZİN-HİBRİT':         { tse: 'Hibrit',           gtip: '8703.40', rozet: 'hibrit',   uyari: 'Benzin-Hibrit' },
+        'DİZEL-HİBRİT':          { tse: 'Dizel+Elektrikli', gtip: '8703.50', rozet: 'hibrit',   uyari: 'Dizel-Hibrit' },
+        'BENZİN-PLUG-IN HİBRİT': { tse: 'Hibrit',           gtip: '8703.60', rozet: 'plugin',   uyari: 'Benzin Plug-in' },
+        'DİZEL-PLUG-IN HİBRİT':  { tse: 'Dizel+Elektrikli', gtip: '8703.70', rozet: 'plugin',   uyari: 'Dizel Plug-in' },
+        'BENZİN':                { tse: 'Benzin',           gtip: '',        rozet: '' },
+        'DİZEL':                 { tse: 'Dizel',            gtip: '',        rozet: '' },
+        'BENZİN-LPG':            { tse: 'Benzin+LPG',       gtip: '',        rozet: '' }
+    };
+    // girdi: { hibritSinifi: 'OVC-HEV'|'NOVC-HEV'|…, yakit: CoC 26 ya da TSE listesi değeri, tamElektrik, plugIn }
+    window.yakitTahrikTespit = function(girdi) {
+        girdi = girdi || {};
+        let U = function(s) { return String(s || '').toLocaleUpperCase('tr').replace(/İ/g, 'I'); };
+        let sinif = U(girdi.hibritSinifi), y = U(girdi.yakit);
+        let hev = /\bNOVC/.test(sinif) ? 'NOVC' : /\bOVC/.test(sinif) ? 'OVC' : '';
+        let dizel = /DIZEL|DIESEL|MOTORIN/.test(y);
+        let benzinli = /BENZIN|PETROL|GASOLINE|KURSUNSUZ|KURŞUNSUZ/.test(y);
+        let hibrit = !!hev || /HIBRIT|HYBRID|\+\s*ELEKTR/.test(y);
+        if(!hibrit && (girdi.tamElektrik === true || (/ELEKTR|ELECTR/.test(y) && !dizel && !benzinli))) return 'SAF ELEKTRİKLİ';
+        if(hibrit) return (dizel ? 'DİZEL' : 'BENZİN') + ((hev === 'OVC' || (!hev && girdi.plugIn)) ? '-PLUG-IN HİBRİT' : '-HİBRİT');
+        if(/LPG/.test(y)) return 'BENZİN-LPG';
+        if(dizel) return 'DİZEL';
+        if(benzinli) return 'BENZİN';
+        return '';
+    };
+    // Araç kaydından tespit: elle seçim > CoC 23.1 sınıfı + yakıt. Sınıf okunmamış hibritte plug-in bilgisi GTİP'ten alınır.
+    window.getAracYakitTuru = function(arac) {
+        let a = arac || {}, ts = a.tseSablon || {};
+        if(a.yakitTahrikManuel && window.YAKIT_TAHRIK[a.yakitTahrikManuel]) {
+            return { etiket: a.yakitTahrikManuel, tse: window.YAKIT_TAHRIK[a.yakitTahrikManuel].tse, kaynak: 'manuel' };
+        }
+        let sinif = a.hibritSinifi || ts['tse-hibritSinifi'] || '';
+        let yakit = a.yakitTuru || ts['tse-yakitTuru'] || a.yakit || '';
+        let gtip = String(a.gtip || ts['tse-gtipNo'] || '').replace(/\D/g, '');
+        let etiket = window.yakitTahrikTespit({ hibritSinifi: sinif, yakit: yakit, plugIn: /^8703[67]0/.test(gtip) });
+        let hibritSinifsiz = /HİBRİT/.test(etiket) && !sinif;
+        return { etiket: etiket, tse: etiket ? window.YAKIT_TAHRIK[etiket].tse : '', kaynak: !etiket ? '' : hibritSinifsiz ? 'gtip' : 'coc' };
+    };
+    // GTİP yakıt sınıfıyla çelişiyorsa uyarı metni; uyumlu ya da GTİP boşsa ''.
+    window.yakitGtipUyarisi = function(etiket, gtip) {
+        let t = window.YAKIT_TAHRIK[etiket];
+        let g = String(gtip || '').replace(/\D/g, '');
+        if(!t || !t.gtip || !g) return '';
+        return g.indexOf(t.gtip.replace('.', '')) === 0 ? '' : '⚠️ ' + t.uyari + ' için GTİP ' + t.gtip + ' olmalı';
+    };
+    window.yakitRozetHtml = function(etiket) {
+        let t = window.YAKIT_TAHRIK[etiket];
+        if(!t) return '';
+        let stil = { elektrik: ['#16a34a', '⚡ ELEKTRİKLİ'], plugin: ['#7c3aed', '⚡ PLUG-IN · ' + etiket.split('-')[0]], hibrit: ['#0891b2', '🔋 ' + etiket] }[t.rozet] || ['#64748b', etiket];
+        return '<span class="yakit-rozet" title="' + etiket + ' (TSE: ' + t.tse + ')" style="display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.3px; color:#fff; background:' + stil[0] + '; white-space:nowrap;">' + stil[1] + '</span>';
+    };
+    // Araç düzenleme penceresi: "Otomatik" seçeneği CoC tespitini gösterir; elle seçim yakitTahrikManuel olarak saklanır.
+    window.daYakitAlaniDoldur = function(arac) {
+        window._daYakitArac = Object.assign({}, arac || {}, { yakitTahrikManuel: '' });
+        let sel = document.getElementById('da-yakitTahrik');
+        if(!sel) return;
+        let oto = window.getAracYakitTuru(window._daYakitArac).etiket;
+        sel.innerHTML = '<option value="">Otomatik' + (oto ? ' (CoC): ' + oto : ' — CoC verisi yok') + '</option>' +
+            Object.keys(window.YAKIT_TAHRIK).map(function(k) { return '<option value="' + k + '">' + k + ' (TSE: ' + window.YAKIT_TAHRIK[k].tse + ')</option>'; }).join('');
+        sel.value = (arac && window.YAKIT_TAHRIK[arac.yakitTahrikManuel]) ? arac.yakitTahrikManuel : '';
+        window.daYakitDurumGuncelle();
+    };
+    window.daYakitDurumGuncelle = function() {
+        let sel = document.getElementById('da-yakitTahrik'), kutu = document.getElementById('da-yakit-durum');
+        if(!sel || !kutu) return;
+        let gtipEl = document.getElementById('da-gtip');
+        let etiket = sel.value || window.getAracYakitTuru(window._daYakitArac || {}).etiket;
+        kutu.innerHTML = etiket ? window.yakitRozetHtml(etiket) + window.yakitUyariHtml(window.yakitGtipUyarisi(etiket, gtipEl ? gtipEl.value : '')) : '';
+    };
+    window.yakitUyariHtml = function(uyari) {
+        return uyari ? '<span class="yakit-gtip-uyari" style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; color:var(--danger, #dc2626);">' + uyari + '</span>' : '';
     };
     window.bkKilitBul = function(d) {
         let sasiTemiz = String((d && d.sasi) || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -15312,7 +15402,11 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         html('bk-silindir', duz('bk-silindir-val', tek('silindirSayisi'), '-') + birim('Silindir'));
         let kilitKart = window.bkKilitBul(d);
         let yakitKart = kilitKart && kilitKart.yakitTuru ? kilitKart.yakitTuru : window.dogrulaYakitVeGtip(tek('yakitTuru'), d.gtip || ts['tse-gtipNo']);
-        html('bk-yakit', duz('bk-yakit-val', yakitKart, 'Yakıt') + kopyaBtn(yakitKart));
+        // Rozet ve GTİP uyarısı yalnızca ekranda; kopyalanan/çıktıya giden değer TSE yakıt terimi olarak kalır.
+        let yakitTespit = window.getAracYakitTuru(d);
+        let yakitRozet = yakitTespit.etiket ? '<span class="bk-yakit-ek" data-html2canvas-ignore="true" style="margin-left:6px;">' +
+            window.yakitRozetHtml(yakitTespit.etiket) + window.yakitUyariHtml(window.yakitGtipUyarisi(yakitTespit.etiket, d.gtip || ts['tse-gtipNo'])) + '</span>' : '';
+        html('bk-yakit', duz('bk-yakit-val', yakitKart, 'Yakıt') + kopyaBtn(yakitKart) + yakitRozet);
         yaz('bk-tse', d.tseBelgeNo ? d.tseBelgeNo + (d.tseTarih ? ' / ' + d.tseTarih : '') : '');
         yaz('bk-btk', window.bkBtkNo(d.btkYaziNo));
         yaz('bk-imei', d.imei || d.brut);
@@ -15642,6 +15736,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let kap = document.createElement('div');
         kap.style.cssText = 'position:fixed;top:0;left:-99999px;width:794px;background:#fff;z-index:-9999;pointer-events:none;';
         kap.innerHTML = '<style>' +
+            '.bk-pdf-klon .bk-yakit-ek{display:none!important;}' +
             '.bk-pdf-klon{width:794px!important;max-width:794px!important;min-width:794px!important;margin:0!important;padding:12px 16px!important;line-height:1.2!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif!important;display:block!important;overflow:hidden!important;}' +
             '.bk-pdf-klon .byn-section{border:1px solid #64748b!important;border-radius:6px!important;padding:4px 7px!important;margin:0 0 4px 0!important;background:#fff!important;box-shadow:none!important;}' +
             '.bk-pdf-klon .byn-sec-title{font-size:11px!important;font-weight:800!important;color:#0f172a!important;margin:0 0 4px 0!important;padding-bottom:2px!important;border-bottom:1px solid #cbd5e1!important;text-transform:uppercase!important;}' +
@@ -17168,6 +17263,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
             
             // YENİ KAYITTA OTOMATİK CIF IŞIĞINI YAK
             if(window.setTeslimModal) window.setTeslimModal('CIF');
+            window.daYakitAlaniDoldur({});
         }
         else{
             if(document.getElementById('da-firma')) document.getElementById('da-firma').value=d.firma||'';
@@ -17180,6 +17276,7 @@ setTimeout(function(){ window.loadPhotoGallery(); }, 500);
             if(document.getElementById('da-tarih')){let iso='';if(d.tarih){let p=d.tarih.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-tarih').value=iso;}
             // Tekit tarihi eski kayıtlarda kiymetTarihi2 adıyla veya GG/AA/YYYY biçiminde olabilir.
             if(document.getElementById('da-tekitTarih')) document.getElementById('da-tekitTarih').value=window._dlkIsoDate?window._dlkIsoDate(d.tekitTarih||d.kiymetTarihi2||''):'';
+            window.daYakitAlaniDoldur(d);
             let isA=(d.evrak||'').toLocaleLowerCase('tr')==='açık';
             if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value=isA?'Açık':'Kapalı';
             
@@ -18164,6 +18261,10 @@ window.openTseSablonModal = function() {
     if (sasi)  document.getElementById('tse-aracTanitimNo').value = sasi;
     if (marka) document.getElementById('tse-marka').value = marka;
     if (gtip)  document.getElementById('tse-gtipNo').value = window._gtipSadeceKod(gtip);
+    // Yakıt Türü boşsa araçtan tespit edilen tipin TSE listesindeki karşılığı (elle değiştirilebilir)
+    var yakitEl = document.getElementById('tse-yakitTuru');
+    var yakitArac = (sasi && typeof window._tseMevcutAraciGetir === 'function') ? window._tseMevcutAraciGetir(sasi) : null;
+    if (yakitEl && !yakitEl.value && yakitArac) yakitEl.value = window.getAracYakitTuru(yakitArac).tse || '';
 
     // Antrepo sadece hiç girilmemişse varsayılanı koy
     var antrepoEl = document.getElementById('tse-antrepoAdi');
@@ -19428,6 +19529,7 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
         kiymetYaziNo1:val('da-kiymetYaziNo1'),
         kiymetYaziNo2:val('da-kiymetYaziNo2'),
         tekitTarih:fD(val('da-tekitTarih')),
+        yakitTahrikManuel:val('da-yakitTahrik'),
         kiymetGelenCevap:val('da-kiymetGelenCevap'),
         kapanisTarih:kapanisTarih,
         evrak:yeniEvrak,
@@ -19445,6 +19547,8 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
     };
 
     if(!r.firma || !r.tarih){alert('Zorunlu alanları doldurun!'); return;}
+    // Elle seçilen yakıt/tahrik tipi, APM ve beyanname kartındaki TSE yakıt terimine de yansır.
+    if(r.yakitTahrikManuel && window.YAKIT_TAHRIK[r.yakitTahrikManuel]) r.yakitTuru = window.YAKIT_TAHRIK[r.yakitTahrikManuel].tse;
 
     // ──── TEK BİRLEŞİK UYARI ────
     let tumEksikler = [];

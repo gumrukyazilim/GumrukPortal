@@ -177,7 +177,7 @@ function tsePaketSonucGoster(result) {
         const url=new URL(file.url);if(url.protocol!=='https:'||!['drive.google.com','docs.google.com'].includes(url.hostname))throw new Error('Geçersiz belge bağlantısı.');
         const a=document.createElement('a');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=file.name;a.style.cssText='display:block;margin-top:8px;color:#1d4ed8;font-weight:700;';box.appendChild(a);
     });
-    if(result.fuel){const p=document.createElement('div');p.textContent='Yakıt: '+result.fuel+' · GTİP: '+result.gtip;box.appendChild(p);}
+    if(result.fuel){const p=document.createElement('div');p.textContent='Yakıt: '+result.fuel+(result.yakitTahrik?' ('+result.yakitTahrik+')':'')+' · GTİP: '+result.gtip;box.appendChild(p);}
     if(result.warnings&&result.warnings.length){const p=document.createElement('div');p.textContent=result.warnings.join(' · ');box.appendChild(p);}
 }
 
