@@ -10242,6 +10242,16 @@ window.tseDurumDegistir = function(idx, ctx) {
     }
 };
 
+// Çift kaynaklı çapraz kontrol (orijinal fabrika CoC ↔ CoC_TR) sonucu: uyumsuzluk belirgin uyarı,
+// kontrol yapılamadıysa yalnız bilgi bildirimi. Üretim her durumda tamamlanmış sayılır.
+window.caprazUyariGoster = function(res) {
+    if(!res || !res.caprazUyarilar || !res.caprazUyarilar.length) return;
+    var uyumsuz = res.caprazKontrol && res.caprazKontrol.durum === 'uyumsuz';
+    var metin = res.caprazUyarilar.join('\n');
+    if(uyumsuz) alert(metin);
+    else if(typeof window.showToast === 'function') window.showToast(metin, 'warn');
+};
+
 // ═══════════════════════════════════════════════════════════════════
 //  📋 CoC UYGUNLUK BELGESİ — Sessiz otomatik üretim
 //  Klasör oluşturulduktan sonra background'da çağrılır
@@ -10331,6 +10341,7 @@ window.createCocManuel = function(idx, ctx) {
             }
             // Varyant şablonu yoksa sunucu kopyasını açar; kullanıcı yeni şablonu bir kez kontrol etmeli.
             if(res.sablonOlusturuldu && res.sablonUyari) alert('🆕 ' + res.sablonUyari);
+            window.caprazUyariGoster(res);
         } else {
             if(typeof hideSyncToast === 'function') hideSyncToast('Üretilemedi', false);
             alert('❌ CoC hatası: ' + (res && res.error ? res.error : 'Bilinmeyen'));
@@ -10841,6 +10852,7 @@ function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret,
                 window.showToast('📄 ULM Raporu üretildi: ' + (res.okunan ? res.okunan.raporNo : ''), 'success');
             }
             if(res.sablonOlusturuldu && res.sablonUyari && typeof window.showToast === 'function') window.showToast('🆕 ' + res.sablonUyari, 'warn');
+            window.caprazUyariGoster(res);
 
             // ★ EKSİK PLACEHOLDER MODALI — varsa kullanıcıya sor
             if(res.bosPlaceholders && res.bosPlaceholders.length > 0) {
@@ -19320,7 +19332,9 @@ window.tseSablonKaydet = function() {
                         if (cocRes && cocRes.success) {
                             st.style.color = 'var(--success)';
                             st.innerHTML = '✅ APM + CoC_TR.xlsx aracın klasörüne yüklendi.' +
-                                (cocRes.sablonOlusturuldu && cocRes.sablonUyari ? '<br>🆕 ' + String(cocRes.sablonUyari).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }) : '');
+                                (cocRes.sablonOlusturuldu && cocRes.sablonUyari ? '<br>🆕 ' + String(cocRes.sablonUyari).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }) : '') +
+                                (cocRes.caprazUyarilar && cocRes.caprazUyarilar.length ? '<br>' + cocRes.caprazUyarilar.map(function(u){ return String(u).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }).join('<br>') : '');
+                            window.caprazUyariGoster(cocRes);
                             if (typeof window.showToast === 'function') {
                                 window.showToast('📋 CoC_TR.xlsx otomatik üretildi (varyant: ' + v('tse-varyant') + ')', 'success');
                             }
