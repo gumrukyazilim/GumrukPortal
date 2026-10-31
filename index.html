@@ -4812,7 +4812,7 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0;"><label>İmal Tarihi</label><input type="date" id="tse-imalTarihi"></div>
                     <div class="input-group" style="margin:0;"><label>Ticari Ad</label><input type="text" id="tse-ticariAd"></div>
                     <div class="input-group" style="margin:0; grid-column:span 2;"><label>Araç Tanıtım No (Şasi)</label><input type="text" id="tse-aracTanitimNo"></div>
-                    <div class="input-group" style="margin:0;"><label>Yakıt Türü</label><select id="tse-yakitTuru"><option value=""></option><option value="Benzin">Benzin</option><option value="Benzin+CNG">Benzin+CNG</option><option value="Benzin+LNG">Benzin+LNG</option><option value="Benzin+LPG">Benzin+LPG</option><option value="Dizel">Dizel</option><option value="Dizel+CNG">Dizel+CNG</option><option value="Dizel+Elektrikli">Dizel+Elektrikli</option><option value="Dizel+LNG">Dizel+LNG</option><option value="Dizel+LPG">Dizel+LPG</option><option value="Elektrikli">Elektrikli</option><option value="Hibrit">Hibrit</option><option value="Hibrit+CNG">Hibrit+CNG</option><option value="Hibrit+LNG">Hibrit+LNG</option><option value="Hibrit+LPG">Hibrit+LPG</option></select></div>
+                    <div class="input-group" style="margin:0;"><label>Yakıt Türü</label><select id="tse-yakitTuru"><option value=""></option><option value="Benzin">Benzin</option><option value="Benzin+CNG">Benzin+CNG</option><option value="Benzin+LNG">Benzin+LNG</option><option value="Benzin+LPG">Benzin+LPG</option><option value="Dizel">Dizel</option><option value="Dizel+CNG">Dizel+CNG</option><option value="Dizel+LNG">Dizel+LNG</option><option value="Dizel+LPG">Dizel+LPG</option><option value="Elektrikli">Elektrikli</option><option value="Hibrit">Hibrit</option><option value="Hibrit+CNG">Hibrit+CNG</option><option value="Hibrit+LNG">Hibrit+LNG</option><option value="Hibrit+LPG">Hibrit+LPG</option></select></div>
                     <div class="input-group" style="margin:0;"><label>Tip Onay No</label><input type="text" id="tse-tipOnayNo"></div>
                     <div class="input-group" style="margin:0;"><label>Tip Onay Tarihi</label><input type="date" id="tse-tipOnayTarihi"></div>
                     <div class="input-group" style="margin:0;"><label>Antrepo Adı</label><input type="text" id="tse-antrepoAdi"></div>
@@ -6853,7 +6853,7 @@ window.saveGelecekEntry = async function() {
     // Kaydetmeden önce üretilmiş 4'lü paket varsa (aynı şasi) bağlantılarını araca ekle
     let bekPaket = window._gelecekBekleyenPaket;
     if(bekPaket && entry.sasi && window.sasiAnahtar && bekPaket.sasi === window.sasiAnahtar(entry.sasi)) {
-        ['evrakLink','tsePaket','tseEgzozPdfUrl','hibritSinifi','yakitTuru'].forEach(function(k){ if(bekPaket[k]) entry[k] = bekPaket[k]; });
+        ['evrakLink','tsePaket','tseEgzozPdfUrl','hibritSinifi','yakitTahrik'].forEach(function(k){ if(bekPaket[k]) entry[k] = bekPaket[k]; });
         window._gelecekBekleyenPaket = null;
     }
 
@@ -6918,7 +6918,7 @@ window.gelecekAracGeldi = function(idx) {
     if (d.tseSablon) yeniKayit.tseSablon = d.tseSablon;
     // Yoldayken üretilmiş belgeler (4'lü paket, egzoz, CoC) ve paket motorunun kullandığı
     // ülke bilgileri de taşınır: araç antrepoya indiğinde evraklar hazır görünür.
-    let tasinacakAlanlar = ['tsePaket','tseEgzozPdfUrl','cocUrl','cocTrUrl','ordinoUrl','uretildigiUlke','cikisUlke','hibritSinifi','yakitTuru','yakitTahrikManuel'];
+    let tasinacakAlanlar = ['tsePaket','tseEgzozPdfUrl','cocUrl','cocTrUrl','ordinoUrl','uretildigiUlke','cikisUlke','hibritSinifi','yakitTahrik','yakitTahrikManuel'];
     tasinacakAlanlar.forEach(function(k){ if(d[k]) yeniKayit[k] = d[k]; });
     // Araç Gelen'de/firma arşivinde zaten varsa: eksik belge alanlarını tamamla (dolu alanı ezme)
     let eksikleriTamamla = function(hedef) {
@@ -7153,8 +7153,9 @@ window.gelecekDortluPaketUret = async function() {
         var ek = { evrakLink: arac.evrakLink, tsePaket: paket };
         if (paket.egzozUrl) ek.tseEgzozPdfUrl = paket.egzozUrl; // Gelen Araçlar akışı egzozu bu alandan "hazır" sayar
         // CoC 23.1 hibrit sınıfı ve TSE yakıt terimi: kart rozeti ve GTİP uyumu için araca yazılır.
+        // APM terimi ("Hibrit") dizel/benzin ayrımını taşımaz; araca ayrıntılı tip yazılır.
         if (sonuc.hibritSinifi) ek.hibritSinifi = sonuc.hibritSinifi;
-        if (sonuc.fuel) ek.yakitTuru = sonuc.fuel;
+        if (sonuc.yakitTahrik) ek.yakitTahrik = sonuc.yakitTahrik;
         var kaydedildi = window._gelecekPaketBagla(arac.sasi, ek);
         if (typeof hideSyncToast === 'function') {
             hideSyncToast(kaydedildi ? '✅ 4\'lü paket araca bağlandı' : '✅ Paket hazır — Kaydet\'e basınca araca bağlanacak', true);
@@ -15099,14 +15100,14 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         return String(yakit || '');
     };
     // ── Yakıt / tahrik tipi (CoC 23 tam elektrik, 23.1 hibrit sınıfı, 26 yakıt) ─────────────────
-    // tse: TSE APM "Yakıt Türü" listesindeki karşılık (APM/tutanak bu listeden başka değer kabul etmez).
+    // tse: APM "Yakıt Türü" karşılığı. Gümrük talimatı (31.10.2026): TÜM hibritler (benzin/dizel, NOVC/OVC) "Hibrit".
     // gtip: hibrit/elektrik sınıflarında GTİP'in başlaması gereken alt pozisyon.
     window.YAKIT_TAHRIK = {
         'SAF ELEKTRİKLİ':        { tse: 'Elektrikli',       gtip: '8703.80', rozet: 'elektrik', uyari: 'Saf Elektrikli' },
         'BENZİN-HİBRİT':         { tse: 'Hibrit',           gtip: '8703.40', rozet: 'hibrit',   uyari: 'Benzin-Hibrit' },
-        'DİZEL-HİBRİT':          { tse: 'Dizel+Elektrikli', gtip: '8703.50', rozet: 'hibrit',   uyari: 'Dizel-Hibrit' },
+        'DİZEL-HİBRİT':          { tse: 'Hibrit',           gtip: '8703.50', rozet: 'hibrit',   uyari: 'Dizel-Hibrit' },
         'BENZİN-PLUG-IN HİBRİT': { tse: 'Hibrit',           gtip: '8703.60', rozet: 'plugin',   uyari: 'Benzin Plug-in' },
-        'DİZEL-PLUG-IN HİBRİT':  { tse: 'Dizel+Elektrikli', gtip: '8703.70', rozet: 'plugin',   uyari: 'Dizel Plug-in' },
+        'DİZEL-PLUG-IN HİBRİT':  { tse: 'Hibrit',           gtip: '8703.70', rozet: 'plugin',   uyari: 'Dizel Plug-in' },
         'BENZİN':                { tse: 'Benzin',           gtip: '',        rozet: '' },
         'DİZEL':                 { tse: 'Dizel',            gtip: '',        rozet: '' },
         'BENZİN-LPG':            { tse: 'Benzin+LPG',       gtip: '',        rozet: '' }
@@ -15133,6 +15134,10 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(a.yakitTahrikManuel && window.YAKIT_TAHRIK[a.yakitTahrikManuel]) {
             return { etiket: a.yakitTahrikManuel, tse: window.YAKIT_TAHRIK[a.yakitTahrikManuel].tse, kaynak: 'manuel' };
         }
+        // 4'lü paketin CoC'tan belirlediği ayrıntılı tip (APM terimi bu ayrımı taşımaz)
+        if(a.yakitTahrik && window.YAKIT_TAHRIK[a.yakitTahrik]) {
+            return { etiket: a.yakitTahrik, tse: window.YAKIT_TAHRIK[a.yakitTahrik].tse, kaynak: 'coc' };
+        }
         let sinif = a.hibritSinifi || ts['tse-hibritSinifi'] || '';
         let yakit = a.yakitTuru || ts['tse-yakitTuru'] || a.yakit || '';
         let gtip = String(a.gtip || ts['tse-gtipNo'] || '').replace(/\D/g, '');
@@ -15155,7 +15160,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     };
     // Araç düzenleme penceresi: "Otomatik" seçeneği CoC tespitini gösterir; elle seçim yakitTahrikManuel olarak saklanır.
     window.daYakitAlaniDoldur = function(arac) {
-        window._daYakitArac = Object.assign({}, arac || {}, { yakitTahrikManuel: '' });
+        window._daYakitArac = Object.assign({}, arac || {}, { yakitTahrikManuel: '' });   // "Otomatik" = elle seçim yokken
         let sel = document.getElementById('da-yakitTahrik');
         if(!sel) return;
         let oto = window.getAracYakitTuru(window._daYakitArac).etiket;
@@ -17356,8 +17361,14 @@ window._ulkeSadeceAd = function(val) {
     }
     return buyuk;
 };
-// TSE şablon alanına yazılacak değer: ülke → saf ad, GTİP → yalnız kod, diğerleri aynen.
+// APM Yakıt Türü (gümrük talimatı): bütün hibritler "Hibrit"; eski "Dizel+Elektrikli" kayıtları da çevrilir.
+window._apmYakit = function(deger) {
+    var s = String(deger == null ? '' : deger).trim();
+    return /^hibrit$|\+\s*elektr/i.test(s) ? 'Hibrit' : s;
+};
+// TSE şablon alanına yazılacak değer: ülke → saf ad, GTİP → yalnız kod, yakıt → APM terimi, diğerleri aynen.
 window._tseAlanDegeri = function(id, deger) {
+    if (id === 'tse-yakitTuru') return window._apmYakit(deger);
     if (id === 'tse-uretildigiUlke' || id === 'tse-ithalatUlkesi') return window._ulkeSadeceAd(deger);
     if (id === 'tse-gtipNo') return window._gtipSadeceKod(deger);
     return deger;
@@ -19182,7 +19193,7 @@ window.tseSablonKaydet = function() {
         window.tseTarihFormatla(v('tse-imalTarihi')),
         v('tse-ticariAd'),
         v('tse-aracTanitimNo').toUpperCase(),
-        v('tse-yakitTuru'),
+        window._apmYakit(v('tse-yakitTuru')),   // bütün hibritler "Hibrit"
         v('tse-tipOnayNo'),
         window.tseTarihFormatla(v('tse-tipOnayTarihi')),
         v('tse-antrepoAdi'),
