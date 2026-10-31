@@ -10316,17 +10316,11 @@ window.createCocManuel = function(idx, ctx) {
             if(typeof window.showToast === 'function') {
                 window.showToast('📋 CoC_TR.xlsx üretildi (' + (res.placeholderSayisi||0) + ' alan dolduruldu)', 'success');
             }
+            // Varyant şablonu yoksa sunucu kopyasını açar; kullanıcı yeni şablonu bir kez kontrol etmeli.
+            if(res.sablonOlusturuldu && res.sablonUyari) alert('🆕 ' + res.sablonUyari);
         } else {
             if(typeof hideSyncToast === 'function') hideSyncToast('Üretilemedi', false);
-            if(res && res.templateMissing) {
-                alert('❌ CoC ŞABLONU BULUNAMADI\n\n' +
-                    'Marka: ' + res.marka + '\n' +
-                    'Varyant: ' + res.varyant + '\n\n' +
-                    'Drive\'da bu şablonu hazırlayın:\n' +
-                    'SISTEM_COC_SABLONLARI/' + res.marka + '/' + res.varyant + '.xlsx');
-            } else {
-                alert('❌ CoC hatası: ' + (res && res.error ? res.error : 'Bilinmeyen'));
-            }
+            alert('❌ CoC hatası: ' + (res && res.error ? res.error : 'Bilinmeyen'));
         }
     });
 };
@@ -10833,6 +10827,7 @@ function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret,
             if(typeof window.showToast === 'function') {
                 window.showToast('📄 ULM Raporu üretildi: ' + (res.okunan ? res.okunan.raporNo : ''), 'success');
             }
+            if(res.sablonOlusturuldu && res.sablonUyari && typeof window.showToast === 'function') window.showToast('🆕 ' + res.sablonUyari, 'warn');
 
             // ★ EKSİK PLACEHOLDER MODALI — varsa kullanıcıya sor
             if(res.bosPlaceholders && res.bosPlaceholders.length > 0) {
@@ -10844,15 +10839,7 @@ function ulmPdfUret(idx, ctx, arac, varyant, firmaUnvan, TSE_GAS_URL, forceUret,
         // ── HATA AYIRT ──
         if(typeof hideSyncToast === 'function') hideSyncToast('Üretilemedi', false);
 
-        if(res && res.templateMissing) {
-            alert('❌ ULM ŞABLONU BULUNAMADI\n\n' +
-                'Marka: ' + res.marka + '\n' +
-                'Varyant: ' + res.varyant + '\n\n' +
-                'Drive\'da bu şablonu hazırlayın:\n' +
-                'SISTEM_ULM_SABLONLARI/' + res.marka + '/' + res.varyant + '.docx');
-            console.error('ULM şablonu eksik:', res.debug);
-            return;
-        }
+        // (Şablon eksikliği artık hata değil: sunucu varyant şablonunu oluşturup devam eder.)
 
         // Doğrulama hatası — kritik uyuşmazlık
         if(res && res.validation && res.validation.kritikHata && res.validation.kritikHata.length > 0) {
@@ -19220,16 +19207,10 @@ window.tseSablonKaydet = function() {
                     if (st) {
                         if (cocRes && cocRes.success) {
                             st.style.color = 'var(--success)';
-                            st.innerHTML = '✅ APM + CoC_TR.xlsx aracın klasörüne yüklendi.';
+                            st.innerHTML = '✅ APM + CoC_TR.xlsx aracın klasörüne yüklendi.' +
+                                (cocRes.sablonOlusturuldu && cocRes.sablonUyari ? '<br>🆕 ' + String(cocRes.sablonUyari).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }) : '');
                             if (typeof window.showToast === 'function') {
                                 window.showToast('📋 CoC_TR.xlsx otomatik üretildi (varyant: ' + v('tse-varyant') + ')', 'success');
-                            }
-                        } else if (cocRes && cocRes.templateMissing) {
-                            st.style.color = 'var(--warning, #f59e0b)';
-                            st.innerHTML = '⚠️ APM yüklendi ama CoC şablonu yok: ' +
-                                'SISTEM_COC_SABLONLARI/' + (cocRes.marka || v('tse-marka')) + '/' + (cocRes.varyant || v('tse-varyant')) + '.xlsx';
-                            if (typeof window.showToast === 'function') {
-                                window.showToast('⚠️ CoC şablonu eksik: ' + (cocRes.varyant || v('tse-varyant')) + '.xlsx', 'warn');
                             }
                         } else {
                             st.style.color = 'var(--warning, #f59e0b)';
