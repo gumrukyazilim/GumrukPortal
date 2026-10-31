@@ -4668,6 +4668,7 @@ div[style*="position: relative"] > input {
                     <div class="input-group" style="margin:0;"><label>Kıymet G. T.</label><input type="date" id="da-kiymGt" onchange="window.declAutoCalc(); window.kiymetTarihKontrol();"></div>
                     <div class="input-group" style="margin:0;"><label>1. Kıymet Yazı No / Sayı</label><input type="text" id="da-kiymetYaziNo1" placeholder="E-32531729-100-00127042666"></div>
                     <div class="input-group" style="margin:0;"><label>2. Kıymet Tekit Yazı No</label><input type="text" id="da-kiymetYaziNo2" placeholder="E-32531729-100-00128014521"></div>
+                    <div class="input-group" style="margin:0;"><label>2. Kıymet Tekit Yazı Tarihi</label><input type="date" id="da-tekitTarih"></div>
                     <div class="input-group" style="margin:0;"><label>3. Kıymet Gelen Cevap No</label><input type="text" id="da-kiymetGelenCevap" placeholder="E-32531729-100-..."></div>
                 </div>
             </div>
@@ -11084,9 +11085,10 @@ window.FIRMA_YETKILI = {
     },
     'FF OTOMOTİV': {
         resmiUnvan: 'FF OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ',
-        yetkili: 'GÖRKEM DEMİREL',
+        yetkili: 'GÖRKEM DEMİREL',   // TSE/ULM evraklarındaki sorumlu mühendis
         unvan: 'Sorumlu Mühendis',
-        kaseTipi: 'muhendis' // mühendis kaşesi
+        kaseTipi: 'muhendis', // mühendis kaşesi
+        yetkililer: ['FATİH İSMAİL ÇEBİ', 'FAYSAL YAVUZ'] // dilekçe imza yetkilileri (ilki varsayılan)
     },
     'KARABAYIR': {
         resmiUnvan: 'KARABAYIR ...',
@@ -17170,7 +17172,7 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
         let d=null;if(idx!==-1)d=ctx==='firm'?window.firmData[window.currentFirm][idx]:window.declarationsData[idx];
         
         if(idx===-1||!d){
-            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim','kiymetYaziNo1','kiymetYaziNo2','kiymetGelenCevap'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
+            ['marka','model','yil','renk','sase','ekSure','antTarih','beynmCif','kiymVv','kiymGt','beyanname','ozetBeyan','fatura','kiymet','evrakLink','gonderici','gtip','brut','net','teslim','kiymetYaziNo1','kiymetYaziNo2','kiymetGelenCevap','tekitTarih'].forEach(id=>{if(document.getElementById('da-'+id))document.getElementById('da-'+id).value='';});
             if(document.getElementById('da-tarih')){let _n=new Date();document.getElementById('da-tarih').value=`${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;}
             if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value='Açık';
             let defFirm=ctx==='firm'?window.currentFirm:(window.getActiveFirmNames()[0]||'');
@@ -17189,6 +17191,8 @@ else if(m.sonGun && m.sonGun!=='-' && m.sonGun!=='Süresiz') sh=`<span style="co
 setTimeout(function(){ window.loadPhotoGallery(); }, 500);
             ['ekSure','antTarih','beynmCif','kiymVv','kiymGt'].forEach(id=>{if(document.getElementById('da-'+id)){let iso='';if(d[id]){let p=d[id].split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-'+id).value=iso;}});
             if(document.getElementById('da-tarih')){let iso='';if(d.tarih){let p=d.tarih.split('.');if(p.length===3)iso=`${p[2]}-${p[1]}-${p[0]}`;}document.getElementById('da-tarih').value=iso;}
+            // Tekit tarihi eski kayıtlarda kiymetTarihi2 adıyla veya GG/AA/YYYY biçiminde olabilir.
+            if(document.getElementById('da-tekitTarih')) document.getElementById('da-tekitTarih').value=window._dlkIsoDate?window._dlkIsoDate(d.tekitTarih||d.kiymetTarihi2||''):'';
             let isA=(d.evrak||'').toLocaleLowerCase('tr')==='açık';
             if(document.getElementById('da-evrak')) document.getElementById('da-evrak').value=isA?'Açık':'Kapalı';
             
@@ -19410,6 +19414,7 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
         kiymGt:fD(val('da-kiymGt')),
         kiymetYaziNo1:val('da-kiymetYaziNo1'),
         kiymetYaziNo2:val('da-kiymetYaziNo2'),
+        tekitTarih:fD(val('da-tekitTarih')),
         kiymetGelenCevap:val('da-kiymetGelenCevap'),
         kapanisTarih:kapanisTarih,
         evrak:yeniEvrak,
@@ -21217,13 +21222,33 @@ window.getFirmaDetay = function(firmaGirdi){
     if(fClean.includes('SAMNU')){
         return { tamUnvan: 'ŞAMNU GT MOTORLU ARAÇLAR SAN VE TİC LTD ŞTİ', imzaYetkilisi: 'FEVZİ ALPER TAVMAN' };
     } else if(fClean.includes('FF')){
-        return { tamUnvan: 'FF OTOMOTİV SAN VE TİC A.Ş', imzaYetkilisi: 'Fatih İsmail ÇEBİ' };
+        const yetkililer = ((window.FIRMA_YETKILI || {})['FF OTOMOTİV'] || {}).yetkililer || ['FATİH İSMAİL ÇEBİ'];
+        return { tamUnvan: 'FF OTOMOTİV SAN VE TİC A.Ş', imzaYetkilisi: yetkililer[0], yetkililer: yetkililer.slice() };
     } else if(fClean.includes('KARABAYIR')){
         return { tamUnvan: 'KARABAYIR OTOMOTİV TİC. LTD. ŞTİ.', imzaYetkilisi: 'BEHLÜL TÜREL' };
     } else if(fClean.includes('SANDIKCI')){
         return { tamUnvan: 'SANDIKÇI OTO SAN VE TİC LTD.ŞTİ', imzaYetkilisi: 'HARUN SANDIKÇI' };
     }
     return { tamUnvan: firmaGirdi || '.......................................................', imzaYetkilisi: '........................' };
+};
+// Firmanın dilekçe imza yetkilileri (birden fazlaysa ekranda tek tıkla seçilir).
+window.dilekceYetkilileri = function(firmaGirdi){
+    const bilgi = window.getFirmaDetay(firmaGirdi);
+    if(Array.isArray(bilgi.yetkililer) && bilgi.yetkililer.length) return bilgi.yetkililer.slice();
+    return bilgi.imzaYetkilisi && bilgi.imzaYetkilisi !== '........................' ? [bilgi.imzaYetkilisi] : [];
+};
+// Yetkili seçim düğmeleri; dilekçe sayfasının dışında durur, PDF/yazdırmaya girmez.
+// fonksiyonAdi: tıklanınca seçilen adla çağrılacak global fonksiyonun adı.
+window.dilekceImzaSecimHtml = function(firmaGirdi, secili, fonksiyonAdi){
+    const liste = window.dilekceYetkilileri(firmaGirdi);
+    if(liste.length < 2) return '';
+    const norm = function(s){ return String(s || '').trim().toLocaleUpperCase('tr'); };
+    return '<span style="font-size:12px; color:var(--text-secondary); margin-right:6px;">İmza yetkilisi:</span>' + liste.map(function(ad){
+        const aktif = norm(ad) === norm(secili);
+        const arg = encodeURIComponent(ad).replace(/'/g, '%27');
+        return '<button type="button" class="btn-sm" data-html2canvas-ignore="true" onclick="' + fonksiyonAdi + '(decodeURIComponent(\'' + arg + '\'))" style="margin:0 6px 6px 0; padding:4px 10px; font-size:12px;' +
+            (aktif ? ' border-color:var(--primary); color:var(--primary); font-weight:700;' : '') + '">' + (aktif ? '✓ ' : '') + window._dlkEsc(ad) + '</button>';
+    }).join('');
 };
 window.dilekceSureViaGAS = async function() {
     const items = window.currentDilekceItems || [];
@@ -21237,6 +21262,12 @@ window.dilekceSureViaGAS = async function() {
     const firmaBilgi = window.getFirmaDetay(ilkArac.firma);
     let firmaAdi = firmaBilgi.tamUnvan;
     let imzaYetkilisi = firmaBilgi.imzaYetkilisi;
+    // İmza yetkilisi ekrandan değiştirilmiş olabilir
+    const imzaEl = document.querySelector('#dilekce-print-area .imza-yetkili.editable-field');
+    if (imzaEl) {
+        const t = imzaEl.textContent.trim();
+        if (t && !t.includes("..........")) imzaYetkilisi = t;
+    }
 
     // Payload hazırla
     const payload = {
@@ -21537,8 +21568,10 @@ window.dilekceKTMCEVAPViaGAS = async function() {
     let firmaAdi = firmaBilgi.tamUnvan;
     let imzaYetkilisi = firmaBilgi.imzaYetkilisi;
 
-    // Ekrandaki düzenlenebilir kıymet yazısı satırlarını oku (imza hariç)
-    const editables = document.querySelectorAll('#dilekce-print-area .editable-field:not(.imza-yetkili)');
+    // Ekrandaki düzenlenebilir kıymet yazısı satırlarını oku (imza ve sağ üst tarih hariç)
+    const editables = document.querySelectorAll('#dilekce-print-area .editable-field:not(.imza-yetkili):not(.dilekce-sag-ust-tarih)');
+    const tarihEl = document.querySelector('#dilekce-print-area .dilekce-sag-ust-tarih');
+    const dilekceTarihi = (tarihEl && tarihEl.textContent.trim()) || (window.formatTRTarih ? window.formatTRTarih(new Date()) : window._dlkBugun());
     const distributor = window.findDistributor(ilkArac.marka);
     const { yaziNo1, yaziTarih1, yaziNo2, yaziTarih2 } = window.getKiymetYaziBilgileri(ilkArac);
     const kiymetYazilari = [
@@ -21561,6 +21594,7 @@ window.dilekceKTMCEVAPViaGAS = async function() {
         tip: "KTMCEVAP",
         firmaAdi: firmaAdi,
         imzaYetkilisi: imzaYetkilisi,
+        dilekceTarihi: dilekceTarihi,
         beyanname: ilkArac.beyanname || ilkArac.ozetBeyan || "...................",
         tarih: ilkArac.beynmCif || ilkArac.tarih || "................",
         sasi: ilkArac.sasi || "...................",
@@ -22527,6 +22561,7 @@ window.dilekceSablonSec = function(key){
     const s = window.DILEKCE_SABLONLARI[key];
     if(!s){ formEl.innerHTML = '<div class="dlk-empty">Yukarıdan bir dilekçe şablonu seçin.</div>'; prevEl.innerText = ''; window._dlkAktifSablon = null; return; }
     window._dlkAktifSablon = key;
+    window._dlkTarih = '';   // sağ üst tarih her yeni şablonda bugünden başlar
     const secici = document.getElementById('dilekce-sablon-secici');
     if(secici) secici.value = key;
     const firmalar = window.getActiveFirmNames();
@@ -22541,6 +22576,9 @@ window.dilekceSablonSec = function(key){
         }
         if(a.id === 'firma'){
             return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'" list="dlk-firma-list" autocomplete="off" placeholder="Firma adı..."><datalist id="dlk-firma-list">'+firmalar.map(function(f){return '<option value="'+f.replace(/"/g,'&quot;')+'">';}).join('')+'</datalist></div>';
+        }
+        if(a.id === 'imza'){
+            return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'" autocomplete="off"><div id="dlk-imza-secim" style="display:flex; flex-wrap:wrap; align-items:center; margin-top:6px;"></div></div>';
         }
         const defaultValue = a.varsayilan ? ' value="'+window._dlkEsc(a.varsayilan).replace(/"/g,'&quot;')+'"' : '';
         return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'"'+defaultValue+'></div>';
@@ -22558,6 +22596,14 @@ window.dilekceSablonSec = function(key){
             }
             window.dilekceOnizleGuncelle();
         });
+        if(a.id === 'kiymet_yazi_tarih_2'){
+            // Panelde girilen tekit tarihi seçili aracın kaydına yazılır (F5 sonrası da kalır).
+            el.addEventListener('change', function(){
+                const sec = document.getElementById('dlk-arac-sec');
+                const arac = sec && sec.value !== '' ? (window.declarationsData || [])[parseInt(sec.value, 10)] : null;
+                if(arac) window._tekitTarihKaydet(arac.sasi, window._dlkDate(el.value));
+            });
+        }
         if(a.id === 'firma'){
             el.addEventListener('change', function(){
                 if(window._dlkAktifSablon === 'REDRESE_IMEI'){window.redreseFirmaDoldur(el.value); window.dilekceOnizleGuncelle(); return;}
@@ -22606,11 +22652,12 @@ window.dilekceHtmlUret = function(key){
         raw[a.id] = el ? (el.value || '').trim() : '';
     });
 
-    // Firma metni ve imza aynı resmî unvanı kullanır; bilinmeyen firma için elle imza girilebilir.
+    // Firma metni resmî unvanı kullanır. İmza boşsa firmanın varsayılan yetkilisi yazılır;
+    // elle yazılan ya da seçilen yetkili korunur (firma/araç değişince yeniden atanır).
     if(alanTip.firma){
         const firmaBilgi = window.getFirmaDetay(raw.firma);
         raw.firma = firmaBilgi.tamUnvan;
-        if(alanTip.imza && firmaBilgi.imzaYetkilisi !== '........................'){
+        if(alanTip.imza && !raw.imza && firmaBilgi.imzaYetkilisi !== '........................'){
             raw.imza = firmaBilgi.imzaYetkilisi;
             const imzaEl = document.getElementById('dlk-f-imza');
             if(imzaEl) imzaEl.value = raw.imza;
@@ -22689,7 +22736,7 @@ window.dilekceHtmlUret = function(key){
 
     // Blok akışı Safari/iOS yazdırmada tabloların yatay taşma hatasını önler.
     var h = '<article class="dlk-document">';
-    h += '<div class="dlk-date-row">Tarih: ' + window._dlkBugun() + '</div>';
+    h += '<div class="dlk-date-row">Tarih: <span class="dilekce-sag-ust-tarih">' + window._dlkEsc(window._dlkTarih || window._dlkBugun()) + '</span></div>';
     h += '<div class="dlk-addressee">' + window._dlkEsc(s.makam) + '</div>';
     if(konuHtml) h += '<div class="dlk-subject"><strong>KONU:</strong> ' + konuHtml + '</div>';
     h += '<div class="dlk-body">' + govdeHtml + '</div>';
@@ -22700,7 +22747,7 @@ window.dilekceHtmlUret = function(key){
         h += '<div class="dlk-signature"><div class="dlk-signature-box">';
         h += '<div class="dlk-signoff">Saygılarımızla,</div>';
         if(firmaVar && firmaVal) h += '<div class="dlk-signature-company"><strong>' + firmaVal + '</strong></div>';
-        h += '<div class="dlk-signature-name">' + imzaVal + '</div>';
+        h += '<div class="dlk-signature-name imza-yetkili">' + imzaVal + '</div>';
         h += '</div></div>';
     }
     h += '</article>';
@@ -22711,7 +22758,63 @@ window.dilekceOnizleGuncelle = function(){
     const key = window._dlkAktifSablon;
     if(!key) return;
     const prev = document.getElementById('dlk-preview');
-    if(prev) prev.innerHTML = window.dilekceHtmlUret(key);
+    if(!prev) return;
+    prev.innerHTML = window.dilekceHtmlUret(key);
+    // Önizlemede sağ üst tarih ve imza adı doğrudan düzenlenir; yazdırma HTML'i sade kalır.
+    prev.querySelectorAll('.dilekce-sag-ust-tarih, .imza-yetkili').forEach(function(el){
+        el.setAttribute('contenteditable', 'true');
+        el.classList.add('editable-field');
+        el.title = el.classList.contains('imza-yetkili') ? 'İmza yetkilisini değiştirmek için tıklayın' : 'Tarihi değiştirmek için tıklayın';
+    });
+    if(!prev._dlkDuzenlemeDinleyici){
+        prev._dlkDuzenlemeDinleyici = true;
+        // Yazarken önizleme yeniden çizilmez (imleç kaybolmasın); değer form/duruma yazılır.
+        prev.addEventListener('input', function(e){
+            const t = e.target;
+            if(t.classList.contains('dilekce-sag-ust-tarih')) window._dlkTarih = t.textContent.trim();
+            else if(t.classList.contains('imza-yetkili')){
+                const imzaInput = document.getElementById('dlk-f-imza');
+                if(imzaInput) imzaInput.value = t.textContent.trim();
+                window._dlkImzaSecimGuncelle();
+            }
+        });
+        prev.addEventListener('focusout', function(e){
+            if(e.target.classList.contains('dilekce-sag-ust-tarih') && !e.target.textContent.trim()){
+                window._dlkTarih = '';
+                e.target.textContent = window._dlkBugun();
+            }
+        });
+    }
+    window._dlkImzaSecimGuncelle();
+};
+// Dilekçeler formunda, birden fazla yetkilisi olan firmada imza seçim düğmeleri.
+window._dlkImzaSecimGuncelle = function(){
+    const kutu = document.getElementById('dlk-imza-secim');
+    if(!kutu) return;
+    const firmaEl = document.getElementById('dlk-f-firma');
+    const imzaEl = document.getElementById('dlk-f-imza');
+    kutu.innerHTML = firmaEl && imzaEl ? window.dilekceImzaSecimHtml(firmaEl.value, imzaEl.value, 'window._dlkImzaSec') : '';
+};
+window._dlkImzaSec = function(ad){
+    const imzaEl = document.getElementById('dlk-f-imza');
+    if(imzaEl) imzaEl.value = ad;
+    window.dilekceOnizleGuncelle();
+};
+// Tekit (2. kıymet) yazı tarihini araç kaydına yazar: Gelen Araçlar + firma listesi, ardından kayıt.
+window._tekitTarihKaydet = function(sasi, trTarih){
+    const hedef = String(sasi || '').toLocaleUpperCase('tr').trim();
+    if(!hedef) return false;
+    let degisti = false;
+    const uygula = function(kayit){
+        if(!kayit || String(kayit.sasi || '').toLocaleUpperCase('tr').trim() !== hedef) return;
+        if((kayit.tekitTarih || '') === trTarih) return;
+        kayit.tekitTarih = trTarih;
+        degisti = true;
+    };
+    (window.declarationsData || []).forEach(uygula);
+    Object.keys(window.firmData || {}).forEach(function(f){ (window.firmData[f] || []).forEach(uygula); });
+    if(degisti && typeof window.saveData === 'function'){ window.saveData('decl'); window.saveData('firm'); }
+    return degisti;
 };
 
 window.dilekceTemizle = function(){
@@ -23969,6 +24072,8 @@ window.renderDilekceContent = function() {
     let items = window.currentDilekceItems;
 
     if (!tipEl || !container) return;
+    const imzaSecimKutusu = document.getElementById('dilekce-imza-secim');
+    if (imzaSecimKutusu) imzaSecimKutusu.innerHTML = '';
     const bilgePanel = document.getElementById('bilge-yfks-form-panel');
     const sahisPanel = document.getElementById('sahis-bilge-form-panel');
     const firmaPanel = document.getElementById('firma-bilge-form-panel');
@@ -24070,8 +24175,12 @@ window.renderDilekceContent = function() {
     } 
     // ── 2. Cevapsız Kıymet Dilekçesi ──
     else if (tip === "KTMCEVAP") {
+        const varsayilanTarih = window.formatTRTarih ? window.formatTRTarih(new Date()) : window._dlkBugun();
         icerik = `
             <div class="belge-kapsayici" style="margin-top: 90px;">
+                <div style="text-align: right; font-weight: bold; font-size: 15px; margin-bottom: 20px;">
+                    Tarih: <span contenteditable="true" class="editable-field dilekce-sag-ust-tarih" title="Tarihi değiştirmek için tıklayın">${varsayilanTarih}</span>
+                </div>
                 <div class="belge-baslik">YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ'NE</div>
                 <div style="font-weight: bold; margin-bottom: 18px;">
                     Konu: Kıymet yazısına distribütör tarafından cevap verilmemesi nedeniyle ithalat işlemlerinin devam ettirilmesi talebi.
@@ -24169,6 +24278,26 @@ window.renderDilekceContent = function() {
     }
 
     container.innerHTML = icerik;
+    window._dilekceImzaSecimGuncelle();
+};
+// Dilekçe sayfasının hemen üstünde (çıktı alanı dışında) firmanın yetkilileri için seçim düğmeleri.
+window._dilekceImzaSecimGuncelle = function(){
+    const container = document.getElementById('dilekce-print-area');
+    if(!container || !container.parentNode) return;
+    let kutu = document.getElementById('dilekce-imza-secim');
+    if(!kutu){
+        kutu = document.createElement('div');
+        kutu.id = 'dilekce-imza-secim';
+        kutu.style.cssText = 'display:flex; flex-wrap:wrap; align-items:center; margin:0 0 10px;';
+        container.parentNode.insertBefore(kutu, container);
+    }
+    const imzaEl = container.querySelector('.imza-yetkili');
+    const arac = (window.currentDilekceItems || [])[0];
+    kutu.innerHTML = imzaEl && arac ? window.dilekceImzaSecimHtml(arac.firma, imzaEl.textContent, 'window.dilekceImzaSec') : '';
+};
+window.dilekceImzaSec = function(ad){
+    document.querySelectorAll('#dilekce-print-area .imza-yetkili').forEach(function(el){ el.textContent = ad; });
+    window._dilekceImzaSecimGuncelle();
 };
 // ================= ALT MENÜ (BNAV) VE 3 ÇİZGİ MOTORU =================
 
