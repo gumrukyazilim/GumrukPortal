@@ -5886,6 +5886,8 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
 /* ── ResultCard ─────────────────────────────────────────── */
 .vg-result { border: 1px solid var(--vg-border); border-radius: var(--vg-r-lg); background: var(--vg-surface); padding: var(--vg-s5); }
 .vg-result[hidden] { display: none; }
+/* display kuralı olan bileşenlerde (vg-field: flex) hidden niteliği geçerli kalsın */
+.vg [hidden] { display: none !important; }
 .vg-result__label { font-size: var(--vg-fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--vg-text-secondary); }
 .vg-result__amount { font: 700 var(--vg-fs-amount)/var(--vg-lh-amount) var(--vg-mono); font-variant-numeric: tabular-nums; margin: var(--vg-s1) 0 var(--vg-s3); }
 .vg-result__split { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--vg-s3); }
@@ -6163,7 +6165,8 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
   }
   var TRT_ORANI = 0.008;   // calculateTaxes ile aynı
   /** Kayıttaki kıymetten MTV taşıt değeri (= KDV matrahı, KDV hariç) tahmini.
-   *  g: { dovizTutar, kur, yakit, cc, kw, gvOran? }  Navlun, sigorta, yurt içi gider,
+   *  g: { dovizTutar, kur, yakit, cc, kw, gvOran?, otvOrani? }  otvOrani verilirse otomobil dilimi yerine o kullanılır
+   *  (ör. 87.04 4x4 arazi taşıtı). Navlun, sigorta, yurt içi gider,
    *  KKDF ve damga kayıtta olmadığından 0 alınır; gümrük vergisi verilmezse %0 (AB menşei, A.TR).
    *  Dönüş: { tasitDegeriTL, cifTL, otvMatrahiTL, otvOrani, otvTL, dokum } ya da { hata } */
   function tasitDegeriTahmin(g) {
@@ -6176,7 +6179,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     var cif = doviz * kur, gv = cif * gvO / 100;
     var trt = (cif + gv) * TRT_ORANI;
     var otvM = cif + gv + trt;
-    var oran = otvOtomobilOrani(g.yakit, motor, otvM);
+    var oran = Number(g.otvOrani) > 0 ? Number(g.otvOrani) : otvOtomobilOrani(g.yakit, motor, otvM);
     var otv = otvM * oran / 100;
     var deger = yuvarla(otvM + otv);
     return {
@@ -6200,7 +6203,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
   }
 
   kok.VergiMotoru = {
-    surum: '1.1.0',
+    surum: '1.2.0',
     MTV_TARIFE: MTV_TARIFE,
     TUR_ETIKET: TUR_ETIKET,
     KW_KADEME: KW_KADEME,
@@ -6360,15 +6363,21 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     (kaynak.gelecekData || []).forEach(function (d) { ekle(d, 'Gelecek araçlar'); });
     return liste;
   }
-  /** Bellekteki kayıtlarda aynı şasili araçların YALNIZ tasitDegeri alanını günceller (diğer alanlara dokunmaz).
+  // MTV'nin araç kaydına yazabileceği alanlar; başka alana yazılmaz. azamiToplamAgirlik yalnız boşsa yazılır.
+  var YAZILABILIR = { tasitDegeri: { sadeceBossa: false }, azamiToplamAgirlik: { sadeceBossa: true } };
+  function bosMu(v) { return v == null || String(v).trim() === ''; }
+
+  /** Bellekteki kayıtlarda aynı şasili araçların YALNIZ verilen alanını günceller (diğer alanlara dokunmaz).
    *  Değişen kaynakları döndürür: { decl, firm, gelecek } (hiçbiri değişmediyse hepsi false). */
-  function tasitDegeriYaz(kaynak, sasi, degerTL) {
-    var k = sasiNorm(sasi), deger = Math.round(Number(degerTL) * 100) / 100;
+  function alanYaz(kaynak, sasi, alan, deger) {
+    var kural = YAZILABILIR[alan], k = sasiNorm(sasi);
+    deger = Math.round(Number(deger) * 100) / 100;
     var sonuc = { decl: false, firm: false, gelecek: false };
-    if (k.length < 6 || !(deger > 0)) return sonuc;
+    if (!kural || k.length < 6 || !(deger > 0)) return sonuc;
     function yaz(d) {
-      if (!d || typeof d !== 'object' || sasiNorm(d.sasi) !== k || d.tasitDegeri === deger) return false;
-      d.tasitDegeri = deger; return true;
+      if (!d || typeof d !== 'object' || sasiNorm(d.sasi) !== k || d[alan] === deger) return false;
+      if (kural.sadeceBossa && !bosMu(d[alan])) return false;
+      d[alan] = deger; return true;
     }
     (kaynak.declarationsData || []).forEach(function (d) { if (yaz(d)) sonuc.decl = true; });
     var f = kaynak.firmData || {};
@@ -6376,17 +6385,21 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     (kaynak.gelecekData || []).forEach(function (d) { if (yaz(d)) sonuc.gelecek = true; });
     return sonuc;
   }
+  function tasitDegeriYaz(kaynak, sasi, degerTL) { return alanYaz(kaynak, sasi, 'tasitDegeri', degerTL); }
 
-  /** Buluttaki ağaçta (portal_data_test altı: decl, firm, gelecekData) şasisi eşleşen araçların
-   *  "tasitDegeri" yollarını verir. Diziler de anahtarlı nesneler de olur. Değer zaten aynıysa yol dönmez. */
-  function tasitDegeriYollari(agac, sasi, degerTL) {
-    var k = sasiNorm(sasi), deger = Math.round(Number(degerTL) * 100) / 100, yollar = [];
-    if (k.length < 6 || !(deger > 0) || !agac) return yollar;
+  /** Buluttaki ağaçta (portal_data_test altı: decl, firm, gelecekData) şasisi eşleşen araçların verilen alan
+   *  yollarını verir. Diziler de anahtarlı nesneler de olur. Değer zaten aynıysa (ya da "yalnız boşsa" alanı doluysa) yol dönmez. */
+  function alanYollari(agac, sasi, alan, deger) {
+    var kural = YAZILABILIR[alan], k = sasiNorm(sasi), yollar = [];
+    deger = Math.round(Number(deger) * 100) / 100;
+    if (!kural || k.length < 6 || !(deger > 0) || !agac) return yollar;
     function tara(dugum, onek) {
       if (!dugum || typeof dugum !== 'object') return;
       Object.keys(dugum).forEach(function (i) {
         var d = dugum[i];
-        if (d && typeof d === 'object' && sasiNorm(d.sasi) === k && d.tasitDegeri !== deger) yollar.push(onek + '/' + i + '/tasitDegeri');
+        if (!d || typeof d !== 'object' || sasiNorm(d.sasi) !== k || d[alan] === deger) return;
+        if (kural.sadeceBossa && !bosMu(d[alan])) return;
+        yollar.push(onek + '/' + i + '/' + alan);
       });
     }
     tara(agac.decl, 'decl');
@@ -6395,6 +6408,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     tara(agac.gelecekData, 'gelecekData');
     return yollar;
   }
+  function tasitDegeriYollari(agac, sasi, degerTL) { return alanYollari(agac, sasi, 'tasitDegeri', degerTL); }
   /** "Araçtan doldur" listesi: kaynağa göre gruplu, şasi + marka/model etiketli. */
   function aracSecenekleri(kayitlar) {
     var gruplar = [{ ad: 'Gelen araçlar', liste: [] }, { ad: 'Gelecek araçlar', liste: [] }, { ad: 'Firma arşivi', liste: [] }];
@@ -6427,6 +6441,43 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     return 'BENZİNLİ';
   }
   function tlYaz(n) { return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function tutar(v) { return typeof v === 'number' ? (v > 0 ? v : null) : sayiCoz(v); }
+
+  /** 87.04 çekiş: araç adı / ticari ad / çekiş alanlarından '4x2' | '4x4' | null (belirsiz). */
+  function cekisBul(d) {
+    var ts = d.tseSablon || {};
+    var m = [d.marka, d.model, d.ticariAd, d.ceker, d.cekis, d.tahrik, ts['tse-ticariAd']].filter(Boolean).join(' ').toLocaleUpperCase('tr');
+    if (/(^|[^A-Z0-9])(2WD|4X2|RWD|FWD)([^A-Z0-9]|$)/.test(m)) return '4x2';
+    if (d.dortCeker === true || /(^|[^A-Z0-9])(4WD|4X4|AWD)([^A-Z0-9]|$)|4MATIC|QUATTRO|XDRIVE|4MOTION|ALL4|ALLRAD/.test(m)) return '4x4';
+    return null;
+  }
+  /** Azami toplam ağırlık (CoC 16.1 / GVWR), kg. "3,5" gibi ton yazımı kg'a çevrilir. */
+  function agirlikBul(d) {
+    var a = tutar(d.azamiToplamAgirlik != null && d.azamiToplamAgirlik !== '' ? d.azamiToplamAgirlik : (d.gvwr != null && d.gvwr !== '' ? d.gvwr : d.azamiYukluKutle));
+    if (a == null) return null;
+    if (a < 100) a = a * 1000;
+    return Math.round(a);
+  }
+  /** Taşıt değeri: kayıttaki KDV matrahı / taşıt değeri, yoksa (ortam varsa) kıymet × kur + ÖTV tahmini. */
+  function degerBul(d, ortam, yakitSinifi, cc, kw, otvOrani, otvAciklama) {
+    var kdvMatrahi = tutar(d.kdvMatrahi), kayitli = kdvMatrahi != null ? kdvMatrahi : tutar(d.tasitDegeri);
+    var s = { degerTL: kayitli, degerKaynak: kayitli != null ? 'kayit' : null, tahmin: null, notlar: [] };
+    if (kayitli != null) {
+      s.notlar.push(kdvMatrahi != null ? 'Taşıt değeri araç kaydındaki KDV matrahından geldi.' : 'Taşıt değeri araç kaydından geldi (önceki hesap).');
+      return s;
+    }
+    if (!ortam || !ortam.M) return s;
+    var baz = tutar(d.kiymet), bazAdi = 'kıymet';
+    if (baz == null) { baz = tutar(d.fatura); bazAdi = 'fatura bedeli'; }
+    var kur = ortam.kur || {};
+    var t = ortam.M.tasitDegeriTahmin({ dovizTutar: baz, kur: kur.eur, yakit: yakitSinifi, cc: cc, kw: kw, otvOrani: otvOrani });
+    if (t.hata) { s.notlar.push('Taşıt değeri hesaplanamadı: ' + t.hata); return s; }
+    s.degerTL = t.tasitDegeriTL; s.degerKaynak = 'tahmin'; s.tahmin = t;
+    s.notlar.push('Taşıt değeri hesaplandı: ' + bazAdi + ' ' + tlYaz(baz) + ' € × ' + String(kur.eur).replace('.', ',') + ' (TCMB' + (kur.tarih ? ' ' + kur.tarih : '') + ')' +
+      ' + TRT %0,8 + ÖTV %' + t.otvOrani + (otvAciklama ? ' (' + otvAciklama + ')' : '') + '. Gümrük vergisi %0 (AB menşei), navlun, sigorta ve yurt içi giderler dahil değil; beyanname tarihindeki kur farklı olabilir. Beyannamedeki KDV matrahı varsa onu girin.');
+    if (String(d.teslim || '').toUpperCase().indexOf('EXW') === 0) s.notlar.push('Teslim EXW: navlun ve sigorta eklenmediği için değer düşük çıkabilir.');
+    return s;
+  }
 
   /** Araç kaydını MTV form girdisine çevirir. Yalnız okur, kaydı değiştirmez.
    *  ortam (isteğe bağlı): { M: VergiMotoru, kur: { eur, tarih } } verilirse taşıt değeri kayıtta
@@ -6440,38 +6491,41 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     var cc = sayiCoz(d.silindirHacmi), kw = sayiCoz(d.motorGucu);
     var yil = parseInt(String(d.yil || d.modelYili || '').replace(/\D/g, '').slice(0, 4), 10);
     var degerGerekli = tur === 'otomobil' || tur === 'elektrikli';
-    var tutar = function (v) { return typeof v === 'number' ? (v > 0 ? v : null) : sayiCoz(v); };
-    var kdvMatrahi = tutar(d.kdvMatrahi), kayitliDeger = kdvMatrahi != null ? kdvMatrahi : tutar(d.tasitDegeri);
     var g = {
       sasi: sasiNorm(d.sasi),
       etiket: [d.marka, d.model || d.ticariAd].filter(Boolean).join(' '),
       tur: tur, tescil: 'post2018',
       kriter: tur === 'elektrikli' ? (kw ? Math.round(kw) : null) : (tur === 'otomobil' || tur === 'motosiklet') ? (cc ? Math.round(cc) : null) : null,
       modelYili: yil >= 1950 && yil <= 2100 ? yil : null,
-      degerTL: degerGerekli ? kayitliDeger : null,
-      degerKaynak: degerGerekli && kayitliDeger != null ? 'kayit' : null,
-      tahmin: null,
+      degerTL: null, degerKaynak: null, tahmin: null, pickup: null,
       eksikler: [], notlar: []
     };
-    if (degerGerekli && g.degerTL == null && ortam && ortam.M) {
-      var baz = tutar(d.kiymet), bazAdi = 'kıymet';
-      if (baz == null) { baz = tutar(d.fatura); bazAdi = 'fatura bedeli'; }
-      var kur = ortam.kur || {};
-      var t = ortam.M.tasitDegeriTahmin({ dovizTutar: baz, kur: kur.eur, yakit: otvYakitSinifi(yakit, tur), cc: cc, kw: kw });
-      if (t.hata) g.notlar.push('Taşıt değeri hesaplanamadı: ' + t.hata);
-      else {
-        g.degerTL = t.tasitDegeriTL; g.degerKaynak = 'tahmin'; g.tahmin = t;
-        g.notlar.push('Taşıt değeri hesaplandı: ' + bazAdi + ' ' + tlYaz(baz) + ' € × ' + String(kur.eur).replace('.', ',') + ' (TCMB' + (kur.tarih ? ' ' + kur.tarih : '') + ')' +
-          ' + TRT %0,8 + ÖTV %' + t.otvOrani + '. Gümrük vergisi %0 (AB menşei), navlun, sigorta ve yurt içi giderler dahil değil; beyanname tarihindeki kur farklı olabilir. Beyannamedeki KDV matrahı varsa onu girin.');
-        if (String(d.teslim || '').toUpperCase().indexOf('EXW') === 0) g.notlar.push('Teslim EXW: navlun ve sigorta eklenmediği için değer düşük çıkabilir.');
-      }
+    if (degerGerekli) {
+      var s = degerBul(d, ortam, otvYakitSinifi(yakit, tur), cc, kw);
+      g.degerTL = s.degerTL; g.degerKaynak = s.degerKaynak; g.tahmin = s.tahmin;
+      g.notlar = g.notlar.concat(s.notlar);
+    }
+    if (tur === 'kamyonet') {
+      // 87.04: 4x2 → kamyonet (Tarife II, azami ağırlık). 4x4 ya da belirsiz → kullanıcı ruhsattaki cinsine göre seçer;
+      // varsayılan kamyonet, "arazi taşıtı" seçilirse Tarife I (silindir hacmi + taşıt değeri).
+      var cekis = cekisBul(d), agirlik = agirlikBul(d);
+      var kayitliOtv = sayiCoz(d.otvOrani || d.otvOran || d.otv);
+      if (kayitliOtv != null && kayitliOtv <= 3) kayitliOtv = Math.round(kayitliOtv * 100);
+      var p = { cekis: cekis, secim: cekis !== '4x2', agirlik: agirlik, cc: cc ? Math.round(cc) : null, arazi: null };
+      if (p.secim) p.arazi = degerBul(d, ortam, otvYakitSinifi(yakit, 'otomobil'), cc, kw, kayitliOtv || 50,
+        kayitliOtv ? 'kayıttaki ÖTV oranı' : '87.04 4x4 arazi taşıtı, portal varsayılanı');
+      g.pickup = p;
+      g.kriter = agirlik;
+      g.notlar.push(cekis === '4x2' ? 'Çekiş 4x2 (araç bilgisinden): kamyonet, azami toplam ağırlığa göre (Tarife II).'
+        : 'Çekiş ' + (cekis === '4x4' ? '4x4' : 'belirlenemedi') + ': ruhsattaki cinsine göre "kamyonet" ya da "arazi taşıtı" seçin.');
+      g.notlar.push(agirlik != null ? 'Azami toplam ağırlık kayıttan: ' + agirlik.toLocaleString('tr-TR') + ' kg.'
+        : 'Azami toplam ağırlık kayıtta yok (CoC 16.1 / GVWR); girdiğiniz değer bu şasiye kaydedilir.');
     }
     if (g.kriter == null && TUR_KRITER[tur]) g.eksikler.push('kriter');
     if (g.modelYili == null) g.eksikler.push('modelYili');
     if (degerGerekli && g.degerTL == null) g.eksikler.push('deger');
-    if (g.degerKaynak === 'kayit') g.notlar.push(kdvMatrahi != null ? 'Taşıt değeri araç kaydındaki KDV matrahından geldi.' : 'Taşıt değeri araç kaydından geldi (önceki hesap).');
     if (hibrit) g.notlar.push('Hibrit araç: silindir hacmine göre otomobil tarifesi uygulanır.');
-    if (tur === 'kamyonet' || tur === 'otobus') g.notlar.push('Araç türü GTİP\'ten (' + gtip.slice(0, 4) + ') belirlendi; ' + TUR_KRITER[tur].etiket.toLocaleLowerCase('tr') + ' kayıtta yok.');
+    if (tur === 'otobus') g.notlar.push('Araç türü GTİP\'ten (' + gtip.slice(0, 4) + ') belirlendi; ' + TUR_KRITER[tur].etiket.toLocaleLowerCase('tr') + ' kayıtta yok.');
     return g;
   }
 
@@ -6486,6 +6540,12 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
       if (kriter == null) hatalar.kriter = krit.etiket + ' gerekli.';
       else if (tur === 'otomobil' || tur === 'motosiklet' || tur === 'panelvan') { if (kriter < 50 || kriter > 10000) hatalar.kriter = '50 ile 10.000 cm³ arasında olmalı.'; }
       else if (tur === 'elektrikli') { if (kriter > 2000) hatalar.kriter = '2.000 kW\'tan büyük olamaz.'; }
+      else if (tur === 'kamyonet') {
+        if (kriter < 100) hatalar.kriter = 'Ağırlığı kg olarak girin (ör. 3.200).';
+        else if (kriter > 100000) hatalar.kriter = '100.000 kg\'dan büyük olamaz.';
+        else notlar.push(kriter > 3500 ? 'Azami toplam ağırlık ' + kriter.toLocaleString('tr-TR') + ' kg (3.500 kg üstü): kamyon kademesi uygulandı.'
+          : kriter > 1500 ? 'Azami toplam ağırlık ' + kriter.toLocaleString('tr-TR') + ' kg: 1.501 - 3.500 kg kamyonet kademesi.' : 'Azami toplam ağırlık 1.500 kg ve altı.');
+      }
     }
     var yil = parseInt(f.modelYili, 10), yasGrubu = null;
     if (!(yil >= 1950 && yil <= MTV_YIL + 1)) hatalar.modelYili = '1950 ile ' + (MTV_YIL + 1) + ' arasında bir yıl girin.';
@@ -6540,13 +6600,19 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
           '<select id="vg-mtv-arac-sec" class="vg-control" aria-describedby="vg-mtv-arac-ip" onchange="if(this.value)window.vgMtvAracSec(this.value)">' + aracListesiHtml() + '</select>' +
           '<span class="vg-hint" id="vg-mtv-arac-ip">Listeden seçince bilgiler kendiliğinden dolar</span></div>' +
         '</form>' +
-        '<p class="vg-hint" style="margin:8px 0 0;">Gelen araçlar, gelecek araçlar ve firma arşivi taranır. Hesapta araç kaydına yalnız "taşıt değeri" alanı yazılır; diğer bilgilere dokunulmaz.</p>' +
+        '<p class="vg-hint" style="margin:8px 0 0;">Gelen araçlar, gelecek araçlar ve firma arşivi taranır. Hesapta araç kaydına yalnız "taşıt değeri" ve kayıtta yoksa "azami toplam ağırlık" yazılır; diğer bilgilere dokunulmaz.</p>' +
         '<div id="vg-mtv-sasi-sonuc" aria-live="polite"></div>' +
       '</div>' +
       '<div class="vg-card">' +
         '<form id="vg-mtv-form" novalidate onsubmit="event.preventDefault();window.vgMtvHesapla();" oninput="window.vgMtvBayat()" onchange="window.vgMtvBayat()">' +
           '<div class="vg-grid">' +
             '<div class="vg-field"><label class="vg-label" for="vg-mtv-tur">Taşıt türü</label><select id="vg-mtv-tur" class="vg-control" onchange="window.vgMtvTurDegisti()">' + secenek + '</select></div>' +
+            '<fieldset class="vg-field" id="vg-mtv-sinif-alan" hidden style="grid-column:1/-1;border:0;padding:0;margin:0;min-width:0;" aria-describedby="vg-mtv-sinif-ip">' +
+              '<legend class="vg-label">Pick-up sınıfı (ruhsattaki cinsine göre)</legend>' +
+              '<label style="display:flex;gap:8px;align-items:center;margin-top:4px;"><input type="radio" name="vg-mtv-sinif" id="vg-mtv-sinif-kamyonet" value="kamyonet" onchange="window.vgMtvSinifDegisti(this.value)">4x2 Kamyonet (azami ağırlığa göre, Tarife II)</label>' +
+              '<label style="display:flex;gap:8px;align-items:center;margin-top:4px;"><input type="radio" name="vg-mtv-sinif" id="vg-mtv-sinif-arazi" value="arazi" onchange="window.vgMtvSinifDegisti(this.value)">4x4 Arazi taşıtı (motor hacmi ve taşıt değerine göre, Tarife I)</label>' +
+              '<span class="vg-hint" id="vg-mtv-sinif-ip">4x4 pick-up ruhsatta "kamyonet" de "arazi taşıtı" da olabilir; vergiyi ruhsattaki cins belirler.</span>' +
+            '</fieldset>' +
             '<div class="vg-field"><label class="vg-label" for="vg-mtv-tescil">İlk tescil</label><select id="vg-mtv-tescil" class="vg-control" onchange="window.vgMtvTurDegisti()"><option value="post2018">01.01.2018 ve sonrası</option><option value="pre2018">31.12.2017 ve öncesi</option></select></div>' +
             '<div class="vg-field"><label class="vg-label" for="vg-mtv-yil">Model yılı<span class="vg-req" aria-hidden="true">*</span></label><input id="vg-mtv-yil" class="vg-control vg-num" inputmode="numeric" maxlength="4" required aria-describedby="vg-mtv-yil-ip"><span class="vg-hint" id="vg-mtv-yil-ip">Yaş grubu buradan bulunur (' + MTV_YIL + ' tarifesi)</span></div>' +
             '<div class="vg-field" id="vg-mtv-kriter-alan"><label class="vg-label" for="vg-mtv-kriter" id="vg-mtv-kriter-etiket">Silindir hacmi</label><input id="vg-mtv-kriter" class="vg-control vg-num" inputmode="decimal" aria-describedby="vg-mtv-kriter-ip"><span class="vg-hint" id="vg-mtv-kriter-ip"></span></div>' +
@@ -6587,6 +6653,26 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     }
     $('vg-mtv-deger-alan').hidden = !((tur === 'otomobil' || tur === 'elektrikli') && tescil !== 'pre2018');
     $('vg-mtv-tescil').disabled = !(tur === 'otomobil' || tur === 'elektrikli');
+    var p = mtvDurum.arac && mtvDurum.arac.pickup, sinif = $('vg-mtv-sinif-alan');
+    if (sinif) {
+      sinif.hidden = !(p && p.secim && (tur === 'kamyonet' || tur === 'otomobil'));
+      if (!sinif.hidden) { $('vg-mtv-sinif-kamyonet').checked = tur === 'kamyonet'; $('vg-mtv-sinif-arazi').checked = tur === 'otomobil'; }
+    }
+  };
+  /** Pick-up: kamyonet (ağırlık) ↔ arazi taşıtı (silindir hacmi + taşıt değeri) arasında formu yeniden doldurur. */
+  w.vgMtvSinifDegisti = function (sinif) {
+    var a = mtvDurum.arac, p = a && a.pickup; if (!p) return;
+    var arazi = sinif === 'arazi';
+    $('vg-mtv-tur').value = arazi ? 'otomobil' : 'kamyonet';
+    w.vgMtvTurDegisti();
+    $('vg-mtv-kriter').value = arazi ? (p.cc != null ? String(p.cc) : '') : (p.agirlik != null ? String(p.agirlik) : '');
+    var dg = arazi && p.arazi ? p.arazi.degerTL : null;
+    $('vg-mtv-deger').value = dg != null ? tlYaz(dg) : '';
+    a.degerTL = dg; a.degerKaynak = arazi && p.arazi ? p.arazi.degerKaynak : null;
+    var not = $('vg-mtv-sinif-not');
+    if (not) not.textContent = arazi && p.arazi && p.arazi.notlar.length ? p.arazi.notlar.join(' ') : '';
+    alanHatasi('vg-mtv-kriter', null); alanHatasi('vg-mtv-deger', null);
+    w.vgMtvBayat();
   };
   w.vgMtvBayat = function () {
     var s = $('vg-mtv-sonuc');
@@ -6611,17 +6697,21 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
   }
   function aracOzeti(k, g) {
     var d = k.d, eksik = function (v) { return v ? '<dd>' + esc(v) + '</dd>' : '<dd class="vg-missing">Kayıtta yok</dd>'; };
-    var krit = g.tur === 'elektrikli' ? (g.kriter ? g.kriter + ' kW' : '') : (g.kriter ? g.kriter.toLocaleString('tr-TR') + ' cm³' : '');
+    var p = g.pickup, cm3 = function (n) { return n ? n.toLocaleString('tr-TR') + ' cm³' : ''; };
+    var krit = g.tur === 'elektrikli' ? (g.kriter ? g.kriter + ' kW' : '') : p ? cm3(p.cc) : cm3(g.kriter);
     return '<dl class="vg-vehicle" style="margin-top:12px;">' +
       '<div><dt>Şasi</dt><dd class="vg-num">' + esc(k.sasi) + '</dd></div>' +
       '<div><dt>Marka / model</dt>' + eksik(g.etiket) + '</div>' +
       '<div><dt>Model yılı</dt>' + eksik(g.modelYili) + '</div>' +
       '<div><dt>Yakıt</dt>' + eksik(d.yakitTahrik || d.yakitTuru) + '</div>' +
       '<div><dt>' + (g.tur === 'elektrikli' ? 'Motor gücü' : 'Silindir hacmi') + '</dt>' + eksik(krit) + '</div>' +
+      (p ? '<div><dt>Azami toplam ağırlık</dt>' + eksik(p.agirlik != null ? p.agirlik.toLocaleString('tr-TR') + ' kg' : '') + '</div>' +
+        '<div><dt>Çekiş</dt><dd>' + (p.cekis || 'Belirlenemedi') + '</dd></div>' : '') +
       (g.tur === 'otomobil' || g.tur === 'elektrikli' ? '<div><dt>Taşıt değeri' + (g.degerKaynak === 'tahmin' ? ' (hesaplandı)' : g.degerKaynak === 'kayit' ? ' (kayıtta)' : '') + '</dt>' + eksik(g.degerTL != null ? w.VergiMotoru.tlBicim(Math.round(g.degerTL * 100)) : '') + '</div>' : '') +
       '<div><dt>Kaynak</dt><dd>' + esc(k.kaynak) + '</dd></div>' +
       '</dl>' +
-      (g.notlar.length ? '<div class="vg-note vg-note--warn" role="status" style="margin-top:12px;"><i data-lucide="info" aria-hidden="true"></i><span>' + g.notlar.map(esc).join(' ') + '</span></div>' : '');
+      (g.notlar.length ? '<div class="vg-note vg-note--warn" role="status" style="margin-top:12px;"><i data-lucide="info" aria-hidden="true"></i><span>' + g.notlar.map(esc).join(' ') + '</span></div>' : '') +
+      (p && p.secim ? '<p class="vg-hint" id="vg-mtv-sinif-not" aria-live="polite" style="margin:8px 0 0;"></p>' : '');
   }
   /** Vergi Hesaplama'nın TCMB önbelleğinden EUR kuru; yoksa o sayfadaki kur alanı. */
   function kurOrtami() {
@@ -6632,7 +6722,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
   }
   function aracSec(k, odaksiz) {
     var g = aractanGirdi(k.d, kurOrtami());
-    mtvDurum.arac = { sasi: k.sasi, etiket: g.etiket, degerTL: g.degerTL, degerKaynak: g.degerKaynak };
+    mtvDurum.arac = { sasi: k.sasi, etiket: g.etiket, degerTL: g.degerTL, degerKaynak: g.degerKaynak, pickup: g.pickup, agirlikKayitli: agirlikBul(k.d) != null };
     formDoldur(g);
     $('vg-mtv-sasi-sonuc').innerHTML = aracOzeti(k, g);
     simgeler();
@@ -6722,8 +6812,10 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
   };
   /** Buluttaki kayıtlarda YALNIZ ".../tasitDegeri" yollarına yazar. Portalın tüm veri ağacını yeniden yazan genel kayıt yolu KULLANILMAZ:
    *  önce güncel ağaç okunur, şasisi tutan araçların yolu bulunur, sadece o alt alan set edilir. */
-  function tasitDegeriBulutaYaz(sasi, deger) {
+  function tasitDegeriBulutaYaz(sasi, deger) { return alanBulutaYaz(sasi, 'tasitDegeri', deger); }
+  function alanBulutaYaz(sasi, alan, deger) {
     var ref = w._dbRef, get = w._dbGet, set = w._dbSet, db = w._db, KOK = 'portal_data_test';
+    if (!YAZILABILIR[alan]) return Promise.resolve({ durum: 'izinsiz-alan' });
     var rol = localStorage.getItem('gumruk_role') || 'admin';
     if (!ref || !get || !set || !db) return Promise.resolve({ durum: 'baglanti-yok' });
     if (rol !== 'admin' || w.isSuperViewer) return Promise.resolve({ durum: 'yetki-yok' });
@@ -6731,25 +6823,33 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     return Promise.all(['decl', 'firm', 'gelecekData'].map(function (dugum) {
       return get(ref(db, KOK + '/' + dugum)).then(function (s) { return s.exists() ? s.val() : null; });
     })).then(function (v) {
-      var yollar = tasitDegeriYollari({ decl: v[0], firm: v[1], gelecekData: v[2] }, sasi, deger);
+      var yollar = alanYollari({ decl: v[0], firm: v[1], gelecekData: v[2] }, sasi, alan, deger);
       return Promise.all(yollar.map(function (y) { return set(ref(db, KOK + '/' + y), deger); }))
         .then(function () { return { durum: yollar.length ? 'yazildi' : 'ayni', adet: yollar.length }; });
     });
   }
   function mtvDegeriKaydet(girdi) {
-    var a = mtvDurum.arac;
-    if (!a || !(girdi.degerTL > 0) || girdi.tescil !== 'post2018' || (girdi.tur !== 'otomobil' && girdi.tur !== 'elektrikli')) return '';
-    var deger = Math.round(girdi.degerTL * 100) / 100;
-    tasitDegeriYaz(w, a.sasi, deger);   // bellekte, yalnız tasitDegeri
-    tasitDegeriBulutaYaz(a.sasi, deger).then(function (r) {
-      var m = { yazildi: 'Taşıt değeri araç kaydına yazıldı (' + r.adet + ' kayıt)', ayni: 'Taşıt değeri araç kaydındakiyle aynı',
-        'yetki-yok': 'Taşıt değeri kaydedilmedi: yalnız yönetici yazabilir', 'veri-yuklenmedi': 'Taşıt değeri kaydedilmedi: veriler henüz yüklenmedi',
-        'baglanti-yok': 'Taşıt değeri kaydedilmedi: Firebase bağlantısı yok' }[r.durum];
-      var el = $('vg-mtv-kayit-durum'); if (el) el.textContent = m;
-    }, function (e) {
-      var el = $('vg-mtv-kayit-durum'); if (el) el.textContent = 'Taşıt değeri kaydedilemedi: ' + (e && e.message || 'bilinmeyen hata');
+    var a = mtvDurum.arac; if (!a) return '';
+    var isler = [];
+    if (girdi.degerTL > 0 && girdi.tescil === 'post2018' && (girdi.tur === 'otomobil' || girdi.tur === 'elektrikli'))
+      isler.push({ alan: 'tasitDegeri', ad: 'Taşıt değeri', deger: Math.round(girdi.degerTL * 100) / 100 });
+    if (girdi.tur === 'kamyonet' && !a.agirlikKayitli && girdi.kriter > 0)
+      isler.push({ alan: 'azamiToplamAgirlik', ad: 'Azami toplam ağırlık', deger: Math.round(girdi.kriter) });
+    if (!isler.length) return '';
+    var mesajlar = [];
+    var goster = function () { var el = $('vg-mtv-kayit-durum'); if (el) el.textContent = mesajlar.join(' · '); };
+    isler.forEach(function (is, i) {
+      alanYaz(w, a.sasi, is.alan, is.deger);   // bellekte, yalnız bu alan
+      mesajlar[i] = is.ad + ' araç kaydına yazılıyor…';
+      alanBulutaYaz(a.sasi, is.alan, is.deger).then(function (r) {
+        mesajlar[i] = { yazildi: is.ad + ' araç kaydına yazıldı (' + r.adet + ' kayıt)', ayni: is.ad + ' araç kaydındakiyle aynı',
+          'yetki-yok': is.ad + ' kaydedilmedi: yalnız yönetici yazabilir', 'veri-yuklenmedi': is.ad + ' kaydedilmedi: veriler henüz yüklenmedi',
+          'baglanti-yok': is.ad + ' kaydedilmedi: Firebase bağlantısı yok' }[r.durum];
+        if (is.alan === 'azamiToplamAgirlik' && r.durum === 'yazildi') a.agirlikKayitli = true;
+        goster();
+      }, function (e) { mesajlar[i] = is.ad + ' kaydedilemedi: ' + (e && e.message || 'bilinmeyen hata'); goster(); });
     });
-    return 'Taşıt değeri araç kaydına yazılıyor…';
+    return mesajlar.join(' · ');
   }
   w.vgMtvKopyala = function (btn) {
     var r = mtvDurum.sonuc; if (!r) return;
@@ -6815,7 +6915,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
 
   w.VergiArayuz = { ARACLAR: ARACLAR, ara: ara, sadelestir: sadelestir, kartHtml: kartHtml,
     sayiCoz: sayiCoz, aracKayitlari: aracKayitlari, tasitDegeriYaz: tasitDegeriYaz, tasitDegeriYollari: tasitDegeriYollari, aracSecenekleri: aracSecenekleri,
-    tasitDegeriBulutaYaz: tasitDegeriBulutaYaz, otvYakitSinifi: otvYakitSinifi, aracBul: aracBul, aractanGirdi: aractanGirdi, formdanGirdi: formdanGirdi, mtvOzetMetni: mtvOzetMetni };
+    tasitDegeriBulutaYaz: tasitDegeriBulutaYaz, alanYaz: alanYaz, alanYollari: alanYollari, alanBulutaYaz: alanBulutaYaz, cekisBul: cekisBul, agirlikBul: agirlikBul, otvYakitSinifi: otvYakitSinifi, aracBul: aracBul, aractanGirdi: aractanGirdi, formdanGirdi: formdanGirdi, mtvOzetMetni: mtvOzetMetni };
 })(window);
 </script>
 
