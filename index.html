@@ -6360,25 +6360,53 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     (kaynak.gelecekData || []).forEach(function (d) { ekle(d, 'Gelecek araçlar'); });
     return liste;
   }
-  /** Hesapta kullanılan taşıt değerini (TL) aynı şasili BÜTÜN kayıtlara arac.tasitDegeri olarak yazar;
-   *  nereden geldiği arac.tasitDegeriKaynak'ta ('tahmin' | 'elle' | 'kayit').
+  /** Bellekteki kayıtlarda aynı şasili araçların YALNIZ tasitDegeri alanını günceller (diğer alanlara dokunmaz).
    *  Değişen kaynakları döndürür: { decl, firm, gelecek } (hiçbiri değişmediyse hepsi false). */
-  function tasitDegeriYaz(kaynak, sasi, degerTL, degerKaynak) {
+  function tasitDegeriYaz(kaynak, sasi, degerTL) {
     var k = sasiNorm(sasi), deger = Math.round(Number(degerTL) * 100) / 100;
     var sonuc = { decl: false, firm: false, gelecek: false };
     if (k.length < 6 || !(deger > 0)) return sonuc;
     function yaz(d) {
-      if (!d || typeof d !== 'object' || sasiNorm(d.sasi) !== k) return false;
-      if (d.tasitDegeri === deger && (!degerKaynak || d.tasitDegeriKaynak === degerKaynak)) return false;
-      d.tasitDegeri = deger;
-      if (degerKaynak) d.tasitDegeriKaynak = degerKaynak;
-      return true;
+      if (!d || typeof d !== 'object' || sasiNorm(d.sasi) !== k || d.tasitDegeri === deger) return false;
+      d.tasitDegeri = deger; return true;
     }
     (kaynak.declarationsData || []).forEach(function (d) { if (yaz(d)) sonuc.decl = true; });
     var f = kaynak.firmData || {};
     Object.keys(f).forEach(function (firma) { (Array.isArray(f[firma]) ? f[firma] : []).forEach(function (d) { if (yaz(d)) sonuc.firm = true; }); });
     (kaynak.gelecekData || []).forEach(function (d) { if (yaz(d)) sonuc.gelecek = true; });
     return sonuc;
+  }
+
+  /** Buluttaki ağaçta (portal_data_test altı: decl, firm, gelecekData) şasisi eşleşen araçların
+   *  "tasitDegeri" yollarını verir. Diziler de anahtarlı nesneler de olur. Değer zaten aynıysa yol dönmez. */
+  function tasitDegeriYollari(agac, sasi, degerTL) {
+    var k = sasiNorm(sasi), deger = Math.round(Number(degerTL) * 100) / 100, yollar = [];
+    if (k.length < 6 || !(deger > 0) || !agac) return yollar;
+    function tara(dugum, onek) {
+      if (!dugum || typeof dugum !== 'object') return;
+      Object.keys(dugum).forEach(function (i) {
+        var d = dugum[i];
+        if (d && typeof d === 'object' && sasiNorm(d.sasi) === k && d.tasitDegeri !== deger) yollar.push(onek + '/' + i + '/tasitDegeri');
+      });
+    }
+    tara(agac.decl, 'decl');
+    var f = agac.firm || {};
+    Object.keys(f).forEach(function (firma) { tara(f[firma], 'firm/' + firma); });
+    tara(agac.gelecekData, 'gelecekData');
+    return yollar;
+  }
+  /** "Araçtan doldur" listesi: kaynağa göre gruplu, şasi + marka/model etiketli. */
+  function aracSecenekleri(kayitlar) {
+    var gruplar = [{ ad: 'Gelen araçlar', liste: [] }, { ad: 'Gelecek araçlar', liste: [] }, { ad: 'Firma arşivi', liste: [] }];
+    kayitlar.forEach(function (k) {
+      var d = k.d, ad = [d.marka, d.model || d.ticariAd].filter(Boolean).join(' ');
+      var yil = String(d.yil || '').replace(/\D/g, '').slice(0, 4);
+      var firma = k.kaynak.indexOf('Firma: ') === 0 ? k.kaynak.slice(7) : '';
+      var etiket = k.sasi + ' · ' + (ad || 'Marka/model yok') + (yil ? ' (' + yil + ')' : '') + (firma ? ' · ' + firma : '');
+      var g = k.kaynak === 'Gelen araçlar' ? 0 : k.kaynak === 'Gelecek araçlar' ? 1 : 2;
+      gruplar[g].liste.push({ sasi: k.sasi, etiket: etiket });
+    });
+    return gruplar.filter(function (g) { return g.liste.length; });
   }
 
   /** Tam şasi ya da son ≥6 hane ile arar. En fazla 8 sonuç. */
@@ -6441,7 +6469,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     if (g.kriter == null && TUR_KRITER[tur]) g.eksikler.push('kriter');
     if (g.modelYili == null) g.eksikler.push('modelYili');
     if (degerGerekli && g.degerTL == null) g.eksikler.push('deger');
-    if (g.degerKaynak === 'kayit') g.notlar.push(kdvMatrahi != null ? 'Taşıt değeri araç kaydındaki KDV matrahından geldi.' : 'Taşıt değeri araç kaydından geldi (önceki hesap' + (d.tasitDegeriKaynak === 'tahmin' ? ', tahmin' : '') + ').');
+    if (g.degerKaynak === 'kayit') g.notlar.push(kdvMatrahi != null ? 'Taşıt değeri araç kaydındaki KDV matrahından geldi.' : 'Taşıt değeri araç kaydından geldi (önceki hesap).');
     if (hibrit) g.notlar.push('Hibrit araç: silindir hacmine göre otomobil tarifesi uygulanır.');
     if (tur === 'kamyonet' || tur === 'otobus') g.notlar.push('Araç türü GTİP\'ten (' + gtip.slice(0, 4) + ') belirlendi; ' + TUR_KRITER[tur].etiket.toLocaleLowerCase('tr') + ' kayıtta yok.');
     return g;
@@ -6490,16 +6518,29 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
   // ── MTV paneli (DOM) ────────────────────────────────────────────
   var mtvDurum = { arac: null, sonuc: null };
 
+  function aracListesiHtml() {
+    var gruplar = aracSecenekleri(aracKayitlari(w)), toplam = 0;
+    var ic = gruplar.map(function (g) {
+      toplam += g.liste.length;
+      return '<optgroup label="' + esc(g.ad + ' (' + g.liste.length + ')') + '">' +
+        g.liste.map(function (s) { return '<option value="' + esc(s.sasi) + '">' + esc(s.etiket) + '</option>'; }).join('') + '</optgroup>';
+    }).join('');
+    return '<option value="">' + (toplam ? 'Araç seçin (' + toplam + ')' : 'Kayıtlı araç yok') + '</option>' + ic;
+  }
+
   function mtvPaneli() {
     var secenek = TUR_SIRA.map(function (t) { return '<option value="' + t + '">' + esc(w.VergiMotoru.TUR_ETIKET[t]) + '</option>'; }).join('');
     return '' +
       '<div class="vg-card" style="margin-bottom:16px;">' +
-        '<form id="vg-mtv-sasi-form" class="vg-grid" style="align-items:end;" onsubmit="event.preventDefault();window.vgMtvSasiAra();">' +
+        '<form id="vg-mtv-sasi-form" class="vg-grid" style="align-items:start;" onsubmit="event.preventDefault();window.vgMtvSasiAra();">' +
           '<div class="vg-field"><label class="vg-label" for="vg-mtv-sasi">Şasi ile doldur</label>' +
-          '<input id="vg-mtv-sasi" class="vg-control vg-num" autocomplete="off" spellcheck="false" placeholder="Şasinin tamamı ya da son 6 hanesi" aria-describedby="vg-mtv-sasi-ip"></div>' +
-          '<div class="vg-field"><button class="vg-btn vg-btn--secondary" type="submit"><i data-lucide="search" aria-hidden="true"></i>Araçtan doldur</button></div>' +
+          '<input id="vg-mtv-sasi" class="vg-control vg-num" type="search" autocomplete="off" spellcheck="false" placeholder="Şasinin tamamı ya da son 6 hanesi" aria-describedby="vg-mtv-sasi-ip" aria-controls="vg-mtv-sasi-sonuc" oninput="window.vgMtvSasiYaziliyor(this.value)">' +
+          '<span class="vg-hint" id="vg-mtv-sasi-ip">Yazdıkça eşleşen araçlar listelenir</span></div>' +
+          '<div class="vg-field"><label class="vg-label" for="vg-mtv-arac-sec">Araçtan doldur</label>' +
+          '<select id="vg-mtv-arac-sec" class="vg-control" aria-describedby="vg-mtv-arac-ip" onchange="if(this.value)window.vgMtvAracSec(this.value)">' + aracListesiHtml() + '</select>' +
+          '<span class="vg-hint" id="vg-mtv-arac-ip">Listeden seçince bilgiler kendiliğinden dolar</span></div>' +
         '</form>' +
-        '<p class="vg-hint" id="vg-mtv-sasi-ip" style="margin:8px 0 0;">Gelen araçlar, firma arşivi ve gelecek araçlar taranır. Hesapta araç kaydına yalnız taşıt değeri yazılır.</p>' +
+        '<p class="vg-hint" style="margin:8px 0 0;">Gelen araçlar, gelecek araçlar ve firma arşivi taranır. Hesapta araç kaydına yalnız "taşıt değeri" alanı yazılır; diğer bilgilere dokunulmaz.</p>' +
         '<div id="vg-mtv-sasi-sonuc" aria-live="polite"></div>' +
       '</div>' +
       '<div class="vg-card">' +
@@ -6589,7 +6630,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     if (!kur) { var el = $('calc-kur-eur'), n = el ? w.VergiMotoru.tlCoz(el.value) : 0; if (n > 0) kur = { eur: n, tarih: '' }; }
     return { M: w.VergiMotoru, kur: kur };
   }
-  function aracSec(k) {
+  function aracSec(k, odaksiz) {
     var g = aractanGirdi(k.d, kurOrtami());
     mtvDurum.arac = { sasi: k.sasi, etiket: g.etiket, degerTL: g.degerTL, degerKaynak: g.degerKaynak };
     formDoldur(g);
@@ -6597,6 +6638,8 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     simgeler();
     // İmleç ilk eksik alana
     var sira = { modelYili: 'vg-mtv-yil', kriter: 'vg-mtv-kriter', deger: 'vg-mtv-deger' };
+    var liste = $('vg-mtv-arac-sec'); if (liste) liste.value = k.sasi;
+    if (odaksiz) return;
     var ilk = g.eksikler.map(function (e) { return sira[e]; }).filter(function (id) { var el = $(id); return el && !el.closest('[hidden]'); })[0];
     if (ilk) $(ilk).focus(); else $('vg-mtv-form').querySelector('button[type="submit"]').focus();
   }
@@ -6604,16 +6647,26 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     var k = aracKayitlari(w).filter(function (x) { return x.sasi === sasi; })[0];
     if (k) aracSec(k);
   };
-  w.vgMtvSasiAra = function () {
+  /** Yazarken: 6 karakterden sonra eşleşenleri listeler; tek eşleşmede formu doldurur ama odağı kutuda bırakır. */
+  var yaziZamanlayici = null;
+  w.vgMtvSasiYaziliyor = function (q) {
+    clearTimeout(yaziZamanlayici);
+    yaziZamanlayici = setTimeout(function () {
+      alanHatasi('vg-mtv-sasi', null);
+      if (sasiNorm(q).length < 6) { $('vg-mtv-sasi-sonuc').innerHTML = ''; return; }
+      w.vgMtvSasiAra(true);
+    }, 250);
+  };
+  w.vgMtvSasiAra = function (yazarken) {
     var q = $('vg-mtv-sasi').value, kutu = $('vg-mtv-sasi-sonuc');
     alanHatasi('vg-mtv-sasi', null);
     if (sasiNorm(q).length < 6) { alanHatasi('vg-mtv-sasi', 'En az 6 karakter girin.'); $('vg-mtv-sasi').focus(); return; }
     var bulunan = aracBul(aracKayitlari(w), q);
     if (!bulunan.length) {
-      kutu.innerHTML = '<div class="vg-empty" style="padding:16px 0 0;"><strong>Araç bulunamadı</strong>Bu şasiyle kayıtlı araç yok. Bilgileri aşağıya elle girebilirsiniz.</div>';
+      kutu.innerHTML = '<div class="vg-empty" style="padding:16px 0 0;"><strong>Araç bulunamadı</strong>Bu şasiyle kayıtlı araç yok. Listeden seçebilir ya da bilgileri aşağıya elle girebilirsiniz.</div>';
       return;
     }
-    if (bulunan.length === 1) { aracSec(bulunan[0]); return; }
+    if (bulunan.length === 1) { aracSec(bulunan[0], yazarken === true); return; }
     kutu.innerHTML = '<p class="vg-hint" style="margin:12px 0 8px;">' + bulunan.length + ' araç eşleşti, birini seçin:</p><div class="vg-tools">' +
       bulunan.map(function (k) {
         var g = aractanGirdi(k.d);
@@ -6660,23 +6713,43 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
         '<div class="vg-scroll-x"><table class="vg-breakdown"><caption>Nasıl hesaplandı</caption><thead><tr><th scope="col">Adım</th><th scope="col">Değer</th></tr></thead><tbody>' + dokum + '</tbody>' +
         '<tfoot><tr><td>Yıllık tutar</td><td class="vg-n">' + esc(M.tlBicim(r.yillikKurus)) + '</td></tr></tfoot></table></div>' +
         '<div class="vg-result__meta">' + (r.tarife.dogrulandi ? '<span class="vg-badge vg-badge--ok"><i data-lucide="check" aria-hidden="true"></i>Tarife ' + r.tarife.yil + '</span>' : '<span class="vg-badge vg-badge--warn">Tarife doğrulanmadı</span>') +
-          '<span>Kaynak: ' + esc(r.tarife.kaynakKisa || r.tarife.kaynak) + '</span><span>Motor ' + esc(M.surum) + '</span>' + (kayitNotu ? '<span>' + esc(kayitNotu) + '</span>' : '') + '</div>' +
+          '<span>Kaynak: ' + esc(r.tarife.kaynakKisa || r.tarife.kaynak) + '</span><span>Motor ' + esc(M.surum) + '</span>' + (kayitNotu ? '<span id="vg-mtv-kayit-durum" role="status">' + esc(kayitNotu) + '</span>' : '') + '</div>' +
         '<div class="vg-actions" style="justify-content:flex-start;margin-top:16px;"><button type="button" class="vg-btn vg-btn--secondary vg-btn--sm" onclick="window.vgMtvKopyala(this)"><i data-lucide="copy" aria-hidden="true"></i>Özeti kopyala</button></div>' +
         '<p class="vg-disclaimer">Bilgi amaçlıdır. Kesin tutar için vergi dairenize ya da resmi kanallara başvurun. GümrükPortal bir kamu kurumu değildir.</p>' +
       '</div>';
     simgeler();
     kutu.focus();
   };
-  /** Seçili aracın taşıt değerini kayda yazar ve portalın kendi kayıt yolunu (saveData) tetikler. */
+  /** Buluttaki kayıtlarda YALNIZ ".../tasitDegeri" yollarına yazar. Portalın tüm veri ağacını yeniden yazan genel kayıt yolu KULLANILMAZ:
+   *  önce güncel ağaç okunur, şasisi tutan araçların yolu bulunur, sadece o alt alan set edilir. */
+  function tasitDegeriBulutaYaz(sasi, deger) {
+    var ref = w._dbRef, get = w._dbGet, set = w._dbSet, db = w._db, KOK = 'portal_data_test';
+    var rol = localStorage.getItem('gumruk_role') || 'admin';
+    if (!ref || !get || !set || !db) return Promise.resolve({ durum: 'baglanti-yok' });
+    if (rol !== 'admin' || w.isSuperViewer) return Promise.resolve({ durum: 'yetki-yok' });
+    if (!w._dataLoaded) return Promise.resolve({ durum: 'veri-yuklenmedi' });
+    return Promise.all(['decl', 'firm', 'gelecekData'].map(function (dugum) {
+      return get(ref(db, KOK + '/' + dugum)).then(function (s) { return s.exists() ? s.val() : null; });
+    })).then(function (v) {
+      var yollar = tasitDegeriYollari({ decl: v[0], firm: v[1], gelecekData: v[2] }, sasi, deger);
+      return Promise.all(yollar.map(function (y) { return set(ref(db, KOK + '/' + y), deger); }))
+        .then(function () { return { durum: yollar.length ? 'yazildi' : 'ayni', adet: yollar.length }; });
+    });
+  }
   function mtvDegeriKaydet(girdi) {
     var a = mtvDurum.arac;
     if (!a || !(girdi.degerTL > 0) || girdi.tescil !== 'post2018' || (girdi.tur !== 'otomobil' && girdi.tur !== 'elektrikli')) return '';
-    var ayni = a.degerTL != null && Math.abs(a.degerTL - girdi.degerTL) < 0.005;
-    var d = tasitDegeriYaz(w, a.sasi, girdi.degerTL, ayni ? (a.degerKaynak === 'tahmin' ? 'tahmin' : null) : 'elle');
-    if (!d.decl && !d.firm && !d.gelecek) return 'Taşıt değeri araç kaydındakiyle aynı';
-    if ((d.decl || d.firm) && typeof w.saveData === 'function') w.saveData(d.firm ? 'firm' : 'decl');
-    if (d.gelecek && typeof w.saveGelecekData === 'function') w.saveGelecekData();
-    return 'Taşıt değeri araç kaydına yazıldı';
+    var deger = Math.round(girdi.degerTL * 100) / 100;
+    tasitDegeriYaz(w, a.sasi, deger);   // bellekte, yalnız tasitDegeri
+    tasitDegeriBulutaYaz(a.sasi, deger).then(function (r) {
+      var m = { yazildi: 'Taşıt değeri araç kaydına yazıldı (' + r.adet + ' kayıt)', ayni: 'Taşıt değeri araç kaydındakiyle aynı',
+        'yetki-yok': 'Taşıt değeri kaydedilmedi: yalnız yönetici yazabilir', 'veri-yuklenmedi': 'Taşıt değeri kaydedilmedi: veriler henüz yüklenmedi',
+        'baglanti-yok': 'Taşıt değeri kaydedilmedi: Firebase bağlantısı yok' }[r.durum];
+      var el = $('vg-mtv-kayit-durum'); if (el) el.textContent = m;
+    }, function (e) {
+      var el = $('vg-mtv-kayit-durum'); if (el) el.textContent = 'Taşıt değeri kaydedilemedi: ' + (e && e.message || 'bilinmeyen hata');
+    });
+    return 'Taşıt değeri araç kaydına yazılıyor…';
   }
   w.vgMtvKopyala = function (btn) {
     var r = mtvDurum.sonuc; if (!r) return;
@@ -6741,7 +6814,8 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
   });
 
   w.VergiArayuz = { ARACLAR: ARACLAR, ara: ara, sadelestir: sadelestir, kartHtml: kartHtml,
-    sayiCoz: sayiCoz, aracKayitlari: aracKayitlari, tasitDegeriYaz: tasitDegeriYaz, otvYakitSinifi: otvYakitSinifi, aracBul: aracBul, aractanGirdi: aractanGirdi, formdanGirdi: formdanGirdi, mtvOzetMetni: mtvOzetMetni };
+    sayiCoz: sayiCoz, aracKayitlari: aracKayitlari, tasitDegeriYaz: tasitDegeriYaz, tasitDegeriYollari: tasitDegeriYollari, aracSecenekleri: aracSecenekleri,
+    tasitDegeriBulutaYaz: tasitDegeriBulutaYaz, otvYakitSinifi: otvYakitSinifi, aracBul: aracBul, aractanGirdi: aractanGirdi, formdanGirdi: formdanGirdi, mtvOzetMetni: mtvOzetMetni };
 })(window);
 </script>
 
