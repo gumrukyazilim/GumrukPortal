@@ -133,7 +133,7 @@ function tsePaketJsonp(arac) {
         const script = document.createElement('script');
         const params = new URLSearchParams({action:'createTse3LuPaket',callback:cb,
             sasi:String(arac.sasi).trim().toUpperCase(),evrakLink:arac.evrakLink,
-            firma:arac.firma,marka:arac.marka||'',model:arac.model||'',
+            firma:arac.firma,marka:arac.marka||'',model:arac.model||'',renk:arac.renk||'',
             antrepoAdi:'Y.O.İ.G.M',uretildigiUlke:arac.uretildigiUlke||arac.menseUlke||'',
             ithalatinYapildigiUlke:arac.cikisUlke||arac.ithalatUlkesi||arac.ithalatinYapildigiUlke||'',
             gonderici:arac.gonderici||arac.ihracatci||'',
@@ -251,4 +251,251 @@ function tsePaketSonucGoster(result) {
     document.addEventListener("DOMContentLoaded", entegreEt, { once: true });
   }
   setInterval(entegreEt, 800);
+})();
+
+// ==================== ⚡ HIZLI 4'LÜ PAKET (DRIVE'DAN — PORTALA KAYIT YOK) ====================
+// Portala araç eklemeden seçilen Drive klasöründeki CoC ile mevcut 4'lü paket motorunu
+// (createTse3LuPaket, tsePaketJsonp) çalıştırır; 4 belge o klasöre kaydedilir.
+// SIFIR VERİTABANI: bu modül Firebase'e, Gelen/Gelecek Araçlar listelerine, gümrük ambarı
+// 20 gün sayacına veya alarmlara HİÇBİR şey yazmaz; yalnız Apps Script'i JSONP ile çağırır.
+(function () {
+  "use strict";
+  const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/;
+  const TURLER = [["apm", "APM Şablonu"], ["tse", "TSE Tutanağı"], ["ulm", "ULM Raporu"], ["egzoz", "Egzoz Raporu"]];
+  const H = window.HIZLI_PAKET = {
+    // Girdi türü: klasör linki/ID'si, 17 haneli şasi ya da klasör adı parçası.
+    girdiCozumle: function (girdi) {
+      const q = String(girdi || "").trim();
+      const m = q.match(/folders\/([A-Za-z0-9_-]{10,})/) || q.match(/[?&]id=([A-Za-z0-9_-]{10,})/);
+      if (m) return { tur: "klasor", id: m[1], q: q };
+      if (VIN_RE.test(q.toUpperCase())) return { tur: "sasi", sasi: q.toUpperCase(), q: q.toUpperCase() };
+      if (/^[A-Za-z0-9_-]{25,}$/.test(q)) return { tur: "klasor", id: q, q: q };
+      return { tur: "metin", q: q };
+    },
+    klasorLinki: function (id) { return "https://drive.google.com/drive/folders/" + encodeURIComponent(id); },
+    // Firma önerileri yalnız bellekteki listelerden OKUNUR (resmi unvanlar + kayıtlı firma adları).
+    firmaListesi: function () {
+      const set = new Set();
+      const ekle = function (f) { f = String(f || "").trim(); if (f && !/\.\.\./.test(f)) set.add(f.toLocaleUpperCase("tr")); };
+      const fy = window.FIRMA_YETKILI || {};
+      Object.keys(fy).forEach(function (k) { if (k !== "_DEFAULT") ekle(fy[k] && fy[k].resmiUnvan); });
+      (window.declarationsData || []).forEach(function (d) { ekle(d && d.firma); });
+      (window.gelecekData || []).forEach(function (d) { ekle(d && d.firma); });
+      Object.keys(window.firmData || {}).forEach(ekle);
+      return Array.from(set).sort(function (a, b) { return a.localeCompare(b, "tr"); });
+    },
+    jsonp: function (params, sureMs) {
+      return new Promise(function (resolve, reject) {
+        const cb = "__hizliPaket_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+        const script = document.createElement("script");
+        let bitti = false;
+        function bitir(err, res) {
+          if (bitti) return; bitti = true; clearTimeout(timer); script.remove();
+          window[cb] = function () {}; setTimeout(function () { delete window[cb]; }, 60000);
+          if (err) reject(err); else resolve(res);
+        }
+        const timer = setTimeout(function () { bitir(new Error("Apps Script yanıt vermedi (zaman aşımı).")); }, sureMs || 60000);
+        window[cb] = function (res) { bitir(null, res); };
+        script.onerror = function () { bitir(new Error("Apps Script bağlantısı kurulamadı.")); };
+        script.src = window.TSE_GAS_URL + "?" + new URLSearchParams(Object.assign({ callback: cb }, params)).toString();
+        document.head.appendChild(script);
+      });
+    },
+    // Aday klasörler: {id, ad, url, sasiler[], pdfSayisi, cocSayisi}. Şasi Drive adlarında yoksa
+    // portalın salt okunur arşiv araması (köprü klasorAra) denenir; klasör OLUŞTURULMAZ.
+    adaylariGetir: async function (girdi) {
+      const g = H.girdiCozumle(girdi);
+      if (g.q.length < 3) throw new Error("Klasör linki, ID, şasi veya klasör adı girin.");
+      const res = await H.jsonp({ action: "hizliKlasorBul", q: g.tur === "klasor" ? g.id : g.q }, 60000);
+      if (!res || !res.success) throw new Error((res && res.error) || "Drive klasörü aranamadı.");
+      let adaylar = res.adaylar || [];
+      if (!adaylar.length && g.tur === "sasi" && typeof window.gelecekKlasorAraSasi === "function") {
+        const kopru = await window.gelecekKlasorAraSasi(g.sasi);
+        adaylar = (kopru || []).filter(function (a) { return a && a.url; }).map(function (a) {
+          const id = (String(a.url).match(/folders\/([A-Za-z0-9_-]+)/) || [])[1] || "";
+          const ds = a.dosyalar || [];
+          return { id: id, ad: a.yol || a.ad || a.url, url: a.url, sasiler: [g.sasi],
+            pdfSayisi: ds.filter(function (n) { return /\.pdf$/i.test(n); }).length,
+            cocSayisi: ds.filter(function (n) { return /\.pdf$/i.test(n) && /coc|conformity|uygunluk|bereinstimmung/i.test(n); }).length };
+        }).filter(function (a) { return a.id; });
+      }
+      // Şasiyle aranmışsa o şasi her adayda ilk öneri olur; CoC'lu klasörler öne alınır.
+      if (g.tur === "sasi") adaylar.forEach(function (a) { a.sasiler = [g.sasi].concat((a.sasiler || []).filter(function (s) { return s !== g.sasi; })); });
+      return adaylar.slice().sort(function (a, b) { return (b.cocSayisi || 0) - (a.cocSayisi || 0) || (b.pdfSayisi || 0) - (a.pdfSayisi || 0); });
+    },
+    // Motorun beklediği alanlar; yalnız bu nesne Apps Script'e gider, hiçbir yere kaydedilmez.
+    paketParametreleri: function (form) {
+      const t = function (v) { return String(v || "").trim(); };
+      const sasi = t(form.sasi).toUpperCase();
+      if (!VIN_RE.test(sasi)) throw new Error("Geçerli 17 haneli şasi gerekli (klasör adında bulunamadıysa elle yazın).");
+      if (!t(form.klasorId)) throw new Error("Önce Drive klasörünü seçin.");
+      if (!t(form.firma)) throw new Error("Başvuran firma adı boş.");
+      return { sasi: sasi, evrakLink: H.klasorLinki(t(form.klasorId)), firma: t(form.firma).toLocaleUpperCase("tr"),
+        basvuruNo: t(form.basvuruNo), basvuruTarihi: t(form.basvuruTarihi), marka: t(form.marka), renk: t(form.renk),
+        uretildigiUlke: t(form.uretildigiUlke), cikisUlke: t(form.cikisUlke) };
+    },
+    sonucDogrula: function (res) {
+      if (!res || !res.success) throw new Error((res && res.error) || "Bulut işlemi tamamlanamadı.");
+      const files = Array.isArray(res.files) ? res.files : [];
+      const eksik = TURLER.filter(function (t) { return !files.some(function (f) { return f && f.type === t[0] && f.url; }); });
+      if (eksik.length) throw new Error("Bulut yanıtında eksik belge: " + eksik.map(function (t) { return t[1]; }).join(", "));
+      files.forEach(function (f) {
+        const u = new URL(f.url);
+        if (u.protocol !== "https:" || ["drive.google.com", "docs.google.com"].indexOf(u.hostname) < 0) throw new Error("Geçersiz belge bağlantısı: " + f.name);
+      });
+      return res;
+    },
+    indirmeLinki: function (file) {
+      return file && /^[A-Za-z0-9_-]+$/.test(String(file.id || "")) ? "https://drive.google.com/uc?export=download&id=" + file.id : "";
+    },
+    uret: async function (form) {
+      const arac = H.paketParametreleri(form);
+      if (typeof window.tsePaketJsonp !== "function") throw new Error("TSE paket motoru yüklenemedi; sayfayı yenileyin.");
+      return H.sonucDogrula(await window.tsePaketJsonp(arac));
+    },
+
+    // ---------- Arayüz ----------
+    ac: function () {
+      H.kapat();
+      const ov = document.createElement("div");
+      ov.id = "hizli-paket-modal";
+      ov.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.6);padding:16px;";
+      ov.innerHTML =
+        '<div style="background:var(--bg-surface,#fff);color:var(--text-primary,#0f172a);border:1px solid var(--border,#e2e8f0);border-radius:16px;width:100%;max-width:560px;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.35);">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border,#e2e8f0);">' +
+        '<div><div style="font-size:16px;font-weight:800;">⚡ Hızlı 4\'lü Paket (Drive\'dan)</div><div style="font-size:12px;color:var(--text-muted,#64748b);margin-top:2px;">Portala araç kaydedilmez · belgeler seçilen klasöre yazılır</div></div>' +
+        '<button type="button" data-hp="kapat" aria-label="Kapat" style="background:none;border:0;font-size:22px;cursor:pointer;color:var(--text-secondary,#475569);">×</button></div>' +
+        '<div style="padding:16px 18px;display:grid;gap:12px;">' +
+        '<label style="display:grid;gap:4px;font-size:12px;font-weight:700;">1. Drive klasör linki / ID, şasi no veya klasör adı' +
+        '<div style="display:flex;gap:6px;"><input data-hp="kaynak" type="text" autocomplete="off" placeholder="https://drive.google.com/drive/folders/… veya WAUZZZ…" style="flex:1;min-width:0;padding:9px 10px;border-radius:8px;border:1px solid var(--border,#cbd5e1);background:var(--input-bg,#fff);color:inherit;">' +
+        '<button type="button" data-hp="bul" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border,#cbd5e1);background:var(--bg-elevated,#f1f5f9);color:inherit;font-weight:700;cursor:pointer;white-space:nowrap;">🔎 Bul</button></div></label>' +
+        '<div data-hp="adaylar" style="display:grid;gap:6px;"></div>' +
+        '<label style="display:grid;gap:4px;font-size:12px;font-weight:700;">Şasi No (klasörden otomatik)<input data-hp="sasi" type="text" maxlength="17" autocomplete="off" style="padding:9px 10px;border-radius:8px;border:1px solid var(--border,#cbd5e1);background:var(--input-bg,#fff);color:inherit;font-family:var(--font-mono,monospace);text-transform:uppercase;"></label>' +
+        '<label style="display:grid;gap:4px;font-size:12px;font-weight:700;">2. Başvuran firma adı<input data-hp="firma" type="text" list="hizli-paket-firmalar" autocomplete="off" placeholder="Örn: MASKAR İNŞAAT VE OTOMOTİV" style="padding:9px 10px;border-radius:8px;border:1px solid var(--border,#cbd5e1);background:var(--input-bg,#fff);color:inherit;"><datalist id="hizli-paket-firmalar"></datalist></label>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+        '<label style="display:grid;gap:4px;font-size:12px;font-weight:700;">3. Başvuru No <span style="font-weight:400;color:var(--text-muted,#64748b);">(isteğe bağlı)</span><input data-hp="basvuruNo" type="text" autocomplete="off" style="padding:9px 10px;border-radius:8px;border:1px solid var(--border,#cbd5e1);background:var(--input-bg,#fff);color:inherit;"></label>' +
+        '<label style="display:grid;gap:4px;font-size:12px;font-weight:700;">Başvuru Tarihi <span style="font-weight:400;color:var(--text-muted,#64748b);">(isteğe bağlı)</span><input data-hp="basvuruTarihi" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border,#cbd5e1);background:var(--input-bg,#fff);color:inherit;"></label></div>' +
+        '<div style="font-size:11px;color:var(--text-muted,#64748b);margin-top:-6px;">Başvuru no boş bırakılırsa belgeler taslak olarak üretilir.</div>' +
+        '<details style="font-size:12px;"><summary style="cursor:pointer;font-weight:700;">Ek bilgiler (isteğe bağlı)</summary><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">' +
+        ["marka:Marka", "renk:Renk", "uretildigiUlke:Menşe ülke", "cikisUlke:İthalat (çıkış) ülkesi"].map(function (x) {
+          const p = x.split(":");
+          return '<label style="display:grid;gap:4px;font-weight:600;">' + p[1] + '<input data-hp="' + p[0] + '" type="text" autocomplete="off" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border,#cbd5e1);background:var(--input-bg,#fff);color:inherit;"></label>';
+        }).join("") +
+        '</div><div style="color:var(--text-muted,#64748b);margin-top:6px;">Boş bırakılan alanlar CoC ve şasiden okunur.</div></details>' +
+        '<button type="button" data-hp="uret" style="padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:14px;font-weight:800;cursor:pointer;">⚡ Paketi Üret</button>' +
+        '<div data-hp="sonuc" aria-live="polite" style="font-size:13px;line-height:1.5;overflow-wrap:anywhere;"></div>' +
+        "</div></div>";
+      document.body.appendChild(ov);
+      const el = function (k) { return ov.querySelector('[data-hp="' + k + '"]'); };
+      const dl = ov.querySelector("#hizli-paket-firmalar");
+      H.firmaListesi().forEach(function (f) { const o = document.createElement("option"); o.value = f; dl.appendChild(o); });
+      H._durum = { klasorId: "", otomatikSasi: "" };
+      ov.addEventListener("click", function (e) { if (e.target === ov || e.target === el("kapat")) H.kapat(); });
+      el("bul").addEventListener("click", function () { H._bul(ov); });
+      el("kaynak").addEventListener("keydown", function (e) { if (e.key === "Enter") H._bul(ov); });
+      el("kaynak").addEventListener("input", function () { H._durum.klasorId = ""; el("adaylar").replaceChildren(); });
+      el("uret").addEventListener("click", function () { H._uretTikla(ov); });
+      el("kaynak").focus();
+    },
+    kapat: function () { const m = document.getElementById("hizli-paket-modal"); if (m) m.remove(); },
+    _mesaj: function (ov, metin, tur) {
+      const box = ov.querySelector('[data-hp="sonuc"]');
+      box.replaceChildren();
+      const d = document.createElement("div");
+      d.textContent = metin;
+      d.style.cssText = "padding:10px 12px;border-radius:10px;" + (tur === "hata" ? "background:#fef2f2;color:#991b1b;border:1px solid #fecaca;" : "background:#eff6ff;color:#1e3a8a;border:1px solid #bfdbfe;");
+      box.appendChild(d);
+    },
+    _sec: function (ov, aday) {
+      H._durum.klasorId = aday.id;
+      const sasiEl = ov.querySelector('[data-hp="sasi"]');
+      const oneri = (aday.sasiler || [])[0] || "";
+      // Kullanıcı şasiyi elle yazdıysa ezilmez; yalnız boş ya da önceki otomatik değer değiştirilir.
+      if (!sasiEl.value || sasiEl.value === H._durum.otomatikSasi) { sasiEl.value = oneri; H._durum.otomatikSasi = oneri; }
+      ov.querySelectorAll('[data-hp-aday]').forEach(function (k) {
+        const secili = k.getAttribute("data-hp-aday") === aday.id;
+        k.style.borderColor = secili ? "#2563eb" : "var(--border,#e2e8f0)";
+        k.style.boxShadow = secili ? "0 0 0 2px rgba(37,99,235,.25)" : "none";
+      });
+    },
+    _bul: async function (ov) {
+      const kaynak = ov.querySelector('[data-hp="kaynak"]').value;
+      const liste = ov.querySelector('[data-hp="adaylar"]');
+      const g = H.girdiCozumle(kaynak);
+      if (g.tur === "sasi") { const s = ov.querySelector('[data-hp="sasi"]'); if (!s.value || s.value === H._durum.otomatikSasi) { s.value = g.sasi; H._durum.otomatikSasi = g.sasi; } }
+      H._mesaj(ov, "🔎 Drive klasörü aranıyor…");
+      liste.replaceChildren();
+      try {
+        const adaylar = await H.adaylariGetir(kaynak);
+        if (!adaylar.length) throw new Error("Eşleşen Drive klasörü bulunamadı.");
+        adaylar.forEach(function (a) {
+          const k = document.createElement("button");
+          k.type = "button"; k.setAttribute("data-hp-aday", a.id);
+          k.style.cssText = "text-align:left;padding:9px 11px;border-radius:10px;border:1px solid var(--border,#e2e8f0);background:var(--bg-elevated,#f8fafc);color:inherit;cursor:pointer;";
+          const ad = document.createElement("div"); ad.textContent = "📁 " + a.ad; ad.style.fontWeight = "700";
+          const alt = document.createElement("div"); alt.style.cssText = "font-size:11px;color:var(--text-muted,#64748b);";
+          alt.textContent = (a.cocSayisi ? a.cocSayisi + " CoC PDF · " : "⚠️ CoC adlı PDF yok · ") + (a.pdfSayisi || 0) + " PDF" + ((a.sasiler || []).length ? " · Şasi: " + a.sasiler.join(", ") : " · Şasi adlarda yok");
+          k.appendChild(ad); k.appendChild(alt);
+          k.addEventListener("click", function () { H._sec(ov, a); });
+          liste.appendChild(k);
+        });
+        H._sec(ov, adaylar[0]);
+        H._mesaj(ov, adaylar.length > 1 ? adaylar.length + " klasör bulundu; doğru olanı seçin." : "✅ Klasör seçildi: " + adaylar[0].ad);
+        return adaylar;
+      } catch (err) { H._mesaj(ov, "Klasör bulunamadı: " + err.message, "hata"); return null; }
+    },
+    _uretTikla: async function (ov) {
+      const btn = ov.querySelector('[data-hp="uret"]');
+      if (btn.disabled) return;
+      const v = function (k) { const e = ov.querySelector('[data-hp="' + k + '"]'); return e ? e.value : ""; };
+      btn.disabled = true; btn.style.opacity = ".6";
+      try {
+        if (!H._durum.klasorId && !(await H._bul(ov))) return;
+        const form = { klasorId: H._durum.klasorId, sasi: v("sasi"), firma: v("firma"), basvuruNo: v("basvuruNo"),
+          basvuruTarihi: v("basvuruTarihi"), marka: v("marka"), renk: v("renk"), uretildigiUlke: v("uretildigiUlke"), cikisUlke: v("cikisUlke") };
+        H.paketParametreleri(form); // eksik alan varsa buluta gitmeden uyar
+        H._mesaj(ov, "⏳ CoC bulutta okunuyor, çapraz kontrol yapılıyor; 4 belge klasöre yazılıyor… (1-3 dk)");
+        H._sonucGoster(ov, await H.uret(form), !String(form.basvuruNo).trim());
+      } catch (err) {
+        H._mesaj(ov, "Paket oluşturulamadı: " + err.message, "hata");
+      } finally { btn.disabled = false; btn.style.opacity = ""; }
+    },
+    _sonucGoster: function (ov, res, taslak) {
+      const box = ov.querySelector('[data-hp="sonuc"]');
+      box.replaceChildren();
+      const bas = document.createElement("div");
+      bas.textContent = "✅ 4 belge Drive klasörüne kaydedildi" + (taslak ? " (taslak — başvuru no yok)" : "") + ".";
+      bas.style.cssText = "font-weight:800;color:#15803d;margin-bottom:8px;";
+      box.appendChild(bas);
+      TURLER.forEach(function (t) {
+        const f = res.files.find(function (x) { return x.type === t[0]; });
+        const satir = document.createElement("div");
+        satir.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;margin-top:6px;border:1px solid var(--border,#e2e8f0);border-radius:10px;";
+        const ad = document.createElement("div"); ad.style.cssText = "flex:1;min-width:160px;";
+        const b = document.createElement("strong"); b.textContent = t[1]; ad.appendChild(b);
+        const n = document.createElement("div"); n.textContent = f.name; n.style.cssText = "font-size:11px;color:var(--text-muted,#64748b);"; ad.appendChild(n);
+        satir.appendChild(ad);
+        const link = function (href, metin, renk) {
+          const a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = metin;
+          a.style.cssText = "padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;color:#fff;background:" + renk + ";";
+          return a;
+        };
+        satir.appendChild(link(new URL(f.url).href, "Drive'da Aç", "#2563eb"));
+        const ind = H.indirmeLinki(f);
+        if (ind) satir.appendChild(link(ind, "⬇ İndir", "#0f766e"));
+        box.appendChild(satir);
+      });
+      if (res.folderUrl) { const a = document.createElement("a"); a.href = res.folderUrl; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "📁 Klasörü aç"; a.style.cssText = "display:inline-block;margin-top:10px;font-weight:700;color:#2563eb;"; box.appendChild(a); }
+      if (res.fuel) { const p = document.createElement("div"); p.textContent = "Yakıt: " + res.fuel + (res.yakitTahrik ? " (" + res.yakitTahrik + ")" : "") + " · GTİP: " + (res.gtip || "-"); p.style.marginTop = "8px"; box.appendChild(p); }
+      // Orijinal CoC ↔ CoC_TR çapraz kontrolü — Gelen Araçlar paketindeki gösterimle aynı.
+      (res.caprazUyarilar || []).forEach(function (u) {
+        const uyumsuz = res.caprazKontrol && res.caprazKontrol.durum === "uyumsuz" && /^⚠️/.test(u);
+        const p = document.createElement("div"); p.textContent = u;
+        p.style.cssText = uyumsuz ? "margin-top:10px;padding:10px;border:2px solid #dc2626;border-radius:8px;background:#fef2f2;color:#991b1b;font-weight:700;" : "margin-top:8px;color:var(--text-muted,#64748b);";
+        box.appendChild(p);
+      });
+      if (res.caprazKontrol && res.caprazKontrol.durum === "dogrulandi") { const p = document.createElement("div"); p.textContent = "✅ Orijinal CoC ile CoC_TR çapraz doğrulandı (" + (res.caprazKontrol.dogrulanan || []).length + " alan)."; p.style.cssText = "margin-top:8px;color:#15803d;font-weight:600;"; box.appendChild(p); }
+      if (res.warnings && res.warnings.length) { const p = document.createElement("div"); p.textContent = res.warnings.join(" · "); p.style.cssText = "margin-top:8px;color:var(--text-secondary,#475569);font-size:12px;"; box.appendChild(p); }
+    }
+  };
 })();
