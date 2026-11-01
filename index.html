@@ -573,6 +573,9 @@ body.gp-admin-nav .admin-or-viewer-footer { display: block; }
         
         .header-right { display:flex; align-items:center; gap:10px; }
         .hdr-icon-btn { width:38px; height:38px; border-radius:var(--r-md); border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.18s; }
+        .hdr-quick-btn { height:34px; padding:0 12px; border-radius:var(--r-md); border:0; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; box-shadow:0 2px 8px rgba(37,99,235,.35); transition:0.18s; }
+        .hdr-quick-btn:hover { filter:brightness(1.1); }
+        @media (max-width: 900px) { .hdr-quick-btn .hdr-quick-txt { display:none; } .hdr-quick-btn { width:34px; padding:0; } }
         .hdr-icon-btn:hover { border-color:var(--primary); color:var(--primary); background:var(--bg-hover); }
         .divider-v { width:1px; height:24px; background:var(--border); }
         .user-pill { display:flex; align-items:center; gap:9px; padding:5px 12px 5px 6px; border-radius:20px; border:1px solid var(--border); background:var(--bg-elevated); cursor:pointer; transition:0.18s; }
@@ -3102,6 +3105,7 @@ div[style*="position: relative"] > input {
                 </div>
             </div>
             <div class="header-right">
+                <button class="hdr-quick-btn admin-only" id="btn-hizli-paket" onclick="window.HIZLI_PAKET && window.HIZLI_PAKET.ac()" title="Portala araç kaydetmeden Drive klasöründen 4'lü paket üret">⚡<span class="hdr-quick-txt"> Hızlı 4'lü Paket (Drive'dan)</span></button>
                 <button class="hdr-icon-btn" onclick="window.toggleTheme()" title="Gece/Gündüz Modu"><i data-lucide="moon"></i></button>
                 <button class="hdr-icon-btn admin-only" onclick="window.exportBackup()" title="Yedek İndir"><i data-lucide="download"></i></button>
                 <button class="hdr-icon-btn admin-only" onclick="window._cocTrBackfill.runBatch()" title="Eski Araçlardan CoC TR Tara (Toplu TSE Backfill)"><i data-lucide="file-scan"></i></button>
