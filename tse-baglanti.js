@@ -267,6 +267,12 @@ function tsePaketSonucGoster(result) {
   const VARSAYILAN_FIRMA = "MASKAR";
   // GÜMRÜK ARŞİVİ kökündeki firma olmayan klasörler; firma listesinde gösterilmez (norm anahtarıyla).
   const FIRMA_DISI_KLASORLER = ["GENEL", "GUMRUKYEDEK", "TSEEVRAKLARI", "BAZILIKACAFE"];
+  // Firma klasörü kısa adı (norm anahtarı) → TSE belgelerindeki tam resmi ticaret unvanı (onaylı ULM raporundaki yazım).
+  const RESMI_UNVANLAR = { MASKAR: "MASKAR INSAAT OTOMOTIV TEKSTIL MAKINA SANAYI TIC.LTD.ŞTİ" };
+  // İthalat / menşe ülkesi seçim listesi (APM'nin kabul ettiği TSE yazımı).
+  const ULKELER = ["ALMANYA", "AVUSTURYA", "BELÇİKA", "BİRLEŞİK ARAP EMİRLİKLERİ", "ÇEK CUMHURİYETİ", "DANİMARKA", "FRANSA", "HOLLANDA",
+    "İNGİLTERE", "İSPANYA", "İSVEÇ", "İSVİÇRE", "İTALYA", "LÜKSEMBURG", "MACARİSTAN", "POLONYA", "PORTEKİZ", "SLOVAKYA", "SLOVENYA",
+    "AMERİKA", "KANADA", "JAPONYA", "G.KORE", "ÇİN", "GÜRCİSTAN", "BULGARİSTAN", "ROMANYA", "YUNANİSTAN"];
   // Karşılaştırma anahtarı: büyük harf, Türkçe harfler sadeleşir (audi = AUDİ = AUDI), yalnız harf/rakam.
   const norm = function (s) {
     const tr = { "Ç": "C", "Ğ": "G", "İ": "I", "Ö": "O", "Ş": "S", "Ü": "U" };
@@ -302,6 +308,8 @@ function tsePaketSonucGoster(result) {
     firmaEslestir: function (klasorAdi) {
       const n = norm(klasorAdi);
       if (!n) return "";
+      const resmi = Object.keys(RESMI_UNVANLAR).filter(function (k) { return n.indexOf(k) === 0; })[0];
+      if (resmi) return RESMI_UNVANLAR[resmi];
       const say = H.firmaSayilari();
       const aday = Array.from(say.keys()).filter(function (f) { return norm(f).indexOf(n) === 0; })
         .sort(function (a, b) { return say.get(b) - say.get(a) || a.length - b.length; });
@@ -376,7 +384,8 @@ function tsePaketSonucGoster(result) {
     // Firma adı asla boş gitmez: boşsa seçilen klasörün firma (üst) klasör adı kullanılır ve uyarı döner.
     firmaBelirle: function (form) {
       const yazilan = String(form.firma || "").trim();
-      if (yazilan) return { firma: yazilan.toLocaleUpperCase("tr"), uyari: "" };
+      // Yalnız kısa ad yazılmışsa (ör. "Maskar") tam resmi unvana çevrilir.
+      if (yazilan) return { firma: RESMI_UNVANLAR[norm(yazilan)] || yazilan.toLocaleUpperCase("tr"), uyari: "" };
       const ust = String(form.ustKlasorFirma || "").trim();
       if (ust) {
         const firma = H.firmaEslestir(ust);
@@ -396,7 +405,11 @@ function tsePaketSonucGoster(result) {
         uretildigiUlke: t(form.uretildigiUlke), cikisUlke: t(form.cikisUlke) };
     },
     sonucDogrula: function (res) {
-      if (!res || !res.success) throw new Error((res && res.error) || "Bulut işlemi tamamlanamadı.");
+      if (!res || !res.success) {
+        const hata = new Error((res && res.error) || "Bulut işlemi tamamlanamadı.");
+        hata.kod = (res && res.kod) || "";
+        throw hata;
+      }
       const files = Array.isArray(res.files) ? res.files : [];
       const eksik = TURLER.filter(function (t) { return !files.some(function (f) { return f && f.type === t[0] && f.url; }); });
       if (eksik.length) throw new Error("Bulut yanıtında eksik belge: " + eksik.map(function (t) { return t[1]; }).join(", "));
@@ -449,8 +462,9 @@ function tsePaketSonucGoster(result) {
         '<details style="font-size:12px;"><summary style="cursor:pointer;font-weight:700;">Ek bilgiler (isteğe bağlı)</summary><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">' +
         ["marka:Marka", "renk:Renk", "uretildigiUlke:Menşe ülke", "cikisUlke:İthalat (çıkış) ülkesi"].map(function (x) {
           const p = x.split(":");
-          return '<label style="display:grid;gap:4px;font-weight:600;">' + p[1] + '<input data-hp="' + p[0] + '" type="text" autocomplete="off" style="' + girdi + '"></label>';
-        }).join("") +
+          const liste = /Ulke$/.test(p[0]) ? ' list="hizli-paket-ulkeler"' : "";
+          return '<label style="display:grid;gap:4px;font-weight:600;">' + p[1] + '<input data-hp="' + p[0] + '" type="text" autocomplete="off"' + liste + ' style="' + girdi + '"></label>';
+        }).join("") + '<datalist id="hizli-paket-ulkeler">' + ULKELER.map(function (u) { return '<option value="' + u + '">'; }).join("") + '</datalist>' +
         '</div><div style="color:var(--text-muted,#64748b);margin-top:6px;">Boş bırakılan alanlar CoC ve şasiden okunur.</div></details>' +
         '<button type="button" data-hp="uret" style="padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:14px;font-weight:800;cursor:pointer;">⚡ Paketi Üret</button>' +
         '<div data-hp="sonuc" aria-live="polite" style="font-size:13px;line-height:1.5;overflow-wrap:anywhere;"></div>' +
@@ -611,7 +625,20 @@ function tsePaketSonucGoster(result) {
         H._sonucGoster(ov, await H.uret(form), !String(form.basvuruNo).trim(), firmaUyari);
       } catch (err) {
         H._mesaj(ov, "Paket oluşturulamadı: " + err.message, "hata");
+        // İthalat ülkesi belgelerden kesin okunamadı: varsayım yapılmaz, kullanıcı faturadaki satıcı ülkesini seçer.
+        if (err.kod === "ITHALAT_ULKESI") H._ulkeSor(ov);
       } finally { btn.disabled = false; btn.style.opacity = ""; }
+    },
+    _ulkeSor: function (ov) {
+      const alan = ov.querySelector('[data-hp="cikisUlke"]');
+      if (!alan) return;
+      const kutu = alan.closest("details");
+      if (kutu) kutu.open = true;
+      alan.style.borderColor = "#dc2626";
+      alan.style.boxShadow = "0 0 0 3px rgba(220,38,38,.2)";
+      alan.placeholder = "Faturadaki satıcı ülkesini seçin";
+      alan.addEventListener("input", function () { alan.style.borderColor = ""; alan.style.boxShadow = ""; }, { once: true });
+      alan.focus();
     },
     _sonucGoster: function (ov, res, taslak, firmaUyari) {
       const box = ov.querySelector('[data-hp="sonuc"]');
