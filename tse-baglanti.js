@@ -265,6 +265,8 @@ function tsePaketSonucGoster(result) {
   const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/;
   const TURLER = [["apm", "APM Şablonu"], ["tse", "TSE Tutanağı"], ["ulm", "ULM Raporu"], ["egzoz", "Egzoz Raporu"]];
   const VARSAYILAN_FIRMA = "MASKAR";
+  // GÜMRÜK ARŞİVİ kökündeki firma olmayan klasörler; firma listesinde gösterilmez (norm anahtarıyla).
+  const FIRMA_DISI_KLASORLER = ["GENEL", "GUMRUKYEDEK", "TSEEVRAKLARI", "BAZILIKACAFE"];
   // Karşılaştırma anahtarı: büyük harf, Türkçe harfler sadeleşir (audi = AUDİ = AUDI), yalnız harf/rakam.
   const norm = function (s) {
     const tr = { "Ç": "C", "Ğ": "G", "İ": "I", "Ö": "O", "Ş": "S", "Ü": "U" };
@@ -338,7 +340,10 @@ function tsePaketSonucGoster(result) {
     firmalariGetir: async function () {
       const res = await H.jsonp({ action: "hizliFirmalar" }, 60000);
       if (!res || !res.success) throw new Error((res && res.error) || "Firma klasörleri okunamadı.");
-      return res.firmalar || [];
+      return H.firmaKlasorleriSuz(res.firmalar);
+    },
+    firmaKlasorleriSuz: function (firmalar) {
+      return (firmalar || []).filter(function (f) { return f && FIRMA_DISI_KLASORLER.indexOf(norm(f.ad)) < 0; });
     },
     araclariGetir: async function (firmaId) {
       const res = await H.jsonp({ action: "hizliAracKlasorleri", firmaId: firmaId }, 90000);
