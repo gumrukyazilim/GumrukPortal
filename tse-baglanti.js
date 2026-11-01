@@ -625,18 +625,19 @@ function tsePaketSonucGoster(result) {
         H._sonucGoster(ov, await H.uret(form), !String(form.basvuruNo).trim(), firmaUyari);
       } catch (err) {
         H._mesaj(ov, "Paket oluşturulamadı: " + err.message, "hata");
-        // İthalat ülkesi belgelerden kesin okunamadı: varsayım yapılmaz, kullanıcı faturadaki satıcı ülkesini seçer.
-        if (err.kod === "ITHALAT_ULKESI") H._ulkeSor(ov);
+        // Ülke kesin tespit edilemedi: varsayım yapılmaz, kullanıcı ilgili alandan seçer.
+        if (err.kod === "ITHALAT_ULKESI") H._ulkeSor(ov, "cikisUlke", "Faturadaki satıcı ülkesini seçin");
+        if (err.kod === "URETIM_ULKESI") H._ulkeSor(ov, "uretildigiUlke", "Üretim (menşe) ülkesini seçin");
       } finally { btn.disabled = false; btn.style.opacity = ""; }
     },
-    _ulkeSor: function (ov) {
-      const alan = ov.querySelector('[data-hp="cikisUlke"]');
+    _ulkeSor: function (ov, alanAdi, ipucu) {
+      const alan = ov.querySelector('[data-hp="' + alanAdi + '"]');
       if (!alan) return;
       const kutu = alan.closest("details");
       if (kutu) kutu.open = true;
       alan.style.borderColor = "#dc2626";
       alan.style.boxShadow = "0 0 0 3px rgba(220,38,38,.2)";
-      alan.placeholder = "Faturadaki satıcı ülkesini seçin";
+      alan.placeholder = ipucu;
       alan.addEventListener("input", function () { alan.style.borderColor = ""; alan.style.boxShadow = ""; }, { once: true });
       alan.focus();
     },
