@@ -1,5 +1,5 @@
 // GümrükPortal Service Worker v5
-const CACHE_NAME = 'gumrukportal-v116';
+const CACHE_NAME = 'gumrukportal-v117';
 
 self.addEventListener('install', event => {
   console.log('[SW] v6 Yüklendi');
@@ -7,7 +7,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW] v116 Aktif');
+  console.log('[SW] v117 Aktif');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
