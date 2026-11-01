@@ -5682,6 +5682,7 @@ div[style*="position: relative"] > input {
   --vg-success: #34d399;
   --vg-warning-text: #fbbf24;
   --vg-warning-bg: #1f1a0e;
+  --vg-success-bg: #0d2a20;
   --vg-info-bg: #0f2238;
   --vg-shadow-card: 0 1px 2px rgba(0,0,0,.35);
   --vg-shadow-pop: 0 10px 30px rgba(0,0,0,.45);
@@ -5724,6 +5725,7 @@ div[style*="position: relative"] > input {
   --vg-success: #15803d;
   --vg-warning-text: #92400e;
   --vg-warning-bg: #fffbeb;
+  --vg-success-bg: #f0fdf4;
   --vg-info-bg: #eff6ff;
   --vg-shadow-card: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
   --vg-shadow-pop: 0 10px 40px rgba(0,0,0,.12), 0 4px 16px rgba(0,0,0,.08);
@@ -5856,6 +5858,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
 .vg-note { display: flex; gap: var(--vg-s3); padding: var(--vg-s3) var(--vg-s4); border-radius: var(--vg-r-md); font-size: var(--vg-fs-sm); line-height: var(--vg-lh-sm); background: var(--vg-info-bg); color: var(--vg-text); border-left: 3px solid var(--vg-accent); }
 .vg-note--warn { background: var(--vg-warning-bg); color: var(--vg-warning-text); border-left-color: var(--vg-warning-text); }
 .vg-note--danger { background: var(--vg-input); color: var(--vg-danger); border-left-color: var(--vg-danger); }
+.vg-note--ok { background: var(--vg-success-bg); color: var(--vg-success); border-left-color: var(--vg-success); }
 .vg-note summary { cursor: pointer; font-weight: 600; }
 .vg-disclaimer { font-size: var(--vg-fs-xs); line-height: var(--vg-lh-xs); color: var(--vg-text-muted); border-top: 1px dashed var(--vg-border-input); padding-top: var(--vg-s3); margin-top: var(--vg-s4); }
 
@@ -6458,6 +6461,42 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     if (a < 100) a = a * 1000;
     return Math.round(a);
   }
+  /** CoC metninden 16.1 (teknik olarak izin verilen azami yüklü kütle) ya da araç etiketindeki GVWR → { kg, kaynak } | null.
+   *  16.1 bölümü bir sonraki madde numarasına (16.2…, 17-19) kadar okunur; "---" gibi boş değerler atlanır.
+   *  GVWR'de KG yazılıysa o, yalnız LB varsa çevrilir. 500-60.000 kg dışı değerler kabul edilmez. */
+  function azamiKutleMetinden(metin) {
+    var t = String(metin || '').replace(/\r/g, '').replace(/[ \t\u00a0]+/g, ' ');
+    var gecerli = function (n) { return n >= 500 && n <= 60000 ? Math.round(n) : null; };
+    var sayi = function (s) {
+      var m = String(s).replace(/\[\s*kg\s*\]|\(\s*kg\s*\)/gi, '').match(/(\d{1,2}[.\s]\d{3}|\d{3,5})(?:,\d+)?(?!\d)/);
+      return m ? parseFloat(m[1].replace(/[.\s]/g, '')) : null;
+    };
+    var re = /(?:^|[\s|])16\.1\.?(?![\d.])([\s\S]*?)(?=[\s|]16\.[2-9]\.?(?!\d)|[\s|]1[7-9]\.(?!\d)|$)/g, m;
+    while ((m = re.exec(t))) { var kg = gecerli(sayi(m[1])); if (kg) return { kg: kg, kaynak: 'CoC 16.1' }; }
+    var g = /G\.?\s?V\.?\s?W\.?\s?R\.?[\s:]*([\s\S]{0,80})/gi;
+    while ((m = g.exec(t))) {
+      var p = m[1], k = p.match(/(\d{1,2}[.,\s]?\d{3})\s*KG/i), l = p.match(/(\d{1,2}[.,\s]?\d{3})\s*LBS?\b/i);
+      var v = k ? gecerli(parseFloat(k[1].replace(/[.,\s]/g, ''))) : null;
+      if (v) return { kg: v, kaynak: 'GVWR' };
+      v = l ? gecerli(parseFloat(l[1].replace(/[.,\s]/g, '')) * 0.45359237) : null;
+      if (v) return { kg: v, kaynak: 'GVWR (lb → kg)' };
+    }
+    return null;
+  }
+  /** Kayıtta ağırlık yoksa: araçtaki CoC metni (cocText), yoksa Drive klasöründeki CoC PDF'i (readCocTrPdf ucu).
+   *  cagir: window.bkGasCagir. Döner Promise<{ kg, kaynak, belge } | { hata }>. */
+  function cocAgirlikOku(d, cagir) {
+    var r = d.cocText ? azamiKutleMetinden(d.cocText) : null;
+    if (r) return Promise.resolve({ kg: r.kg, kaynak: r.kaynak, belge: 'araç kaydındaki CoC metni' });
+    if (!d.evrakLink) return Promise.resolve({ hata: 'aracın Drive klasörü tanımlı değil' });
+    if (typeof cagir !== 'function') return Promise.resolve({ hata: 'Drive okuyucu yüklü değil' });
+    return Promise.resolve().then(function () { return cagir({ action: 'readCocTrPdf', evrakLink: d.evrakLink }, 60000); }).then(function (c) {
+      if (!c || !c.success || !c.text) return { hata: (c && c.error) || 'CoC okunamadı' };
+      var s = azamiKutleMetinden(c.text);
+      return s ? { kg: s.kg, kaynak: s.kaynak, belge: c.fileName || 'CoC' } : { hata: (c.fileName || 'CoC') + ' içinde 16.1 / GVWR değeri bulunamadı' };
+    }, function (e) { return { hata: (e && e.message) || 'Drive okunamadı' }; });
+  }
+
   /** Taşıt değeri: kayıttaki KDV matrahı / taşıt değeri, yoksa (ortam varsa) kıymet × kur + ÖTV tahmini. */
   function degerBul(d, ortam, yakitSinifi, cc, kw, otvOrani, otvAciklama) {
     var kdvMatrahi = tutar(d.kdvMatrahi), kayitli = kdvMatrahi != null ? kdvMatrahi : tutar(d.tasitDegeri);
@@ -6508,18 +6547,22 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     if (tur === 'kamyonet') {
       // 87.04: 4x2 → kamyonet (Tarife II, azami ağırlık). 4x4 ya da belirsiz → kullanıcı ruhsattaki cinsine göre seçer;
       // varsayılan kamyonet, "arazi taşıtı" seçilirse Tarife I (silindir hacmi + taşıt değeri).
-      var cekis = cekisBul(d), agirlik = agirlikBul(d);
+      var cekis = cekisBul(d), agirlik = agirlikBul(d), agirlikKaynak = agirlik != null ? 'kayit' : null;
+      var cocA = agirlik == null && d.cocText ? azamiKutleMetinden(d.cocText) : null;
+      if (cocA) { agirlik = cocA.kg; agirlikKaynak = cocA.kaynak; }
       var kayitliOtv = sayiCoz(d.otvOrani || d.otvOran || d.otv);
       if (kayitliOtv != null && kayitliOtv <= 3) kayitliOtv = Math.round(kayitliOtv * 100);
-      var p = { cekis: cekis, secim: cekis !== '4x2', agirlik: agirlik, cc: cc ? Math.round(cc) : null, arazi: null };
+      var p = { cekis: cekis, secim: cekis !== '4x2', agirlik: agirlik, agirlikKaynak: agirlikKaynak, cc: cc ? Math.round(cc) : null, arazi: null };
       if (p.secim) p.arazi = degerBul(d, ortam, otvYakitSinifi(yakit, 'otomobil'), cc, kw, kayitliOtv || 50,
         kayitliOtv ? 'kayıttaki ÖTV oranı' : '87.04 4x4 arazi taşıtı, portal varsayılanı');
       g.pickup = p;
       g.kriter = agirlik;
       g.notlar.push(cekis === '4x2' ? 'Çekiş 4x2 (araç bilgisinden): kamyonet, azami toplam ağırlığa göre (Tarife II).'
         : 'Çekiş ' + (cekis === '4x4' ? '4x4' : 'belirlenemedi') + ': ruhsattaki cinsine göre "kamyonet" ya da "arazi taşıtı" seçin.');
-      g.notlar.push(agirlik != null ? 'Azami toplam ağırlık kayıttan: ' + agirlik.toLocaleString('tr-TR') + ' kg.'
-        : 'Azami toplam ağırlık kayıtta yok (CoC 16.1 / GVWR); girdiğiniz değer bu şasiye kaydedilir.');
+      p.agirlikNotu = agirlikKaynak === 'kayit' ? 'Azami toplam ağırlık kayıttan: ' + agirlik.toLocaleString('tr-TR') + ' kg.'
+        : agirlik != null ? 'Azami toplam ağırlık araç kaydındaki CoC metninden (' + agirlikKaynak + '): ' + agirlik.toLocaleString('tr-TR') + ' kg.'
+        : 'Azami toplam ağırlık kayıtta yok: aracın CoC belgesinden (16.1 / GVWR) okunuyor; bulunamazsa girdiğiniz değer bu şasiye kaydedilir.';
+      g.notlar.push(p.agirlikNotu);
     }
     if (g.kriter == null && TUR_KRITER[tur]) g.eksikler.push('kriter');
     if (g.modelYili == null) g.eksikler.push('modelYili');
@@ -6695,6 +6738,12 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     $('vg-mtv-deger').value = g.degerTL != null ? g.degerTL.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
     ['vg-mtv-yil', 'vg-mtv-kriter', 'vg-mtv-deger'].forEach(function (id) { var el = $(id); if (el.value) el.setAttribute('data-kayittan', '1'); else el.removeAttribute('data-kayittan'); });
   }
+  /** Ağırlık notu: 'okundu' yeşil (belgeden okundu), 'kayit' bilgi, 'bekliyor' / 'okunamadi' sarı. */
+  function agirlikNotuHtml(durum, metin) {
+    var sinif = { okundu: 'vg-note vg-note--ok', kayit: 'vg-note', bekliyor: 'vg-note vg-note--warn', okunamadi: 'vg-note vg-note--warn' }[durum];
+    var simge = { okundu: 'circle-check', kayit: 'info', bekliyor: 'loader', okunamadi: 'triangle-alert' }[durum];
+    return '<div class="' + sinif + '" id="vg-mtv-agirlik-not" data-durum="' + durum + '" role="status" style="margin-top:12px;"><i data-lucide="' + simge + '" aria-hidden="true"></i><span>' + esc(metin) + '</span></div>';
+  }
   function aracOzeti(k, g) {
     var d = k.d, eksik = function (v) { return v ? '<dd>' + esc(v) + '</dd>' : '<dd class="vg-missing">Kayıtta yok</dd>'; };
     var p = g.pickup, cm3 = function (n) { return n ? n.toLocaleString('tr-TR') + ' cm³' : ''; };
@@ -6705,12 +6754,17 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
       '<div><dt>Model yılı</dt>' + eksik(g.modelYili) + '</div>' +
       '<div><dt>Yakıt</dt>' + eksik(d.yakitTahrik || d.yakitTuru) + '</div>' +
       '<div><dt>' + (g.tur === 'elektrikli' ? 'Motor gücü' : 'Silindir hacmi') + '</dt>' + eksik(krit) + '</div>' +
-      (p ? '<div><dt>Azami toplam ağırlık</dt>' + eksik(p.agirlik != null ? p.agirlik.toLocaleString('tr-TR') + ' kg' : '') + '</div>' +
+      (p ? '<div id="vg-mtv-ozet-agirlik"><dt>Azami toplam ağırlık</dt>' + eksik(p.agirlik != null ? p.agirlik.toLocaleString('tr-TR') + ' kg' : '') + '</div>' +
         '<div><dt>Çekiş</dt><dd>' + (p.cekis || 'Belirlenemedi') + '</dd></div>' : '') +
       (g.tur === 'otomobil' || g.tur === 'elektrikli' ? '<div><dt>Taşıt değeri' + (g.degerKaynak === 'tahmin' ? ' (hesaplandı)' : g.degerKaynak === 'kayit' ? ' (kayıtta)' : '') + '</dt>' + eksik(g.degerTL != null ? w.VergiMotoru.tlBicim(Math.round(g.degerTL * 100)) : '') + '</div>' : '') +
       '<div><dt>Kaynak</dt><dd>' + esc(k.kaynak) + '</dd></div>' +
       '</dl>' +
-      (g.notlar.length ? '<div class="vg-note vg-note--warn" role="status" style="margin-top:12px;"><i data-lucide="info" aria-hidden="true"></i><span>' + g.notlar.map(esc).join(' ') + '</span></div>' : '') +
+      (function () {
+        var diger = g.notlar.filter(function (n) { return !p || n !== p.agirlikNotu; });
+        return diger.length ? '<div class="vg-note vg-note--warn" role="status" style="margin-top:12px;"><i data-lucide="info" aria-hidden="true"></i><span>' + diger.map(esc).join(' ') + '</span></div>' : '';
+      })() +
+      (p ? agirlikNotuHtml(p.agirlik == null ? 'bekliyor' : p.agirlikKaynak === 'kayit' ? 'kayit' : 'okundu', p.agirlikNotu) +
+        '<p class="vg-hint" id="vg-mtv-agirlik-durum" role="status" style="margin:8px 0 0;"></p>' : '') +
       (p && p.secim ? '<p class="vg-hint" id="vg-mtv-sinif-not" aria-live="polite" style="margin:8px 0 0;"></p>' : '');
   }
   /** Vergi Hesaplama'nın TCMB önbelleğinden EUR kuru; yoksa o sayfadaki kur alanı. */
@@ -6726,12 +6780,44 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
     formDoldur(g);
     $('vg-mtv-sasi-sonuc').innerHTML = aracOzeti(k, g);
     simgeler();
+    var p = g.pickup;
+    if (p && p.agirlik != null && p.agirlikKaynak !== 'kayit') agirlikKaydet(k.sasi, p.agirlik, p.agirlikKaynak);
+    else if (p && p.agirlik == null) cocAgirlikBaslat(k);
     // İmleç ilk eksik alana
     var sira = { modelYili: 'vg-mtv-yil', kriter: 'vg-mtv-kriter', deger: 'vg-mtv-deger' };
     var liste = $('vg-mtv-arac-sec'); if (liste) liste.value = k.sasi;
     if (odaksiz) return;
     var ilk = g.eksikler.map(function (e) { return sira[e]; }).filter(function (id) { var el = $(id); return el && !el.closest('[hidden]'); })[0];
     if (ilk) $(ilk).focus(); else $('vg-mtv-form').querySelector('button[type="submit"]').focus();
+  }
+  function agirlikDurum(metin) { var el = $('vg-mtv-agirlik-durum'); if (el) el.textContent = metin; }
+  function agirlikNotuDegistir(durum, metin) {
+    var el = $('vg-mtv-agirlik-not'); if (!el) return;
+    el.outerHTML = agirlikNotuHtml(durum, metin);
+    simgeler();
+  }
+  /** Belgeden okunan ağırlığı kayda işler (yalnız alan boşsa; diğer alanlara dokunmaz). */
+  function agirlikKaydet(sasi, kg, kaynak) {
+    var a = mtvDurum.arac; if (a && a.sasi === sasi) a.agirlikKayitli = true;
+    alanYaz(w, sasi, 'azamiToplamAgirlik', kg);
+    alanBulutaYaz(sasi, 'azamiToplamAgirlik', kg).then(function (r) {
+      var m = { yazildi: 'araç kaydına işlendi', ayni: 'kayıtta zaten var', 'yetki-yok': 'kayda işlenmedi (yalnız yönetici)', 'veri-yuklenmedi': 'kayda işlenmedi (veriler yüklenmedi)', 'baglanti-yok': 'kayda işlenmedi (Firebase bağlantısı yok)' }[r.durum] || '';
+      if (mtvDurum.arac && mtvDurum.arac.sasi === sasi) agirlikDurum('Araç kaydı: ' + m + '.');
+    }, function () { if (mtvDurum.arac && mtvDurum.arac.sasi === sasi) agirlikDurum('Azami toplam ağırlık okundu ama kayda işlenemedi.'); });
+  }
+  /** Kayıtta ağırlık yoksa Drive'daki CoC'tan okur; başka araç seçilmişse sonucu bırakır. */
+  function cocAgirlikBaslat(k) {
+    cocAgirlikOku(k.d, w.bkGasCagir).then(function (r) {
+      var a = mtvDurum.arac;
+      if (!a || a.sasi !== k.sasi) return;
+      if (!r.kg) { agirlikNotuDegistir('okunamadi', 'Azami toplam ağırlık otomatik okunamadı (' + r.hata + '). Elle girin; bu şasiye kaydedilir.'); return; }
+      agirlikNotuDegistir('okundu', 'Azami ağırlık CoC\'tan okundu: ' + r.kg.toLocaleString('tr-TR') + ' kg (' + r.belge + ', ' + r.kaynak + ').');
+      a.pickup.agirlik = r.kg; a.pickup.agirlikKaynak = r.kaynak;
+      var ozet = $('vg-mtv-ozet-agirlik'); if (ozet) ozet.innerHTML = '<dt>Azami toplam ağırlık</dt><dd>' + esc(r.kg.toLocaleString('tr-TR') + ' kg') + '</dd>';
+      var kutu = $('vg-mtv-kriter');
+      if ($('vg-mtv-tur').value === 'kamyonet' && kutu && !kutu.value) { kutu.value = String(r.kg); kutu.setAttribute('data-kayittan', '1'); alanHatasi('vg-mtv-kriter', null); w.vgMtvBayat(); }
+      agirlikKaydet(k.sasi, r.kg, r.belge + ', ' + r.kaynak);
+    });
   }
   w.vgMtvAracSec = function (sasi) {
     var k = aracKayitlari(w).filter(function (x) { return x.sasi === sasi; })[0];
@@ -6915,7 +7001,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
 
   w.VergiArayuz = { ARACLAR: ARACLAR, ara: ara, sadelestir: sadelestir, kartHtml: kartHtml,
     sayiCoz: sayiCoz, aracKayitlari: aracKayitlari, tasitDegeriYaz: tasitDegeriYaz, tasitDegeriYollari: tasitDegeriYollari, aracSecenekleri: aracSecenekleri,
-    tasitDegeriBulutaYaz: tasitDegeriBulutaYaz, alanYaz: alanYaz, alanYollari: alanYollari, alanBulutaYaz: alanBulutaYaz, cekisBul: cekisBul, agirlikBul: agirlikBul, otvYakitSinifi: otvYakitSinifi, aracBul: aracBul, aractanGirdi: aractanGirdi, formdanGirdi: formdanGirdi, mtvOzetMetni: mtvOzetMetni };
+    tasitDegeriBulutaYaz: tasitDegeriBulutaYaz, alanYaz: alanYaz, alanYollari: alanYollari, alanBulutaYaz: alanBulutaYaz, cekisBul: cekisBul, agirlikBul: agirlikBul, azamiKutleMetinden: azamiKutleMetinden, cocAgirlikOku: cocAgirlikOku, agirlikNotuHtml: agirlikNotuHtml, otvYakitSinifi: otvYakitSinifi, aracBul: aracBul, aractanGirdi: aractanGirdi, formdanGirdi: formdanGirdi, mtvOzetMetni: mtvOzetMetni };
 })(window);
 </script>
 
