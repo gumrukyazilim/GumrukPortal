@@ -3007,7 +3007,18 @@ div[style*="position: relative"] > input {
 /* Yakıt/tahrik rozeti ve GTİP uyarısı yalnızca ekranda görünür. */
 @media print { .bk-yakit-ek, .yakit-rozet, .yakit-gtip-uyari { display: none !important; } }
 </style>
-
+
+<style id="mense-rozet">
+/* Menşe rozeti (fabrika matrisi): koyu tema varsayılan, açık tema .light-mode */
+.mense-rozet { margin-top: 6px; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; line-height: 1.4; border: 1px solid; }
+.mense-rozet--ok { color: #6ee7b7; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.45); }
+.mense-rozet--uyari { color: #fcd34d; background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.45); }
+.mense-rozet--hata { color: #fca5a5; background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.5); }
+.light-mode .mense-rozet--ok { color: #166534; background: #f0fdf4; border-color: #86efac; }
+.light-mode .mense-rozet--uyari { color: #92400e; background: #fffbeb; border-color: #fcd34d; }
+.light-mode .mense-rozet--hata { color: #991b1b; background: #fef2f2; border-color: #fca5a5; }
+@media print { .mense-rozet { display: none !important; } }
+</style>
 </head>
 <body>
 
@@ -15215,10 +15226,79 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         // Kaynak: satıcı adresi (fatura başlığı → ihracat beyannamesi → CMR 1. kutu) → TSE şablonu → Almanya
         return d.cikisUlke || (d.tseSablon && d.tseSablon['tse-ithalatUlkesi']) || '004 — ALMANYA';
     };
-    // Şasinin ilk karakterlerinden (WMI) üretim ülkesi; tanınmazsa ''
+    // Akıllı menşe motoru: marka (WMI) + şasi 11. hane (fabrika kodu) → montaj fabrikası ve ülkesi.
+    // Apps Script'teki TP3_MENSE_FABRIKA / tp3_menseFabrikaCoz ile birebir aynıdır (tests/origin_resolver.test.js).
+    // Dönüş: {ulke, fabrika, kod, aciklama, uyari} kesin; {belirsiz:true, neden} çok fabrikalı markada kod bilinmiyor
+    // (WMI'dan ülke tahmin edilmez, kullanıcı seçer); null marka matriste yok.
+    window.MENSE_FABRIKA = [
+      {marka:'PORSCHE',wmi:['WP0','WP1'],kodlar:{
+        D:['SLOVAKYA','Bratislava','CAYENNE'],L:['ALMANYA','Leipzig','PANAMERA|MACAN'],
+        S:['ALMANYA','Stuttgart-Zuffenhausen','911|TAYCAN'],K:['ALMANYA','Osnabrück','718|BOXSTER|CAYMAN']}},
+      {marka:'LAND ROVER',wmi:['SAL'],kodlar:{
+        '2':['SLOVAKYA','Nitra','DEFENDER|DISCOVERY'],A:['İNGİLTERE','Solihull','RANGE ROVER|VELAR'],
+        H:['İNGİLTERE','Halewood','EVOQUE|DISCOVERY SPORT'],G:['AVUSTURYA','Graz (Magna Steyr)','I-PACE|E-PACE']}},
+      {marka:'AUDI',wmi:['WAU','WA1'],kodlar:{
+        D:['SLOVAKYA','Bratislava','Q7|Q8'],'2':['MEKSİKA','San José Chiapa','Q5'],'1':['MACARİSTAN','Győr','Q3|TT'],
+        A:['ALMANYA','Ingolstadt','A3|A4|A5|Q6'],N:['ALMANYA','Neckarsulm','A6|A7|A8|E-TRON GT|R8'],
+        B:['BELÇİKA','Brüksel','Q8 E-TRON|E-TRON'],P:['ALMANYA','Zwickau','Q4']}},
+      {marka:'BMW',wmi:['WBA','WBS'],kodlar:{
+        L:['AMERİKA','Spartanburg','X3|X4|X5|X6|X7|XM'],N:['AMERİKA','Spartanburg','X3|X4|X5|X6|X7|XM'],
+        A:['ALMANYA','Münih',''],F:['ALMANYA','Dingolfing',''],K:['ALMANYA','Regensburg',''],E:['ALMANYA','Leipzig','']}},
+      {marka:'BMW',wmi:['5UX','5YM'],tumu:['AMERİKA','Spartanburg','X3|X4|X5|X6|X7|XM']},
+      {marka:'BMW',wmi:['3MW'],tumu:['MEKSİKA','San Luis Potosí','']},
+      {marka:'MERCEDES-BENZ',wmi:['4JG','55S'],tumu:['AMERİKA','Tuscaloosa','GLE|GLS']},
+      {marka:'MERCEDES-BENZ',wmi:['WDB','WDC','WDD','W1K','W1N'],kodlar:{
+        X:['AVUSTURYA','Graz (Magna Steyr)','G '],'4':['AMERİKA','Tuscaloosa','GLE|GLS'],
+        A:['ALMANYA','Sindelfingen',''],R:['ALMANYA','Rastatt','']},
+        // F hem Bremen (Almanya) hem Kecskemét (Macaristan) olarak bildirildi: kesin değil, sorulur.
+        belirsiz:{F:'Bremen (Almanya) ya da Kecskemét (Macaristan)'}},
+      {marka:'VOLKSWAGEN',wmi:['WVW','WVG'],kodlar:{
+        D:['SLOVAKYA','Bratislava','TOUAREG'],W:['ALMANYA','Wolfsburg',''],E:['ALMANYA','Emden',''],P:['ALMANYA','Zwickau','']}}
+    ];
+    window.menseFabrikaCoz = function(vin, model) {
+        const TP3_MENSE_FABRIKA = window.MENSE_FABRIKA;
+        const v=String(vin||'').trim().toUpperCase().replace(/[\s-]/g,'');
+        if(v.length<3) return null;
+        const wmi=v.slice(0,3);
+        const giris=TP3_MENSE_FABRIKA.find(function(g){return g.wmi.indexOf(wmi)>=0;});
+        if(!giris) return null;
+        let f=giris.tumu, kod='', aciklama;
+        if(f) aciklama='Şasi WMI: '+wmi+' - '+f[1]+' Fabrikası';
+        else {
+          if(v.length!==17) return {belirsiz:true,marka:giris.marka,neden:'şasi 17 hane değil, 11. hane (fabrika kodu) okunamadı'};
+          kod=v[10]; f=giris.kodlar[kod];
+          if(!f) return {belirsiz:true,marka:giris.marka,kod:kod,neden:(giris.belirsiz&&giris.belirsiz[kod])
+            ? 'şasi 11. hane "'+kod+'" iki fabrikada kullanılıyor: '+giris.belirsiz[kod]
+            : 'şasi 11. hane "'+kod+'" '+giris.marka+' fabrika tablosunda yok'};
+          aciklama='Şasi 11. hane: '+kod+' - '+f[1]+' Fabrikası';
+        }
+        const m=String(model||'').toUpperCase(), uyari=(f[2]&&m&&!new RegExp('(?:^|[^A-Z0-9])(?:'+f[2]+')','i').test(' '+m+' '))
+          ? 'Model ('+model+') '+f[1]+' fabrikasının bilinen modelleri ('+f[2].replace(/\|/g,', ')+') arasında değil; menşe fabrika kodundan alındı, kontrol edin.' : '';
+        return {ulke:f[0],fabrika:f[1],kod:kod,marka:giris.marka,aciklama:aciklama,uyari:uyari};
+    };
+    // TSE adı → gümrük kodlu ad (beyanname kartı gümrük biçimini kullanır).
+    window.MENSE_GUMRUK_KODU = { 'ALMANYA':'004 — ALMANYA', 'SLOVAKYA':'063 — SLOVAKYA', 'İNGİLTERE':'006 — BİRLEŞİK KRALLIK',
+        'AVUSTURYA':'038 — AVUSTURYA', 'MEKSİKA':'412 — MEKSİKA', 'MACARİSTAN':'064 — MACARİSTAN', 'BELÇİKA':'017 — BELÇİKA',
+        'AMERİKA':'400 — AMERİKA BİRLEŞİK DEVLETLERİ' };
+    // Yeşil menşe rozeti (kesin) ya da kırmızı "seçin" uyarısı; marka matriste yoksa boş.
+    window.menseRozetHtml = function(vin, model, girilen) {
+        let fb = window.menseFabrikaCoz(vin, model);
+        if(!fb) return '';
+        let esc = function(s) { return String(s).replace(/[&<>"]/g, function(c) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); };
+        let kutu = function(tur, metin) { return '<div class="mense-rozet mense-rozet--' + tur + '" role="status">' + esc(metin) + '</div>'; };
+        let sade = window._ulkeSadeceAd ? window._ulkeSadeceAd(girilen || '') : String(girilen || '').toLocaleUpperCase('tr');
+        if(fb.belirsiz) return sade ? '' : kutu('hata', 'Üretim (menşe) ülkesini seçin: ' + fb.neden + '.');
+        if(sade && sade !== fb.ulke) return kutu('uyari', '⚠️ Girilen menşe (' + sade + ') şasi fabrika koduyla uyuşmuyor: ' + fb.ulke + ' (' + fb.aciklama + ').');
+        return kutu('ok', '✅ Menşe: ' + fb.ulke + ' (' + fb.aciklama + ')' + (fb.uyari ? ' ⚠️ ' + fb.uyari : ''));
+    };
+    // Şasinin ilk karakterlerinden (WMI) üretim ülkesi; tanınmazsa ''. Önce fabrika matrisi; çok fabrikalı markada
+    // fabrika kodu bilinmiyorsa WMI'dan ülke tahmin edilmez.
     window.bkVinUlke = function(sasi) {
         let v = String(sasi || '').trim().toUpperCase();
         if(v.length < 3) return '';
+        let fb = window.menseFabrikaCoz(v);
+        if(fb && fb.ulke) return window.MENSE_GUMRUK_KODU[fb.ulke] || fb.ulke;
+        if(fb && fb.belirsiz) return '';
         let c1 = v[0], c2 = v.slice(0, 2), c3 = v.slice(0, 3);
         let ara = function(a, z) { return c2 >= a && c2 <= z; };
         if(c3 === 'TRU' || c3 === 'TSM') return '064 — MACARİSTAN';
@@ -15274,6 +15354,8 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(vin) return vin;
         if(d.mensei) return d.mensei;
         if(ts['tse-uretildigiUlke']) return ts['tse-uretildigiUlke'];
+        let fb = window.menseFabrikaCoz(d.sasi, d.model);
+        if(fb && fb.belirsiz) return '';
         let m = String((d.marka || '') + ' ' + (d.model || '')).toLocaleUpperCase('tr').replace(/İ/g, 'I');
         let e = window.MARKA_MENSE_MAP.find(function(x) { return x.re.test(m); });
         return e ? e.ulke : window.bkCikisUlke(d);
@@ -16664,7 +16746,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let teslimEl = document.getElementById('bk-teslim');
         if(teslimEl) teslimEl.innerHTML = '<span contenteditable="true" class="bk-duz" id="bk-teslim-val" data-ph="Teslim">' + esc(window.getTeslimSekliFormatted(d)) + '</span>';
         let menEl = document.getElementById('bk-mensei');
-        if(menEl) menEl.innerHTML = '<span contenteditable="true" class="bk-duz" id="bk-mensei-val" data-ph="Ülke">' + esc(window.bkMenseUlke(d)) + '</span>';
+        if(menEl) { let menDeger = window.bkMenseUlke(d); menEl.innerHTML = '<span contenteditable="true" class="bk-duz" id="bk-mensei-val" data-ph="Ülke">' + esc(menDeger) + '</span>' + window.menseRozetHtml(d.sasi, d.model, menDeger); }
         yaz('bk-cikis-ulke', window.bkCikisUlke(d), false);
         yaz('bk-gonderici', (d.gonderici || d.gondericiKodu) ? window.bkGondericiBirlestir(d.gonderici, d.gondericiKodu, '') : '');
 
@@ -18905,6 +18987,9 @@ window._tseSmartFill = (function() {
             result.marka = WMI[wmi][0];
             result.uretildigiUlke = WMI[wmi][1];
         }
+        var fb = window.menseFabrikaCoz && window.menseFabrikaCoz(vin);
+        if (fb && fb.ulke) { result.uretildigiUlke = fb.ulke; result.menseAciklama = fb.aciklama; }
+        else if (fb && fb.belirsiz) delete result.uretildigiUlke;
         if (vin.length >= 10) {
             var yc = vin.charAt(9);
             // Yeni döngü tercih edilir (içeri giren araç genelde son 10-15 yıl içinde)
@@ -19339,11 +19424,8 @@ window._cocTrBackfill = (function() {
             if (aracCinsiMap[k]) result['tse-aracCinsi'] = aracCinsiMap[k];
         }
 
-        // 13) İthalat Ülkesi — CoC'ta yok, fallback: Üretildiği Ülke ile aynı varsay
-        // (Çoğu durumda araç üretildiği ülkeden ithal edilir; kullanıcı farklıysa düzeltir)
-        if (result['tse-uretildigiUlke'] && !result['tse-ithalatUlkesi']) {
-            result['tse-ithalatUlkesi'] = result['tse-uretildigiUlke'];
-        }
+        // 13) İthalat Ülkesi: menşeden KOPYALANMAZ. İkisi bağımsızdır (ör. Çıkış ALMANYA, Menşe SLOVAKYA);
+        // ithalat ülkesi fatura/A.TR/CMR'den okunur ya da kullanıcı seçer (varsayım yok).
 
         // 14) Antrepo — Sistem varsayılanı
         if (!result['tse-antrepoAdi']) result['tse-antrepoAdi'] = 'Y.O.İ.G.M';
