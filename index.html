@@ -12914,8 +12914,11 @@ window.saveCariData = saveCariData;
         {kod: "8703.50.00.00.00", desc: "Dizel + elektrik hibrit (harici şarj hariç)"},
         {kod: "8703.60.10.00.00", desc: "Benzinli + elektrik hibrit (harici şarj edilebilen)"},
         {kod: "8703.70.00.00.00", desc: "Dizel + elektrik hibrit (harici şarj edilebilen)"},
-        {kod: "8703.80.10.00.11", desc: "Sadece elektrikli (içten yanmalı motoru olmayan)"},
-        {kod: "8703.80.10.00.19", desc: "Sadece elektrikli – Diğerleri (yeni)"},
+        // 2026 cetveli (CBK 10781): eski .11/.19 alt pozisyonları kaldırıldı.
+        {kod: "8703.80.10.00.21", desc: "Sadece elektrikli binek – tahrik gücü vermeyen içten yanmalı motorlu (menzil uzatıcı, yeni)"},
+        {kod: "8703.80.10.00.29", desc: "Sadece elektrikli binek otomobil – Diğerleri (yeni)"},
+        {kod: "8703.80.10.00.39", desc: "Sadece elektrikli – Binek dışı diğerleri (yeni)"},
+        {kod: "8703.80.90.00.00", desc: "Sadece elektrikli – Kullanılmış olanlar"},
         {kod: "8703.10.11.00.00", desc: "Kar üzerinde hareket eden veya golf taşıtları"},
         {kod: "8703.10.18.00.00", desc: "Kar/golf taşıtları – Diğerleri"},
         {kod: "8704.21.31.00.00", desc: "Dizel, Brüt ≤5 ton, silindir >2500 cm³ (yeni)"},
@@ -21416,7 +21419,7 @@ if(tipEl)state['calc-arac-tipi']=tipEl.value;
         const GTIP_TABLE={
             'BENZİNLİ':{'0-1000':'8703.21.10.10.00','1000-1500':'8703.22.10.10.00','1500-1600':'8703.23.19.11.00','1600-2000':'8703.23.19.12.00','2000-2500':'8703.23.19.13.00','2500-3000':'8703.23.19.13.00','3000+':'8703.24.10.10.00'},
             'DİZEL':{'0-1000':'8703.31.10.10.00','1000-1500':'8703.31.10.10.00','1500-1600':'8703.32.19.11.00','1600-2000':'8703.32.19.12.00','2000-2500':'8703.32.19.13.00','2500-3000':'8703.33.19.10.11','3000+':'8703.33.19.10.12'},
-            'ELEKTRİK':{'<=160':'8703.80.10.00.11','>160':'8703.80.10.00.19'},
+            'ELEKTRİK':{'<=160':'8703.80.10.00.29','>160':'8703.80.10.00.29'},
             'PLUG-IN':{'0-1000':'8703.60.10.00.00','1000-1500':'8703.60.10.00.00','1500-1600':'8703.60.10.00.00','1600-2000':'8703.60.10.00.00','2000-2500':'8703.60.10.00.00','2500-3000':'8703.60.10.00.00','3000+':'8703.60.10.00.00'},
             'BENZİN HİBRİT':{'0-1000':'8703.40.10.00.00','1000-1500':'8703.40.10.00.00','1500-1600':'8703.40.10.00.00','1600-2000':'8703.40.10.00.00','2000-2500':'8703.40.10.00.00','2500-3000':'8703.40.10.00.00','3000+':'8703.40.10.00.00'}
         };
