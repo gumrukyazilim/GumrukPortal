@@ -455,6 +455,7 @@ function tsePaketSonucGoster(result) {
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
         '<label style="' + etiket + '">Şasi No<input data-hp="sasi" type="text" maxlength="17" autocomplete="off" style="' + girdi + 'font-family:var(--font-mono,monospace);text-transform:uppercase;"></label>' +
         '<label style="' + etiket + '">Belgelerdeki firma adı<input data-hp="firma" type="text" list="hizli-paket-firmalar" autocomplete="off" style="' + girdi + '"><datalist id="hizli-paket-firmalar"></datalist></label></div>' +
+        '<div data-hp="mense" style="margin-top:-6px;"></div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
         '<label style="' + etiket + '"><span>3. Başvuru No <span style="' + soluk + '">(isteğe bağlı)</span></span><input data-hp="basvuruNo" type="text" autocomplete="off" style="' + girdi + '"></label>' +
         '<label style="' + etiket + '"><span>Başvuru Tarihi <span style="' + soluk + '">(isteğe bağlı)</span></span><input data-hp="basvuruTarihi" type="date" style="' + girdi + '"></label></div>' +
@@ -487,6 +488,8 @@ function tsePaketSonucGoster(result) {
       el("bul").addEventListener("click", function () { H._bul(ov, el("kaynak").value); });
       el("kaynak").addEventListener("keydown", function (e) { if (e.key === "Enter") H._bul(ov, el("kaynak").value); });
       el("uret").addEventListener("click", function () { H._uretTikla(ov); });
+      el("sasi").addEventListener("input", function () { H._menseGoster(ov); });
+      el("uretildigiUlke").addEventListener("input", function () { H._menseGoster(ov); });
       H._firmalariYukle(ov);
     },
     kapat: function () { const m = document.getElementById("hizli-paket-modal"); if (m) m.remove(); },
@@ -586,6 +589,7 @@ function tsePaketSonucGoster(result) {
       const oneri = (aday.sasiler || [])[0] || "";
       // Kullanıcı şasiyi elle yazdıysa ezilmez; yalnız boş ya da önceki otomatik değer değiştirilir.
       if (!sasiEl.value || sasiEl.value === H._durum.otomatikSasi) { sasiEl.value = oneri; H._durum.otomatikSasi = oneri; }
+      H._menseGoster(ov);
       ov.querySelectorAll("[data-hp-aday]").forEach(function (k) {
         const secili = k.getAttribute("data-hp-aday") === aday.id;
         k.style.borderColor = secili ? "#2563eb" : "var(--border,#e2e8f0)";
@@ -597,7 +601,7 @@ function tsePaketSonucGoster(result) {
     // Tüm Drive'da (link/ID/şasi/ad) arama; sonuçlar aynı listede gösterilir.
     _bul: async function (ov, kaynak) {
       const g = H.girdiCozumle(kaynak);
-      if (g.tur === "sasi") { const s = ov.querySelector('[data-hp="sasi"]'); if (!s.value || s.value === H._durum.otomatikSasi) { s.value = g.sasi; H._durum.otomatikSasi = g.sasi; } }
+      if (g.tur === "sasi") { const s = ov.querySelector('[data-hp="sasi"]'); if (!s.value || s.value === H._durum.otomatikSasi) { s.value = g.sasi; H._durum.otomatikSasi = g.sasi; } H._menseGoster(ov); }
       H._mesaj(ov, "🔎 Drive'da aranıyor…");
       try {
         const adaylar = await H.adaylariGetir(kaynak);
@@ -629,6 +633,17 @@ function tsePaketSonucGoster(result) {
         if (err.kod === "ITHALAT_ULKESI") H._ulkeSor(ov, "cikisUlke", "Faturadaki satıcı ülkesini seçin");
         if (err.kod === "URETIM_ULKESI") H._ulkeSor(ov, "uretildigiUlke", "Üretim (menşe) ülkesini seçin");
       } finally { btn.disabled = false; btn.style.opacity = ""; }
+    },
+    // Şasi fabrika koduna göre menşe rozeti (portaldaki window.menseRozetHtml). Çok fabrikalı markada kod
+    // bilinmiyorsa ve menşe boşsa Menşe ülke alanı kırmızıyla işaretlenir; motor da üretmeden durur.
+    _menseGoster: function (ov) {
+      const kutu = ov.querySelector('[data-hp="mense"]');
+      if (!kutu || typeof window.menseRozetHtml !== "function") return;
+      const v = function (k) { return String(ov.querySelector('[data-hp="' + k + '"]').value || "").trim(); };
+      const sasi = v("sasi").toUpperCase();
+      kutu.innerHTML = VIN_RE.test(sasi) ? window.menseRozetHtml(sasi, "", v("uretildigiUlke")) : "";
+      const fb = VIN_RE.test(sasi) && window.menseFabrikaCoz(sasi);
+      if (fb && fb.belirsiz && !v("uretildigiUlke")) H._ulkeSor(ov, "uretildigiUlke", "Üretim (menşe) ülkesini seçin");
     },
     _ulkeSor: function (ov, alanAdi, ipucu) {
       const alan = ov.querySelector('[data-hp="' + alanAdi + '"]');
