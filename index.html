@@ -25523,6 +25523,8 @@ window.ardiyeVeriHazirla = function(items, bugun, tarife, secenek) {
 };
 // Şablon HTML'i: tam yatay A4 sayfa (297×210 mm, 12/15 mm kenar). Sütun ve satır oranları
 // e-tablo şablonunun (AÇIK_ARDİYE A-F) ve GAS çıktısının oranlarıyla aynı; tablolar %100 genişlik, table-layout:fixed.
+// ⚠ Bu fonksiyon bmemesil/Ardiye (index.html, arSablonHtml) ile BİREBİR aynıdır; değişirse ikisini birlikte güncelle.
+// Opsiyonel: v.baslik, v.duzenleyen, v.duzenleyenUnvan, v.tahsilat, v.tahsilatUnvan (verilmezse resmî şablondaki değerler).
 window.ardiyeSablonHtml = function(v) {
     let esc = function(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
     let N = function(n) { return Number(n || 0).toLocaleString('tr-TR', { maximumFractionDigits: 0 }); };
@@ -25546,7 +25548,7 @@ window.ardiyeSablonHtml = function(v) {
     };
     let imza = 'text-align:center;font-size:13px;font-weight:700;line-height:20px;padding:0;';
     return '<div id="ardiye-sayfa" class="ardiye-sayfa" style="' + F + 'width:297mm;height:210mm;box-sizing:border-box;padding:12mm 15mm;margin:0;overflow:hidden;background:#ffffff;color:#000;">' +
-        '<div style="width:82.34%;box-sizing:border-box;border:1px solid #000;height:20px;padding:0 3px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:18px;">ARDİYE ÜCRETİ HESAPLAMA TABLOSU</div>' +
+        '<div style="width:82.34%;box-sizing:border-box;border:1px solid #000;height:20px;padding:0 3px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:18px;">' + esc(v.baslik || 'ARDİYE ÜCRETİ HESAPLAMA TABLOSU') + '</div>' +
         '<table style="margin-top:70px;width:82.34%;border-collapse:collapse;table-layout:fixed;">' + kol5 +
         bilgi('GİRİŞ TARİHİ:', v.giris) + bilgi('ÇIKIŞ TARİHİ:', v.cikis) + bilgi('TOPLAM GÜN', v.gun) + bilgi('ARAÇ ADETİ', v.adet) +
         bilgi('BEYANNAME/DİLEKÇE/ŞASE/TAKRİR NO:', v.beyanSasi) + bilgi('İTHALATÇI FİRMA /AD SOYAD', v.firma) + bilgi('TC/VERGİ NO :', v.vergiNo) +
@@ -25563,8 +25565,8 @@ window.ardiyeSablonHtml = function(v) {
         '<table style="margin-top:45px;border-collapse:collapse;table-layout:fixed;width:47.4%;margin-left:26.52%;">' +
         '<colgroup><col style="width:39.9%"><col style="width:33.3%"><col style="width:26.8%"></colgroup>' +
         '<tr><td style="' + imza + '">DÜZENLEYEN</td><td style="' + imza + '">TAHSİLATI YAPAN</td><td style="' + imza + '">ALINDI NO:</td></tr>' +
-        '<tr><td style="' + imza + 'padding-top:6px;">Ali Yüksel</td><td style="' + imza + 'padding-top:6px;">Damla Koç</td><td></td></tr>' +
-        '<tr><td style="' + imza + '">Ambar Memuru</td><td style="' + imza + '">Satış Memuru</td><td></td></tr>' +
+        '<tr><td style="' + imza + 'padding-top:6px;">' + esc(v.duzenleyen == null ? 'Ali Yüksel' : v.duzenleyen) + '</td><td style="' + imza + 'padding-top:6px;">' + esc(v.tahsilat == null ? 'Damla Koç' : v.tahsilat) + '</td><td></td></tr>' +
+        '<tr><td style="' + imza + '">' + esc(v.duzenleyenUnvan == null ? 'Ambar Memuru' : v.duzenleyenUnvan) + '</td><td style="' + imza + '">' + esc(v.tahsilatUnvan == null ? 'Satış Memuru' : v.tahsilatUnvan) + '</td><td></td></tr>' +
         '<tr><td style="' + imza + '">' + esc(v.imzaTarih) + '</td><td style="' + imza + '">' + esc(v.imzaTarih) + '</td><td></td></tr>' +
         '</table></div>';
 };
