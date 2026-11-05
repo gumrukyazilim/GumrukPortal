@@ -25506,7 +25506,10 @@ window.ardiyeVeriHazirla = function(items, bugun, tarife, secenek) {
         let b = String(x.beyanname || '').trim(), s = String(x.sasi || '').trim();
         return 'IM-' + (b ? b.slice(-4) : '....') + ' / ŞASE-' + (s ? s.slice(-6) : '......');
     }).join('   ');
-    let anahtar = items.map(function(x) { return x.beyanname || ''; }).filter(Boolean).join('_') || items.map(function(x) { return x.sasi || ''; }).filter(Boolean).join('_') || 'BELGE';
+    // Dosya adı: tek araç "<ŞASİ>_Ardiye_Hesap_Tablosu.pdf", çoklu "<İLK ŞASİ>_ve_digerleri_…", şasi yoksa yedek ad
+    let ilkSasi = String((items.find(function(x) { return String(x.sasi || '').trim(); }) || {}).sasi || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let dosyaAdi = !ilkSasi ? (items.length > 1 ? 'Coklu_Arac_Ardiye_Hesap_Tablosu.pdf' : 'Ardiye_Hesap_Tablosu.pdf')
+        : ilkSasi + (items.length > 1 ? '_ve_digerleri' : '') + '_Ardiye_Hesap_Tablosu.pdf';
     return {
         firma: d.firma || '', vergiNo: secenek.vergiNo || '',
         giris: d.tarih || '', cikis: gb.getDate() + '.' + iki(gb.getMonth() + 1) + '.' + gb.getFullYear(),
@@ -25515,17 +25518,21 @@ window.ardiyeVeriHazirla = function(items, bugun, tarife, secenek) {
         girisBirim: girisBirim, girisAdet: girisAdet, girisTutar: girisTutar,
         yuklemeBirim: yuklemeBirim, yuklemeAdet: yuklemeAdet, yuklemeTutar: yuklemeTutar,
         kdvOran: kdvOran, kdvTutar: kdvTutar, genelToplam: ara + kdvTutar,
-        dosyaAdi: 'ARDIYE_' + anahtar.replace(/[^\w\-]+/g, '_').slice(0, 80) + '_' + gb.getFullYear() + iki(gb.getMonth() + 1) + iki(gb.getDate())
+        dosyaAdi: dosyaAdi
     };
 };
-// Şablon HTML'i: 1310×927 px = yatay A4 (297×210 mm). Sütun oranları şablondaki A-F genişlikleriyle aynı.
+// Şablon HTML'i: tam yatay A4 sayfa (297×210 mm, 12/15 mm kenar). Sütun ve satır oranları
+// e-tablo şablonunun (AÇIK_ARDİYE A-F) ve GAS çıktısının oranlarıyla aynı; tablolar %100 genişlik, table-layout:fixed.
 window.ardiyeSablonHtml = function(v) {
     let esc = function(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
     let N = function(n) { return Number(n || 0).toLocaleString('tr-TR', { maximumFractionDigits: 0 }); };
     let TL = function(n) { return Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'; };
     let F = "font-family:Calibri,Carlito,'Segoe UI',Arial,sans-serif;";
-    let H = 'border:1px solid #000;padding:0 6px;height:25px;font-size:16px;font-weight:700;line-height:1.1;vertical-align:middle;overflow:hidden;';
+    let H = 'border:1px solid #000;padding:0 5px;height:20px;font-size:13px;font-weight:700;line-height:1.1;vertical-align:middle;overflow:hidden;word-wrap:break-word;';
     let C = H + 'text-align:center;', R = H + 'text-align:right;', K = 'color:#e00000;';
+    // A-F sütun genişlikleri (şablon: 540/386/321/258/173/360)
+    let kol6 = '<colgroup><col style="width:26.52%"><col style="width:18.92%"><col style="width:15.76%"><col style="width:12.67%"><col style="width:8.47%"><col style="width:17.66%"></colgroup>';
+    let kol5 = '<colgroup><col style="width:32.21%"><col style="width:22.98%"><col style="width:19.13%"><col style="width:15.39%"><col style="width:10.29%"></colgroup>';
     let bant = v.bantlar.map(function(b) {
         return '<tr><td style="' + C + '">' + b.etiket + '</td><td style="' + C + '">' + N(b.birim) + '</td><td style="' + C + '">' + b.gun + '</td>' +
             '<td style="' + R + '">' + N(b.tutar) + '</td><td style="' + H + '"></td><td style="' + H + '"></td></tr>';
@@ -25535,18 +25542,16 @@ window.ardiyeSablonHtml = function(v) {
             '<td style="' + R + '">' + N(tutar) + '</td><td style="' + C + '">0%</td><td style="' + C + '">' + TL(tutar) + '</td></tr>';
     };
     let bilgi = function(etk, deger) {
-        return '<tr><td style="' + C + 'height:26px;">' + etk + '</td><td colspan="4" style="' + H + 'height:26px;text-align:left;padding-left:3px;">' + esc(deger) + '</td></tr>';
+        return '<tr><td style="' + C + 'height:21px;">' + etk + '</td><td colspan="4" style="' + H + 'height:21px;text-align:left;padding-left:3px;">' + esc(deger) + '</td></tr>';
     };
-    let imza = 'text-align:center;font-size:16px;font-weight:700;line-height:25px;padding:0;';
-    return '<div class="ardiye-sayfa" style="' + F + 'width:1310px;height:927px;box-sizing:border-box;padding:74px 24px 0 22px;background:#fff;color:#000;">' +
-        '<div style="width:1040px;box-sizing:border-box;border:1px solid #000;height:24px;padding:0 3px;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:700;line-height:22px;">ARDİYE ÜCRETİ HESAPLAMA TABLOSU</div>' +
-        '<table style="margin-top:87px;width:1040px;border-collapse:collapse;table-layout:fixed;">' +
-        '<colgroup><col style="width:335px"><col style="width:239px"><col style="width:199px"><col style="width:160px"><col style="width:107px"></colgroup>' +
+    let imza = 'text-align:center;font-size:13px;font-weight:700;line-height:20px;padding:0;';
+    return '<div id="ardiye-sayfa" class="ardiye-sayfa" style="' + F + 'width:297mm;height:210mm;box-sizing:border-box;padding:12mm 15mm;margin:0;overflow:hidden;background:#ffffff;color:#000;">' +
+        '<div style="width:82.34%;box-sizing:border-box;border:1px solid #000;height:20px;padding:0 3px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:18px;">ARDİYE ÜCRETİ HESAPLAMA TABLOSU</div>' +
+        '<table style="margin-top:70px;width:82.34%;border-collapse:collapse;table-layout:fixed;">' + kol5 +
         bilgi('GİRİŞ TARİHİ:', v.giris) + bilgi('ÇIKIŞ TARİHİ:', v.cikis) + bilgi('TOPLAM GÜN', v.gun) + bilgi('ARAÇ ADETİ', v.adet) +
         bilgi('BEYANNAME/DİLEKÇE/ŞASE/TAKRİR NO:', v.beyanSasi) + bilgi('İTHALATÇI FİRMA /AD SOYAD', v.firma) + bilgi('TC/VERGİ NO :', v.vergiNo) +
         '</table>' +
-        '<table style="margin-top:9px;width:1263px;border-collapse:collapse;table-layout:fixed;">' +
-        '<colgroup><col style="width:335px"><col style="width:239px"><col style="width:199px"><col style="width:160px"><col style="width:107px"><col style="width:223px"></colgroup>' +
+        '<table style="margin-top:7px;width:100%;border-collapse:collapse;table-layout:fixed;">' + kol6 +
         '<tr><td style="' + C + '">ARDİYE ÜCRETİ</td><td style="' + C + '">TUTAR</td><td style="' + C + '">GÜN</td><td style="' + H + '"></td><td style="' + C + '">KDV</td><td style="' + C + '">TOPLAM</td></tr>' +
         bant +
         '<tr><td style="' + C + '">TOPLAM</td><td style="' + H + '"></td><td style="' + C + K + '">ADET</td><td style="' + H + '"></td><td style="' + H + '"></td><td style="' + C + '">' + TL(v.ardiyeToplam) + '</td></tr>' +
@@ -25555,8 +25560,8 @@ window.ardiyeSablonHtml = function(v) {
         '<tr><td style="' + C + K + '">KDV</td><td style="' + H + '"></td><td style="' + H + '"></td><td style="' + H + '"></td><td style="' + C + '">' + (v.kdvOran || 0) + '%</td><td style="' + C + '">' + TL(v.kdvTutar) + '</td></tr>' +
         '<tr><td style="' + C + '">TOPLAM</td><td style="' + H + '"></td><td style="' + H + '"></td><td style="' + H + '"></td><td style="' + H + '"></td><td style="' + C + '">' + TL(v.genelToplam) + '</td></tr>' +
         '</table>' +
-        '<table style="margin-top:56px;border-collapse:collapse;table-layout:fixed;width:600px;margin-left:334px;">' +
-        '<colgroup><col style="width:240px"><col style="width:200px"><col style="width:160px"></colgroup>' +
+        '<table style="margin-top:45px;border-collapse:collapse;table-layout:fixed;width:47.4%;margin-left:26.52%;">' +
+        '<colgroup><col style="width:39.9%"><col style="width:33.3%"><col style="width:26.8%"></colgroup>' +
         '<tr><td style="' + imza + '">DÜZENLEYEN</td><td style="' + imza + '">TAHSİLATI YAPAN</td><td style="' + imza + '">ALINDI NO:</td></tr>' +
         '<tr><td style="' + imza + 'padding-top:6px;">Ali Yüksel</td><td style="' + imza + 'padding-top:6px;">Damla Koç</td><td></td></tr>' +
         '<tr><td style="' + imza + '">Ambar Memuru</td><td style="' + imza + '">Satış Memuru</td><td></td></tr>' +
@@ -25564,40 +25569,49 @@ window.ardiyeSablonHtml = function(v) {
         '</table></div>';
 };
 // Şablonu tek sayfa yatay A4 PDF'e çevirir → Promise<Blob>
-window.ardiyePdfBlob = function(v) {
-    let h2c = window.html2canvas, JsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-    let dogrudan = typeof h2c === 'function' && typeof JsPDF === 'function';
-    if(!dogrudan && typeof html2pdf === 'undefined') return Promise.reject(new Error('PDF modülü yüklenemedi'));
-    let kap = document.createElement('div');
-    kap.style.cssText = 'position:fixed;left:-99999px;top:0;width:1310px;background:#fff;z-index:-9999;pointer-events:none;';
-    kap.innerHTML = window.ardiyeSablonHtml(v);
-    document.body.appendChild(kap);
-    let sayfa = kap.firstChild;
-    let h2cAyar = { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false, width: 1310, height: 927, windowWidth: 1310, scrollX: 0, scrollY: 0 };
-    // Görüntü tek yatay A4 sayfaya (297×210 mm) tam oturtulur
-    let yerlestir = function(pdf, canvas) {
-        let ps = pdf.internal.pageSize;
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, ps.getWidth(), ps.getHeight());
-        return pdf.output('blob');
-    };
-    let is;
-    if(dogrudan) {
-        is = h2c(sayfa, h2cAyar).then(function(canvas) { return yerlestir(new JsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape', compress: true }), canvas); });
-    } else {
-        // Paket globalleri açmıyorsa html2pdf işleyicisi. Kabı şablonla aynı boyutta (1310×927 px = 346,6×245,3 mm)
-        // olsun diye taslak bu ölçüde açılır, sonra taslak sayfalar silinip tek yatay A4 sayfa kurulur.
-        let w = html2pdf().set({ margin: 0, html2canvas: h2cAyar, jsPDF: { unit: 'mm', format: [346.6, 245.3], orientation: 'landscape', compress: true } }).from(sayfa);
-        is = w.toCanvas().get('canvas').then(function(canvas) {
-            return w.toPdf().get('pdf').then(function(pdf) {
-                let eski = pdf.getNumberOfPages();
-                pdf.addPage('a4', 'landscape');
-                for(let k = 0; k < eski; k++) pdf.deletePage(1);
-                pdf.setPage(1);
-                return yerlestir(pdf, canvas);
-            });
-        });
-    }
-    return Promise.resolve(is).finally(function() { if(kap.parentNode) kap.parentNode.removeChild(kap); });
+// Çizim portal sayfasında DEĞİL, ayrı bir iframe'de yapılır: portalın kaydırması (scrollY) ve
+// genel tablo/hücre stilleri şablona karışmaz. iframe'in kendisi sabit 0,0 konumunda ve görünmez.
+window.ardiyePdfBlob = function(v, dosyaAdi) {
+    let kaynak = (document.querySelector('script[src*="html2pdf"]') || {}).src || 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    return new Promise(function(coz, red) {
+        let ifr = document.createElement('iframe');
+        ifr.setAttribute('aria-hidden', 'true');
+        ifr.setAttribute('tabindex', '-1');
+        ifr.style.cssText = 'position:fixed;top:0;left:0;width:1123px;height:794px;border:0;margin:0;padding:0;opacity:0;pointer-events:none;z-index:-9999;';
+        let bitti = false;
+        let son = function(hata, blob) {
+            if(bitti) return;
+            bitti = true;
+            clearTimeout(sure);
+            setTimeout(function() { if(ifr.parentNode) ifr.parentNode.removeChild(ifr); }, 0);
+            if(hata) red(hata); else coz(blob);
+        };
+        let sure = setTimeout(function() { son(new Error('PDF zaman aşımına uğradı')); }, 20000);
+        ifr.onload = function() {
+            try {
+                let w = ifr.contentWindow, sayfa = ifr.contentDocument.getElementById('ardiye-sayfa');
+                if(!w || typeof w.html2pdf !== 'function' || !sayfa) { son(new Error('PDF modülü yüklenemedi')); return; }
+                let opt = {
+                    margin: 0,
+                    filename: dosyaAdi || 'Ardiye_Hesap_Tablosu.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, windowWidth: 1122, x: 0, y: 0, backgroundColor: '#ffffff', logging: false },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                    pagebreak: { mode: [] }
+                };
+                w.html2pdf().set(opt).from(sayfa).toPdf().get('pdf').then(function(pdf) {
+                    // Her durumda tek sayfa: yuvarlama taşmasıyla oluşabilecek boş ikinci sayfa silinir
+                    while(pdf.getNumberOfPages() > 1) pdf.deletePage(pdf.getNumberOfPages());
+                    pdf.setProperties({ title: opt.filename });
+                    son(null, new Blob([pdf.output('arraybuffer')], { type: 'application/pdf' }));
+                }, function(e) { son(e || new Error('PDF üretilemedi')); });
+            } catch(e) { son(e); }
+        };
+        ifr.srcdoc = '<!doctype html><html><head><meta charset="utf-8">' +
+            '<style>html,body{margin:0;padding:0;background:#ffffff;}</style>' +
+            '<scr' + 'ipt src="' + kaynak + '"></scr' + 'ipt></head><body>' + window.ardiyeSablonHtml(v) + '</body></html>';
+        document.body.appendChild(ifr);
+    });
 };
 
 window.ardiyeUret = function(idx) {
@@ -25685,8 +25699,8 @@ window.ardiyeUret = function(idx) {
             if(sekme) sekme.document.write('<title>Ardiye PDF</title><p style="font:16px sans-serif;padding:24px;">Ardiye PDF hazırlanıyor…</p>');
         } catch(e) { sekme = null; }
     }
-    let dosyaAdi = veri.dosyaAdi + '.pdf';
-    window.ardiyePdfBlob(veri).then(async function(blob) {
+    let dosyaAdi = veri.dosyaAdi;
+    window.ardiyePdfBlob(veri, dosyaAdi).then(async function(blob) {
         if(mobil && navigator.share && navigator.canShare && typeof File === 'function') {
             let dosya = new File([blob], dosyaAdi, { type: 'application/pdf' });
             if(navigator.canShare({ files: [dosya] })) {
@@ -25695,12 +25709,23 @@ window.ardiyeUret = function(idx) {
             }
         }
         let url = URL.createObjectURL(blob);
-        if(sekme && !sekme.closed) sekme.location.href = url;
-        else {
+        if(sekme && !sekme.closed) {
+            // Görüntüleyici + doğru adla indirme bağlantısı (tarayıcının kendi indirme düğmesi blob adı verir)
+            let ad = dosyaAdi.replace(/[&<>"']/g, '');
+            sekme.document.open();
+            sekme.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + ad + '</title>' +
+                '<style>html,body{margin:0;height:100%;background:#525659;font-family:-apple-system,"Segoe UI",Arial,sans-serif;}' +
+                '.cubuk{height:40px;display:flex;align-items:center;gap:12px;padding:0 14px;background:#1e293b;color:#fff;font-size:13px;}' +
+                '.cubuk a{color:#fff;background:#2563eb;padding:6px 12px;border-radius:6px;text-decoration:none;font-weight:600;}' +
+                'iframe{border:0;width:100%;height:calc(100% - 40px);display:block;}</style></head><body>' +
+                '<div class="cubuk"><span>' + ad + '</span><a href="' + url + '" download="' + ad + '">⬇ İndir</a></div>' +
+                '<iframe src="' + url + '" title="' + ad + '"></iframe></body></html>');
+            sekme.document.close();
+        } else {
             let a = document.createElement('a');
             a.href = url; a.download = dosyaAdi; document.body.appendChild(a); a.click(); a.remove();
         }
-        setTimeout(function() { URL.revokeObjectURL(url); }, 120000);
+        setTimeout(function() { URL.revokeObjectURL(url); }, 600000);
     }).then(function() {
         // Drive arşivi arka planda; kullanıcı beklemez, sekme açılmaz
         window.autoSaveArdiyeToDrive(arsiv, { sessiz: true });
