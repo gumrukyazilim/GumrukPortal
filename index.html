@@ -3007,7 +3007,7 @@ div[style*="position: relative"] > input {
 /* Yakıt/tahrik rozeti ve GTİP uyarısı yalnızca ekranda görünür. */
 @media print { .bk-yakit-ek, .yakit-rozet, .yakit-gtip-uyari { display: none !important; } }
 </style>
-
+
 <style id="mense-rozet">
 /* Menşe rozeti (fabrika matrisi): koyu tema varsayılan, açık tema .light-mode */
 .mense-rozet { margin-top: 6px; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; line-height: 1.4; border: 1px solid; }
@@ -3365,6 +3365,7 @@ div[style*="position: relative"] > input {
                     <div class="byn-item"><span class="byn-label">Araç Fatura No &amp; Tarih</span><span class="byn-val" id="bk-44-arac-fatura">-</span></div>
                     <div class="byn-item"><span class="byn-label">Navlun Fatura No &amp; Tarih</span><span class="byn-val" id="bk-44-navlun-fatura">-</span></div>
                     <div class="byn-item"><span class="byn-label">A.TR Dolaşım Belgesi No &amp; Tarih</span><span class="byn-val" id="bk-atr">-</span></div>
+                    <div class="byn-item"><span class="byn-label">Net Ağırlık (38. Kutu)</span><span class="byn-val" id="bk-net">-</span></div>
                     <div class="byn-item"><span class="byn-label">TPS ÖTV Muafiyet No (234/1)</span><span class="byn-val" id="bk-44-otv-muaf">-</span></div>
                     <div class="byn-item"><span class="byn-label">TPS İthal Araç Uygunluk Belgesi (TSE)</span><span class="byn-val" id="bk-tse">-</span></div>
                     <div class="byn-item"><span class="byn-label">TPS BTK Cihaz (IMEI) Yazı No</span><span class="byn-val" id="bk-btk">-</span></div>
@@ -3900,6 +3901,11 @@ div[style*="position: relative"] > input {
             <div class="input-group" style="margin:0;">
                 <label>IMEİ Numarası <span style="font-size:10px;color:var(--primary);">(Araçtan otomatik)</span></label>
                 <input type="text" id="byn-imei" placeholder="Araç detayından otomatik gelir">
+            </div>
+
+            <div class="input-group" style="margin:0;">
+                <label>Net Ağırlık (kg) <span style="font-size:10px;color:var(--primary);">(38. Kutu · Araçtan otomatik)</span></label>
+                <input type="text" id="byn-net" inputmode="decimal" placeholder="Araç detayından / CoC 13'ten otomatik gelir">
             </div>
 
             <div class="input-group" style="margin:0;">
@@ -14627,7 +14633,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         'byn-firma-sec','byn-kullanici','byn-otv-muhaf','byn-37','byn-alici-satici','byn-kap',
         'byn-11','byn-15','byn-10','byn-17',
         'byn-2','byn-8','byn-8-unvan',
-        'byn-20','byn-22','byn-navlun','byn-sigorta','byn-sigorta-ic','byn-sasi','byn-imei','byn-ozet-beyan',
+        'byn-20','byn-22','byn-navlun','byn-sigorta','byn-sigorta-ic','byn-sasi','byn-imei','byn-net','byn-ozet-beyan',
         'byn-28-banka','byn-28-sube','byn-banka-arama',
         'byn-25','byn-18-plaka','byn-18-ulke','byn-21-plaka','byn-21-ulke'
     ];
@@ -14765,7 +14771,9 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     </tr>
     <tr style="background:#f5f7fa;">
       <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">IMEİ Numarası</td>
-      <td style="padding:7px 10px;border:1px solid #ddd;" colspan="3">${get('byn-imei') || '-'}</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-imei') || '-'}</td>
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #ddd;">Net Ağırlık (kg)</td>
+      <td style="padding:7px 10px;border:1px solid #ddd;">${get('byn-net') || '-'}</td>
     </tr>
 
     <tr style="background:#1e3a5f;color:#fff;">
@@ -14984,6 +14992,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             '28 Banka Kodu   : ' + get('byn-28-banka') + '\n' +
             'Şasi No         : ' + get('byn-sasi') + '\n' +
             'IMEİ No         : ' + get('byn-imei') + '\n' +
+            'Net Ağırlık (kg): ' + (get('byn-net') || '-') + '\n' +
             'Özet Beyan No   : ' + get('byn-ozet-beyan') + '\n' +
             '─────────────────────────────────────\n' +
             '25 Taşıma Şekli : ' + get('byn-25') + '\n' +
@@ -16628,6 +16637,50 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     window.yakitUyariHtml = function(uyari) {
         return uyari ? '<span class="yakit-gtip-uyari" style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; color:var(--danger, #dc2626);">' + uyari + '</span>' : '';
     };
+    // Net ağırlık (BİLGE 38. kutu): araç kaydı (da-net) → CoC 13 (yürür vaziyette kütle) → CoC 13.2 (gerçek kütle) → boş.
+    // Döner { deger: sayı|null, metin: '2.150 kg' | ham metin | '', kopya: '2150' | ham metin | '', kaynak: 'kayıt'|'CoC 13'|'CoC 13.2'|'' }
+    window.bkNetSayi = function(v) {
+        let s = String(v == null ? '' : v).replace(/ /g, ' ').replace(/\s*(kg|kilo(gram)?)\.?\s*$/i, '').trim();
+        if(!s) return null;
+        let n;
+        if(/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) n = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+        else if(/^\d{1,3}( \d{3})+(,\d+)?$/.test(s)) n = parseFloat(s.replace(/ /g, '').replace(',', '.'));
+        else if(/^\d{1,3}(,\d{3})+$/.test(s)) n = parseFloat(s.replace(/,/g, ''));
+        else if(/^\d+(,\d+)?$/.test(s)) n = parseFloat(s.replace(',', '.'));
+        else if(/^\d+\.\d{1,2}$/.test(s)) n = parseFloat(s);
+        else return null;
+        return isFinite(n) && n > 0 ? n : null;
+    };
+    window.bkCocNetKutle = function(metin) {
+        let t = ' ' + String(metin || '').replace(/\r/g, '').replace(/[ \t ]+/g, ' ') + ' ';
+        let oku = function(re) {
+            let m;
+            while((m = re.exec(t))) {
+                let s = m[1].replace(/\[\s*kg\s*\]|\(\s*kg\s*\)/gi, '').match(/(\d{1,2}[.\s]\d{3}|\d{3,5})(?:,\d+)?(?!\d)/);
+                let n = s ? parseFloat(s[1].replace(/[.\s]/g, '')) : NaN;
+                if(n >= 100 && n <= 60000) return Math.round(n);
+            }
+            return null;
+        };
+        let k13 = oku(/[\s|]13\.(?![\d])([\s\S]{0,160}?)(?=[\s|]13\.[1-9]\.?(?!\d)|[\s|]1[4-9]\.(?!\d)|$)/g);
+        if(k13) return { kg: k13, kaynak: 'CoC 13' };
+        let k132 = oku(/[\s|]13\.2\.?(?![\d])([\s\S]{0,160}?)(?=[\s|]13\.[3-9]\.?(?!\d)|[\s|]1[4-9]\.(?!\d)|$)/g);
+        return k132 ? { kg: k132, kaynak: 'CoC 13.2' } : null;
+    };
+    window.bkNetAgirlik = function(d) {
+        d = d || {};
+        let ts = d.tseSablon || {};
+        let bicim = function(n, kaynak) {
+            return { deger: n, metin: n.toLocaleString('tr-TR', { maximumFractionDigits: 2 }) + ' kg', kopya: String(n).replace('.', ','), kaynak: kaynak };
+        };
+        let ham = [d.net, d.netAgirlik, ts['tse-netAgirlik']].map(function(v) { return v == null ? '' : String(v).trim(); }).find(function(v) { return v && v !== '-'; }) || '';
+        if(ham) {
+            let n = window.bkNetSayi(ham);
+            return n ? bicim(n, 'kayıt') : { deger: null, metin: ham, kopya: ham, kaynak: 'kayıt' };
+        }
+        let coc = d.cocText ? window.bkCocNetKutle(d.cocText) : null;
+        return coc ? bicim(coc.kg, coc.kaynak) : { deger: null, metin: '', kopya: '', kaynak: '' };
+    };
     window.bkKilitBul = function(d) {
         let sasiTemiz = String((d && d.sasi) || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
         return sasiTemiz ? window.BEYANNAME_ARAC_KILIT_VERILERI[sasiTemiz] || null : null;
@@ -16777,6 +16830,14 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         if(atrEl) atrEl.innerHTML = (d.atrNo || d.atrTarih)
             ? duz('bk-atr-no', d.atrNo, 'No') + ' / ' + duz('bk-atr-tarih', d.atrTarih, 'GG.AA.YYYY') + kopyaBtn(d.atrNo)
             : duz('bk-atr-no', '', '-');
+        // Net ağırlık: ekranda "2.150 kg", 📋 BİLGE 38. kutu için yalnız rakamı ("2150") kopyalar
+        let netEl = document.getElementById('bk-net');
+        if(netEl) {
+            let na = window.bkNetAgirlik(d);
+            netEl.innerHTML = (na.metin ? esc(na.metin) : '-') +
+                (na.kaynak && na.kaynak !== 'kayıt' ? ' <span class="no-print" style="font-size:10px;color:var(--warning);font-family:inherit;" title="Araç kaydında net ağırlık yok; CoC metninden okundu">(' + esc(na.kaynak) + ')</span>' : '') +
+                kopyaBtn(na.kopya);
+        }
         let html = function(id, h) { let el = document.getElementById(id); if(el) el.innerHTML = h; };
         let tutarYaz = function(v) { return v ? (window.formatNumber ? window.formatNumber(v) : v) : ''; };
         html('bk-arac-fatura-no-tarih', duz('bk-fatura-no', d.faturaNo, 'No', 'fno') + ' / ' + duz('bk-fatura-tarih', d.faturaTarih || d.faturaTarihi, 'GG.AA.YYYY', 'ftar') + kopyaBtn(d.faturaNo));
@@ -17360,6 +17421,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             // Şasi, IMEİ (da-brut) ve Özet Beyan No
             set('byn-sasi',       d.sasi      || '');
             set('byn-imei',       d.brut      || '');
+            set('byn-net',        window.bkNetAgirlik ? window.bkNetAgirlik(d).kopya : (d.net || ''));
             set('byn-ozet-beyan', d.ozetBeyan || '');
 
             // Plaka bilgisi varsa
