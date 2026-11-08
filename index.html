@@ -36,6 +36,51 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
+        // ═══ VERİ ORTAMI (Faz 1 — Veri Zırhı) ═══════════════════════════════════
+        // Canlı site (gumrukyazilim.github.io) → 'portal_data_test' (gerçek veri, adı tarihsel).
+        // Yerel dosya / localhost → 'portal_data_dev' (test kopyası). Yerelde yapılan deneme
+        // kayıtları canlı veriye ASLA yazılmaz. Yerelde bilerek canlıya bağlanmak için
+        // adrese ?ortam=canli eklenir (yerelde kırmızı şerit = test, turuncu şerit = canlı veri).
+        // Canlı sitede ?ortam= dikkate alınmaz: yayındaki portal her zaman gerçek veridedir.
+        (function(){
+            var CANLI_HOST = /(^|\.)gumrukyazilim\.github\.io$/i.test(location.hostname);
+            var istek = '';
+            try { istek = (new URLSearchParams(location.search).get('ortam') || '').toLowerCase(); } catch(e) {}
+            var ortam = CANLI_HOST ? 'canli' : (istek === 'canli' ? 'canli' : 'test');
+            window._FB_ORTAM = ortam;
+            window._FB_KOK = ortam === 'canli' ? 'portal_data_test' : 'portal_data_dev';
+            window._FB_TEST = ortam !== 'canli';
+            // Ortam değiştiyse yerel veri önbelleklerini temizle: test verisi canlıya, canlı veri
+            // teste "yerel yedek" kılığında sızmasın.
+            try {
+                var onceki = localStorage.getItem('gp_veri_ortami');
+                if (onceki && onceki !== ortam) {
+                    ['gumrukDeclData','gumrukFirmData','gumrukFirmMeta','gumrukKiymetData','gumrukCariData',
+                     'gumrukGelecekData','gumrukGelecekSilinen','gumruk_ek_gonderici'].forEach(function(k){ localStorage.removeItem(k); });
+                }
+                localStorage.setItem('gp_veri_ortami', ortam);
+            } catch(e) {}
+            if (!CANLI_HOST) {
+                document.addEventListener('DOMContentLoaded', function(){
+                    var s = document.createElement('div');
+                    s.id = 'gp-ortam-seridi';
+                    s.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;color:#fff;font:600 12px/1.6 Inter,system-ui,sans-serif;text-align:center;padding:2px 8px;pointer-events:none;letter-spacing:.3px;background:' + (window._FB_TEST ? '#b91c1c' : '#c2410c');
+                    s.textContent = window._FB_TEST
+                        ? '🧪 TEST VERİSİ (portal_data_dev) — buradaki kayıtlar canlı portalı etkilemez '
+                        : '⚠️ YEREL DOSYA CANLI VERİDE — her kayıt gerçek portala yazılır';
+                    if (window._FB_TEST) {
+                        var b = document.createElement('button');
+                        b.type = 'button';
+                        b.textContent = '↻ Canlı veriyi teste kopyala';
+                        b.style.cssText = 'pointer-events:auto;margin-left:8px;background:#fff;color:#b91c1c;border:0;border-radius:4px;font:600 11px Inter,system-ui,sans-serif;padding:1px 8px;cursor:pointer';
+                        b.onclick = function(){ if (window._testVerisiCanlidanKopyala) window._testVerisiCanlidanKopyala(); };
+                        s.appendChild(b);
+                    }
+                    document.body.appendChild(s);
+                });
+            }
+        })();
+
         // KRİTİK: gelecekData'yi en başta boş dizi olarak başlat (undefined çökmesini önler)
         window.gelecekData = [];
         // SİLİNENLER LİSTESİ: Gelecek Araçlar'dan silinen şasiler { SASI: {silinme, firma, ...} }.
@@ -6921,7 +6966,7 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
    *  önce güncel ağaç okunur, şasisi tutan araçların yolu bulunur, sadece o alt alan set edilir. */
   function tasitDegeriBulutaYaz(sasi, deger) { return alanBulutaYaz(sasi, 'tasitDegeri', deger); }
   function alanBulutaYaz(sasi, alan, deger) {
-    var ref = w._dbRef, get = w._dbGet, set = w._dbSet, db = w._db, KOK = 'portal_data_test';
+    var ref = w._dbRef, get = w._dbGet, set = w._dbSet, db = w._db, KOK = w._FB_KOK || 'portal_data_test';
     if (!YAZILABILIR[alan]) return Promise.resolve({ durum: 'izinsiz-alan' });
     var rol = localStorage.getItem('gumruk_role') || 'admin';
     if (!ref || !get || !set || !db) return Promise.resolve({ durum: 'baglanti-yok' });
@@ -7028,7 +7073,9 @@ button.vg-tool { font: inherit; text-align: left; cursor: pointer; width: 100%; 
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, query, orderByChild, startAt, endAt, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getDatabase, ref, set, get, update, onValue, query, orderByChild, startAt, endAt, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+// Veri kökü: canlıda 'portal_data_test', yerelde 'portal_data_dev' (bkz. sayfa başındaki VERİ ORTAMI)
+const FB_KOK = window._FB_KOK || 'portal_data_test';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 // Auth UI ekran geçişleri (Aşama 1)
 window.showLogin = function() {
@@ -7236,7 +7283,7 @@ window._firebaseSave = async function(payload) {
 
         // 3. ÇAKIŞMA KORUMASI: Sunucuda bu cihazın görmediği daha yeni bir kayıt var mı?
         try {
-            const metaSnap = await get(ref(db, 'portal_data_test/_meta'));
+            const metaSnap = await get(ref(db, FB_KOK + '/_meta'));
             if (metaSnap.exists()) {
                 const m = metaSnap.val() || {};
                 const bizdeki = window._sonYuklenenMeta || 0;
@@ -7253,7 +7300,7 @@ window._firebaseSave = async function(payload) {
         // belleğinden değil BULUTTAN taze al ki başka cihazın eklediği/kaldırdığı kayıt
         // ezilmesin; silinen şasiler gelecekData'ya hiçbir eski kopyadan geri yazılmasın.
         try {
-            const silSnap = await get(ref(db, 'portal_data_test/gelecekSilinen'));
+            const silSnap = await get(ref(db, FB_KOK + '/gelecekSilinen'));
             if (typeof window.gelecekSilinenAyarla === 'function') window.gelecekSilinenAyarla(silSnap.exists() ? silSnap.val() : {});
         } catch(e) { console.warn("Silinenler listesi okunamadı, yerel kopya kullanılıyor:", e.message); }
         payload.gelecekSilinen = window.gelecekSilinen || {};
@@ -7281,9 +7328,30 @@ window._firebaseSave = async function(payload) {
         try { temizPayload = JSON.parse(JSON.stringify(payload)); }
         catch(e) { temizPayload = payload; }
 
-        // 5. HER ŞEY TAMAMSA BULUTA YAZ
+        // 5. YALNIZCA DEĞİŞEN BÖLÜMLERİ YAZ (update)
+        // Eskiden set() tüm kökü baştan yazıyordu: payload'da olmayan her yol (calcState,
+        // bot/köprünün yazdıkları) siliniyor, bu cihazın görmediği başka cihaz değişiklikleri
+        // eziliyordu. Artık son bilinen bulut durumuyla aynı olan bölümler hiç gönderilmez;
+        // değişenler update() ile tek ve atomik bir yazmada gider. Payload dışındaki yollar korunur.
+        const yama = {};
+        const parmak = {};
+        const durum = window._fbSonDurum || {};
+        const bosIz = window._fbParmakIzi(null);
+        Object.keys(temizPayload).forEach(function(k) {
+            if (k === '_meta') return;
+            parmak[k] = window._fbParmakIzi(temizPayload[k]);
+            // Tam ağaç okunduysa bulutta olmayan bölüm "boş" demektir; hiç okunmadıysa bilinmez → yazılır
+            const onceki = (k in durum) ? durum[k] : (durum.__tam ? bosIz : undefined);
+            if (onceki !== parmak[k]) yama[k] = temizPayload[k];
+        });
+        const degisen = Object.keys(yama);
+        window._fbSonYazilan = degisen; // tanı için: son kayıtta hangi bölümler gitti
+        if (!degisen.length) { window._fbSonHata = ''; return true; } // bulut zaten güncel
+        yama._meta = temizPayload._meta;
         window._kendiYazma = true; // Listener'a "bu benim yazdım, geri yükleme" de
-        await set(ref(db, 'portal_data_test'), temizPayload);
+        try { await update(ref(db, FB_KOK), yama); }
+        catch (e) { window._kendiYazma = false; throw e; }
+        degisen.forEach(function(k) { window._fbSonDurum[k] = parmak[k]; });
         window._sonYuklenenMeta = payload._meta.updatedAt;
         window._fbSonHata = '';
         return true;
@@ -7294,10 +7362,58 @@ window._firebaseSave = async function(payload) {
         return false;
     }
 };
+// TEST ORTAMI: canlı verinin anlık kopyasını portal_data_dev'e alır (canlıyı yalnızca OKUR).
+window._testVerisiCanlidanKopyala = async function() {
+    if (!window._FB_TEST || FB_KOK === 'portal_data_test') { alert('Bu işlem yalnızca TEST ortamında çalışır.'); return false; }
+    if (!confirm('Canlı portal verisinin şu anki kopyası TEST alanına (portal_data_dev) alınacak.\n\nTest alanındaki mevcut deneme verileri silinir; canlı veri DEĞİŞMEZ.\n\nDevam edilsin mi?')) return false;
+    try {
+        const snap = await get(ref(db, 'portal_data_test'));
+        if (!snap.exists()) { alert('Canlı veri okunamadı.'); return false; }
+        const kopya = snap.val();
+        kopya._meta = { updatedAt: Date.now(), device: 'test-kopya', kaynak: 'portal_data_test' };
+        await set(ref(db, FB_KOK), kopya);
+        alert('✅ Test verisi canlıdan kopyalandı. Sayfa yenileniyor.');
+        location.reload();
+        return true;
+    } catch (e) { alert('Kopyalanamadı: ' + ((e && e.message) || e)); return false; }
+};
+
+// Bulut durumu parmak izleri: { decl: 'h…', firm: 'h…', … } — son okunan / yazılan halin özeti.
+// Anahtar sırasından bağımsızdır (Firebase anahtarları sıralı döndürür). Bilinmeyen bölüm her zaman yazılır.
+window._fbSonDurum = window._fbSonDurum || {};
+window._fbParmakIzi = function(v) {
+    // Firebase gibi düşün: null / undefined / boş dizi / boş nesne hiç saklanmaz, yani "yok" ile aynıdır.
+    // Böylece yerel `kiymet: []` ile bulutta olmayan `kiymet` aynı sayılır, gereksiz yeniden yazma olmaz.
+    const ozet = function(x) {
+        if (x === null || x === undefined) return '';
+        if (Array.isArray(x)) {
+            const p = x.map(ozet);
+            while (p.length && p[p.length - 1] === '') p.pop();
+            return p.length ? '[' + p.map(function(y) { return y || 'n'; }).join(',') + ']' : '';
+        }
+        if (typeof x === 'object') {
+            const p = [];
+            Object.keys(x).sort().forEach(function(k) { const y = ozet(x[k]); if (y !== '') p.push(JSON.stringify(k) + ':' + y); });
+            return p.length ? '{' + p.join(',') + '}' : '';
+        }
+        return JSON.stringify(x);
+    };
+    const s = ozet(v);
+    let h1 = 0x811c9dc5, h2 = 0x01000193 ^ s.length;
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619); h2 = Math.imul(h2 ^ c, 2246822519); }
+    return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36) + ':' + s.length;
+};
+// Buluttan gelen tam ağacın özetini kaydeder (yükleme ve dinleyici çağırır).
+window._fbDurumKaydet = function(agac) {
+    const yeni = { __tam: true };
+    if (agac && typeof agac === 'object') Object.keys(agac).forEach(function(k) { if (k !== '_meta' && k !== '__tam') yeni[k] = window._fbParmakIzi(agac[k]); });
+    window._fbSonDurum = yeni;
+};
 window._firebaseLoad = async function() {
     try {
-        const snapshot = await get(ref(db, 'portal_data_test'));
-        if(snapshot.exists()) return snapshot.val();
+        const snapshot = await get(ref(db, FB_KOK));
+        if(snapshot.exists()) { const v = snapshot.val(); window._fbDurumKaydet(v); return v; }
+        window._fbDurumKaydet({});
         return null;
     } catch(e) { console.error("Firebase load error:", e); return null; }
 };
@@ -7316,14 +7432,14 @@ window._fbGelecekSil = async function(arac) {
         // Önce silinenler listesine yaz: transaction ile bot arasında yarış olsa bile
         // bot bu kaydı görüp aracı yeniden eklemez.
         if (S) {
-            await set(ref(db, 'portal_data_test/gelecekSilinen/' + S), {
+            await set(ref(db, FB_KOK + '/gelecekSilinen/' + S), {
                 silinme: Date.now(),
                 cihaz: window._cihazKimligi || 'bilinmiyor',
                 firma: String(arac.firma || ''), marka: String(arac.marka || ''), model: String(arac.model || '')
             });
         }
         const imza = S ? null : JSON.stringify(arac);
-        const sonuc = await runTransaction(ref(db, 'portal_data_test/gelecekData'), function(cur) {
+        const sonuc = await runTransaction(ref(db, FB_KOK + '/gelecekData'), function(cur) {
             const liste = Array.isArray(cur) ? cur : (cur && typeof cur === 'object' ? Object.values(cur) : []);
             const kalan = liste.filter(function(d) {
                 if (!d) return false;
@@ -7349,7 +7465,7 @@ window._fbGelecekSilinenKaldir = async function(sasi) {
     if (!S) return true;
     // Yerel kopya eski olabilir; buluttaki kaydı her durumda kaldır (yoksa işlem zararsız).
     try {
-        await set(ref(db, 'portal_data_test/gelecekSilinen/' + S), null);
+        await set(ref(db, FB_KOK + '/gelecekSilinen/' + S), null);
         delete window.gelecekSilinen[S];
         window.gelecekSilinenAyarla(window.gelecekSilinen);
         return true;
@@ -13698,7 +13814,7 @@ if(data.ekGonderici) {
                 window._gelecekListener();
             }
 
-            const gelecekRef = window._fbRef(window._fbDb, 'portal_data_test/gelecekData');
+            const gelecekRef = window._fbRef(window._fbDb, (window._FB_KOK || 'portal_data_test') + '/gelecekData');
             
             window._gelecekListener = window._fbOnValue(gelecekRef, function(snapshot) {
                 console.log("📡 Firebase dinleyicisi aktif: Veriler tüm cihazlar arasında anlık senkronize ediliyor.");
@@ -13735,7 +13851,7 @@ if(data.ekGonderici) {
                 window._mainDataListener();
             }
             
-            const mainRef = window._fbRef(window._fbDb, 'portal_data_test');
+            const mainRef = window._fbRef(window._fbDb, window._FB_KOK || 'portal_data_test');
             
             window._mainDataListener = window._fbOnValue(mainRef, function(snapshot) {
                 if(!snapshot.exists()) return;
@@ -13757,6 +13873,8 @@ if(data.ekGonderici) {
                 
                 let v = snapshot.val();
                 if(!v) return;
+                // update() karşılaştırması için bulut durumunun özetini tazele
+                if(typeof window._fbDurumKaydet === 'function') window._fbDurumKaydet(v);
 
                 // Çakışma koruması: diğer cihazın kaydını gördük, referansı güncelle
                 if (v._meta && v._meta.updatedAt) window._sonYuklenenMeta = v._meta.updatedAt;
@@ -22722,6 +22840,7 @@ window.sheetseTopluAktar = async function() {
 // Otomatik arka plan sync (her saveData başarısı sonrası çağrılır)
 // Sessiz çalışır, kullanıcı fark etmez, hata olursa Firebase etkilenmez
 window.sheetseSenkronArkaPlanda = function() {
+    if (window._FB_TEST) return; // test verisi canlı Sheets tablosuna yazılmaz
     // Debounce: çok hızlı arka arkaya çağrılırsa son çağrıdan 5 sn sonra çalış
     if (window._sheetsSyncTimeout) clearTimeout(window._sheetsSyncTimeout);
     window._sheetsSyncTimeout = setTimeout(async () => {
@@ -29491,6 +29610,7 @@ window._gunlukOtoYedek = function() {
     try {
         if ((localStorage.getItem('gumruk_role') || '') !== 'admin') return;
         if (!window._dataLoaded) return;
+        if (window._FB_TEST) return; // test verisi canlı yedek klasörüne gitmez
         const bugun = new Date().toISOString().slice(0, 10);
         if (localStorage.getItem('gumruk_son_yedek_gunu') === bugun) return;
         window.yedekAlGAS(true);
