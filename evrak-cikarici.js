@@ -21,7 +21,7 @@
 })(typeof window !== 'undefined' ? window : this, function (DM) {
   'use strict';
 
-  var SURUM = '2026-11-08-c1';
+  var SURUM = '2026-11-08-c2';
   var GUVEN_PUAN = { yuksek: 3, orta: 2, dusuk: 1 };
 
   function U(s) { return String(s == null ? '' : s).toLocaleUpperCase('tr').replace(/İ/g, 'I'); }
@@ -272,18 +272,26 @@
   }
 
   // Aynı tür + alan için: daha güvenilir okuma kazanır; eşitse yeni okuma (aynı dosyanın yeniden okunması) kazanır.
-  function birlestir(mevcut, sonuclar, zaman) {
+  // Elle girilen / kabul edilen değerler (guven 'elle') hiçbir yeniden taramada ezilmez.
+  // secenek.sifirla: "Tümünü Yeniden Oku" → elle olmayan eski okumalar atılır.
+  function birlestir(mevcut, sonuclar, zaman, secenek) {
+    var sifirla = !!(secenek && secenek.sifirla);
     var ea = {};
     Object.keys(mevcut || {}).forEach(function (t) {
-      if (t.charAt(0) === '_') return;
+      if (t.charAt(0) === '_' || !mevcut[t] || typeof mevcut[t] !== 'object') return;
       ea[t] = {};
-      Object.keys(mevcut[t] || {}).forEach(function (k) { ea[t][k] = mevcut[t][k]; });
+      Object.keys(mevcut[t]).forEach(function (k) {
+        var v = mevcut[t][k];
+        if (!sifirla || (v && v.guven === 'elle')) ea[t][k] = v;
+      });
+      if (!Object.keys(ea[t]).length) delete ea[t];
     });
     (sonuclar || []).forEach(function (liste) {
       (liste || []).forEach(function (b) {
         ea[b.tur] = ea[b.tur] || {};
         Object.keys(b.alanlar).forEach(function (k) {
           var yeni = b.alanlar[k], eski = ea[b.tur][k];
+          if (eski && eski.guven === 'elle') return;
           if (!eski || (GUVEN_PUAN[yeni.guven] || 0) >= (GUVEN_PUAN[eski.guven] || 0)) ea[b.tur][k] = yeni;
         });
       });
@@ -293,6 +301,30 @@
     return JSON.parse(JSON.stringify(ea));
   }
 
-  return { SURUM: SURUM, cikar: cikar, birlestir: birlestir, belgeleriBol: belgeleriBol, sasiBul: sasiBul,
+  // Satır içi elle giriş. deger null/'' → o alanın elle değeri silinir (alan boşalır, sonraki taramada OCR doldurabilir).
+  // not: 'ocr' → tek tık OCR önerisi kabulü; ham değer korunur.
+  function elleYaz(mevcut, belge, alanAdi, deger, secenek) {
+    secenek = secenek || {};
+    if (!/^[a-z][A-Za-z0-9]{0,30}$/.test(String(belge)) || !/^[a-z][A-Za-z0-9]{0,30}$/.test(String(alanAdi))) throw new Error('Geçersiz alan');
+    var ea = JSON.parse(JSON.stringify(mevcut || {}));
+    ea[belge] = ea[belge] || {};
+    var eski = ea[belge][alanAdi];
+    if (deger === null || deger === undefined || String(deger).trim() === '') {
+      // OCR kabulü geri alınırsa belgedeki ham okuma geri gelir
+      if (eski && eski.not === 'ocr' && eski.ham) { ea[belge][alanAdi] = { deger: eski.ham, ham: eski.ham, guven: 'dusuk', kaynak: { dosyaId: (eski.kaynak && eski.kaynak.dosyaId) || '', ad: 'OCR (geri alındı)' } }; return ea; }
+      delete ea[belge][alanAdi];
+      if (!Object.keys(ea[belge]).length) delete ea[belge];
+      return ea;
+    }
+    var o = { deger: deger, guven: 'elle', ham: String(secenek.ham != null ? secenek.ham : (eski && eski.deger != null ? eski.deger : '')).slice(0, 120),
+      kaynak: { dosyaId: (eski && eski.kaynak && eski.kaynak.dosyaId) || '', ad: secenek.not === 'ocr' ? 'OCR önerisi kabul' : 'Elle giriş' } };
+    if (secenek.not) o.not = String(secenek.not);
+    if (secenek.kim) o.kim = String(secenek.kim).slice(0, 60);
+    if (secenek.zaman) o.zaman = String(secenek.zaman);
+    ea[belge][alanAdi] = o;
+    return ea;
+  }
+
+  return { SURUM: SURUM, cikar: cikar, birlestir: birlestir, elleYaz: elleYaz, belgeleriBol: belgeleriBol, sasiBul: sasiBul,
     brutBul: brutBul, etiketDegerEsle: etiketDegerEsle };
 });
