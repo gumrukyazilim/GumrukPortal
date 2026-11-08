@@ -7,11 +7,23 @@
 // ── TSE Apps Script erişim jetonu (2026-11-08) ──────────────────────────────
 // TSE GAS uç noktası artık yalnız portalda oturum açmış ONAYLI kullanıcının Firebase kimlik jetonunu
 // (fbt) kabul eder. Portaldaki 30+ çağrı noktasına dokunmamak için jeton burada merkezi eklenir:
-// <script src> (JSONP) ve fetch() istekleri, URL TSE dağıtım kimliğini içeriyorsa.
+// <script src> (JSONP) ve fetch() istekleri, URL korunan bir GAS dağıtım kimliğini içeriyorsa.
+// 2026-11-08 (ikinci adım): köprü, ardiye, klasör, dilekçe ve Resmî Gazete GAS'ları da aynı kapıyla korunuyor.
 (function() {
-    var KIMLIK = 'AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw';
+    var KIMLIKLER = [
+        'AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw',   // TSE
+        'AKfycbwnsVHo7ylW1fDNCn9Ch7l4G6epmtpUEjgQEspjYDAqRrV67y_bJV6QfmjJwdJeDDVQ',     // köprü
+        'AKfycbx8h2iVWt7A2bY80edWL5qvrRVPfuQIdtl5hCMM3bvWwkWcJuhB5Gbtm3I-CYIdQzTjkg',   // ardiye
+        'AKfycbzMeFacfalO7dPcn0dITuuluvnAeMLsu18X7uh_F6A-FrUHggF4jA2ZzeOT57k0m4ezGA',   // klasör
+        'AKfycbzNKu7s-MBKwNHD-1GR51sL0foDE6BAatnXGu1qOCyAV5T698uRDlohLgWPfs2nDR38',     // dilekçe
+        'AKfycbydNZ89b-opGeHGeWX4v0z63Zdp4E66msP8lwaW2M3jzRPVZzZjZQ_VomYeOLl_YBcm'      // Resmî Gazete
+    ];
     var onbellek = { t: '', exp: 0 };
-    function hedef(u) { return typeof u === 'string' && u.indexOf(KIMLIK) > -1 && !/[?&]fbt=/.test(u); }
+    function hedef(u) {
+        if(typeof u !== 'string' || /[?&]fbt=/.test(u)) return false;
+        for(var i = 0; i < KIMLIKLER.length; i++) if(u.indexOf(KIMLIKLER[i]) > -1) return true;
+        return false;
+    }
     function ekle(u, t) { return t ? u + (u.indexOf('?') < 0 ? '?' : '&') + 'fbt=' + encodeURIComponent(t) : u; }
     function taze() { return onbellek.t && onbellek.exp - Date.now() / 1000 > 300 ? onbellek.t : ''; }
     function jetonAl() {
