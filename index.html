@@ -15367,13 +15367,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
       {marka:'LAND ROVER',wmi:['SAL'],kodlar:{
         '2':['SLOVAKYA','Nitra','DEFENDER|DISCOVERY'],A:['İNGİLTERE','Solihull','RANGE ROVER|VELAR'],
         H:['İNGİLTERE','Halewood','EVOQUE|DISCOVERY SPORT'],G:['AVUSTURYA','Graz (Magna Steyr)','I-PACE|E-PACE']}},
-      {marka:'AUDI',wmi:['WAU','WA1'],kodlar:{
+      {marka:'AUDI',wmi:['WAU','WA1','WUA'],kodlar:{
         D:['SLOVAKYA','Bratislava','Q7|Q8'],'2':['MEKSİKA','San José Chiapa','Q5'],'1':['MACARİSTAN','Győr','Q3|TT'],
         A:['ALMANYA','Ingolstadt','A3|A4|A5|Q6'],N:['ALMANYA','Neckarsulm','A6|A7|A8|E-TRON GT|R8'],
         B:['BELÇİKA','Brüksel','Q8 E-TRON|E-TRON'],P:['ALMANYA','Zwickau','Q4']}},
       {marka:'BMW',wmi:['WBA','WBS'],kodlar:{
         L:['AMERİKA','Spartanburg','X3|X4|X5|X6|X7|XM'],N:['AMERİKA','Spartanburg','X3|X4|X5|X6|X7|XM'],
-        A:['ALMANYA','Münih',''],F:['ALMANYA','Dingolfing',''],K:['ALMANYA','Regensburg',''],E:['ALMANYA','Leipzig','']}},
+        A:['ALMANYA','Münih',''],C:['ALMANYA','Dingolfing',''],F:['ALMANYA','Dingolfing',''],K:['ALMANYA','Regensburg',''],E:['ALMANYA','Leipzig','']}},
       {marka:'BMW',wmi:['5UX','5YM'],tumu:['AMERİKA','Spartanburg','X3|X4|X5|X6|X7|XM']},
       {marka:'BMW',wmi:['3MW'],tumu:['MEKSİKA','San Luis Potosí','']},
       {marka:'MERCEDES-BENZ',wmi:['4JG','55S'],tumu:['AMERİKA','Tuscaloosa','GLE|GLS']},
@@ -16284,6 +16284,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let rapor = { okunan: 0, bulunan: [], hatalar: [], atlanan: 0 };
         let alanlar = {}, transferler = [], taranan = {}, kesinFatura = null, cocKlasor = {}, cocOylar = {}, adayEn = {}, tasimaBelgesi = false, navlunFatura = null, plakaAdaylar = [];
         let k44Fatura = null, k44Navlun = null, k44Transferler = [], k44Atr = null, faturaBulunan = null;
+        let evrakCikarimlari = []; // Faz 2.1: denetim motoru için alan çıkarımları (gölge mod, akışı etkilemez)
         let COC_RE = /\bCOC\b|KONFORMIT|CERTIFICATE OF CONFORMITY|UYGUNLUK BELGES|ARTIKEL\s*4[45]|\bART\.?\s*4[45]\b|§\s*21\b|EINZELGENEHMIGUNG|DATENBEST|EINZELFAHRZEUG/;
         let atlaListesi = function() {
             if(tumunuOku) return Object.keys(taranan).map(function(id) { return id + ':' + taranan[id]; }).join(',');
@@ -16291,6 +16292,9 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         };
         let isle = async function(f) {
             let c = await window.evrakMetniSiniflandir(f.ad, f.metin, arac);
+            try {
+                if(window.EvrakCikarici) evrakCikarimlari.push(window.EvrakCikarici.cikar(f.metin, { ipucu: c && c.tur, refSasi: arac.sasi, dosya: { dosyaId: f.id || f.fileId || '', ad: f.ad || '' } }));
+            } catch(e) {}
             // CoC / Artikel 44-45 belgesi: teknik bilgiler buradan (ilk bulunan geçerli)
             let adMetin = (String(f.ad || '') + ' ' + String(f.metin || '').slice(0, 3000)).toLocaleUpperCase('tr').replace(/İ/g, 'I');
             if(c.tur === 'coc' || (!c.tur && COC_RE.test(adMetin))) {
@@ -16496,7 +16500,12 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             });
             if(Object.keys(yeni).length) window.aracVerisiBirlestir(arac, yeni, [], false);
         }
-        window.aracVerisiBirlestir(arac, alanlar, transferler, true, Object.assign(tasimaBelgesi ? { tasimaBelgesiVar: true } : {}, {
+        let ekEvrakAlanlari = {};
+        try {
+            if(window.EvrakCikarici && evrakCikarimlari.some(function(x) { return x && x.length; }))
+                ekEvrakAlanlari.evrakAlanlari = window.EvrakCikarici.birlestir(tumunuOku ? {} : arac.evrakAlanlari, evrakCikarimlari, window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR'));
+        } catch(e) {}
+        window.aracVerisiBirlestir(arac, alanlar, transferler, true, Object.assign(tasimaBelgesi ? { tasimaBelgesiVar: true } : {}, ekEvrakAlanlari, {
             taranmisEvraklar: taranan,
             evrakTaramaTarihi: window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR')
         }));
@@ -29645,5 +29654,7 @@ window._gunlukOtoYedek = function() {
 
 </script>
 <script src="tse-baglanti.js"></script>
+<script src="denetim-motoru.js"></script>
+<script src="evrak-cikarici.js"></script>
 </body>
 </html>
