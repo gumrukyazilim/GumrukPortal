@@ -3,6 +3,56 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta charset="UTF-8">
+<script>
+// ── TSE Apps Script erişim jetonu (2026-11-08) ──────────────────────────────
+// TSE GAS uç noktası artık yalnız portalda oturum açmış ONAYLI kullanıcının Firebase kimlik jetonunu
+// (fbt) kabul eder. Portaldaki 30+ çağrı noktasına dokunmamak için jeton burada merkezi eklenir:
+// <script src> (JSONP) ve fetch() istekleri, URL TSE dağıtım kimliğini içeriyorsa.
+(function() {
+    var KIMLIK = 'AKfycbw9UtTf7JryxFczgvyoW9zIXHk0GAO2SdSQ8tJ72zFaCcjuR5_jioocYvVBYZR3P5Fzlw';
+    var onbellek = { t: '', exp: 0 };
+    function hedef(u) { return typeof u === 'string' && u.indexOf(KIMLIK) > -1 && !/[?&]fbt=/.test(u); }
+    function ekle(u, t) { return t ? u + (u.indexOf('?') < 0 ? '?' : '&') + 'fbt=' + encodeURIComponent(t) : u; }
+    function taze() { return onbellek.t && onbellek.exp - Date.now() / 1000 > 300 ? onbellek.t : ''; }
+    function jetonAl() {
+        try {
+            var u = window._auth && window._auth.currentUser;
+            if(!u) return Promise.resolve('');
+            return u.getIdToken().then(function(t) {
+                try { onbellek = { t: t, exp: JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp || 0 }; } catch(e) { onbellek = { t: t, exp: Date.now() / 1000 + 600 }; }
+                return t;
+            }).catch(function() { return ''; });
+        } catch(e) { return Promise.resolve(''); }
+    }
+    window.gasJetonAl = jetonAl;
+    try {
+        var tanim = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
+        Object.defineProperty(HTMLScriptElement.prototype, 'src', {
+            configurable: true, enumerable: tanim.enumerable, get: tanim.get,
+            set: function(v) {
+                var el = this, u = String(v);
+                if(!hedef(u)) return tanim.set.call(el, v);
+                var t = taze();
+                if(t || !(window._auth && window._auth.currentUser)) return tanim.set.call(el, ekle(u, t));
+                // Jeton yenilenirken: src birkaç ms sonra atanır (script, src atanınca yüklenir)
+                jetonAl().then(function(t2) { tanim.set.call(el, ekle(u, t2)); });
+            }
+        });
+        var asilFetch = window.fetch;
+        window.fetch = function(girdi, ayar) {
+            if(typeof girdi === 'string' && hedef(girdi)) {
+                var t = taze();
+                if(t) return asilFetch.call(this, ekle(girdi, t), ayar);
+                var self = this;
+                return jetonAl().then(function(t2) { return asilFetch.call(self, ekle(girdi, t2), ayar); });
+            }
+            return asilFetch.apply(this, arguments);
+        };
+        // Oturum açılınca ve her 5 dakikada bir jeton tazelenir
+        setInterval(function() { if(window._auth && window._auth.currentUser && !taze()) jetonAl(); }, 5000);
+    } catch(e) { console.warn('[GAS jetonu]', e); }
+})();
+</script>
     <title>GümrükPortal Cloud — Enterprise</title>
     
     <!-- ═══════════════════════════════════════════════ -->
@@ -8618,6 +8668,7 @@ window.gelecekDortluPaketUret = async function() {
         return;
     }
     if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(arac.sasi)) { alert('⚠️ Şasi No 17 haneli olmalı (I, O, Q harfleri kullanılmaz).'); return; }
+    if (window.denetimKilitKontrol && !window.denetimKilitKontrol(arac.sasi, "TSE 4'lü paket")) return;
     if (!arac.firma || !arac.marka) { alert('⚠️ Drive klasörü için Firma ve Marka alanları gerekli.'); return; }
     if (!window.TSE || typeof window.TSE.tse3LuPaketUret !== 'function') {
         alert('⚠️ TSE paket modülü (tse-baglanti.js) yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
@@ -14814,6 +14865,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
 
     // ─── PDF OLUŞTUR ──────────────────────────────────────────────────────
     window.bynPdfOlustur = function() {
+        if(window.denetimKilitKontrol && !window.denetimKilitKontrol(((document.getElementById('byn-arac-baslik') || {}).textContent || '').split('Şasi:')[1] || '', 'Beyanname PDF')) return;
         window.bynOzetOlustur();
         setTimeout(() => {
             let get = id => { let el = document.getElementById(id); return el ? el.value.trim() : ''; };
@@ -15102,6 +15154,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
 
     // ─── ÖZET OLUŞTUR VE KOPYALA ─────────────────────────────────────────
     window.bynOzetOlustur = function() {
+        if(window.denetimKilitKontrol && !window.denetimKilitKontrol(((document.getElementById('byn-arac-baslik') || {}).textContent || '').split('Şasi:')[1] || '', 'Beyanname özeti')) return;
         let get = (id) => { let el = document.getElementById(id); return el ? el.value.trim() : ''; };
         let ozet =
             '═══════════ BEYANNAME ÖZET ═══════════\n' +
@@ -15146,6 +15199,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     };
 
     window.bynKopyala = function() {
+        if(window.denetimKilitKontrol && !window.denetimKilitKontrol(((document.getElementById('byn-arac-baslik') || {}).textContent || '').split('Şasi:')[1] || '', 'Beyanname özeti kopyalama')) return;
         window.bynOzetOlustur();
         setTimeout(() => {
             let text = document.getElementById('byn-ozet-icerik')?.textContent || '';
@@ -16553,33 +16607,92 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     };
 
     // ─── EVRAK KONTROL MOTORU ────────────────────────────────────────────
-    // ── FAZ 2.2: Evrak çapraz denetim paneli (GÖLGE MOD: hiçbir adımı kilitlemez) ──
-    // Kırmızı: evrak kıyas çelişkisi · Sarı: OCR şüphesi / doğrulanamadı / elle giriş bekliyor · Yeşil: doğrulandı
+    // ── FAZ 2.2/2.3: Evrak çapraz denetim paneli + SERT KİLİT ──
+    // Kırmızı: evrak kıyas çelişkisi (onaylanana kadar çıktı adımlarını kilitler) · Sarı: OCR şüphesi /
+    // doğrulanamadı / elle giriş bekliyor (kilitlemez) · Yeşil: doğrulandı.
+    // ACİL GERİ DÖNÜŞ: 'golge' yapılırsa hiçbir adım kilitlenmez (panel yine görünür).
+    window.DENETIM_KILIT_MODU = 'sert';
+    window.denetimHesapla = function(d) {
+        if(!d || !window.DenetimMotoru) return null;
+        let DM = window.DenetimMotoru;
+        let p = DM.panelHazirla(DM.girdiOlustur(d, d.evrakAlanlari || {}, window.bkMenseUlke ? window.bkMenseUlke(d) : d.mensei), null, { menseCoz: window.menseFabrikaCoz });
+        let k = DM.panelKilit(p, d.denetimOnaylari || {}, window.DENETIM_KILIT_MODU);
+        return { panel: p, kilit: k };
+    };
+    window.denetimKayitBul = function(sasi) {
+        let S = String(sasi || '').toLocaleUpperCase('tr').replace(/İ/g, 'I').replace(/[^A-Z0-9]/g, '');
+        if(!S) return null;
+        let bul = null;
+        let bak = function(k) { if(!bul && k && String(k.sasi || '').toLocaleUpperCase('tr').replace(/İ/g, 'I').replace(/[^A-Z0-9]/g, '') === S) bul = k; };
+        (window.declarationsData || []).forEach(bak);
+        Object.keys(window.firmData || {}).forEach(function(f) { (window.firmData[f] || []).forEach(bak); });
+        return bul;
+    };
+    // Çıktı adımı kapısı: true → devam; false → kilitli (ekranda neden gösterilir). Hata olursa ASLA engellemez.
+    window.denetimKilitKontrol = function(dOrSasi, islem) {
+        try {
+            if(window.DENETIM_KILIT_MODU !== 'sert' || !window.DenetimMotoru) return true;
+            let d = (dOrSasi && typeof dOrSasi === 'object') ? dOrSasi : window.denetimKayitBul(dOrSasi);
+            if(!d) return true;
+            let h = window.denetimHesapla(d);
+            if(!h || !h.kilit.kilit) return true;
+            window.denetimKilitGoster(d, h, islem);
+            return false;
+        } catch(e) { console.warn('[Denetim kilidi]', e); return true; }
+    };
+    window.denetimKilitGoster = function(d, h, islem) {
+        let esc = function(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+        let eski = document.getElementById('denetim-kilit-perde');
+        if(eski) eski.remove();
+        let kartta = window._bkAktif && window._bkAktif.d === d && document.getElementById('bk-denetim-panel');
+        let satirlar = h.panel.satirlar.filter(function(s) { return h.kilit.acikKritikler.indexOf(s.id) > -1; });
+        let perde = document.createElement('div');
+        perde.id = 'denetim-kilit-perde';
+        perde.className = 'no-print';
+        perde.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+        perde.innerHTML = '<div style="background:var(--bg-card,#fff);color:inherit;max-width:560px;width:100%;max-height:85vh;overflow:auto;border-radius:12px;border:2px solid #dc2626;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.3);">' +
+            '<div style="font-size:16px;font-weight:800;color:#dc2626;margin-bottom:6px;">🔒 DENETİM KİLİDİ</div>' +
+            '<div style="font-size:13px;margin-bottom:10px;"><b>' + esc(islem || 'Bu işlem') + '</b> durduruldu: <b>' + esc(d.sasi || '') + '</b> için onaylanmamış ' + satirlar.length + ' evrak kıyas çelişkisi var.</div>' +
+            satirlar.map(function(s) { return '<div style="border-left:4px solid #dc2626;background:rgba(220,38,38,0.07);border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:12px;"><b>' + esc(s.baslik) + '</b><div style="color:var(--text-muted);">' + esc(s.mesaj) + '</div></div>'; }).join('') +
+            (h.kilit.dusenOnaylar.length ? '<div style="font-size:11px;color:#b45309;margin-bottom:6px;">Not: daha önce verilen onay, belge değerleri değiştiği için düştü.</div>' : '') +
+            '<div style="font-size:12px;margin:8px 0 12px;">Belgeleri kontrol edin; hata yoksa araç kartındaki <b>🛡️ Evrak Çapraz Denetimi</b> panelinde ilgili satırı <b>“Kontrol ettim, onaylıyorum”</b> ile onaylayın.</div>' +
+            '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">' +
+            (kartta ? '<button type="button" class="bk-dn-btn" onclick="document.getElementById(\'denetim-kilit-perde\').remove();let p=document.getElementById(\'bk-denetim-panel\');if(p){p.open=true;p.scrollIntoView({behavior:\'smooth\',block:\'start\'});}">Denetim paneline git</button>' : '') +
+            '<button type="button" class="bk-dn-btn ikincil" onclick="document.getElementById(\'denetim-kilit-perde\').remove();">Kapat</button></div></div>';
+        perde.addEventListener('click', function(e) { if(e.target === perde) perde.remove(); });
+        document.body.appendChild(perde);
+    };
+
     window.bkDenetimPaneliCiz = function(d) {
         let kutu = document.getElementById('bk-denetim-panel');
         if(!kutu) return;
         if(!d || !window.DenetimMotoru || !window.EvrakCikarici) { kutu.style.display = 'none'; return; }
         let esc = function(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
-        let DM = window.DenetimMotoru;
         let ea = d.evrakAlanlari || {};
-        let p = DM.panelHazirla(DM.girdiOlustur(d, ea, window.bkMenseUlke ? window.bkMenseUlke(d) : d.mensei), null, { menseCoz: window.menseFabrikaCoz });
+        let h = window.denetimHesapla(d);
+        let p = h.panel, kilit = h.kilit;
         let sira = { kirmizi: 0, sari: 1, yesil: 2, gri: 3 };
         let satirlar = p.satirlar.slice().sort(function(a, b) { return sira[a.renk] - sira[b.renk]; });
-        let kilit = DM.kilitDurumu(p.duzeltilmisRapor, {}, 'golge');
         let oneriGosterildi = {}; // aynı OCR önerisi butonu yalnız ilk satırda
         let satirHtml = function(s) {
-            let h = '<div class="bk-dn-satir ' + s.renk + '" data-kural="' + esc(s.id) + '"><span class="bk-dn-etiket">' + esc(s.etiket) + '</span><span class="bk-dn-baslik">' + esc(s.baslik) + '</span>';
-            h += '<div class="bk-dn-mesaj">' + esc(s.mesaj) + (s.not ? ' <i>(' + esc(s.not) + ')</i>' : '') + '</div>';
-            if((s.degerler || []).length) h += '<div>' + s.degerler.map(function(v) { return '<span class="bk-dn-deger" title="' + esc(v.dosya || '') + '">' + esc(v.kaynak) + ': <b>' + esc(v.deger) + '</b></span>'; }).join('') + '</div>';
+            let h2 = '<div class="bk-dn-satir ' + s.renk + '" data-kural="' + esc(s.id) + '"><span class="bk-dn-etiket">' + esc(s.etiket) + '</span><span class="bk-dn-baslik">' + esc(s.baslik) + '</span>';
+            h2 += '<div class="bk-dn-mesaj">' + esc(s.mesaj) + (s.not ? ' <i>(' + esc(s.not) + ')</i>' : '') + '</div>';
+            if((s.degerler || []).length) h2 += '<div>' + s.degerler.map(function(v) { return '<span class="bk-dn-deger" title="' + esc(v.dosya || '') + '">' + esc(v.kaynak) + ': <b>' + esc(v.deger) + '</b></span>'; }).join('') + '</div>';
             (s.ocrOnerileri || []).filter(function(o) { return !oneriGosterildi[o.belge] && (oneriGosterildi[o.belge] = true); }).forEach(function(o) {
-                h += '<div class="bk-dn-elle"><span>' + esc(o.belgeAd) + ' şasisi OCR\'da <b>' + esc(o.eski) + '</b> okundu; ISO 3779\'da I/O/Q olmaz.</span>' +
+                h2 += '<div class="bk-dn-elle"><span>' + esc(o.belgeAd) + ' şasisi OCR\'da <b>' + esc(o.eski) + '</b> okundu — ' + esc(o.neden || '') + '. Belgeye bakıp onaylayın:</span>' +
                     '<button type="button" class="bk-dn-btn" data-belge="' + esc(o.belge) + '" data-eski="' + esc(o.eski) + '" data-yeni="' + esc(o.yeni) + '" onclick="window.bkDenetimOcrKabul(this)">OCR Önerisini Kabul Et (' + esc(o.eski) + ' → ' + esc(o.yeni) + ')</button></div>';
             });
+            if(s.renk === 'kirmizi') {
+                if(s.onay) h2 += '<div class="bk-dn-elle" style="color:#059669;font-weight:700;">✔ Onaylandı' + (s.onay.kim ? ' — ' + esc(s.onay.kim) : '') + (s.onay.zaman ? ' · ' + esc(s.onay.zaman) : '') +
+                    ' <a href="javascript:void(0)" data-kural="' + esc(s.id) + '" onclick="window.bkDenetimOnayGeriAl(this)" title="Onayı geri al" style="color:#dc2626;">✕</a></div>';
+                else h2 += '<div class="bk-dn-elle"><button type="button" class="bk-dn-btn" style="background:#dc2626;border-color:#dc2626;" data-kural="' + esc(s.id) + '" data-iz="' + esc(s.parmakIzi) + '" onclick="window.bkDenetimOnayla(this)">✔ Kontrol ettim, onaylıyorum</button>' +
+                    '<span style="font-size:11px;color:var(--text-muted);">Onay bu değerlere bağlıdır; belge değerleri değişirse düşer.</span></div>';
+            }
             (s.elleAlanlar || []).forEach(function(e) {
-                h += '<div class="bk-dn-elle"><label>✍️ ' + esc(e.etiket) + '</label><input type="text" data-belge="' + esc(e.belge) + '" data-alan="' + esc(e.alan) + '" data-tip="' + esc(e.tip) + '" placeholder="Belgeden bakıp yazın" onkeydown="if(event.key===\'Enter\'){event.preventDefault();window.bkDenetimElleKaydet(this.nextElementSibling);}">' +
+                h2 += '<div class="bk-dn-elle"><label>✍️ ' + esc(e.etiket) + '</label><input type="text" data-belge="' + esc(e.belge) + '" data-alan="' + esc(e.alan) + '" data-tip="' + esc(e.tip) + '" placeholder="Belgeden bakıp yazın" onkeydown="if(event.key===\'Enter\'){event.preventDefault();window.bkDenetimElleKaydet(this.nextElementSibling);}">' +
                     '<button type="button" class="bk-dn-btn ikincil" onclick="window.bkDenetimElleKaydet(this)">Kaydet</button><span class="bk-dn-hata"></span></div>';
             });
-            return h + '</div>';
+            return h2 + '</div>';
         };
         // Elle girilen / kabul edilen değerler: geri alınabilir
         let elleler = [];
@@ -16587,12 +16700,14 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(b.charAt(0) === '_' || !ea[b] || typeof ea[b] !== 'object') return;
             Object.keys(ea[b]).forEach(function(k) { let v = ea[b][k]; if(v && v.guven === 'elle') elleler.push({ b: b, k: k, v: v }); });
         });
-        let renk = p.ozet.kirmizi ? '#dc2626' : (p.ozet.sari ? '#d97706' : '#059669');
-        let html = '<summary style="color:' + renk + ';">🛡️ Evrak Çapraz Denetimi' +
-            '<span class="bk-dn-say" style="background:rgba(220,38,38,0.12);color:#dc2626;">🔴 ' + p.ozet.kirmizi + ' çelişki</span>' +
+        let acikSay = kilit.acikKritikler.length;
+        let renk = acikSay ? '#dc2626' : (p.ozet.sari ? '#d97706' : '#059669');
+        let html = '<summary style="color:' + renk + ';">' + (kilit.kilit ? '🔒' : '🛡️') + ' Evrak Çapraz Denetimi' +
+            '<span class="bk-dn-say" style="background:rgba(220,38,38,0.12);color:#dc2626;">🔴 ' + p.ozet.kirmizi + ' çelişki' + (kilit.onaylananlar.length ? ' (' + kilit.onaylananlar.length + ' onaylı)' : '') + '</span>' +
             '<span class="bk-dn-say" style="background:rgba(245,158,11,0.15);color:#b45309;">🟡 ' + p.ozet.sari + ' bekliyor</span>' +
             '<span class="bk-dn-say" style="background:rgba(16,185,129,0.12);color:#059669;">🟢 ' + p.ozet.yesil + ' doğrulandı</span>' +
-            '<span style="font-weight:600;font-size:11px;color:var(--text-muted);">Gölge mod — hiçbir adımı kilitlemez' + (kilit.kilitOlurdu ? ' (sert modda kilitlerdi)' : '') + '</span></summary>';
+            '<span style="font-weight:700;font-size:11px;color:' + (kilit.kilit ? '#dc2626' : 'var(--text-muted)') + ';">' +
+            (kilit.mod === 'sert' ? (kilit.kilit ? 'KİLİTLİ — PDF/özet/4\'lü paket onay bekliyor' : 'Sert kilit açık — onaylanmamış çelişki yok') : 'Gölge mod — hiçbir adımı kilitlemez') + '</span></summary>';
         html += '<div class="bk-dn-govde">';
         if(!Object.keys(ea).some(function(k) { return k.charAt(0) !== '_'; })) html += '<div class="bk-dn-mesaj">Bu aracın evrak alanları henüz okunmadı. "Tümünü Yeniden Oku" ile A.TR, CMR, MRN, CoC ve ULM alanları çıkarılır; şimdilik yalnız kart şasisi denetlendi.</div>';
         html += satirlar.filter(function(s) { return s.renk !== 'gri'; }).map(satirHtml).join('');
@@ -16604,25 +16719,31 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         }).join('') + '</div>';
         html += '<div class="bk-dn-mesaj" style="font-size:10px;">Motor ' + esc(p.surum) + (ea._zaman ? ' · evrak alanları: ' + esc(ea._zaman) : '') + '</div></div>';
         let ayniArac = kutu.dataset.sasi === String(d.sasi || '');
-        let acik = ayniArac ? kutu.open : !!p.ozet.kirmizi;
+        let acik = ayniArac ? kutu.open : acikSay > 0;
         kutu.innerHTML = html;
         kutu.open = acik;
         kutu.dataset.sasi = String(d.sasi || '');
         kutu.style.display = '';
+        // Hazırlık rozeti: kilit varken "tescile hazır" yazmasın
+        let b = document.getElementById('byn-hazir-durum-badge');
+        if(b && kilit.kilit) { b.textContent = '🔒 DENETİM KİLİDİ (' + acikSay + ' çelişki onay bekliyor)'; b.className = 'bk-hazir-bekliyor'; b.style.color = '#dc2626'; }
+        else if(b) { b.style.color = ''; if(/DENETİM KİLİDİ/.test(b.textContent) && window.bkRozetleriBoya) window.bkRozetleriBoya(d); }
     };
-    window.bkDenetimKaydet = function(ea) {
+    window.bkDenetimKaydet = function(ek) {
         let a = window._bkAktif;
         if(!a || !a.d) return;
-        window.aracVerisiBirlestir(a.d, {}, [], false, { evrakAlanlari: ea });
+        window.aracVerisiBirlestir(a.d, {}, [], false, ek);
         window.saveData && window.saveData('decl');
+        window.bkRozetleriBoya && window.bkRozetleriBoya(a.d);
         window.bkDenetimPaneliCiz(a.d);
     };
     window.bkDenetimZaman = function() { return window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR'); };
+    window.bkDenetimKim = function() { try { let u = window._auth && window._auth.currentUser; return (u && (u.email || u.uid)) || ''; } catch(e) { return ''; } };
     window.bkDenetimOcrKabul = function(btn) {
         let a = window._bkAktif;
         if(!a || !a.d || !btn) return;
-        let ea = window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, btn.dataset.belge, 'sasi', btn.dataset.yeni, { not: 'ocr', ham: btn.dataset.eski, zaman: window.bkDenetimZaman() });
-        window.bkDenetimKaydet(ea);
+        let ea = window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, btn.dataset.belge, 'sasi', btn.dataset.yeni, { not: 'ocr', ham: btn.dataset.eski, zaman: window.bkDenetimZaman(), kim: window.bkDenetimKim() });
+        window.bkDenetimKaydet({ evrakAlanlari: ea });
     };
     window.bkDenetimElleKaydet = function(btn) {
         let a = window._bkAktif;
@@ -16634,13 +16755,34 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             if(hata) hata.textContent = { kg: 'Kilogram olarak sayı girin (ör. 2450)', adet: 'Adet olarak sayı girin', sasi: 'Şasi 17 karakter olmalı' }[inp.dataset.tip] || 'Değer girin';
             return;
         }
-        let ea = window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, inp.dataset.belge, inp.dataset.alan, v, { ham: inp.value, zaman: window.bkDenetimZaman() });
-        window.bkDenetimKaydet(ea);
+        let ea = window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, inp.dataset.belge, inp.dataset.alan, v, { ham: inp.value, zaman: window.bkDenetimZaman(), kim: window.bkDenetimKim() });
+        window.bkDenetimKaydet({ evrakAlanlari: ea });
     };
     window.bkDenetimElleSil = function(el) {
         let a = window._bkAktif;
         if(!a || !a.d || !el) return;
-        window.bkDenetimKaydet(window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, el.dataset.belge, el.dataset.alan, null));
+        window.bkDenetimKaydet({ evrakAlanlari: window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, el.dataset.belge, el.dataset.alan, null) });
+    };
+    // Kırmızı satır onayı: iki adımlı tıklama (yanlışlıkla onayı önler)
+    window.bkDenetimOnayla = function(btn) {
+        let a = window._bkAktif;
+        if(!a || !a.d || !btn) return;
+        if(btn.dataset.emin !== '1') {
+            btn.dataset.emin = '1';
+            btn.textContent = 'Emin misiniz? Onaylamak için tekrar tıklayın';
+            setTimeout(function() { if(btn.isConnected) { btn.dataset.emin = ''; btn.textContent = '✔ Kontrol ettim, onaylıyorum'; } }, 5000);
+            return;
+        }
+        let o = Object.assign({}, a.d.denetimOnaylari || {});
+        o[btn.dataset.kural] = { parmakIzi: btn.dataset.iz, zaman: window.bkDenetimZaman(), kim: window.bkDenetimKim() };
+        window.bkDenetimKaydet({ denetimOnaylari: o });
+    };
+    window.bkDenetimOnayGeriAl = function(el) {
+        let a = window._bkAktif;
+        if(!a || !a.d || !el) return;
+        let o = Object.assign({}, a.d.denetimOnaylari || {});
+        delete o[el.dataset.kural];
+        window.bkDenetimKaydet({ denetimOnaylari: o });
     };
 
     window.bkEvrakKontrol = function(d) {
@@ -17481,6 +17623,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     window.downloadBeyannameKartPDF = function() {
         let alan = document.getElementById('byn-print-area');
         if(!alan) return;
+        if(window.denetimKilitKontrol && !window.denetimKilitKontrol(window._bkAktif && window._bkAktif.d, 'Beyanname iş emri PDF')) return;
         if(typeof html2pdf === 'undefined') { alert('PDF modülü yüklenemedi.'); return; }
         let sasiEl = document.getElementById('bk-sasi');
         let sasi = ((sasiEl && sasiEl.innerText) || '').replace(/📋/g, '').trim() || 'EVRAK';

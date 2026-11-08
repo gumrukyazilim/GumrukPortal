@@ -28,7 +28,7 @@
 })(typeof window !== 'undefined' ? window : this, function () {
   'use strict';
 
-  var SURUM = '2026-11-08-d2';
+  var SURUM = '2026-11-08-d3';
 
   var VARSAYILAN_AYARLAR = {
     // Kontrol hanesi tutmazsa KİLİT olan şasi ilk haneleri (kullanıcı kararı 2026-11-08: K. Amerika 1-5 + Çin L)
@@ -38,8 +38,21 @@
     cocKutlePayiKg: 100,          // CMR brüt < (CoC 13.2 ya da 13) − 100 → KRİTİK; arası → UYARI
     menseUyusmazlikSeviye: 'KRITIK',
     // Homoglif sınıfları: aynı sınıftaki karakterler OCR'da birbirine karışır
-    homoglifSiniflari: [['1', 'I', 'L'], ['0', 'O', 'Q', 'D'], ['8', 'B'], ['5', 'S'], ['2', 'Z'], ['6', 'G']]
+    homoglifSiniflari: [['1', 'I', 'L'], ['0', 'O', 'Q', 'D'], ['8', 'B'], ['5', 'S'], ['2', 'Z'], ['6', 'G']],
+    // Desenli (güvenlik zeminli) belgelere özel ek sınıflar: A.TR'nin yeşil guilloche dalgaları K'nin bacaklarıyla
+    // çakışıp OCR'da R okutuyor (2026-11-08, S580: belgede W1K, OCR WIR). Yalnız o belgenin karşılaştırmalarında geçerli.
+    belgeHomoglifleri: { atr: [['K', 'R']] }
   };
+  // Belgeye özel homoglif sınıflarıyla genişletilmiş ayar
+  function belgeAyari(ayar, belgeler) {
+    var ek = [];
+    (belgeler || []).forEach(function (b) { ((ayar.belgeHomoglifleri || {})[b] || []).forEach(function (x) { ek.push(x); }); });
+    if (!ek.length) return ayar;
+    var s = {};
+    Object.keys(ayar).forEach(function (k) { s[k] = ayar[k]; });
+    s.homoglifSiniflari = (ayar.homoglifSiniflari || []).concat(ek);
+    return s;
+  }
 
   // ── Yardımcılar ───────────────────────────────────────────────────────
   function birlestirAyar(a) {
@@ -301,7 +314,7 @@
       var v = deger(ham);
       if (bos(v)) return;
       var kb = kaynakBilgi(ham);
-      var o = { kaynak: x[0], deger: v, dosya: kb ? (kb.ad || kb.dosyaId || '') : '' };
+      var o = { kaynak: x[0], deger: v, dosya: kb ? (kb.ad || kb.dosyaId || '') : '', belge: x[1] };
       if (ham && typeof ham === 'object' && ham.guven === 'dusuk') o.dusukGuven = true;
       out.push(o);
     });
@@ -323,7 +336,7 @@
     var ref = degerler[0];
     var en = 'ESIT', farklar = [];
     degerler.slice(1).forEach(function (d) {
-      var k = karsilastir(ref.deger, d.deger, { tip: tip, ayarlar: ayar });
+      var k = karsilastir(ref.deger, d.deger, { tip: tip, ayarlar: belgeAyari(ayar, [ref.belge, d.belge]) });
       if (k.sonuc === 'ESIT') return;
       if (k.sonuc === 'FARKLI') en = 'FARKLI';
       else if (en === 'ESIT') en = 'BENZER';
@@ -596,6 +609,7 @@
     return s.slice(0, 80);
   }
   var KIMLIK_KURALLARI = { SASI_BICIM: 1, KONTROL_HANESI: 1 };
+  var KISMI_UYGUN = { SASI_ESLESME: 1, MONTAJ_HANESI: 1, KAP_ADEDI: 1, BRUT_KILO: 1 };
 
   // Panel: ham rapor + I/O/Q düzeltilmiş rapor. Ham'da kalıp düzeltilmişte geçen kural = OCR şüphesi (sarı, tek tık);
   // ikisinde de kalan KRİTİK = EVRAK KIYAS ÇELİŞKİSİ (kırmızı; mesaj düzeltilmiş rapordan → kalan gerçek fark).
@@ -603,12 +617,26 @@
     var ham = denetle(girdi, ayarlar, bag);
     var oneriler = [];
     var duz = JSON.parse(JSON.stringify(girdi || {}));
+    var ayar = birlestirAyar(ayarlar);
+    var kart = kanonik(deger((girdi && girdi.arac || {}).sasi), 'sasi');
+    var kartGecerli = kart.length === 17 && !/[IOQℓ]/.test(kart);
     ['fatura', 'atr', 'coc', 'ulm'].forEach(function (b) {
       var x = duz[b] && duz[b].sasi, v = deger(x);
       if (bos(v)) return;
-      var yeni = ocrDuzelt(v);
+      var k = kanonik(v, 'sasi'), yeni = '', neden = '';
+      // 1) Kart şasisinden yalnız OCR'ın karıştırdığı karakterlerle (belgeye özel sınıflar dahil) ayrılıyorsa → kart şasisi
+      if (kartGecerli && k.length === 17 && k !== kart &&
+          karsilastir(kart, k, { tip: 'sasi', ayarlar: belgeAyari(ayar, [b]) }).sonuc === 'BENZER') {
+        yeni = kart;
+        neden = 'Kart şasisinden yalnız OCR\'ın karıştırdığı karakterlerle ayrılıyor' +
+          (((ayar.belgeHomoglifleri || {})[b] || []).length ? ' (desenli zemin: ' + ayar.belgeHomoglifleri[b].map(function (x) { return x.join('↔'); }).join(', ') + ' dahil)' : '');
+      } else {
+        // 2) Kart şasisi yoksa/uymuyorsa: ISO 3779'da olmayan I/O/Q → 1/0
+        yeni = ocrDuzelt(v);
+        neden = 'ISO 3779\'da I/O/Q olmaz';
+      }
       if (!yeni) return;
-      oneriler.push({ belge: b, belgeAd: BELGE_AD[b], alan: 'sasi', eski: String(v), yeni: yeni });
+      oneriler.push({ belge: b, belgeAd: BELGE_AD[b], alan: 'sasi', eski: String(v), yeni: yeni, neden: neden });
       if (x && typeof x === 'object') x.deger = yeni; else duz[b].sasi = yeni;
     });
     var dz = oneriler.length ? denetle(duz, ayarlar, bag) : ham;
@@ -630,9 +658,13 @@
       } else if (s.durum === 'KALDI' && s.seviye === 'UYARI') { satir.renk = 'sari'; satir.kategori = 'UYARI'; satir.etiket = 'UYARI'; }
       else if (s.durum === 'KALDI') { satir.renk = 'gri'; satir.kategori = 'BILGI'; satir.etiket = 'BİLGİ'; }
       else if (s.durum === 'GECTI') { satir.renk = 'yesil'; satir.kategori = 'GECTI'; satir.etiket = 'DOĞRULANDI'; }
+      else if (s.durum === 'DOGRULANAMADI' && KISMI_UYGUN[s.id] && (s.degerler || []).length >= 3 && !/çok araçlı|tahmini|farklı/i.test(s.mesaj)) {
+        // Okunan en az üç kaynak birebir uyuşuyor; eksik kaynak (CoC/ULM) yalnız bilgi → yeşil, elle giriş açık kalır
+        satir.renk = 'yesil'; satir.kategori = 'GECTI_KISMI'; satir.etiket = 'DOĞRULANDI (KISMİ)'; satir.kismi = true;
+      }
       else if (s.durum === 'DOGRULANAMADI') { satir.renk = 'sari'; satir.kategori = 'DOGRULANAMADI'; satir.etiket = 'DOĞRULANAMADI'; }
       else { satir.renk = 'gri'; satir.kategori = 'UYGULANMAZ'; satir.etiket = 'UYGULANMAZ'; }
-      if (satir.renk !== 'yesil' && ELLE_ALANLAR[s.id]) {
+      if ((satir.renk !== 'yesil' || satir.kismi) && ELLE_ALANLAR[s.id]) {
         var bosAlanlar = ELLE_ALANLAR[s.id].filter(function (e) {
           var anahtar = e[0] + '.' + e[1];
           if (gosterilen[anahtar] || (girdi[e[0]] && !bos(deger(girdi[e[0]][e[1]])))) return false;
@@ -652,6 +684,23 @@
     var ozet = { kirmizi: 0, sari: 0, yesil: 0, gri: 0 };
     satirlar.forEach(function (s) { ozet[s.renk]++; });
     return { surum: SURUM, satirlar: satirlar, ozet: ozet, ocrOnerileri: oneriler, rapor: ham, duzeltilmisRapor: dz };
+  }
+
+  // Aşama 2.3 — panel kilidi: yalnız KIRMIZI satırlar kilitler (OCR şüphesi/doğrulanamadı/uyarı kilitlemez).
+  // Onay, satırın o anki değer parmak iziyle saklanır; belgeler değişirse onay düşer ve kilit geri gelir.
+  function panelKilit(panel, onaylar, mod) {
+    onaylar = onaylar || {};
+    var acik = [], onayli = [], dusen = [];
+    (panel && panel.satirlar || []).forEach(function (s) {
+      if (s.renk !== 'kirmizi') return;
+      var o = onaylar[s.id];
+      if (o && o.parmakIzi === s.parmakIzi) { onayli.push(s.id); s.onay = o; return; }
+      if (o) dusen.push(s.id);
+      acik.push(s.id);
+    });
+    var olurdu = acik.length > 0;
+    return { kilit: mod === 'sert' ? olurdu : false, kilitOlurdu: olurdu, mod: mod === 'sert' ? 'sert' : 'golge',
+      acikKritikler: acik, onaylananlar: onayli, dusenOnaylar: dusen };
   }
 
   // Kilit: KRİTİK + KALDI + geçerli onayı yok. Onay, kuralın değer parmak iziyle eşleşmezse (değer değişti) düşer.
@@ -677,6 +726,7 @@
     denetle: denetle,
     girdiOlustur: girdiOlustur,
     panelHazirla: panelHazirla,
+    panelKilit: panelKilit,
     ocrDuzelt: ocrDuzelt,
     elleDegerAyristir: elleDegerAyristir,
     ELLE_ALANLAR: ELLE_ALANLAR,
