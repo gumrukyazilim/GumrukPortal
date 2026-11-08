@@ -28,7 +28,7 @@
 })(typeof window !== 'undefined' ? window : this, function () {
   'use strict';
 
-  var SURUM = '2026-11-08-d1';
+  var SURUM = '2026-11-08-d2';
 
   var VARSAYILAN_AYARLAR = {
     // Kontrol hanesi tutmazsa KİLİT olan şasi ilk haneleri (kullanıcı kararı 2026-11-08: K. Amerika 1-5 + Çin L)
@@ -476,7 +476,9 @@
   function girdiOlustur(arac, evrakAlanlari, mensei) {
     arac = arac || {};
     var ea = evrakAlanlari || arac.evrakAlanlari || {};
-    var ozet = ea.ozet && Object.keys(ea.ozet).length ? ea.ozet : (ea.mrn || {});
+    // Alan bazında: Özet beyanda (okunan ya da elle) olan alan önce, yoksa MRN belgesindeki
+    var ozet = {};
+    [ea.mrn || {}, ea.ozet || {}].forEach(function (b) { Object.keys(b).forEach(function (k) { if (!bos(deger(b[k]))) ozet[k] = b[k]; }); });
     var cmr = {};
     Object.keys(ea.cmr || {}).forEach(function (k) { cmr[k] = ea.cmr[k]; });
     return {
@@ -510,6 +512,32 @@
   }
 
   // ── Ana giriş ─────────────────────────────────────────────────────────
+  // İthalat faturalarında motor no çoğunlukla yazmaz: faturada yoksa kural uygulanmaz (kilit/uyarı yok)
+  function R_motorNo(girdi, ayar) {
+    var f = girdi.fatura && deger(girdi.fatura.motorNo);
+    if (bos(f)) {
+      var u = girdi.ulm && deger(girdi.ulm.motorNo);
+      return sonuc('MOTOR_NO', 'Motor seri no: Fatura = ULM', 'UYGULANMAZ', '',
+        'Faturada motor no yok (ithalat faturalarında olağan); motor kontrolü CoC 21 ↔ ULM üzerinden yapılır',
+        bos(u) ? [] : [{ kaynak: 'ULM', deger: u }]);
+    }
+    return kimlikKurali('MOTOR_NO', 'Motor seri no: Fatura = ULM', girdi, [['Fatura', 'fatura', 'motorNo'], ['ULM', 'ulm', 'motorNo']], 'metin', ayar);
+  }
+  // CoC 21 motor tip kodu ULM motor seri numarasının başında yer alır (Mercedes M176 → 176…, VW DKZ → DKZ…).
+  // Üreticiye göre değiştiğinden tutmazsa yalnız UYARI.
+  function R_motorKodNo(girdi) {
+    var B = 'Motor kodu (CoC 21) ↔ ULM motor no';
+    var kod = girdi.coc && deger(girdi.coc.motorKodu), no = girdi.ulm && deger(girdi.ulm.motorNo);
+    var degerler = topla(girdi, [['CoC 21', 'coc', 'motorKodu'], ['ULM motor no', 'ulm', 'motorNo']]);
+    if (bos(kod) || bos(no)) return sonuc('MOTOR_KOD_NO', B, degerler.length ? 'DOGRULANAMADI' : 'UYGULANMAZ', '',
+      'Okunamayan: ' + [bos(kod) ? 'CoC 21' : '', bos(no) ? 'ULM motor no' : ''].filter(Boolean).join(', '), degerler);
+    var K = kanonik(kod, 'metin').replace(/[^A-Z0-9]/g, ''), N = kanonik(no, 'metin').replace(/[^A-Z0-9]/g, '');
+    var adaylar = [K, K.replace(/^[A-Z]+/, '')].filter(function (x) { return x.length >= 2; });
+    var tutar = adaylar.some(function (a) { return N.slice(0, a.length + 3).indexOf(a) > -1; });
+    return sonuc('MOTOR_KOD_NO', B, tutar ? 'GECTI' : 'KALDI', 'UYARI',
+      tutar ? 'Motor no, motor koduyla başlıyor' : 'ULM motor no "' + no + '" CoC 21 motor kodu "' + kod + '" ile başlamıyor — motor etiketini kontrol edin', degerler);
+  }
+
   function denetle(girdi, ayarlar, bag) {
     girdi = girdi || {};
     var ayar = birlestirAyar(ayarlar);
@@ -520,8 +548,9 @@
         [['Kart', 'arac', 'sasi'], ['Fatura', 'fatura', 'sasi'], ['CoC 0.10', 'coc', 'sasi'], ['ULM', 'ulm', 'sasi'], ['A.TR', 'atr', 'sasi', 'ops']], 'sasi', ayar),
       R_montajHanesi(girdi, ayar),
       kimlikKurali('TVV', 'Tip/Varyant/Versiyon: CoC 0.2 = ULM', girdi, [['CoC 0.2', 'coc', 'tvv'], ['ULM', 'ulm', 'tvv']], 'metin', ayar),
-      kimlikKurali('MOTOR_NO', 'Motor seri no: Fatura = ULM', girdi, [['Fatura', 'fatura', 'motorNo'], ['ULM', 'ulm', 'motorNo']], 'metin', ayar),
+      R_motorNo(girdi, ayar),
       kimlikKurali('MOTOR_KODU', 'Motor tip kodu: CoC 21 = ULM', girdi, [['CoC 21', 'coc', 'motorKodu'], ['ULM', 'ulm', 'motorKodu']], 'metin', ayar),
+      R_motorKodNo(girdi),
       R_mense(girdi, ayar, bag),
       R_kapAdedi(girdi),
       R_brut(girdi, ayar),
@@ -534,6 +563,95 @@
       else if (s.durum === 'GECTI') say.GECTI++;
     });
     return { surum: SURUM, sonuclar: sonuclar, ozet: say };
+  }
+
+  // ── Aşama 2.2: panel katmanı ──────────────────────────────────────────
+  // ISO 3779'da olmayan I/O/Q (ve küçük l) → 1/0. Yalnız şasi için: başka alanda (TVV I1I1TB) asla.
+  function ocrDuzelt(vin) {
+    var k = kanonik(vin, 'sasi');
+    if (k.length !== 17 || !/[IOQℓ]/.test(k)) return '';
+    return k.replace(/[Iℓ]/g, '1').replace(/[OQ]/g, '0');
+  }
+  var BELGE_AD = { fatura: 'Fatura', atr: 'A.TR', coc: 'CoC', ulm: 'ULM', cmr: 'CMR', ozet: 'Özet beyan / MRN' };
+  // Satır içi elle giriş yapılabilecek alanlar (kural → [belge, alan, etiket, tip])
+  var ELLE_ALANLAR = {
+    SASI_ESLESME: [['coc', 'sasi', 'CoC 0.10 şasi', 'sasi'], ['ulm', 'sasi', 'ULM şasi', 'sasi']],
+    MONTAJ_HANESI: [['coc', 'sasi', 'CoC 0.10 şasi', 'sasi'], ['ulm', 'sasi', 'ULM şasi', 'sasi']],
+    TVV: [['coc', 'tvv', 'CoC 0.2 Tip/Varyant/Versiyon', 'metin'], ['ulm', 'tvv', 'ULM Tip/Varyant/Versiyon', 'metin']],
+    MOTOR_KODU: [['coc', 'motorKodu', 'CoC 21 motor kodu', 'metin'], ['ulm', 'motorKodu', 'ULM motor kodu', 'metin']],
+    MOTOR_KOD_NO: [['coc', 'motorKodu', 'CoC 21 motor kodu', 'metin'], ['ulm', 'motorNo', 'ULM motor no', 'metin']],
+    MENSE: [['coc', 'montajUlkesi', 'CoC 0.8 montaj ülkesi', 'ulke']],
+    KAP_ADEDI: [['atr', 'kap', 'A.TR kap adedi', 'adet'], ['cmr', 'kap', 'CMR kap adedi', 'adet'], ['ozet', 'kap', 'Özet beyan / MRN kap adedi', 'adet']],
+    BRUT_KILO: [['atr', 'brut', 'A.TR brüt kg', 'kg'], ['cmr', 'brut', 'CMR brüt kg', 'kg'], ['ozet', 'brut', 'Özet beyan / MRN brüt kg', 'kg']],
+    CMR_COC_KUTLE: [['coc', 'kutle13', 'CoC 13 kütle kg', 'kg'], ['coc', 'kutle132', 'CoC 13.2 gerçek kütle kg', 'kg'], ['cmr', 'brut', 'CMR brüt kg', 'kg']]
+  };
+  // Elle girilen metni alan tipine göre doğrula; geçersizse null
+  function elleDegerAyristir(metin, tip) {
+    var s = String(metin == null ? '' : metin).trim();
+    if (!s) return null;
+    if (tip === 'kg') { var k = kgAyristir(s); return k !== null && k > 0 && k < 100000 ? k : null; }
+    if (tip === 'adet') { var a = kapAyristir(s); return a !== null && a > 0 && a < 1000 ? a : null; }
+    if (tip === 'sasi') { var v = kanonik(s, 'sasi').replace(/ℓ/g, 'L'); return v.length === 17 ? v : null; }
+    if (tip === 'ulke') return ulkeNormalize(s) || s.toLocaleUpperCase('tr');
+    return s.slice(0, 80);
+  }
+  var KIMLIK_KURALLARI = { SASI_BICIM: 1, KONTROL_HANESI: 1 };
+
+  // Panel: ham rapor + I/O/Q düzeltilmiş rapor. Ham'da kalıp düzeltilmişte geçen kural = OCR şüphesi (sarı, tek tık);
+  // ikisinde de kalan KRİTİK = EVRAK KIYAS ÇELİŞKİSİ (kırmızı; mesaj düzeltilmiş rapordan → kalan gerçek fark).
+  function panelHazirla(girdi, ayarlar, bag) {
+    var ham = denetle(girdi, ayarlar, bag);
+    var oneriler = [];
+    var duz = JSON.parse(JSON.stringify(girdi || {}));
+    ['fatura', 'atr', 'coc', 'ulm'].forEach(function (b) {
+      var x = duz[b] && duz[b].sasi, v = deger(x);
+      if (bos(v)) return;
+      var yeni = ocrDuzelt(v);
+      if (!yeni) return;
+      oneriler.push({ belge: b, belgeAd: BELGE_AD[b], alan: 'sasi', eski: String(v), yeni: yeni });
+      if (x && typeof x === 'object') x.deger = yeni; else duz[b].sasi = yeni;
+    });
+    var dz = oneriler.length ? denetle(duz, ayarlar, bag) : ham;
+    var dzBul = {}; dz.sonuclar.forEach(function (s) { dzBul[s.id] = s; });
+    var gosterilen = {}; // aynı elle giriş kutusu yalnız ilk satırda
+    var satirlar = ham.sonuclar.map(function (s) {
+      var d = dzBul[s.id] || s;
+      var satir = { id: s.id, baslik: s.baslik, durum: s.durum, seviye: s.seviye, mesaj: s.mesaj, degerler: s.degerler, parmakIzi: s.parmakIzi };
+      if (s.durum === 'KALDI' && s.seviye === 'KRITIK') {
+        if (d.durum !== 'KALDI' || d.seviye !== 'KRITIK') {
+          satir.renk = 'sari'; satir.kategori = 'OCR_SUPHESI'; satir.etiket = 'OCR ŞÜPHESİ';
+          satir.mesaj = s.mesaj + ' — OCR önerisi kabul edilince çelişki kalmıyor';
+        } else {
+          satir.renk = 'kirmizi'; satir.kategori = 'KRITIK_CELISKI';
+          satir.etiket = KIMLIK_KURALLARI[s.id] ? 'ŞASİ HATASI' : 'EVRAK KIYAS ÇELİŞKİSİ';
+          satir.mesaj = d.mesaj; satir.degerler = d.degerler; satir.parmakIzi = d.parmakIzi;
+          if (oneriler.length && d.mesaj !== s.mesaj) satir.not = 'OCR düzeltmesinden sonra kalan fark gösteriliyor';
+        }
+      } else if (s.durum === 'KALDI' && s.seviye === 'UYARI') { satir.renk = 'sari'; satir.kategori = 'UYARI'; satir.etiket = 'UYARI'; }
+      else if (s.durum === 'KALDI') { satir.renk = 'gri'; satir.kategori = 'BILGI'; satir.etiket = 'BİLGİ'; }
+      else if (s.durum === 'GECTI') { satir.renk = 'yesil'; satir.kategori = 'GECTI'; satir.etiket = 'DOĞRULANDI'; }
+      else if (s.durum === 'DOGRULANAMADI') { satir.renk = 'sari'; satir.kategori = 'DOGRULANAMADI'; satir.etiket = 'DOĞRULANAMADI'; }
+      else { satir.renk = 'gri'; satir.kategori = 'UYGULANMAZ'; satir.etiket = 'UYGULANMAZ'; }
+      if (satir.renk !== 'yesil' && ELLE_ALANLAR[s.id]) {
+        var bosAlanlar = ELLE_ALANLAR[s.id].filter(function (e) {
+          var anahtar = e[0] + '.' + e[1];
+          if (gosterilen[anahtar] || (girdi[e[0]] && !bos(deger(girdi[e[0]][e[1]])))) return false;
+          return (gosterilen[anahtar] = true);
+        }).map(function (e) { return { belge: e[0], alan: e[1], etiket: e[2], tip: e[3] }; });
+        if (bosAlanlar.length) {
+          satir.elleAlanlar = bosAlanlar;
+          if (satir.kategori === 'DOGRULANAMADI' || satir.kategori === 'UYGULANMAZ') { satir.renk = 'sari'; satir.kategori = 'ELLE_GIRIS'; satir.etiket = 'ELLE GİRİŞ BEKLİYOR'; }
+        }
+      }
+      if (s.id === 'SASI_BICIM' || s.id === 'SASI_ESLESME' || s.id === 'MONTAJ_HANESI') {
+        var ilgili = oneriler.filter(function () { return satir.kategori === 'OCR_SUPHESI' || satir.kategori === 'KRITIK_CELISKI'; });
+        if (ilgili.length) satir.ocrOnerileri = ilgili;
+      }
+      return satir;
+    });
+    var ozet = { kirmizi: 0, sari: 0, yesil: 0, gri: 0 };
+    satirlar.forEach(function (s) { ozet[s.renk]++; });
+    return { surum: SURUM, satirlar: satirlar, ozet: ozet, ocrOnerileri: oneriler, rapor: ham, duzeltilmisRapor: dz };
   }
 
   // Kilit: KRİTİK + KALDI + geçerli onayı yok. Onay, kuralın değer parmak iziyle eşleşmezse (değer değişti) düşer.
@@ -558,6 +676,11 @@
     VARSAYILAN_AYARLAR: VARSAYILAN_AYARLAR,
     denetle: denetle,
     girdiOlustur: girdiOlustur,
+    panelHazirla: panelHazirla,
+    ocrDuzelt: ocrDuzelt,
+    elleDegerAyristir: elleDegerAyristir,
+    ELLE_ALANLAR: ELLE_ALANLAR,
+    BELGE_AD: BELGE_AD,
     kilitDurumu: kilitDurumu,
     karsilastir: karsilastir,
     sasiIncele: sasiIncele,

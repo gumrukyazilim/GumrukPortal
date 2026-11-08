@@ -3253,6 +3253,23 @@ div[style*="position: relative"] > input {
         .evrak-check-badge.bekliyor { background: rgba(245,158,11,0.12); border-color: #f59e0b; color: #b45309; }
         .evrak-check-badge.eksik { background: rgba(239,68,68,0.10); border-color: #ef4444; color: #dc2626; }
         .bk-hazir-tamam { background: rgba(16,185,129,0.15); color: #059669; }
+        .bk-dn { margin:-6px 0 14px; border:1px solid var(--border); border-radius:10px; background:var(--bg-elevated); font-size:12px; }
+        .bk-dn > summary { cursor:pointer; padding:8px 14px; font-weight:800; list-style:none; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        .bk-dn > summary::-webkit-details-marker { display:none; }
+        .bk-dn-say { font-weight:700; padding:2px 8px; border-radius:12px; font-size:11px; }
+        .bk-dn-govde { padding:0 10px 10px; display:flex; flex-direction:column; gap:6px; }
+        .bk-dn-satir { border-left:4px solid #94a3b8; border-radius:6px; padding:6px 10px; background:rgba(148,163,184,0.08); }
+        .bk-dn-satir.kirmizi { border-left-color:#dc2626; background:rgba(220,38,38,0.08); }
+        .bk-dn-satir.sari { border-left-color:#d97706; background:rgba(245,158,11,0.09); }
+        .bk-dn-satir.yesil { border-left-color:#059669; background:rgba(16,185,129,0.08); }
+        .bk-dn-etiket { font-size:10px; font-weight:800; padding:1px 7px; border-radius:10px; margin-right:6px; color:#fff; background:#64748b; }
+        .bk-dn-satir.kirmizi .bk-dn-etiket { background:#dc2626; } .bk-dn-satir.sari .bk-dn-etiket { background:#d97706; } .bk-dn-satir.yesil .bk-dn-etiket { background:#059669; }
+        .bk-dn-baslik { font-weight:700; } .bk-dn-mesaj { margin-top:2px; color:var(--text-muted); word-break:break-word; }
+        .bk-dn-deger { display:inline-block; margin:3px 6px 0 0; padding:1px 6px; border:1px solid var(--border); border-radius:5px; font-family:monospace; font-size:11px; }
+        .bk-dn-elle { display:flex; gap:6px; align-items:center; margin-top:5px; flex-wrap:wrap; }
+        .bk-dn-elle label { font-size:11px; min-width:170px; } .bk-dn-elle input { flex:1; min-width:140px; max-width:260px; padding:3px 6px; font-size:12px; border:1px solid var(--border); border-radius:5px; background:var(--bg-card, #fff); color:inherit; }
+        .bk-dn-btn { padding:3px 9px; font-size:11px; font-weight:700; border-radius:5px; border:1px solid #2563eb; background:#2563eb; color:#fff; cursor:pointer; }
+        .bk-dn-btn.ikincil { background:transparent; color:#2563eb; } .bk-dn-hata { color:#dc2626; font-size:11px; }
         .bk-hazir-bekliyor { background: rgba(245,158,11,0.15); color: #b45309; }
         #bk-tara-btn[disabled] { opacity: .5; cursor: wait; }
         .bk-duz { outline: none; border-bottom: 1px dashed var(--primary); min-width: 24px; display: inline-block; padding: 0 2px; cursor: text; }
@@ -3352,6 +3369,9 @@ div[style*="position: relative"] > input {
                     <span id="bk-tara-durum"></span><span id="bk-son-tarama"></span>
                 </div>
             </div>
+
+            <!-- FAZ 2.2: EVRAK ÇAPRAZ DENETİM PANELİ (gölge mod; PDF/yazdırmaya girmez) -->
+            <details id="bk-denetim-panel" class="bk-dn no-print" style="display:none;"></details>
 
             <!-- 1. FİRMA SABİTLERİ VE SİSTEM GİRİŞİ -->
             <div class="byn-section">
@@ -16503,7 +16523,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         let ekEvrakAlanlari = {};
         try {
             if(window.EvrakCikarici && evrakCikarimlari.some(function(x) { return x && x.length; }))
-                ekEvrakAlanlari.evrakAlanlari = window.EvrakCikarici.birlestir(tumunuOku ? {} : arac.evrakAlanlari, evrakCikarimlari, window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR'));
+                ekEvrakAlanlari.evrakAlanlari = window.EvrakCikarici.birlestir(arac.evrakAlanlari, evrakCikarimlari, window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR'), { sifirla: tumunuOku });
         } catch(e) {}
         window.aracVerisiBirlestir(arac, alanlar, transferler, true, Object.assign(tasimaBelgesi ? { tasimaBelgesiVar: true } : {}, ekEvrakAlanlari, {
             taranmisEvraklar: taranan,
@@ -16533,6 +16553,96 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     };
 
     // ─── EVRAK KONTROL MOTORU ────────────────────────────────────────────
+    // ── FAZ 2.2: Evrak çapraz denetim paneli (GÖLGE MOD: hiçbir adımı kilitlemez) ──
+    // Kırmızı: evrak kıyas çelişkisi · Sarı: OCR şüphesi / doğrulanamadı / elle giriş bekliyor · Yeşil: doğrulandı
+    window.bkDenetimPaneliCiz = function(d) {
+        let kutu = document.getElementById('bk-denetim-panel');
+        if(!kutu) return;
+        if(!d || !window.DenetimMotoru || !window.EvrakCikarici) { kutu.style.display = 'none'; return; }
+        let esc = function(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+        let DM = window.DenetimMotoru;
+        let ea = d.evrakAlanlari || {};
+        let p = DM.panelHazirla(DM.girdiOlustur(d, ea, window.bkMenseUlke ? window.bkMenseUlke(d) : d.mensei), null, { menseCoz: window.menseFabrikaCoz });
+        let sira = { kirmizi: 0, sari: 1, yesil: 2, gri: 3 };
+        let satirlar = p.satirlar.slice().sort(function(a, b) { return sira[a.renk] - sira[b.renk]; });
+        let kilit = DM.kilitDurumu(p.duzeltilmisRapor, {}, 'golge');
+        let oneriGosterildi = {}; // aynı OCR önerisi butonu yalnız ilk satırda
+        let satirHtml = function(s) {
+            let h = '<div class="bk-dn-satir ' + s.renk + '" data-kural="' + esc(s.id) + '"><span class="bk-dn-etiket">' + esc(s.etiket) + '</span><span class="bk-dn-baslik">' + esc(s.baslik) + '</span>';
+            h += '<div class="bk-dn-mesaj">' + esc(s.mesaj) + (s.not ? ' <i>(' + esc(s.not) + ')</i>' : '') + '</div>';
+            if((s.degerler || []).length) h += '<div>' + s.degerler.map(function(v) { return '<span class="bk-dn-deger" title="' + esc(v.dosya || '') + '">' + esc(v.kaynak) + ': <b>' + esc(v.deger) + '</b></span>'; }).join('') + '</div>';
+            (s.ocrOnerileri || []).filter(function(o) { return !oneriGosterildi[o.belge] && (oneriGosterildi[o.belge] = true); }).forEach(function(o) {
+                h += '<div class="bk-dn-elle"><span>' + esc(o.belgeAd) + ' şasisi OCR\'da <b>' + esc(o.eski) + '</b> okundu; ISO 3779\'da I/O/Q olmaz.</span>' +
+                    '<button type="button" class="bk-dn-btn" data-belge="' + esc(o.belge) + '" data-eski="' + esc(o.eski) + '" data-yeni="' + esc(o.yeni) + '" onclick="window.bkDenetimOcrKabul(this)">OCR Önerisini Kabul Et (' + esc(o.eski) + ' → ' + esc(o.yeni) + ')</button></div>';
+            });
+            (s.elleAlanlar || []).forEach(function(e) {
+                h += '<div class="bk-dn-elle"><label>✍️ ' + esc(e.etiket) + '</label><input type="text" data-belge="' + esc(e.belge) + '" data-alan="' + esc(e.alan) + '" data-tip="' + esc(e.tip) + '" placeholder="Belgeden bakıp yazın" onkeydown="if(event.key===\'Enter\'){event.preventDefault();window.bkDenetimElleKaydet(this.nextElementSibling);}">' +
+                    '<button type="button" class="bk-dn-btn ikincil" onclick="window.bkDenetimElleKaydet(this)">Kaydet</button><span class="bk-dn-hata"></span></div>';
+            });
+            return h + '</div>';
+        };
+        // Elle girilen / kabul edilen değerler: geri alınabilir
+        let elleler = [];
+        Object.keys(ea).forEach(function(b) {
+            if(b.charAt(0) === '_' || !ea[b] || typeof ea[b] !== 'object') return;
+            Object.keys(ea[b]).forEach(function(k) { let v = ea[b][k]; if(v && v.guven === 'elle') elleler.push({ b: b, k: k, v: v }); });
+        });
+        let renk = p.ozet.kirmizi ? '#dc2626' : (p.ozet.sari ? '#d97706' : '#059669');
+        let html = '<summary style="color:' + renk + ';">🛡️ Evrak Çapraz Denetimi' +
+            '<span class="bk-dn-say" style="background:rgba(220,38,38,0.12);color:#dc2626;">🔴 ' + p.ozet.kirmizi + ' çelişki</span>' +
+            '<span class="bk-dn-say" style="background:rgba(245,158,11,0.15);color:#b45309;">🟡 ' + p.ozet.sari + ' bekliyor</span>' +
+            '<span class="bk-dn-say" style="background:rgba(16,185,129,0.12);color:#059669;">🟢 ' + p.ozet.yesil + ' doğrulandı</span>' +
+            '<span style="font-weight:600;font-size:11px;color:var(--text-muted);">Gölge mod — hiçbir adımı kilitlemez' + (kilit.kilitOlurdu ? ' (sert modda kilitlerdi)' : '') + '</span></summary>';
+        html += '<div class="bk-dn-govde">';
+        if(!Object.keys(ea).some(function(k) { return k.charAt(0) !== '_'; })) html += '<div class="bk-dn-mesaj">Bu aracın evrak alanları henüz okunmadı. "Tümünü Yeniden Oku" ile A.TR, CMR, MRN, CoC ve ULM alanları çıkarılır; şimdilik yalnız kart şasisi denetlendi.</div>';
+        html += satirlar.filter(function(s) { return s.renk !== 'gri'; }).map(satirHtml).join('');
+        let griler = satirlar.filter(function(s) { return s.renk === 'gri'; });
+        if(griler.length) html += '<details><summary style="cursor:pointer;font-size:11px;color:var(--text-muted);">Uygulanmayan / bilgi (' + griler.length + ')</summary>' + griler.map(satirHtml).join('') + '</details>';
+        if(elleler.length) html += '<div class="bk-dn-mesaj" style="margin-top:4px;"><b>Elle girilen / kabul edilen değerler:</b> ' + elleler.map(function(x) {
+            return '<span class="bk-dn-deger" title="' + esc((x.v.zaman || '') + (x.v.ham ? ' · ilk okuma: ' + x.v.ham : '')) + '">' + esc((window.DenetimMotoru.BELGE_AD[x.b] || x.b) + ' ' + x.k) + ' = <b>' + esc(x.v.deger) + '</b>' + (x.v.not === 'ocr' ? ' (OCR kabul)' : ' ✋') +
+                ' <a href="javascript:void(0)" data-belge="' + esc(x.b) + '" data-alan="' + esc(x.k) + '" onclick="window.bkDenetimElleSil(this)" title="Geri al">✕</a></span>';
+        }).join('') + '</div>';
+        html += '<div class="bk-dn-mesaj" style="font-size:10px;">Motor ' + esc(p.surum) + (ea._zaman ? ' · evrak alanları: ' + esc(ea._zaman) : '') + '</div></div>';
+        let ayniArac = kutu.dataset.sasi === String(d.sasi || '');
+        let acik = ayniArac ? kutu.open : !!p.ozet.kirmizi;
+        kutu.innerHTML = html;
+        kutu.open = acik;
+        kutu.dataset.sasi = String(d.sasi || '');
+        kutu.style.display = '';
+    };
+    window.bkDenetimKaydet = function(ea) {
+        let a = window._bkAktif;
+        if(!a || !a.d) return;
+        window.aracVerisiBirlestir(a.d, {}, [], false, { evrakAlanlari: ea });
+        window.saveData && window.saveData('decl');
+        window.bkDenetimPaneliCiz(a.d);
+    };
+    window.bkDenetimZaman = function() { return window.formatTRDate ? window.formatTRDate(new Date()) : new Date().toLocaleDateString('tr-TR'); };
+    window.bkDenetimOcrKabul = function(btn) {
+        let a = window._bkAktif;
+        if(!a || !a.d || !btn) return;
+        let ea = window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, btn.dataset.belge, 'sasi', btn.dataset.yeni, { not: 'ocr', ham: btn.dataset.eski, zaman: window.bkDenetimZaman() });
+        window.bkDenetimKaydet(ea);
+    };
+    window.bkDenetimElleKaydet = function(btn) {
+        let a = window._bkAktif;
+        let inp = btn && btn.previousElementSibling;
+        if(!a || !a.d || !inp) return;
+        let hata = btn.nextElementSibling;
+        let v = window.DenetimMotoru.elleDegerAyristir(inp.value, inp.dataset.tip);
+        if(v === null) {
+            if(hata) hata.textContent = { kg: 'Kilogram olarak sayı girin (ör. 2450)', adet: 'Adet olarak sayı girin', sasi: 'Şasi 17 karakter olmalı' }[inp.dataset.tip] || 'Değer girin';
+            return;
+        }
+        let ea = window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, inp.dataset.belge, inp.dataset.alan, v, { ham: inp.value, zaman: window.bkDenetimZaman() });
+        window.bkDenetimKaydet(ea);
+    };
+    window.bkDenetimElleSil = function(el) {
+        let a = window._bkAktif;
+        if(!a || !a.d || !el) return;
+        window.bkDenetimKaydet(window.EvrakCikarici.elleYaz(a.d.evrakAlanlari || {}, el.dataset.belge, el.dataset.alan, null));
+    };
+
     window.bkEvrakKontrol = function(d) {
         let dolu = function(v) { return v != null && String(v).trim() !== ''; };
         let tr = (d.transferler || []).find(function(t) { return t.belgeId && t.bilgeBankaKodu; });
@@ -17133,6 +17243,7 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
         set('bk-in-fatura-tarih', d.faturaTarih || d.faturaTarihi);
         set('bk-in-mrn', d.mrnNo);
         window.bkRozetleriBoya(d);
+        try { window.bkDenetimPaneliCiz && window.bkDenetimPaneliCiz(d); } catch(e) { console.warn('[Denetim paneli]', e); }
         if(window.lucide) lucide.createIcons();
     };
 
