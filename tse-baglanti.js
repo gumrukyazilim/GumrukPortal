@@ -274,6 +274,16 @@ function tsePaketSonucGoster(result) {
     "İNGİLTERE", "İSPANYA", "İSVEÇ", "İSVİÇRE", "İTALYA", "LÜKSEMBURG", "MACARİSTAN", "POLONYA", "PORTEKİZ", "SLOVAKYA", "SLOVENYA",
     "AMERİKA", "KANADA", "JAPONYA", "G.KORE", "ÇİN", "GÜRCİSTAN", "BULGARİSTAN", "ROMANYA", "YUNANİSTAN"];
   // Karşılaştırma anahtarı: büyük harf, Türkçe harfler sadeleşir (audi = AUDİ = AUDI), yalnız harf/rakam.
+  // VPS TSE botu (7/24): portal → n8n webhook → Drive evrakları + Gemini Türkçe CoC + TSE taslak başvurusu.
+  // Başvuru ASLA e-imzalanmaz; normalde "Kaydet ve Anasayfaya Dön" ile taslak kalır, test modunda iptal edilir.
+  const VPS_TSE_WEBHOOK = "https://195-35-0-89.sslip.io/webhook/tse-basvuru";
+  // Örnek TEST aracı (yalnız bu modülde; Firebase'e/listelere yazılmaz). Drive: ŞAMNU GT / LAND ROVER / TESTLRV0000000001.
+  // Eksik APM/Egzoz VPS'te kaynak araçtan kopyalanır; TEST şasilerinde bot her zaman test modunda çalışır (sonunda İPTAL).
+  const TEST_ARACI = window.TSE_TEST_ARACI = {
+    sasi: "TESTLRV0000000001", kaynakSasi: "SALKABB9XTA373311", firma: "ŞAMNU GT", marka: "LAND ROVER",
+    gelis: "2026-11-18", ozetBeyan: "26GB000060QQA9SLK4",
+    aciklama: "Land Rover Range Rover SALKABB9XTA373311 evraklarından hazırlanmış test aracı"
+  };
   const norm = function (s) {
     const tr = { "Ç": "C", "Ğ": "G", "İ": "I", "Ö": "O", "Ş": "S", "Ü": "U" };
     return String(s || "").toLocaleUpperCase("tr").replace(/[ÇĞİÖŞÜ]/g, function (c) { return tr[c]; }).replace(/[^A-Z0-9]/g, "");
@@ -469,6 +479,18 @@ function tsePaketSonucGoster(result) {
         '</div><div style="color:var(--text-muted,#64748b);margin-top:6px;">Boş bırakılan alanlar CoC ve şasiden okunur.</div></details>' +
         '<button type="button" data-hp="uret" style="padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:14px;font-weight:800;cursor:pointer;">⚡ Paketi Üret</button>' +
         '<div data-hp="sonuc" aria-live="polite" style="font-size:13px;line-height:1.5;overflow-wrap:anywhere;"></div>' +
+        '<div style="border:1px dashed #7c3aed;border-radius:12px;padding:12px;display:grid;gap:10px;">' +
+        '<div><div style="font-size:14px;font-weight:800;">🚀 TSE Başvurusu — VPS botu <span style="font-size:11px;font-weight:700;color:#7c3aed;">7/24 · canlı izleme</span></div>' +
+        '<div style="font-size:11px;color:var(--text-muted,#64748b);margin-top:2px;">Paket + Türkçe CoC (Gemini, kaşeli, COC_DE_TR) + TSE başvurusu. E-imza ATILMAZ: normalde taslak kaydedilir, test modunda iptal edilir.</div></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+        '<label style="' + etiket + '">Geliş tarihi<input data-hp="gelis" type="date" style="' + girdi + '"></label>' +
+        '<label style="' + etiket + '">Özet beyan no<input data-hp="ozetBeyan" type="text" autocomplete="off" style="' + girdi + 'font-family:var(--font-mono,monospace);text-transform:uppercase;"></label></div>' +
+        '<label style="display:flex;gap:8px;align-items:center;font-size:12px;"><input data-hp="vpsPaket" type="checkbox" checked> Önce 4\'lü paketi üret (APM / Egzoz klasöre yazılır)</label>' +
+        '<label style="display:flex;gap:8px;align-items:center;font-size:12px;"><input data-hp="vpsTest" type="checkbox"> Test modu — tüm adımlar yapılır, sonunda başvuru İPTAL edilir</label>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<button type="button" data-hp="testArac" style="padding:10px 12px;border-radius:10px;border:1px solid #7c3aed;background:transparent;color:#7c3aed;font-weight:700;cursor:pointer;">🧪 Örnek test aracı</button>' +
+        '<button type="button" data-hp="vpsBaslat" style="flex:1;min-width:220px;padding:12px;border:0;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;font-size:14px;font-weight:800;cursor:pointer;">🚀 Paket + CoC + TSE Başvurusu (VPS)</button></div>' +
+        '<div data-hp="vpsSonuc" aria-live="polite" style="font-size:13px;line-height:1.5;overflow-wrap:anywhere;"></div></div>' +
         "</div></div>";
       document.body.appendChild(ov);
       const el = function (k) { return ov.querySelector('[data-hp="' + k + '"]'); };
@@ -488,7 +510,9 @@ function tsePaketSonucGoster(result) {
       el("bul").addEventListener("click", function () { H._bul(ov, el("kaynak").value); });
       el("kaynak").addEventListener("keydown", function (e) { if (e.key === "Enter") H._bul(ov, el("kaynak").value); });
       el("uret").addEventListener("click", function () { H._uretTikla(ov); });
-      el("sasi").addEventListener("input", function () { H._menseGoster(ov); });
+      el("sasi").addEventListener("input", function () { H._menseGoster(ov); H._beyanDoldur(ov); });
+      el("testArac").addEventListener("click", function () { H._testAraciYukle(ov); });
+      el("vpsBaslat").addEventListener("click", function () { H._vpsBaslat(ov); });
       el("uretildigiUlke").addEventListener("input", function () { H._menseGoster(ov); });
       H._firmalariYukle(ov);
     },
@@ -584,12 +608,19 @@ function tsePaketSonucGoster(result) {
     },
     _sec: function (ov, aday) {
       H._durum.klasorId = aday.id;
+      if (H._durum.testArac) {   // gerçek araca geçildi: test aracı kilidi kalkar
+        H._durum.testArac = null;
+        const tm = ov.querySelector('[data-hp="vpsTest"]'); tm.disabled = false; tm.checked = false;
+        ov.querySelector('[data-hp="vpsPaket"]').checked = true;
+        ov.querySelector('[data-hp="sasi"]').value = "";
+      }
       if (aday.firma) { H._durum.ustFirma = aday.firma; H._firmaYaz(ov, H.firmaEslestir(aday.firma)); }
       const sasiEl = ov.querySelector('[data-hp="sasi"]');
       const oneri = (aday.sasiler || [])[0] || "";
       // Kullanıcı şasiyi elle yazdıysa ezilmez; yalnız boş ya da önceki otomatik değer değiştirilir.
       if (!sasiEl.value || sasiEl.value === H._durum.otomatikSasi) { sasiEl.value = oneri; H._durum.otomatikSasi = oneri; }
       H._menseGoster(ov);
+      H._beyanDoldur(ov);
       ov.querySelectorAll("[data-hp-aday]").forEach(function (k) {
         const secili = k.getAttribute("data-hp-aday") === aday.id;
         k.style.borderColor = secili ? "#2563eb" : "var(--border,#e2e8f0)";
@@ -693,6 +724,102 @@ function tsePaketSonucGoster(result) {
       });
       if (res.caprazKontrol && res.caprazKontrol.durum === "dogrulandi") { const p = document.createElement("div"); p.textContent = "✅ Orijinal CoC ile CoC_TR çapraz doğrulandı (" + (res.caprazKontrol.dogrulanan || []).length + " alan)."; p.style.cssText = "margin-top:8px;color:#15803d;font-weight:600;"; box.appendChild(p); }
       if (res.warnings && res.warnings.length) { const p = document.createElement("div"); p.textContent = res.warnings.join(" · "); p.style.cssText = "margin-top:8px;color:var(--text-secondary,#475569);font-size:12px;"; box.appendChild(p); }
+    },
+
+    // ---------- VPS TSE botu ----------
+    // Gelen Araçlar listesinden (yalnız OKUNUR) geliş tarihi ve özet beyanı doldurur; elle yazılanı ezmez.
+    beyanBul: function (sasi) {
+      const s = String(sasi || "").toUpperCase();
+      if (!VIN_RE.test(s)) return null;
+      const d = (window.declarationsData || []).find(function (x) { return x && String(x.sasi || "").toUpperCase().trim() === s; });
+      if (!d) return null;
+      const t = String(d.tarih || "").trim();
+      const m = t.match(/^(\d{2})[./](\d{2})[./](\d{4})/) || t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      const iso = !m ? "" : (m[1].length === 4 ? m[1] + "-" + m[2] + "-" + m[3] : m[3] + "-" + m[2] + "-" + m[1]);
+      return { gelis: iso, ozetBeyan: String(d.ozetBeyan || "").trim().toUpperCase() };
+    },
+    _beyanDoldur: function (ov) {
+      const el = function (k) { return ov.querySelector('[data-hp="' + k + '"]'); };
+      const b = H.beyanBul(el("sasi").value);
+      if (!b) return;
+      if (b.gelis && !el("gelis").value) el("gelis").value = b.gelis;
+      if (b.ozetBeyan && !el("ozetBeyan").value) el("ozetBeyan").value = b.ozetBeyan;
+    },
+    _vpsMesaj: function (ov, metin, tur, link) {
+      const box = ov.querySelector('[data-hp="vpsSonuc"]');
+      box.replaceChildren();
+      if (!metin) return;
+      const d = document.createElement("div");
+      d.textContent = metin;
+      d.style.cssText = "padding:10px 12px;border-radius:10px;" + (tur === "hata" ? "background:#fef2f2;color:#991b1b;border:1px solid #fecaca;" : tur === "ok" ? "background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;" : "background:#f5f3ff;color:#4c1d95;border:1px solid #ddd6fe;");
+      if (link) {
+        const a = document.createElement("a"); a.href = link; a.target = "_blank"; a.rel = "noopener";
+        a.textContent = "📺 Canlı izleme ekranını aç";
+        a.style.cssText = "display:inline-block;margin-top:8px;padding:8px 12px;border-radius:8px;background:#7c3aed;color:#fff;font-weight:800;text-decoration:none;";
+        d.appendChild(document.createElement("br")); d.appendChild(a);
+      }
+      box.appendChild(d);
+    },
+    _testAraciYukle: function (ov) {
+      const el = function (k) { return ov.querySelector('[data-hp="' + k + '"]'); };
+      const t = TEST_ARACI;
+      H._durum.testArac = t.sasi;
+      el("sasi").value = t.sasi; H._durum.otomatikSasi = t.sasi;
+      el("firma").value = t.firma; H._durum.otomatikFirma = t.firma; H._durum.ustFirma = t.firma;
+      el("gelis").value = t.gelis; el("ozetBeyan").value = t.ozetBeyan;
+      el("vpsTest").checked = true; el("vpsTest").disabled = true;
+      el("vpsPaket").checked = false;
+      el("secili").textContent = "🧪 Test aracı: " + t.sasi + " — " + t.aciklama + " (Drive: " + t.firma + " / " + t.marka + " / " + t.sasi + ")";
+      H._menseGoster(ov);
+      H._vpsMesaj(ov, "🧪 Test aracı yüklendi. Eksik APM/Egzoz VPS'te kaynak araçtan (" + t.kaynakSasi + ") kopyalanır; TSE'de tüm adımlar yapılır ve sonunda başvuru İPTAL edilir.");
+    },
+    // Gövde: yalnız bu nesne n8n'e gider (portal oturum jetonu fbt ile; VPS Firebase'de onay === true denetler).
+    vpsGovde: function (form) {
+      const t = function (v) { return String(v || "").trim(); };
+      const sasi = t(form.sasi).toUpperCase();
+      if (!VIN_RE.test(sasi)) throw new Error("Geçerli 17 haneli şasi gerekli.");
+      const g = t(form.gelis).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!g) throw new Error("Geliş tarihini seçin.");
+      const ozet = t(form.ozetBeyan).toUpperCase();
+      if (!/^[A-Z0-9]{8,30}$/.test(ozet)) throw new Error("Özet beyan numarasını yazın.");
+      const test = sasi.indexOf("TEST") === 0;
+      return { sasi: sasi, kaynak_sasi: test ? TEST_ARACI.kaynakSasi : "", firma_adi: t(form.firma),
+        gelis_tarihi: g[3] + "." + g[2] + "." + g[1], ozet_beyan: ozet, test_modu: test || !!form.test, kaynak: "portal-hizli-paket" };
+    },
+    _vpsBaslat: async function (ov) {
+      const btn = ov.querySelector('[data-hp="vpsBaslat"]');
+      if (btn.disabled) return;
+      const v = function (k) { const e = ov.querySelector('[data-hp="' + k + '"]'); return e ? (e.type === "checkbox" ? e.checked : e.value) : ""; };
+      // Açılır pencere engeline takılmamak için izleme sekmesi tıklama anında açılır, link sonra verilir.
+      let sekme = null;
+      try { sekme = window.open("", "_blank"); if (sekme) sekme.document.write("<p style='font:16px system-ui;padding:24px'>⏳ TSE işi hazırlanıyor…</p>"); } catch (e) { sekme = null; }
+      btn.disabled = true; btn.style.opacity = ".6";
+      try {
+        const firma = String(v("firma") || H._durum.ustFirma || "").trim();
+        const govde = H.vpsGovde({ sasi: v("sasi"), firma: firma, gelis: v("gelis"), ozetBeyan: v("ozetBeyan"), test: v("vpsTest") });
+        if (!govde.firma_adi) throw new Error("Firma adı boş; firmayı seçin.");
+        if (v("vpsPaket") && H._durum.testArac !== govde.sasi) {
+          H._vpsMesaj(ov, "⏳ 1/2 — 4'lü paket üretiliyor (APM / TSE / ULM / Egzoz)… (1-3 dk)");
+          const form = { klasorId: H._durum.klasorId, sasi: govde.sasi, firma: firma, ustKlasorFirma: H._durum.ustFirma,
+            basvuruNo: v("basvuruNo"), basvuruTarihi: v("basvuruTarihi"), marka: v("marka"), renk: v("renk"),
+            uretildigiUlke: v("uretildigiUlke"), cikisUlke: v("cikisUlke") };
+          H._sonucGoster(ov, await H.uret(form), !String(form.basvuruNo).trim(), "");
+        }
+        H._vpsMesaj(ov, "⏳ " + (v("vpsPaket") && H._durum.testArac !== govde.sasi ? "2/2 — " : "") + "VPS TSE botuna gönderiliyor…");
+        govde.fbt = typeof window.gasJetonAl === "function" ? await window.gasJetonAl() : "";
+        if (!govde.fbt) throw new Error("Portal oturumu bulunamadı; yeniden giriş yapın.");
+        const r = await fetch(VPS_TSE_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(govde) });
+        const res = await r.json().catch(function () { return {}; });
+        if (!r.ok || !res.success || !res.izle_url) throw new Error(res.error || ("VPS yanıtı HTTP " + r.status));
+        const u = new URL(res.izle_url);
+        if (u.protocol !== "https:" || u.hostname !== "195-35-0-89.sslip.io") throw new Error("Beklenmeyen izleme adresi.");
+        if (sekme && !sekme.closed) sekme.location.href = u.href;
+        H._vpsMesaj(ov, "✅ VPS işi başladı (" + govde.sasi + (res.test_modu ? " · TEST MODU — sonunda iptal" : " · taslak kaydedilecek") +
+          "). Drive evrakları → Türkçe CoC → TSE adımları canlı izleme ekranında.", "ok", u.href);
+      } catch (err) {
+        if (sekme && !sekme.closed) sekme.close();
+        H._vpsMesaj(ov, "VPS başvurusu başlatılamadı: " + err.message, "hata");
+      } finally { btn.disabled = false; btn.style.opacity = ""; }
     }
   };
 })();
