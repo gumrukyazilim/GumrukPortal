@@ -412,7 +412,12 @@ function tsePaketSonucGoster(result) {
       const f = H.firmaBelirle(form);
       return { sasi: sasi, evrakLink: H.klasorLinki(t(form.klasorId)), firma: f.firma,
         basvuruNo: t(form.basvuruNo), basvuruTarihi: t(form.basvuruTarihi), marka: t(form.marka), renk: t(form.renk),
-        uretildigiUlke: t(form.uretildigiUlke), cikisUlke: t(form.cikisUlke) };
+        uretildigiUlke: t(form.uretildigiUlke), cikisUlke: t(form.cikisUlke), basvuruTuru: H.basvuruTuruKodu(form.basvuruTuru) };
+    },
+    // Elle seçilen başvuru türü: yalnız bu üç kod geçer; boş = otomatik tespit.
+    basvuruTuruKodu: function (v) {
+      const k = String(v || "").trim().toUpperCase();
+      return ["AT_TIP", "ARTICLE_44", "ARTICLE_45"].indexOf(k) >= 0 ? k : "";
     },
     sonucDogrula: function (res) {
       if (!res || !res.success) {
@@ -470,6 +475,9 @@ function tsePaketSonucGoster(result) {
         '<label style="' + etiket + '"><span>3. Başvuru No <span style="' + soluk + '">(isteğe bağlı)</span></span><input data-hp="basvuruNo" type="text" autocomplete="off" style="' + girdi + '"></label>' +
         '<label style="' + etiket + '"><span>Başvuru Tarihi <span style="' + soluk + '">(isteğe bağlı)</span></span><input data-hp="basvuruTarihi" type="date" style="' + girdi + '"></label></div>' +
         '<div style="font-size:11px;color:var(--text-muted,#64748b);margin-top:-6px;">Başvuru no boş bırakılırsa belgeler taslak olarak üretilir.</div>' +
+        '<label style="' + etiket + '"><span>Başvuru Türü <span style="' + soluk + '">(otomatik: onay belgesinin içeriğinden)</span></span><select data-hp="basvuruTuru" style="' + girdi + '">' +
+        '<option value="">Otomatik tespit (CoC / TÜV içeriği)</option><option value="AT_TIP">AT Tip Onaylı (Münferit)</option>' +
+        '<option value="ARTICLE_44">Münferit Araç Onaylı (AT) — Art. 44</option><option value="ARTICLE_45">Münferit Araç Onaylı (Ulusal) — Art. 45</option></select></label>' +
         '<details style="font-size:12px;"><summary style="cursor:pointer;font-weight:700;">Ek bilgiler (isteğe bağlı)</summary><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">' +
         ["marka:Marka", "renk:Renk", "uretildigiUlke:Menşe ülke", "cikisUlke:İthalat (çıkış) ülkesi"].map(function (x) {
           const p = x.split(":");
@@ -652,7 +660,7 @@ function tsePaketSonucGoster(result) {
         if (!H._durum.klasorId && v("kaynak").trim() && !(await H._bul(ov, v("kaynak")))) return;
         const form = { klasorId: H._durum.klasorId, sasi: v("sasi"), firma: v("firma"), ustKlasorFirma: H._durum.ustFirma,
           basvuruNo: v("basvuruNo"), basvuruTarihi: v("basvuruTarihi"), marka: v("marka"), renk: v("renk"),
-          uretildigiUlke: v("uretildigiUlke"), cikisUlke: v("cikisUlke") };
+          uretildigiUlke: v("uretildigiUlke"), cikisUlke: v("cikisUlke"), basvuruTuru: v("basvuruTuru") };
         const p = H.paketParametreleri(form); // eksik alan varsa buluta gitmeden uyar
         const firmaUyari = H.firmaBelirle(form).uyari;
         if (firmaUyari) { const f = ov.querySelector('[data-hp="firma"]'); f.value = p.firma; H._durum.otomatikFirma = p.firma; }
@@ -784,7 +792,8 @@ function tsePaketSonucGoster(result) {
       if (!/^[A-Z0-9]{8,30}$/.test(ozet)) throw new Error("Özet beyan numarasını yazın.");
       const test = sasi.indexOf("TEST") === 0;
       return { sasi: sasi, kaynak_sasi: test ? TEST_ARACI.kaynakSasi : "", firma_adi: t(form.firma),
-        gelis_tarihi: g[3] + "." + g[2] + "." + g[1], ozet_beyan: ozet, test_modu: test || !!form.test, kaynak: "portal-hizli-paket" };
+        gelis_tarihi: g[3] + "." + g[2] + "." + g[1], ozet_beyan: ozet, test_modu: test || !!form.test, kaynak: "portal-hizli-paket",
+        basvuru_turu: H.basvuruTuruKodu(form.basvuruTuru) };
     },
     _vpsBaslat: async function (ov) {
       const btn = ov.querySelector('[data-hp="vpsBaslat"]');
@@ -796,13 +805,13 @@ function tsePaketSonucGoster(result) {
       btn.disabled = true; btn.style.opacity = ".6";
       try {
         const firma = String(v("firma") || H._durum.ustFirma || "").trim();
-        const govde = H.vpsGovde({ sasi: v("sasi"), firma: firma, gelis: v("gelis"), ozetBeyan: v("ozetBeyan"), test: v("vpsTest") });
+        const govde = H.vpsGovde({ sasi: v("sasi"), firma: firma, gelis: v("gelis"), ozetBeyan: v("ozetBeyan"), test: v("vpsTest"), basvuruTuru: v("basvuruTuru") });
         if (!govde.firma_adi) throw new Error("Firma adı boş; firmayı seçin.");
         if (v("vpsPaket") && H._durum.testArac !== govde.sasi) {
           H._vpsMesaj(ov, "⏳ 1/2 — 4'lü paket üretiliyor (APM / TSE / ULM / Egzoz)… (1-3 dk)");
           const form = { klasorId: H._durum.klasorId, sasi: govde.sasi, firma: firma, ustKlasorFirma: H._durum.ustFirma,
             basvuruNo: v("basvuruNo"), basvuruTarihi: v("basvuruTarihi"), marka: v("marka"), renk: v("renk"),
-            uretildigiUlke: v("uretildigiUlke"), cikisUlke: v("cikisUlke") };
+            uretildigiUlke: v("uretildigiUlke"), cikisUlke: v("cikisUlke"), basvuruTuru: v("basvuruTuru") };
           H._sonucGoster(ov, await H.uret(form), !String(form.basvuruNo).trim(), "");
         }
         H._vpsMesaj(ov, "⏳ " + (v("vpsPaket") && H._durum.testArac !== govde.sasi ? "2/2 — " : "") + "VPS TSE botuna gönderiliyor…");
