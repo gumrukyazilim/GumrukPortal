@@ -29605,6 +29605,11 @@ window._kdvAracKaydinaYaz = function(sasi, veri) {
     }
 };
 
+// Beyanname cache kaydı tam mı? GVM, KDVM ve KDV tutarı dolu olmalı.
+window.kcBeyannameCacheTam = function(k) {
+    const dolu = function(x){ return x != null && x !== '' && Number.isFinite(Number(x)); };
+    return !!k && dolu(k.gvm) && dolu(k.kdvm) && Number(k.kdvm) > 0 && dolu(k.kdvTutari);
+};
 window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
     if (!firma || !marka || !sasi) return null;
 
@@ -29617,8 +29622,15 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
         delete cache[key];
         try { localStorage.setItem('gumruk_beyanname_kdvm_cache',JSON.stringify(cache)); } catch(e) {}
     }
+    // Eksik cache (GVM / KDVM / KDV boş — ör. kayık 47. kutu) geçersiz: temizlenip Apps Script'e yeniden okutulur
+    if (cache[key] && !window.kcBeyannameCacheTam(cache[key])) {
+        console.log(`[KC] Beyanname cache eksik (GVM/KDVM/KDV boş), temizlenip yeniden okunuyor: ${key}`);
+        delete cache[key];
+        try { localStorage.setItem('gumruk_beyanname_kdvm_cache',JSON.stringify(cache)); } catch(e) {}
+    }
     // Cache geçerli mi? hem kdvm hem toplamVergi varsa cache'den ver, yoksa yeniden çek
-    if (cache[key] && cache[key].kdvm && cache[key].toplamVergi != null && cache[key].ydisi != null && cache[key].ydisiSurum >= 2 && cache[key].vergiSurum >= 3) {
+    // vergiSurum 4: toplam vergi aritmetikle doğrulanamadıysa null kalır — bu durum yeniden okuma sebebi değildir
+    if (cache[key] && cache[key].kdvm && (cache[key].toplamVergi != null || cache[key].vergiSurum >= 4) && cache[key].ydisi != null && cache[key].ydisiSurum >= 2 && cache[key].vergiSurum >= 3) {
         console.log(`[KC] Beyanname KDVM cache: ${cache[key].kdvm} + Toplam ${cache[key].toplamVergi} (${cache[key].dosyaAdi})`);
         // Eski cache kayıtlarını araç kaydına taşı (bir kez; sonra sessiz kalır)
         window._kdvAracKaydinaYaz(sasi, cache[key]);
@@ -29632,7 +29644,7 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
         let url = `${KC_BEYANNAME_URL}?firma=${encodeURIComponent(firma)}&marka=${encodeURIComponent(marka)}&sasi=${encodeURIComponent(sasi)}&_t=${Date.now()}`;
         console.log(`[KC] Beyanname OCR isteniyor: ${firma}/${marka}/${sasi}`);
         let t0 = performance.now();
-        const r = await fetch(url, { signal: AbortSignal.timeout(45000), cache: 'no-store' }); // OCR yavaş olabilir
+        const r = await fetch(url, { signal: AbortSignal.timeout(90000), cache: 'no-store' }); // OCR + gerekirse görsel okuma yedeği yavaş olabilir
         let ms = Math.round(performance.now() - t0);
         if (!r.ok) {
             console.warn(`[KC] Beyanname endpoint ${r.status} (${ms}ms)`);
@@ -29653,7 +29665,7 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
         const sayiVeyaNull=function(x){ const n=Number(x); return x != null && x !== '' && Number.isFinite(n) ? n : null; };
         cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, ydisi: ydisi, ydisiKaynak: ydisiKaynak || null, ydisiSurum: ydisiSurum, dosyaAdi: data.dosyaAdi,
             vergiSurum: Number(data.vergiSurum) || 0,
-            gvm: sayiVeyaNull(data.gvm), gv: sayiVeyaNull(data.gv), gvOran: sayiVeyaNull(data.gvOran),
+            gvm: sayiVeyaNull(data.gvm), gv: sayiVeyaNull(data.gv), gvOran: sayiVeyaNull(data.gvOran), yici: sayiVeyaNull(data.yici),
             emy: sayiVeyaNull(data.emy), emyOran: sayiVeyaNull(data.emyOran),
             trt: sayiVeyaNull(data.trt), trtOran: sayiVeyaNull(data.trtOran), kdvOran: sayiVeyaNull(data.kdvOran) };
         try { localStorage.setItem('gumruk_beyanname_kdvm_cache', JSON.stringify(cache)); } catch(e){}
