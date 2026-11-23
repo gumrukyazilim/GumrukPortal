@@ -5575,9 +5575,24 @@ div[style*="position: relative"] > input {
                     <input type="text" inputmode="decimal" id="kc-trt" value="0,8" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                 </div>
                 <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">TRT EK TAHAKKUKTA</label>
+                    <select id="kc-trt-mod" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                        <option value="dahil" selected>KDV matrahına dahil (ek tahakkukta yok)</option>
+                        <option value="ayri">Ek tahakkukta ayrı satır</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">GV ORANI (%) <span style="font-size:10px;text-transform:none;">A.TR'li: 0</span></label>
+                    <input type="text" inputmode="decimal" id="kc-gv-oran" value="0" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:flex;align-items:center;gap:6px;margin-bottom:6px;">EMY ORANI (%) <span style="margin-left:auto;display:inline-flex;gap:4px;"><button type="button" onclick="document.getElementById('kc-emy-oran').value='0';window.kcHesapla()" style="font-size:10px;padding:1px 6px;border:1px solid var(--border);border-radius:5px;background:var(--bg-elevated);color:var(--text-primary);cursor:pointer;">0</button><button type="button" onclick="document.getElementById('kc-emy-oran').value='25';window.kcHesapla()" style="font-size:10px;padding:1px 6px;border:1px solid var(--border);border-radius:5px;background:var(--bg-elevated);color:var(--text-primary);cursor:pointer;">%25</button></span></label>
+                    <input type="text" inputmode="decimal" id="kc-emy-oran" value="0" oninput="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                </div>
+                <div>
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">ÖTV ORANI (%)</label>
                     <select id="kc-otv-oran" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
-                        <option value="0" selected>0 (yok)</option>
+                        <option value="0" selected>0 (yok / Muaf 234/1)</option>
                         <option value="4">%4</option>
                         <option value="10">%10</option>
                         <option value="45">%45</option>
@@ -5664,6 +5679,22 @@ div[style*="position: relative"] > input {
                     <strong id="kc-adim1" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
                 </div>
 
+                <div id="kc-gv-row" class="kc-step" style="display:none;justify-content:space-between;align-items:center;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:#f59e0b;">GV</span> Gümrük vergisi farkı (<span id="kc-gv-disp">%0</span>)</div>
+                        <div id="kc-adim-gv-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">① × GV %</div>
+                    </div>
+                    <strong id="kc-adim-gv" style="font-size:15px;font-weight:700;color:#f59e0b;">0,00 TL</strong>
+                </div>
+
+                <div id="kc-emy-row" class="kc-step" style="display:none;justify-content:space-between;align-items:center;background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.3);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:#0ea5e9;">EMY</span> Ek mali yükümlülük farkı (<span id="kc-emy-disp">%0</span>)</div>
+                        <div id="kc-adim-emy-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">① × EMY %</div>
+                    </div>
+                    <strong id="kc-adim-emy" style="font-size:15px;font-weight:700;color:#0ea5e9;">0,00 TL</strong>
+                </div>
+
                 <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
                     <div>
                         <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><span style="color:var(--primary);">②</span> TRT bandrolü (<span id="kc-trt-disp">%0,8</span>)</div>
@@ -5696,6 +5727,14 @@ div[style*="position: relative"] > input {
                     <strong id="kc-adim4" style="font-size:15px;font-weight:700;color:var(--text-primary);">0,00 TL</strong>
                 </div>
 
+                <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:rgba(234,88,12,0.08);border:1px solid rgba(234,88,12,0.3);border-radius:8px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:700;color:#ea580c;">Σ Ek tahakkuk toplamı</div>
+                        <div id="kc-adim-ek-detay" style="font-size:11px;color:var(--text-muted);margin-top:2px;">GV + EMY + ÖTV + KDV</div>
+                    </div>
+                    <strong id="kc-adim-ek" style="font-size:15px;font-weight:700;color:#ea580c;">0,00 TL</strong>
+                </div>
+
                 <div class="kc-step" style="display:flex;justify-content:space-between;align-items:center;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px 14px;">
                     <div>
                         <div style="font-size:13px;font-weight:700;color:var(--danger);"><span>⑥</span> Ceza (<span id="kc-katsayi-disp">3 kat</span>)</div>
@@ -5726,6 +5765,43 @@ div[style*="position: relative"] > input {
                     <div id="kc-tasarruf" style="font-size:11px;color:var(--text-muted);margin-top:4px;">0,00 TL tasarruf</div>
                 </div>
             </div>
+            <div style="background:rgba(234,88,12,0.08);border:1px solid rgba(234,88,12,0.3);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div>
+                    <div style="font-size:11px;font-weight:600;color:#ea580c;text-transform:uppercase;letter-spacing:0.4px;">EK TAHAKKUK TOPLAMI (ödenecek vergi farkı)</div>
+                    <div id="kc-ek-tahakkuk-detay" style="font-size:11px;color:var(--text-muted);margin-top:3px;">KDV</div>
+                </div>
+                <strong id="kc-ek-tahakkuk" style="font-size:20px;font-weight:800;color:#ea580c;">0,00 TL</strong>
+            </div>
+
+            <!-- REDRESE BEYANNAME ÖZETİ -->
+            <div style="margin-bottom:14px;padding:14px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.25);border-radius:10px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+                    <i data-lucide="file-diff" style="width:18px;height:18px;color:#6366f1;"></i>
+                    <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Redrese Beyanname Özeti (Kıymet Farkı Sonrası)</div>
+                    <span style="margin-left:auto;font-size:11px;color:var(--text-muted);">Eski değerler beyannameden okunur, elle düzeltilebilir</span>
+                </div>
+                <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px;">
+                    <thead><tr style="color:var(--text-muted);text-align:right;">
+                        <th style="text-align:left;padding:6px 8px;font-weight:600;">Kalem</th>
+                        <th style="padding:6px 8px;font-weight:600;">Eski Beyanname</th>
+                        <th style="padding:6px 8px;font-weight:600;">Kıymet Farkı (+)</th>
+                        <th style="padding:6px 8px;font-weight:600;">Yeni Redrese Beyanname</th>
+                    </tr></thead>
+                    <tbody id="kc-redrese-tbody">
+                        <tr data-k="gvm" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">GV / EMY Matrahı (GVM)</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-gvm" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
+                        <tr data-k="gv" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">Gümrük Vergisi (GV)</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-gv" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
+                        <tr data-k="emy" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">Ek Mali Yükümlülük (EMY)</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-emy" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
+                        <tr data-k="otv" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">ÖTV</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-otv" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
+                        <tr data-k="trt" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">TRT Bandrol</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-trt" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
+                        <tr data-k="kdvm" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">KDV Matrahı (KDVM)</td><td data-c="eski-ayna" style="padding:6px 8px;text-align:right;color:var(--text-muted);" title="Yukarıdaki Mevcut KDV Matrahı alanından">—</td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
+                        <tr data-k="kdv" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">Gümrük KDV Tutarı</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-kdv" placeholder="KDVM × oran" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
+                        <tr data-k="toplam" style="border-top:2px solid var(--border);"><td style="padding:6px 8px;font-weight:800;color:var(--text-primary);">Toplam Vergi</td><td data-c="eski-ayna" style="padding:6px 8px;text-align:right;color:var(--text-muted);" title="Yukarıdaki Mevcut Toplam Vergi alanından">—</td><td data-c="fark" style="padding:6px 8px;text-align:right;font-weight:700;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:800;color:#16a34a;">—</td></tr>
+                    </tbody>
+                </table>
+                </div>
+                <div id="kc-redrese-not" style="font-size:10.5px;color:var(--text-muted);margin-top:8px;"></div>
+            </div>
 
             <!-- BUTONLAR -->
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -5737,6 +5813,9 @@ div[style*="position: relative"] > input {
                 </button>
                 <button onclick="window.kcKopyala('erken')" class="btn-primary" style="display:flex;align-items:center;gap:6px;padding:9px 14px;font-size:13px;font-weight:600;">
                     <i data-lucide="copy" style="width:14px;height:14px;"></i> Erken ödeme kopyala
+                </button>
+                <button onclick="window.kcKopyala('ozet')" class="btn-sm" style="display:flex;align-items:center;gap:6px;padding:9px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer;">
+                    <i data-lucide="list" style="width:14px;height:14px;"></i> Özet kopyala (EMY + redrese)
                 </button>
             </div>
         </div>
@@ -28668,130 +28747,217 @@ window.kcErkenToggle = function() {
     window.kcHesapla();
 };
 
+// BİLGE yuvarlaması: önce 3 haneye, sonra kuruşa (26342400ET000089 kararında KDV 606.019,03 böyle çıkar)
+window.kcBilgeKrs = function(n) {
+    n = Number(n) || 0;
+    return Math.round(Math.round(n * 1000) / 10) / 100;
+};
+
+// Saf hesap motoru (DOM'suz, birim testli). Eski beyanname değerleri null olabilir.
+// Sıra: CIF farkı → GV → EMY → TRT (CIF+GV+EMY) → ÖTV (CIF+GV+EMY+TRT) → KDV matrahı → KDV
+window.kcRedreseHesapla = function(p) {
+    p = p || {};
+    const krs = function(n){ return Math.round((Number(n) || 0) * 100) / 100; };
+    const bk = window.kcBilgeKrs;
+    const sayi = function(n){ n = Number(n); return Number.isFinite(n) ? n : 0; };
+    const eksikEur = Math.max(0, sayi(p.eksikEur));
+    const kur = sayi(p.kur);
+    const gvOran = sayi(p.gvOran), emyOran = sayi(p.emyOran), otvOran = sayi(p.otvOran);
+    const trtOran = sayi(p.trtOran), kdvOran = p.kdvOran == null ? 20 : sayi(p.kdvOran);
+    const katsayi = p.katsayi == null ? 3 : sayi(p.katsayi);
+    const trtAyri = !!p.trtAyri;
+
+    const cifFark = p.cifFarkTL != null ? krs(p.cifFarkTL) : krs(eksikEur * kur);
+    const gvFark = bk(cifFark * gvOran / 100);
+    const emyFark = bk(cifFark * emyOran / 100);
+    const trtMatrahFark = cifFark + gvFark + emyFark;
+    const trtHam = trtMatrahFark * trtOran / 100;
+    const trtFark = bk(trtHam);
+    const otvMatrahFark = trtMatrahFark + trtHam;
+    const otvFark = bk(otvMatrahFark * otvOran / 100);
+    const kdvMatrahHam = trtMatrahFark + trtHam + otvFark;
+    const kdvMatrahFark = krs(kdvMatrahHam);
+    const kdvFark = bk(kdvMatrahHam * kdvOran / 100);
+
+    const cezaMatrah = krs(gvFark + emyFark + otvFark + kdvFark); // TRT cezaya girmez
+    const ekTahakkuk = krs(cezaMatrah + (trtAyri ? trtFark : 0));
+    const ceza = krs(cezaMatrah * katsayi);
+    const indirim = ceza / 4;
+
+    const e = p.eski || {};
+    const var_ = function(v){ return v != null && v !== '' && Number.isFinite(Number(v)); };
+    const topla = function(eski, fark){ return var_(eski) ? krs(Number(eski) + fark) : null; };
+    const eskiKdv = var_(e.kdv) ? Number(e.kdv) : (var_(e.kdvm) && Number(e.kdvm) > 0 ? bk(Number(e.kdvm) * kdvOran / 100) : null);
+    const toplamFark = ekTahakkuk;
+    const satirlar = [
+        { k: 'gvm',    ad: 'GV / EMY Matrahı (GVM)',  eski: var_(e.gvm) ? Number(e.gvm) : null, fark: cifFark,       vergi: false },
+        { k: 'gv',     ad: 'Gümrük Vergisi (GV)',     eski: var_(e.gv) ? Number(e.gv) : null,   fark: gvFark,        vergi: true },
+        { k: 'emy',    ad: 'Ek Mali Yükümlülük (EMY)',eski: var_(e.emy) ? Number(e.emy) : null, fark: emyFark,       vergi: true },
+        { k: 'otv',    ad: 'ÖTV',                     eski: var_(e.otv) ? Number(e.otv) : null, fark: otvFark,       vergi: true },
+        { k: 'trt',    ad: 'TRT Bandrol',             eski: var_(e.trt) ? Number(e.trt) : null, fark: trtFark,       vergi: trtAyri },
+        { k: 'kdvm',   ad: 'KDV Matrahı (KDVM)',      eski: var_(e.kdvm) && Number(e.kdvm) > 0 ? Number(e.kdvm) : null, fark: kdvMatrahFark, vergi: false },
+        { k: 'kdv',    ad: 'Gümrük KDV Tutarı',       eski: eskiKdv,                            fark: kdvFark,       vergi: true },
+        { k: 'toplam', ad: 'Toplam Vergi',            eski: var_(e.toplam) && Number(e.toplam) > 0 ? Number(e.toplam) : null, fark: toplamFark, vergi: false }
+    ].map(function(s){ s.yeni = topla(s.eski, s.fark); return s; });
+    const yeni = {};
+    satirlar.forEach(function(s){ yeni[s.k] = s.yeni; });
+
+    return {
+        cifFark, gvFark, emyFark, trtMatrahFark: krs(trtMatrahFark), trtFark, otvMatrahFark: krs(otvMatrahFark), otvFark,
+        kdvMatrahFark, kdvFark, cezaMatrah, ekTahakkuk, ceza, indirim, erken: ceza - indirim,
+        gvOran, emyOran, otvOran, trtOran, kdvOran, katsayi, trtAyri, eskiKdv, satirlar, yeni
+    };
+};
+
 window.kcHesapla = function() {
     if (!document.getElementById('kc-eksik')) return;
-    
-    // Resmi ceza kararı formülü (4458/234-1b) — gerçek kararla doğrulandı:
-    // TRT bandrolü = eksik TL × %0,8
-    // ÖTV farkı    = (eksik TL + TRT) × ÖTV%          (ÖTV matrahına TRT dahil)
-    // KDV farkı    = (eksik TL + TRT + ÖTV) × KDV%    (KDV matrahına ÖTV dahil)
-    // Ceza         = (ÖTV farkı + KDV farkı) × katsayı (TRT cezaya girmez)
-    let eksik = Math.max(0,window.kcSayiOku('kc-eksik'));
+
+    // Resmi ceza / ek tahakkuk formülü (4458/234-1b) — hesap kcRedreseHesapla'da:
+    // GV = CIF farkı × GV%, EMY = CIF farkı × EMY%
+    // TRT = (CIF + GV + EMY) × TRT%, ÖTV = (CIF + GV + EMY + TRT) × ÖTV%
+    // KDV = (CIF + GV + EMY + ÖTV + TRT) × KDV%
+    // Ceza = (GV + EMY + ÖTV + KDV) × katsayı (TRT cezaya girmez)
+    const $ = function(id){ return document.getElementById(id); };
+    const yaz = function(id, txt){ const el = $(id); if (el) el.innerText = txt; };
+    const goster = function(id, acik){ const el = $(id); if (el) el.style.display = acik ? 'flex' : 'none'; };
+    const f = window.kcFormat;
+    const eskiOku = function(id){ const el = $(id); return el && String(el.value || '').trim() ? window.kcSayiOku(id) : null; };
+
+    let eksik = Math.max(0, window.kcSayiOku('kc-eksik'));
     let kur = window.kcSayiOku('kc-kur');
     let trt = window.kcSayiOku('kc-trt');
-    let kdv = parseFloat(document.getElementById('kc-kdv').value || 20);
-    let katsayi = parseFloat(document.getElementById('kc-katsayi').value || 3);
-    let otvOranZincir = parseFloat(document.getElementById('kc-otv-oran')?.value || 0) || 0;
+    let kdv = parseFloat($('kc-kdv').value || 20);
+    let katsayi = parseFloat($('kc-katsayi').value || 3);
+    let otvOranZincir = parseFloat($('kc-otv-oran')?.value || 0) || 0;
+    let gvOran = $('kc-gv-oran') ? window.kcSayiOku('kc-gv-oran') : 0;
+    let emyOran = $('kc-emy-oran') ? window.kcSayiOku('kc-emy-oran') : 0;
+    let trtAyri = ($('kc-trt-mod')?.value || 'dahil') === 'ayri';
 
-    // Resmi tahakkuk gibi her kalem kuruşa yuvarlanır
-    let krs = function(n){ return Math.round(n * 100) / 100; };
+    const r = window.kcRedreseHesapla({
+        eksikEur: eksik, kur: kur, gvOran: gvOran, emyOran: emyOran, otvOran: otvOranZincir,
+        trtOran: trt, trtAyri: trtAyri, kdvOran: kdv, katsayi: katsayi,
+        eski: {
+            gvm: eskiOku('kc-eski-gvm'), gv: eskiOku('kc-eski-gv'), emy: eskiOku('kc-eski-emy'),
+            otv: eskiOku('kc-eski-otv'), trt: eskiOku('kc-eski-trt'), kdv: eskiOku('kc-eski-kdv'),
+            kdvm: eskiOku('kc-mevcut-kdvm'), toplam: eskiOku('kc-mevcut-toplam-vergi')
+        }
+    });
+    window._kcSonHesap = r;
 
-    let adim1 = krs(eksik * kur);
-    document.getElementById('kc-adim1').innerText = window.kcFormat(adim1) + ' TL';
-    document.getElementById('kc-adim1-detay').innerText =
-        eksik.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' EUR x ' + kur.toFixed(4).replace('.', ',');
+    yaz('kc-adim1', f(r.cifFark) + ' TL');
+    yaz('kc-adim1-detay', eksik.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' EUR x ' + kur.toFixed(4).replace('.', ','));
 
-    let adim2 = krs(adim1 * (trt / 100));
-    document.getElementById('kc-adim2').innerText = window.kcFormat(adim2) + ' TL';
-    document.getElementById('kc-adim2-detay').innerText =
-        window.kcFormat(adim1) + ' TL x ' + (trt/100).toFixed(3);
-    document.getElementById('kc-trt-disp').innerText = '%' + String(trt).replace('.', ',');
+    goster('kc-gv-row', gvOran > 0);
+    yaz('kc-adim-gv', f(r.gvFark) + ' TL');
+    yaz('kc-adim-gv-detay', f(r.cifFark) + ' TL x %' + String(gvOran).replace('.', ','));
+    yaz('kc-gv-disp', '%' + String(gvOran).replace('.', ','));
+    goster('kc-emy-row', emyOran > 0);
+    yaz('kc-adim-emy', f(r.emyFark) + ' TL');
+    yaz('kc-adim-emy-detay', f(r.cifFark) + ' TL x %' + String(emyOran).replace('.', ','));
+    yaz('kc-emy-disp', '%' + String(emyOran).replace('.', ','));
 
-    // ÖTV matrahı = eksik TL + TRT (resmi kararla birebir)
-    let otvFark = krs((adim1 + adim2) * (otvOranZincir / 100));
-    let otvRow = document.getElementById('kc-otv-row');
-    if (otvRow) otvRow.style.display = otvOranZincir > 0 ? 'flex' : 'none';
-    {
-        let otvEl = document.getElementById('kc-adim-otv');
-        let otvDetEl = document.getElementById('kc-adim-otv-detay');
-        let otvDispEl = document.getElementById('kc-otv-disp');
-        if (otvEl) otvEl.innerText = window.kcFormat(otvFark) + ' TL';
-        if (otvDetEl) otvDetEl.innerText = window.kcFormat(adim1 + adim2) + ' TL x ' + (otvOranZincir/100).toFixed(2);
-        if (otvDispEl) otvDispEl.innerText = '%' + otvOranZincir;
-    }
+    yaz('kc-adim2', f(r.trtFark) + ' TL');
+    yaz('kc-adim2-detay', f(r.trtMatrahFark) + ' TL x ' + (trt/100).toFixed(3) + (gvOran > 0 || emyOran > 0 ? ' (① + GV + EMY)' : '') + (trtAyri ? ' · ek tahakkukta ayrı' : ' · KDV matrahına dahil'));
+    yaz('kc-trt-disp', '%' + String(trt).replace('.', ','));
 
-    let adim3 = adim1 + adim2 + otvFark;
-    document.getElementById('kc-adim3').innerText = window.kcFormat(adim3) + ' TL';
-    let adim3DetEl = document.getElementById('kc-adim3-detay');
-    if (adim3DetEl) adim3DetEl.innerText = otvOranZincir > 0 ? '① + ② + ③ ÖTV' : '① + ②';
+    goster('kc-otv-row', otvOranZincir > 0);
+    yaz('kc-adim-otv', f(r.otvFark) + ' TL');
+    yaz('kc-adim-otv-detay', f(r.otvMatrahFark) + ' TL x ' + (otvOranZincir/100).toFixed(2));
+    yaz('kc-otv-disp', '%' + otvOranZincir);
 
-    let adim4 = krs(adim3 * (kdv / 100));
-    document.getElementById('kc-adim4').innerText = window.kcFormat(adim4) + ' TL';
-    document.getElementById('kc-adim4-detay').innerText =
-        window.kcFormat(adim3) + ' TL x ' + (kdv/100).toFixed(2);
-    document.getElementById('kc-kdv-disp').innerText = '%' + kdv;
+    let kdvmParca = ['①'];
+    if (gvOran > 0) kdvmParca.push('GV');
+    if (emyOran > 0) kdvmParca.push('EMY');
+    if (otvOranZincir > 0) kdvmParca.push('③ ÖTV');
+    kdvmParca.push('② TRT');
+    yaz('kc-adim3', f(r.kdvMatrahFark) + ' TL');
+    yaz('kc-adim3-detay', kdvmParca.join(' + '));
 
-    // Ceza matrahı = eksik alınan vergiler (ÖTV farkı + KDV farkı; TRT cezaya girmez)
-    let cezaMatrah = adim4 + otvFark;
-    let adim5 = krs(cezaMatrah * katsayi);
-    document.getElementById('kc-adim5').innerText = window.kcFormat(adim5) + ' TL';
-    document.getElementById('kc-adim5-detay').innerText = otvOranZincir > 0
-        ? '(③ ÖTV + ⑤ KDV) = ' + window.kcFormat(cezaMatrah) + ' x ' + katsayi
-        : window.kcFormat(adim4) + ' x ' + katsayi;
-    document.getElementById('kc-katsayi-disp').innerText = katsayi + ' kat';
+    yaz('kc-adim4', f(r.kdvFark) + ' TL');
+    yaz('kc-adim4-detay', f(r.kdvMatrahFark) + ' TL x ' + (kdv/100).toFixed(2));
+    yaz('kc-kdv-disp', '%' + kdv);
 
-    let indirim = adim5 / 4;
-    document.getElementById('kc-adim6').innerText = '- ' + window.kcFormat(indirim) + ' TL';
-    document.getElementById('kc-adim6-detay').innerText = 
-        window.kcFormat(adim5) + ' TL / 4';
+    let ekParca = [];
+    if (r.gvFark) ekParca.push('GV ' + f(r.gvFark));
+    if (r.emyFark) ekParca.push('EMY ' + f(r.emyFark));
+    if (r.otvFark) ekParca.push('ÖTV ' + f(r.otvFark));
+    if (trtAyri && r.trtFark) ekParca.push('TRT ' + f(r.trtFark));
+    ekParca.push('KDV ' + f(r.kdvFark));
+    yaz('kc-adim-ek', f(r.ekTahakkuk) + ' TL');
+    yaz('kc-adim-ek-detay', ekParca.join(' + '));
 
-    document.getElementById('kc-toplam').innerText = window.kcFormat(adim5) + ' TL';
-    document.getElementById('kc-toplam-detay').innerText = katsayi + ' kat x ' + (otvOranZincir > 0 ? '(KDV + ÖTV)' : 'KDV');
+    let cezaKalem = [];
+    if (gvOran > 0) cezaKalem.push('GV');
+    if (emyOran > 0) cezaKalem.push('EMY');
+    if (otvOranZincir > 0) cezaKalem.push('ÖTV');
+    cezaKalem.push('KDV');
+    yaz('kc-adim5', f(r.ceza) + ' TL');
+    yaz('kc-adim5-detay', cezaKalem.length > 1
+        ? '(' + cezaKalem.join(' + ') + ') = ' + f(r.cezaMatrah) + ' x ' + katsayi
+        : f(r.kdvFark) + ' x ' + katsayi);
+    yaz('kc-katsayi-disp', katsayi + ' kat');
 
-    let erkenTutar = window._kcErken ? (adim5 - indirim) : adim5;
-    document.getElementById('kc-erken-tutar').innerText = window.kcFormat(erkenTutar) + ' TL';
-    document.getElementById('kc-tasarruf').innerText = 
-        window._kcErken ? (window.kcFormat(indirim) + ' TL tasarruf') : 'Indirim kapali';
+    yaz('kc-adim6', '- ' + f(r.indirim) + ' TL');
+    yaz('kc-adim6-detay', f(r.ceza) + ' TL / 4');
 
-    let dosya = document.getElementById('kc-dosya');
-    let dosyaHdr = document.getElementById('kc-dosya-no');
-    if (dosya && dosyaHdr) {
-        dosyaHdr.innerText = dosya.value || '4458/234-1b';
-    }
+    yaz('kc-toplam', f(r.ceza) + ' TL');
+    yaz('kc-toplam-detay', katsayi + ' kat x ' + (cezaKalem.length > 1 ? '(' + cezaKalem.join(' + ') + ')' : 'KDV'));
+    yaz('kc-ek-tahakkuk', f(r.ekTahakkuk) + ' TL');
+    yaz('kc-ek-tahakkuk-detay', ekParca.join(' + '));
 
-    // --- BEYANNAME KDV ETKİ HESABI ---
-    // Eksik beyan TL → Ek TRT + Ek ÖTV + Ek KDV → Yeni Toplam Vergi
+    let erkenTutar = window._kcErken ? r.erken : r.ceza;
+    yaz('kc-erken-tutar', f(erkenTutar) + ' TL');
+    yaz('kc-tasarruf', window._kcErken ? (f(r.indirim) + ' TL tasarruf') : 'Indirim kapali');
+
+    let dosya = $('kc-dosya');
+    let dosyaHdr = $('kc-dosya-no');
+    if (dosya && dosyaHdr) dosyaHdr.innerText = dosya.value || '4458/234-1b';
+
+    // --- BEYANNAME KDV ETKİ HESABI (yeni = eski + fark) ---
     let mevcutKdvm = window.kcSayiOku('kc-mevcut-kdvm');
     let mevcutToplamVergi = window.kcSayiOku('kc-mevcut-toplam-vergi');
-    let otvOran = otvOranZincir;
-    let eksikBeyanTL = adim1; // eksik × kur
+    let yeniKdvm = mevcutKdvm + r.kdvMatrahFark;
+    let yeniKdv = (r.eskiKdv || 0) + r.kdvFark;
+    let yeniToplamVergi = mevcutToplamVergi + r.ekTahakkuk;
 
-    let ekOtv = otvFark;
-    let ekTrt = adim2;
-    let ekKdvMatrah = eksikBeyanTL + ekTrt + ekOtv; // = adim3, ceza zinciriyle aynı matrah
-    let yeniKdvm = mevcutKdvm + ekKdvMatrah;
-    let yeniKdv = yeniKdvm * (kdv / 100);
-
-    let mevcutKdv = mevcutKdvm * (kdv / 100);
-    let ekKdv = yeniKdv - mevcutKdv;
-    let ekVergiToplam = ekOtv + ekKdv; // resmi fark tahakkuku ÖTV+KDV (TRT tahakkuka girmez)
-    let yeniToplamVergi = mevcutToplamVergi + ekVergiToplam;
-
-    let yKdvmEl = document.getElementById('kc-yeni-kdvm');
-    let yKdvmDetEl = document.getElementById('kc-yeni-kdvm-detay');
-    let yKdvEl = document.getElementById('kc-yeni-kdv');
-    let yKdvDetEl = document.getElementById('kc-yeni-kdv-detay');
-    let yTvEl = document.getElementById('kc-yeni-toplam-vergi');
-    let yTvDetEl = document.getElementById('kc-yeni-toplam-vergi-detay');
-
-    if (yKdvmEl) yKdvmEl.innerText = window.kcFormat(yeniKdvm) + ' TL';
-    if (yKdvmDetEl) {
-        let detay = window.kcFormat(mevcutKdvm) + ' + ' + window.kcFormat(eksikBeyanTL);
-        if (ekTrt > 0) detay += ' + TRT ' + window.kcFormat(ekTrt);
-        if (otvOran > 0) detay += ' + ÖTV ' + window.kcFormat(ekOtv) + ' (%' + otvOran + ')';
-        yKdvmDetEl.innerText = detay;
+    yaz('kc-yeni-kdvm', f(yeniKdvm) + ' TL');
+    {
+        let detay = f(mevcutKdvm) + ' + ' + f(r.cifFark);
+        if (r.gvFark > 0) detay += ' + GV ' + f(r.gvFark);
+        if (r.emyFark > 0) detay += ' + EMY ' + f(r.emyFark);
+        if (r.trtFark > 0) detay += ' + TRT ' + f(r.trtFark);
+        if (otvOranZincir > 0) detay += ' + ÖTV ' + f(r.otvFark) + ' (%' + otvOranZincir + ')';
+        yaz('kc-yeni-kdvm-detay', detay);
     }
-    if (yKdvEl) yKdvEl.innerText = window.kcFormat(yeniKdv) + ' TL';
-    if (yKdvDetEl) yKdvDetEl.innerText = window.kcFormat(yeniKdvm) + ' × %' + kdv;
+    yaz('kc-yeni-kdv', f(yeniKdv) + ' TL');
+    yaz('kc-yeni-kdv-detay', r.eskiKdv != null ? f(r.eskiKdv) + ' + ' + f(r.kdvFark) : '— + ' + f(r.kdvFark));
+    yaz('kc-yeni-toplam-vergi', f(yeniToplamVergi) + ' TL');
+    yaz('kc-yeni-toplam-vergi-detay', mevcutToplamVergi > 0
+        ? 'Mevcut ' + f(mevcutToplamVergi) + ' + Ek ' + f(r.ekTahakkuk)
+        : 'Mevcut Toplam Vergi alanını doldur');
 
-    if (yTvEl) yTvEl.innerText = window.kcFormat(yeniToplamVergi) + ' TL';
-    if (yTvDetEl) {
-        if (mevcutToplamVergi > 0) {
-            yTvDetEl.innerText = 'Mevcut ' + window.kcFormat(mevcutToplamVergi) + ' + Ek ' + window.kcFormat(ekVergiToplam);
-        } else {
-            yTvDetEl.innerText = 'Mevcut Toplam Vergi alanını doldur';
-        }
-    }
+    window.kcRedreseTabloCiz(r);
+};
+
+// Redrese Beyanname Özeti tablosu: Eski (düzenlenebilir) | Kıymet Farkı (+) | Yeni
+window.kcRedreseTabloCiz = function(r) {
+    const tb = document.getElementById('kc-redrese-tbody');
+    if (!tb || !r) return;
+    const f = window.kcFormat;
+    r.satirlar.forEach(function(s) {
+        let tr = tb.querySelector('tr[data-k="' + s.k + '"]');
+        if (!tr) return;
+        const gizle = (s.k === 'otv' && !(r.otvOran > 0) && !(s.eski > 0)) || (s.k === 'trt' && !(r.trtOran > 0) && !(s.eski > 0));
+        tr.style.display = gizle ? 'none' : '';
+        const farkTd = tr.querySelector('[data-c="fark"]'), yeniTd = tr.querySelector('[data-c="yeni"]'), eskiTd = tr.querySelector('[data-c="eski-ayna"]');
+        if (farkTd) farkTd.innerText = (s.fark > 0 ? '+ ' : '') + f(s.fark) + (s.k === 'trt' && !r.trtAyri ? ' *' : '');
+        if (yeniTd) yeniTd.innerText = s.yeni != null ? f(s.yeni) : '—';
+        if (eskiTd) eskiTd.innerText = s.eski != null ? f(s.eski) : '— (yukarıdan girin)';
+    });
+    const not = document.getElementById('kc-redrese-not');
+    if (not) not.innerText = r.trtAyri
+        ? 'TRT bandrol farkı ek tahakkukta ayrı satır olarak toplama dahildir.'
+        : '* TRT bandrol farkı yalnızca KDV matrahına girer; ek tahakkuk ve toplam vergi farkına eklenmez.';
 };
 
 window.kcTemizle = function() {
@@ -28807,14 +28973,37 @@ window.kcTemizle = function() {
     document.getElementById('kc-kdv').value = '20';
     document.getElementById('kc-katsayi').value = '3';
     if(document.getElementById('kc-otv-oran')) document.getElementById('kc-otv-oran').value = '0';
+    ['kc-gv-oran','kc-emy-oran'].forEach(function(id){ const el=document.getElementById(id); if(el) el.value='0'; });
+    if(document.getElementById('kc-trt-mod')) document.getElementById('kc-trt-mod').value = 'dahil';
+    ['kc-eski-gvm','kc-eski-gv','kc-eski-emy','kc-eski-otv','kc-eski-trt','kc-eski-kdv','kc-mevcut-kdvm','kc-mevcut-toplam-vergi'].forEach(function(id){ const el=document.getElementById(id); if(el){ el.value=''; el.title=''; el.style.borderColor=''; } });
     window.kcHesapla();
 };
 
 window.kcKopyala = function(tip) {
-    let el = tip === 'erken' ? 
-        document.getElementById('kc-erken-tutar') : 
-        document.getElementById('kc-toplam');
-    let metin = el.innerText;
+    let metin;
+    if (tip === 'ozet') {
+        window.kcHesapla();
+        const r = window._kcSonHesap; if (!r) return;
+        const f = (n) => window.kcFormat(Number(n) || 0) + ' TL';
+        let s = ['Kıymet farkı (CIF): ' + f(r.cifFark)];
+        if (r.gvOran > 0) s.push('GV farkı (%' + r.gvOran + '): ' + f(r.gvFark));
+        if (r.emyOran > 0) s.push('EMY farkı (%' + r.emyOran + '): ' + f(r.emyFark));
+        if (r.otvOran > 0) s.push('ÖTV farkı (%' + r.otvOran + '): ' + f(r.otvFark));
+        if (r.trtOran > 0) s.push('TRT bandrol (%' + String(r.trtOran).replace('.', ',') + '): ' + f(r.trtFark) + (r.trtAyri ? '' : ' (KDV matrahına dahil)'));
+        s.push('KDV matrahı farkı: ' + f(r.kdvMatrahFark));
+        s.push('KDV farkı (%' + r.kdvOran + '): ' + f(r.kdvFark));
+        s.push('Ek tahakkuk toplamı: ' + f(r.ekTahakkuk));
+        s.push('Ceza (' + r.katsayi + ' kat): ' + f(r.ceza));
+        if (window._kcErken) s.push('Erken ödeme (1/4 indirimli): ' + f(r.erken));
+        const yeniler = r.satirlar.filter(x => x.yeni != null && (x.k !== 'otv' || r.otvOran > 0) && (x.k !== 'trt' || r.trtOran > 0));
+        if (yeniler.length) { s.push('— Redrese beyanname —'); yeniler.forEach(x => s.push('Yeni ' + x.ad + ': ' + f(x.yeni))); }
+        metin = s.join('\n');
+    } else {
+        let el = tip === 'erken' ?
+            document.getElementById('kc-erken-tutar') :
+            document.getElementById('kc-toplam');
+        metin = el.innerText;
+    }
     
     if (navigator.clipboard) {
         navigator.clipboard.writeText(metin).then(function() {
@@ -28859,6 +29048,23 @@ window.kcExportPDF = async function() {
     let showIndirim = !!window._kcErken;
     let otvOranPdf = parseFloat(document.getElementById('kc-otv-oran')?.value || 0) || 0;
     let adimOtv = t('kc-adim-otv');
+    window.kcHesapla();
+    const R = window._kcSonHesap || window.kcRedreseHesapla({});
+    const fP = (n) => window.kcFormat(Number(n) || 0) + ' TL';
+    const gvOranPdf = R.gvOran || 0, emyOranPdf = R.emyOran || 0;
+    let adimGv = fP(R.gvFark), adimEmy = fP(R.emyFark), ekTahakkukPdf = fP(R.ekTahakkuk);
+    let cezaKalemPdf = [gvOranPdf > 0 ? 'GV' : '', emyOranPdf > 0 ? 'EMY' : '', otvOranPdf > 0 ? 'ÖTV' : '', 'KDV'].filter(Boolean);
+    let ekKalemPdf = cezaKalemPdf.concat(R.trtAyri && R.trtFark ? ['TRT'] : []);
+    let redreseSatirPdf = (R.satirlar || []).filter(s => !((s.k === 'otv' && !(R.otvOran > 0) && !(s.eski > 0)) || (s.k === 'trt' && !(R.trtOran > 0) && !(s.eski > 0))));
+    let redreseHtml = redreseSatirPdf.map(s => {
+        const kalin = s.k === 'toplam' || s.k === 'kdv' || s.k === 'kdvm' || s.k === 'gvm';
+        const bg = s.k === 'toplam' ? 'background:#dcfce7;' : (kalin ? 'background:#eef2ff;' : '');
+        const yildiz = s.k === 'trt' && !R.trtAyri ? ' *' : '';
+        return `<tr style="${bg}"><td style="padding:3px 8px;${kalin ? 'font-weight:700;' : ''}">${escapeHtml(s.ad)}</td>`
+            + `<td style="padding:3px 8px;text-align:right;">${s.eski != null ? escapeHtml(window.kcFormat(s.eski)) : '—'}</td>`
+            + `<td style="padding:3px 8px;text-align:right;">${s.fark > 0 ? '+ ' : ''}${escapeHtml(window.kcFormat(s.fark))}${yildiz}</td>`
+            + `<td style="padding:3px 8px;text-align:right;font-weight:800;color:#3730a3;">${s.yeni != null ? escapeHtml(window.kcFormat(s.yeni)) : '—'}</td></tr>`;
+    }).join('');
 
     // Beyanname KDV Etki Hesabı verileri
     let mevcutKdvm = v('kc-mevcut-kdvm') || '-';
@@ -28909,8 +29115,10 @@ window.kcExportPDF = async function() {
     <tr><th colspan="2" style="font-weight:700;font-size:9px;text-transform:uppercase;padding:5px 10px;text-align:left;">Girdi Değerleri</th></tr>
     <tr><td style="padding:4px 10px;">Eksik Beyan (EUR)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(eksik)} EUR</td></tr>
     <tr><td style="padding:4px 10px;">Döviz Kuru (TL/EUR)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(kur)}</td></tr>
-    <tr><td style="padding:4px 10px;">TRT Bandrolü</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(trt)}</td></tr>
-    ${otvOranPdf > 0 ? `<tr><td style="padding:4px 10px;">ÖTV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${otvOranPdf}</td></tr>` : ''}
+    <tr><td style="padding:4px 10px;">GV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(String(gvOranPdf).replace('.', ','))}</td></tr>
+    <tr><td style="padding:4px 10px;">EMY Oranı (Ek Mali Yükümlülük)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(String(emyOranPdf).replace('.', ','))}</td></tr>
+    <tr><td style="padding:4px 10px;">TRT Bandrolü</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(trt)} ${R.trtAyri ? '(ek tahakkukta ayrı)' : '(KDV matrahına dahil)'}</td></tr>
+    <tr><td style="padding:4px 10px;">ÖTV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${otvOranPdf > 0 ? '% ' + otvOranPdf : 'Yok / Muaf'}</td></tr>
     <tr><td style="padding:4px 10px;">KDV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(kdv)}</td></tr>
     <tr><td style="padding:4px 10px;">Ceza Katsayısı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(katsayi)} kat</td></tr>
   </table>
@@ -28918,12 +29126,15 @@ window.kcExportPDF = async function() {
   <table style="width:100%;border-collapse:collapse;margin-bottom:8px;table-layout:fixed;">
     <colgroup><col style="width:65%"><col style="width:35%"></colgroup>
     <tr><th colspan="2" style="font-weight:700;font-size:9px;text-transform:uppercase;padding:5px 10px;text-align:left;">Hesaplama Adımları</th></tr>
-    <tr><td style="padding:4px 10px;">1. Eksik beyan TL karşılığı (EUR × Kur)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
-    <tr><td style="padding:4px 10px;">2. TRT bandrolü (1 × %${escapeHtml(trt)})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim2)}</td></tr>
-    ${otvOranPdf > 0 ? `<tr><td style="padding:4px 10px;">3. ÖTV farkı ((1 + 2) × %${otvOranPdf})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adimOtv)}</td></tr>` : ''}
-    <tr><td style="padding:4px 10px;">4. KDV matrahı (${otvOranPdf > 0 ? '1 + 2 + 3' : '1 + 2'})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim3)}</td></tr>
+    <tr><td style="padding:4px 10px;">1. Eksik beyan TL karşılığı / CIF farkı (EUR × Kur)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
+    ${gvOranPdf > 0 ? `<tr><td style="padding:4px 10px;">GV farkı (1 × %${escapeHtml(String(gvOranPdf).replace('.', ','))})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adimGv)}</td></tr>` : ''}
+    ${emyOranPdf > 0 ? `<tr><td style="padding:4px 10px;">EMY farkı (1 × %${escapeHtml(String(emyOranPdf).replace('.', ','))})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adimEmy)}</td></tr>` : ''}
+    <tr><td style="padding:4px 10px;">2. TRT bandrolü (${gvOranPdf > 0 || emyOranPdf > 0 ? '(1 + GV + EMY)' : '1'} × %${escapeHtml(trt)})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim2)}</td></tr>
+    ${otvOranPdf > 0 ? `<tr><td style="padding:4px 10px;">3. ÖTV farkı ((1${gvOranPdf > 0 || emyOranPdf > 0 ? ' + GV + EMY' : ''} + 2) × %${otvOranPdf})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adimOtv)}</td></tr>` : ''}
+    <tr><td style="padding:4px 10px;">4. KDV matrahı (1${gvOranPdf > 0 ? ' + GV' : ''}${emyOranPdf > 0 ? ' + EMY' : ''} + 2${otvOranPdf > 0 ? ' + 3' : ''})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim3)}</td></tr>
     <tr><td style="padding:4px 10px;">5. KDV farkı (4 × %${escapeHtml(kdv)})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim4)}</td></tr>
-    <tr style="background:#ffe5e5;"><td style="padding:4px 10px;color:#991b1b;font-weight:700;">6. Ceza (${otvOranPdf > 0 ? '(3 + 5)' : '5'} × ${escapeHtml(katsayi)} kat)</td><td style="padding:4px 10px;text-align:left;color:#991b1b;font-weight:700;">${escapeHtml(adim5)}</td></tr>
+    <tr style="background:#fff1e6;"><td style="padding:4px 10px;color:#9a3412;font-weight:700;">Ek tahakkuk toplamı (${ekKalemPdf.join(' + ')})</td><td style="padding:4px 10px;text-align:left;color:#9a3412;font-weight:700;">${escapeHtml(ekTahakkukPdf)}</td></tr>
+    <tr style="background:#ffe5e5;"><td style="padding:4px 10px;color:#991b1b;font-weight:700;">6. Ceza ((${cezaKalemPdf.join(' + ')}) × ${escapeHtml(katsayi)} kat)</td><td style="padding:4px 10px;text-align:left;color:#991b1b;font-weight:700;">${escapeHtml(adim5)}</td></tr>
     ${showIndirim ? `<tr style="background:#e6f4ea;"><td style="padding:4px 10px;color:#166534;font-weight:700;">7. Erken ödeme indirimi (6 ÷ 4)</td><td style="padding:4px 10px;text-align:left;color:#166534;font-weight:700;">${escapeHtml(adim6)}</td></tr>` : ''}
   </table>
 
@@ -28932,7 +29143,7 @@ window.kcExportPDF = async function() {
       <td style="width:50%;padding:8px;vertical-align:top;">
         <div style="font-size:8px;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;margin-bottom:3px;color:#dc2626;">Toplam Ceza</div>
         <div style="font-size:12px;font-weight:800;color:#991b1b;word-break:break-word;line-height:1.2;">${escapeHtml(toplam)}</div>
-        <div style="font-size:8px;color:#666;margin-top:2px;">${escapeHtml(katsayi)} kat × ${otvOranPdf > 0 ? '(KDV + ÖTV)' : 'KDV'}</div>
+        <div style="font-size:8px;color:#666;margin-top:2px;">${escapeHtml(katsayi)} kat × ${cezaKalemPdf.length > 1 ? '(' + cezaKalemPdf.join(' + ') + ')' : 'KDV'}</div>
       </td>
       <td style="width:50%;padding:8px;vertical-align:top;">
         <div style="font-size:8px;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;margin-bottom:3px;color:#16a34a;">Erken Ödeme Tutarı</div>
@@ -28946,13 +29157,23 @@ window.kcExportPDF = async function() {
     <strong>Yasal Dayanak:</strong> Kabahatler Kanunu Madde 17/6 — İdari para cezası, tebliğden itibaren 15 gün içinde ödenirse %25 indirim uygulanır (1/4 indirim).
   </div>
 
+  <div style="margin-top:8px;padding:8px;background:#f5f7ff;">
+    <div style="font-size:9px;font-weight:700;color:#3730a3;text-transform:uppercase;margin-bottom:6px;">Redrese Beyanname Özeti (Kıymet Farkı Sonrası)</div>
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+      <colgroup><col style="width:34%"><col style="width:22%"><col style="width:22%"><col style="width:22%"></colgroup>
+      <tr style="color:#555;"><th style="padding:3px 8px;text-align:left;font-weight:700;">Kalem (TL)</th><th style="padding:3px 8px;text-align:right;font-weight:700;">Eski Beyanname</th><th style="padding:3px 8px;text-align:right;font-weight:700;">Kıymet Farkı (+)</th><th style="padding:3px 8px;text-align:right;font-weight:700;">Yeni Redrese Beyanname</th></tr>
+      ${redreseHtml}
+    </table>
+    ${R.trtAyri ? '' : `<div style="font-size:7.5px;color:#555;margin-top:4px;">* TRT bandrol farkı yalnızca KDV matrahına girer; ek tahakkuk ve toplam vergi farkına eklenmez.</div>`}
+  </div>
+
   ${showKdvEtki ? `
   <div style="margin-top:8px;padding:8px;background:#eff6ff;">
     <div style="font-size:9px;font-weight:700;color:#1e40af;text-transform:uppercase;margin-bottom:6px;">Beyanname KDV Etki Hesabı</div>
     <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
       <colgroup><col style="width:55%"><col style="width:45%"></colgroup>
       <tr><td style="padding:3px 8px;color:#555;">Mevcut KDV Matrahı</td><td style="padding:3px 8px;text-align:left;font-weight:600;">${escapeHtml(mevcutKdvm)} TL</td></tr>
-      <tr><td style="padding:3px 8px;color:#555;">+ Eksik Beyan TL Karşılığı</td><td style="padding:3px 8px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
+      <tr><td style="padding:3px 8px;color:#555;">+ KDV Matrahı Farkı</td><td style="padding:3px 8px;text-align:left;font-weight:600;">${escapeHtml(adim3)}</td></tr>
       <tr style="background:#dbeafe;"><td style="padding:4px 8px;color:#1e40af;font-weight:700;">YENİ KDV MATRAHI</td><td style="padding:4px 8px;text-align:left;font-weight:800;color:#1e40af;">${escapeHtml(yeniKdvm)}</td></tr>
       <tr style="background:#dbeafe;"><td style="padding:4px 8px;color:#1e40af;font-weight:700;">YENİ KDV TUTARI (%${escapeHtml(kdv)})</td><td style="padding:4px 8px;text-align:left;font-weight:800;color:#1e40af;">${escapeHtml(yeniKdv)}</td></tr>
       ${showToplamV ? `
@@ -29041,6 +29262,31 @@ window.kcExportPDF = async function() {
     function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+};
+
+// Beyanname okuyucusunun 47. kutu sonuçlarını (GVM/GV/EMY/TRT/KDV + 39/60 oranları) forma yazar.
+// Kullanıcının elle girdiği değerin üzerine yazmaz.
+window.kcBeyannameVergileriniDoldur = function(res){
+    if(!res) return 0;
+    const fmt=function(n){return Number(n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});};
+    const kaynak='Beyannameden otomatik'+(res.dosyaAdi ? ' ('+res.dosyaAdi+')' : '');
+    let dolan=0;
+    const yaz=function(id,deger,oranMi){
+        const el=document.getElementById(id);
+        if(!el || deger == null || deger === '' || !Number.isFinite(Number(deger))) return;
+        if(oranMi){ if(String(el.value||'').trim() !== '' && String(el.value).trim() !== '0') return; el.value=String(deger).replace('.',','); }
+        else { if(String(el.value||'').trim() !== '') return; el.value=fmt(deger); }
+        el.title=kaynak; el.style.borderColor='var(--success)'; dolan++;
+    };
+    yaz('kc-eski-gvm',res.gvm); yaz('kc-eski-gv',res.gv); yaz('kc-eski-emy',res.emy);
+    yaz('kc-eski-trt',res.trt); yaz('kc-eski-kdv',res.kdvTutari);
+    yaz('kc-gv-oran',res.gvOran,true); yaz('kc-emy-oran',res.emyOran,true);
+    const trtEl=document.getElementById('kc-trt');
+    if(trtEl && res.trtOran != null && Number.isFinite(Number(res.trtOran))){ trtEl.value=String(res.trtOran).replace('.',','); trtEl.title=kaynak; dolan++; }
+    const kdvSel=document.getElementById('kc-kdv');
+    if(kdvSel && res.kdvOran != null && Array.from(kdvSel.options).some(function(o){return o.value === String(res.kdvOran);})) kdvSel.value=String(res.kdvOran);
+    if(typeof window.kcHesapla === 'function') window.kcHesapla();
+    return dolan;
 };
 
 window.kcEksikDegisti = function(){
@@ -29133,6 +29379,8 @@ window.kcAracSecildi = async function(idx){
     const kdvmEl=document.getElementById('kc-mevcut-kdvm'), tvEl=document.getElementById('kc-mevcut-toplam-vergi');
     if(kdvmEl){kdvmEl.value=''; kdvmEl.title='';}
     if(tvEl){tvEl.value=''; tvEl.title='';}
+    ['kc-eski-gvm','kc-eski-gv','kc-eski-emy','kc-eski-otv','kc-eski-trt','kc-eski-kdv'].forEach(function(id){const el=document.getElementById(id); if(el){el.value=''; el.title=''; el.style.borderColor='';}});
+    ['kc-gv-oran','kc-emy-oran'].forEach(function(id){const el=document.getElementById(id); if(el){el.value='0'; el.title=''; el.style.borderColor='';}});
     window.kcYdisiDusumHesapla();
     // Vergi sorgusu kur sorgusunu beklemeden çalışır; eski aracın sonucu uygulanmaz.
     if(kdvmEl && d.firma && d.marka && d.sasi && typeof window.fetchBeyannameKDVM === 'function'){
@@ -29155,6 +29403,7 @@ window.kcAracSecildi = async function(idx){
             if(!res){window.kcYdisiDusumHesapla(); return;}
             if(res.kdvm != null && !kdvmEl.value) kdvmEl.value=format(window.parseParaTR(res.kdvm));
             if(tvEl && res.toplamVergi != null && !tvEl.value) tvEl.value=format(window.parseParaTR(res.toplamVergi));
+            window.kcBeyannameVergileriniDoldur(res);
             window.kcYdisiDusumHesapla();
         }).catch(function(err){if(current()){if(ydisiEl){ydisiEl.dataset.ocrState='missing'; ydisiEl.placeholder='Beyanname verisi alınamadı';} window.kcYdisiDusumHesapla(); console.warn('[KC] Beyanname verisi alınamadı:',err);}});
     }
@@ -29260,7 +29509,7 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
         try { localStorage.setItem('gumruk_beyanname_kdvm_cache',JSON.stringify(cache)); } catch(e) {}
     }
     // Cache geçerli mi? hem kdvm hem toplamVergi varsa cache'den ver, yoksa yeniden çek
-    if (cache[key] && cache[key].kdvm && cache[key].toplamVergi != null && cache[key].ydisi != null && cache[key].ydisiSurum >= 2) {
+    if (cache[key] && cache[key].kdvm && cache[key].toplamVergi != null && cache[key].ydisi != null && cache[key].ydisiSurum >= 2 && cache[key].vergiSurum >= 3) {
         console.log(`[KC] Beyanname KDVM cache: ${cache[key].kdvm} + Toplam ${cache[key].toplamVergi} (${cache[key].dosyaAdi})`);
         // Eski cache kayıtlarını araç kaydına taşı (bir kez; sonra sessiz kalır)
         window._kdvAracKaydinaYaz(sasi, cache[key]);
@@ -29291,7 +29540,13 @@ window.fetchBeyannameKDVM = async function(firma, marka, sasi) {
         const ydisiKaynak=String(data.ydisiKaynak || '');
         const ydisiGuvenli=ydisiSurum >= 2 && !/NAVLUN|SIGORTA|SİGORTA|CIF/i.test(ydisiKaynak);
         const ydisi=ydisiGuvenli && ydisiRaw != null && String(ydisiRaw).trim() !== "" && /[0-9]/.test(String(ydisiRaw)) ? window.kcYdisiSayiOku(ydisiRaw) : null;
-        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, ydisi: ydisi, ydisiKaynak: ydisiKaynak || null, ydisiSurum: ydisiSurum, dosyaAdi: data.dosyaAdi };
+        // 47. kutu (vergiSurum 3): GVM, GV, EMY (39), TRT (60), KDV oranları — GAS aritmetik doğrulamasıyla
+        const sayiVeyaNull=function(x){ const n=Number(x); return x != null && x !== '' && Number.isFinite(n) ? n : null; };
+        cache[key] = { kdvm: data.kdvm, kdvTutari: data.kdvTutari, toplamVergi: data.toplamVergi, ydisi: ydisi, ydisiKaynak: ydisiKaynak || null, ydisiSurum: ydisiSurum, dosyaAdi: data.dosyaAdi,
+            vergiSurum: Number(data.vergiSurum) || 0,
+            gvm: sayiVeyaNull(data.gvm), gv: sayiVeyaNull(data.gv), gvOran: sayiVeyaNull(data.gvOran),
+            emy: sayiVeyaNull(data.emy), emyOran: sayiVeyaNull(data.emyOran),
+            trt: sayiVeyaNull(data.trt), trtOran: sayiVeyaNull(data.trtOran), kdvOran: sayiVeyaNull(data.kdvOran) };
         try { localStorage.setItem('gumruk_beyanname_kdvm_cache', JSON.stringify(cache)); } catch(e){}
         window._kdvAracKaydinaYaz(sasi, cache[key]); // kalıcı + senkron
         return { ...cache[key], fromCache: false };
@@ -29560,6 +29815,7 @@ window.openKiymetCezaFor = async function(idx) {
                         tvEl.style.borderColor = 'var(--success)';
                         tvEl.title = `Beyannameden otomatik (${res.dosyaAdi})`;
                     }
+                    window.kcBeyannameVergileriniDoldur(res);
 
                     if (typeof window.showToast === 'function') {
                         let kaynak = res.fromCache ? ' [cache]' : '';
