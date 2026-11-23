@@ -5523,7 +5523,7 @@ div[style*="position: relative"] > input {
 
 <template id="tpl-kiymetCeza">
     <div class="page-hdr fade-in">
-        <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title">Kıymet Ceza Hesaplama</h1><p class="page-sub" id="kc-sayfa-alt">4458 Sayılı Gümrük Kanunu · 234/1-b · Eksik beyan ceza hesabı</p></div>
+        <div><div class="page-eyebrow">Finans & Gümrük</div><h1 class="page-title" id="kc-sayfa-baslik">Kıymet Ceza Hesaplama</h1><p class="page-sub" id="kc-sayfa-alt">4458 Sayılı Gümrük Kanunu · 234/1-b · Eksik beyan ceza hesabı</p></div>
         <div class="page-actions" style="display:flex;gap:10px;">
             <button class="btn-sm" style="border-color:var(--danger);color:var(--text-primary);display:flex;align-items:center;gap:8px;white-space:nowrap;" onclick="window.kcExportPDF()">
                 <i data-lucide="file-text" style="width:16px;height:16px;"></i> PDF Çıktısı
@@ -5539,7 +5539,7 @@ div[style*="position: relative"] > input {
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">
                 <i data-lucide="alert-triangle" style="width:22px;height:22px;color:var(--danger);"></i>
                 <div>
-                    <h3 style="font-size:18px;font-weight:700;color:var(--text-primary);margin:0;">Kıymet ceza hesaplama</h3>
+                    <h3 id="kc-kart-baslik" style="font-size:18px;font-weight:700;color:var(--text-primary);margin:0;">Kıymet ceza hesaplama</h3>
                     <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="kc-dosya-no">4458/234-1b</div>
                 </div>
             </div>
@@ -5555,7 +5555,7 @@ div[style*="position: relative"] > input {
                 <label for="kc-karar" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:flex;align-items:center;gap:6px;margin-bottom:6px;"><i data-lucide="scale" style="width:14px;height:14px;color:var(--primary);"></i>Karar / Yasal Dayanak</label>
                 <select id="kc-karar" onchange="window.kcKararDegisti()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-weight:600;">
                     <option value="gk234" selected>4458 GK Madde 234/1-b (3 Kat Ceza)</option>
-                    <option value="kdv3065">3065 KDV Kanunu 48 &amp; 51. Md. (Yalnızca Ek Tahakkuk — Ceza Yok)</option>
+                    <option value="kdv3065">3065 KDV Kanunu 48 &amp; 51. Md. (Ek Tahakkuk)</option>
                 </select>
             </div>
 
@@ -5623,7 +5623,7 @@ div[style*="position: relative"] > input {
                         <option value="1">%1</option>
                     </select>
                 </div>
-                <div>
+                <div id="kc-katsayi-kutu">
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">CEZA KATSAYISI</label>
                     <select id="kc-katsayi" onchange="window.kcHesapla()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                         <option value="3" selected>3 kat</option>
@@ -28954,9 +28954,9 @@ window.kcHesapla = function() {
 // Karar / Yasal Dayanak: 'gk234' (4458 GK 234/1-b, 3 kat ceza) | 'kdv3065' (3065 KDV 48 & 51 — yalnız ek tahakkuk)
 window.KC_KARARLAR = {
     gk234: { kisa: '4458/234-1b', alt: '4458 Sayılı Gümrük Kanunu · 234/1-b · Eksik beyan ceza hesabı',
-             pdfAlt: '4458 Sayılı Gümrük Kanunu — Madde 234/1-b — Eksik beyan ceza hesabı', baslik: 'Kıymet Ceza Hesaplama', cezali: true },
+             pdfAlt: '4458 Sayılı Gümrük Kanunu — Madde 234/1-b — Eksik beyan ceza hesabı', baslik: 'Kıymet Ceza Hesaplama', kartBaslik: 'Kıymet ceza hesaplama', cezali: true },
     kdv3065: { kisa: '3065 KDV 48 & 51', alt: '3065 Sayılı KDV Kanunu 48 ve 51. Maddeleri — Ek Tahakkuk Hesabı',
-             pdfAlt: '3065 Sayılı KDV Kanunu 48 ve 51. Maddeleri — Ek Tahakkuk Hesabı', baslik: 'Kıymet Farkı Ek Tahakkuk Hesabı', cezali: false }
+             pdfAlt: '3065 Sayılı KDV Kanunu 48 ve 51. Maddeleri — Ek Tahakkuk Hesabı', baslik: 'Kıymet Farkı Ek Tahakkuk Hesabı', kartBaslik: 'Kıymet farkı ek tahakkuk hesabı', cezali: false }
 };
 window.kcKararModu = function() {
     const v = document.getElementById('kc-karar')?.value;
@@ -28973,6 +28973,9 @@ window.kcKararUygula = function() {
     const b = window.kcKararBilgi(), cezali = b.cezali;
     const goster = function(id, disp){ const el = document.getElementById(id); if (el) el.style.display = disp; };
     const alt = document.getElementById('kc-sayfa-alt'); if (alt) alt.innerText = b.alt;
+    const sb = document.getElementById('kc-sayfa-baslik'); if (sb) sb.innerText = b.baslik;
+    const kb = document.getElementById('kc-kart-baslik'); if (kb) kb.innerText = b.kartBaslik;
+    goster('kc-katsayi-kutu', cezali ? 'block' : 'none');
     goster('kc-ceza-row', cezali ? 'flex' : 'none');
     goster('kc-indirim-row', cezali && window._kcErken ? 'flex' : 'none');
     goster('kc-erken-row', cezali ? 'flex' : 'none');
@@ -29177,7 +29180,7 @@ window.kcExportPDF = async function() {
     <tr><td style="padding:4px 10px;">TRT Bandrolü</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(trt)} ${R.trtAyri ? '(ek tahakkukta ayrı)' : '(KDV matrahına dahil)'}</td></tr>
     <tr><td style="padding:4px 10px;">ÖTV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${otvOranPdf > 0 ? '% ' + otvOranPdf : 'Yok / Muaf'}</td></tr>
     <tr><td style="padding:4px 10px;">KDV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(kdv)}</td></tr>
-    ${cezali ? `<tr><td style="padding:4px 10px;">Ceza Katsayısı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(katsayi)} kat</td></tr>` : `<tr><td style="padding:4px 10px;">Yasal Dayanak</td><td style="padding:4px 10px;text-align:left;font-weight:600;">3065 KDV K. 48 ve 51. Md. — ceza yok</td></tr>`}
+    ${cezali ? `<tr><td style="padding:4px 10px;">Ceza Katsayısı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(katsayi)} kat</td></tr>` : `<tr><td style="padding:4px 10px;">Yasal Dayanak</td><td style="padding:4px 10px;text-align:left;font-weight:600;">3065 Sayılı KDV Kanunu 48 ve 51. Md.</td></tr>`}
   </table>
 
   <table style="width:100%;border-collapse:collapse;margin-bottom:8px;table-layout:fixed;">
@@ -29215,7 +29218,10 @@ window.kcExportPDF = async function() {
   </div>` : `<div style="margin-top:8px;padding:10px 12px;background:#fff1e6;border:1px solid #fdba74;">
     <div style="font-size:9px;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;color:#9a3412;">Ek Tahakkuk Toplamı (Ödenecek Tutar)</div>
     <div style="font-size:16px;font-weight:800;color:#9a3412;margin-top:3px;">${escapeHtml(ekTahakkukPdf)}</div>
-    <div style="font-size:8px;color:#666;margin-top:2px;">${ekKalemPdf.join(' + ')} farkı — 3065 Sayılı KDV Kanunu 48 ve 51. Maddeleri uyarınca; ceza uygulanmaz.</div>
+    <div style="font-size:8px;color:#666;margin-top:2px;">${ekKalemPdf.join(' + ')} farkı</div>
+  </div>
+  <div style="margin-top:8px;padding:5px 0;font-size:7.5px;color:#92400e;line-height:1.3;">
+    <strong>Yasal Dayanak:</strong> 3065 Sayılı KDV Kanunu 48 ve 51. Maddeleri kapsamında düzenlenen ek tahakkuk hesabıdır. Ek tahakkuk tutarı tebliğden itibaren 15 gün içinde ödenir; aynı süre içinde itiraz veya uzlaşma talep edilebilir.
   </div>`}
 
   <div style="margin-top:8px;padding:8px;background:#f5f7ff;">
