@@ -5559,8 +5559,8 @@ div[style*="position: relative"] > input {
             <!-- GİRİŞ ALANI -->
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:18px;">
                 <div>
-                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">EKSİK BEYAN (EUR)</label>
-                    <input type="text" inputmode="decimal" id="kc-eksik" placeholder="12.686" oninput="window.kcEksikDegisti()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">EKSİK BEYAN (EUR) <span id="kc-eksik-elle-not" style="font-size:10px;color:var(--warning);text-transform:none;"></span></label>
+                    <input type="text" inputmode="decimal" id="kc-eksik" placeholder="12.686" oninput="window.kcEksikDegisti()" onblur="window.kcEksikBlur()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
                 </div>
                 <div>
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">DÖVİZ KURU (TL/EUR)</label>
@@ -28962,6 +28962,7 @@ window.kcRedreseTabloCiz = function(r) {
 
 window.kcTemizle = function() {
     window._kcAracRequest=(window._kcAracRequest || 0)+1; window._kcBrutFarkEuro=null;
+    window.kcEksikElleIsaretle(false);
     const sel=document.getElementById('kc-arac-sec'); if(sel) sel.value='';
     const yd=document.getElementById('kc-ydisi-tl'); if(yd){yd.value=''; delete yd.dataset.ocrState; yd.placeholder='Beyannameden otomatik okunur'; yd.title='';}
     const hint=document.getElementById('kc-ydisi-eur-hint'); if(hint) hint.textContent='';
@@ -29289,10 +29290,37 @@ window.kcBeyannameVergileriniDoldur = function(res){
     return dolan;
 };
 
+// EKSİK BEYAN (EUR) elle girilirse esas alınır: kutuya geri yazılmaz, YDIŞI düşülmez,
+// kur / beyanname okuması değeri ezmez. Kutu boşaltılırsa otomatik hesaba (Kıymet − Fatura − YDIŞI) dönülür.
+window._kcEksikElle = false;
+window.kcEksikElleIsaretle = function(acik){
+    window._kcEksikElle = !!acik;
+    const el=document.getElementById('kc-eksik');
+    if(el){
+        el.style.borderColor = acik ? 'var(--warning)' : '';
+        el.title = acik ? 'Elle girildi — bu değer esas alınır (YDIŞI düşümü uygulanmaz). Otomatik hesaba dönmek için kutuyu boşaltın.' : '';
+    }
+    const not=document.getElementById('kc-eksik-elle-not');
+    if(not) not.textContent = acik ? '✎ elle' : '';
+};
 window.kcEksikDegisti = function(){
     const el=document.getElementById('kc-eksik');
-    window._kcBrutFarkEuro=window.parseParaTR(el ? el.value : '');
-    window.kcYdisiDusumHesapla();
+    const deger=String(el ? el.value : '').trim();
+    if(!deger){
+        // Boşaltıldı → otomatik hesaba dön
+        window.kcEksikElleIsaretle(false);
+        window._kcBrutFarkEuro=null;
+        window.kcYdisiDusumHesapla();
+        return;
+    }
+    window.kcEksikElleIsaretle(true);
+    window.kcHesapla(); // yazılan metne dokunma (imleç zıplamasın)
+};
+window.kcEksikBlur = function(){
+    const el=document.getElementById('kc-eksik');
+    if(!el || !window._kcEksikElle || !String(el.value).trim()) return;
+    el.value=window.kcSayiOku('kc-eksik').toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    window.kcHesapla();
 };
 // YDIŞI OCR tutarı: Türkçe ve İngilizce binlik/ondalık ayracı.
 window.kcYdisiSayiOku = function(value){
@@ -29309,6 +29337,13 @@ window.kcYdisiSayiOku = function(value){
 
 window.kcYdisiDusumHesapla = function(){
     const eksikEl=document.getElementById('kc-eksik'); if(!eksikEl) return;
+    if(window._kcEksikElle){
+        // Elle girilen değer esas: yalnızca yeniden hesapla, kutuya yazma
+        const hintE=document.getElementById('kc-ydisi-eur-hint');
+        if(hintE){ hintE.textContent='(Eksik beyan elle girildi — YDIŞI düşülmez)'; hintE.style.color='var(--text-muted)'; }
+        window.kcHesapla();
+        return;
+    }
     if(window._kcBrutFarkEuro == null){
         const sel=document.getElementById('kc-arac-sec');
         const d=sel && sel.value !== '' ? (window.declarationsData || [])[Number(sel.value)] : null;
@@ -29371,6 +29406,7 @@ window.kcAracSecildi = async function(idx){
     const kiymet=window.parseParaTR(d.kiymet), fatura=window.parseParaTR(d.fatura);
     const fark=window.kiymetEksikBeyanFarki(kiymet,fatura);
     window._kcBrutFarkEuro=fark;
+    window.kcEksikElleIsaretle(false); // yeni araç → otomatik eksik beyan
     const ydisiEl=document.getElementById('kc-ydisi-tl');
     if(ydisiEl){ydisiEl.value=''; ydisiEl.readOnly=true; ydisiEl.dataset.ocrState='loading'; ydisiEl.placeholder='Beyanname okunuyor...'; ydisiEl.title='YDIŞI yalnızca beyanname belgesinden alınır.';}
     eksikEl.value=format(fark);
@@ -29442,6 +29478,7 @@ window.kcAracSecildi = async function(idx){
 
 window._kcInit = function() {
     window._kcBrutFarkEuro=null;
+    window._kcEksikElle=false;
     window.kcAracListesiDoldur();
     setTimeout(function() {
         if (document.getElementById('kc-eksik')) {
