@@ -4267,6 +4267,7 @@ div[style*="position: relative"] > input {
     <option value="SAHIS_BILGE_YFKS">9. Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi</option>
     <option value="FIRMA_BILGE_YFKS">10. Firma BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi</option>
     <option value="REDRESE_IMEI">11. Redrese Talebi (IMEI İlavesi)</option>
+    <option value="mahrece_iade">12. Mahrece İade</option>
         </select>
     </div>
 
@@ -24451,7 +24452,87 @@ Muayene Memuru              Muayene Memuru              Muayene Memuru`
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE",
     alanlar: window.REDRESE_ALANLARI,
     metin: ""
+  },
+  // Mahrece İade (2026-11-25): firma → VKN/adres, araç (firmanın araçları) → şasi/marka/model/beyanname/tescil,
+  // ceza kararı (ekTahakkuklar CEZA_KARARI) → karar no. Boş makbuz tarihi/no köşeli yer tutucuyla basılır.
+  mahrece_iade: {
+    baslik: "Mahrece İade",
+    makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE",
+    alanlar: [
+      { id: "firma", etiket: "Firma" },
+      { id: "vkn", etiket: "Vergi Kimlik No" },
+      { id: "adres", etiket: "Firma Adresi" },
+      { id: "sasi", etiket: "Şasi No" },
+      { id: "marka", etiket: "Marka" },
+      { id: "model", etiket: "Model" },
+      { id: "beyanname", etiket: "Beyanname No" },
+      { id: "tescil_tarihi", etiket: "Tescil Tarihi (GG.AA.YYYY)" },
+      { id: "saha", etiket: "Bulunduğu Saha / Antrepo", varsayilan: "Bakırköy TASİŞ" },
+      { id: "dilekce_tarihi", etiket: "Dilekçe Tarihi", varsayilan: function(){ return window._dlkBugunBosluklu(); } },
+      { id: "ceza_karar_no", etiket: "Ceza Karar No (ops.)" },
+      { id: "uzlasma_no", etiket: "Uzlaşma Başvuru No (ops.)" },
+      { id: "makbuz_tarihi", etiket: "Uzlaşma Makbuz / Dekont Tarihi" },
+      { id: "makbuz_no", etiket: "Uzlaşma Makbuz / Dekont No" },
+      { id: "imza", etiket: "İmza Yetkilisi" }
+    ],
+    metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
+
+Konu: {{BEYANNAME}} sayılı beyanname kapsamındaki aracın mahrecine iadesi hk.
+
+Müdürlüğünüzde {{TESCIL_TARIHI}} tarihinde tescil edilen {{BEYANNAME}} sayılı serbest dolaşıma giriş beyannamesi kapsamında beyan edilen ve halen {{SAHA}} sahasında bulunan {{SASI}} şasi numaralı {{MARKA}} {{MODEL}} marka/model aracımız için düzenlenen {{CEZA_KARAR_NO}} sayılı ceza kararına ilişkin {{UZLASMA_NO}} numaralı uzlaşma başvurumuz sonucunda uzlaşılan tutar, {{MAKBUZ_TARIHI}} tarihli ve {{MAKBUZ_NO}} numaralı makbuz/dekont ile ödenmiştir.
+
+Söz konusu aracın serbest dolaşıma girişinden vazgeçilmiş olup aracın mahrecine iade edilmesi için gerekli işlemlerin yapılması hususunda gereğini bilgilerinize arz ederiz.
+
+Firma ve Araç Bilgileri:
+● Firma: {{FIRMA}}
+● Vergi Kimlik No: {{VKN}}
+● Adres: {{ADRES}}
+● Beyanname No / Tescil Tarihi: {{BEYANNAME}} / {{TESCIL_TARIHI}}
+● Şasi No: {{SASI}}
+● Marka / Model: {{MARKA}} {{MODEL}}
+● Bulunduğu Saha: {{SAHA}}
+
+Saygılarımızla,
+{{FIRMA}}
+{{IMZA}}`
   }
+};
+// Bugün "GG / AA / YYYY" (Mahrece İade dilekçe tarihi)
+window._dlkBugunBosluklu = function(){ var d=new Date(); return String(d.getDate()).padStart(2,'0')+' / '+String(d.getMonth()+1).padStart(2,'0')+' / '+d.getFullYear(); };
+// Firma kimliği (VKN + adres): BİLGE firma bilgisi, yoksa firmMeta. Bilinmeyen alan '' döner.
+window._dlkFirmaKimlik = function(firma){
+    const bos = function(v){ v = String(v == null ? '' : v).trim(); return /^\.*$/.test(v) ? '' : v; };
+    const b = typeof window.getBilgeFirmaBilgisi === 'function' ? (window.getBilgeFirmaBilgisi(firma) || {}) : {};
+    let vkn = bos(b.vergiNo), adres = bos(b.adres);
+    const anahtar = window._dlkFirmaAnahtari(firma);
+    const m = anahtar && window.firmMeta ? (window.firmMeta[anahtar] || {}) : {};
+    if(!vkn) vkn = bos(m.vergiNo);
+    if(!adres) adres = bos(m.adres);
+    return { vkn: vkn, adres: adres };
+};
+// Girilen firma adına (kısa ad ya da tam unvan) karşılık gelen portal firma anahtarı
+window._dlkFirmaAnahtari = function(firma){
+    const g = String(firma || '').trim();
+    if(!g) return '';
+    const up = function(s){ return String(s || '').trim().toLocaleUpperCase('tr'); };
+    const unvan = up(window.getFirmaDetay(g).tamUnvan);
+    const keys = Object.keys(window.firmData || {}).concat(Object.keys(window.firmMeta || {}));
+    return keys.find(function(k){ return up(k) === up(g); }) ||
+        keys.find(function(k){ return up(window.getFirmaDetay(k).tamUnvan) === unvan; }) || '';
+};
+// Aracın firması girilen firmayla aynı mı (kısa ad / tam unvan farkını yok sayar)
+window._dlkAracFirmaUyar = function(arac, firma){
+    if(!String(firma || '').trim()) return true;
+    const up = function(s){ return String(s || '').trim().toLocaleUpperCase('tr'); };
+    const a = (arac && arac.firma) || '';
+    return up(a) === up(firma) || up(window.getFirmaDetay(a).tamUnvan) === up(window.getFirmaDetay(firma).tamUnvan);
+};
+// Araç kaydındaki ceza kararı no (evrak ajanı ekTahakkuklar[] CEZA_KARARI; yoksa CK içeren karar)
+window._dlkCezaKararNo = function(arac){
+    const liste = Array.isArray(arac && arac.ekTahakkuklar) ? arac.ekTahakkuklar : Object.values((arac && arac.ekTahakkuklar) || {});
+    const k = liste.find(function(x){ return x && x.tur === 'CEZA_KARARI' && x.kararNo; }) ||
+        liste.find(function(x){ return x && /CK/i.test(String(x.kararNo || '')); });
+    return k ? String(k.kararNo) : '';
 };
 
 // Bilinen firma → imza yetkilisi (öneri; kullanıcı değiştirebilir)
@@ -24509,7 +24590,8 @@ window.dilekcelerInit = function(){
         BILGE_YFKS: '8. BİLGE ve YFKS Süre Uzatımı Dilekçesi',
         SAHIS_BILGE_YFKS: '9. Şahıs BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi',
         FIRMA_BILGE_YFKS: '10. Firma BİLGE Kullanıcı Kodu ve YFKS Yetkilendirmesi',
-        REDRESE_IMEI: '11. Redrese Talebi (IMEI İlavesi)'
+        REDRESE_IMEI: '11. Redrese Talebi (IMEI İlavesi)',
+        mahrece_iade: '12. Mahrece İade'
     };
     secici.innerHTML = keys.map(function(k){
         return '<option value="'+k+'">'+(etiketler[k] || window.DILEKCE_SABLONLARI[k].baslik)+'</option>';
@@ -24523,17 +24605,21 @@ window.dilekcelerInit = function(){
 };
 
 // "Portaldan Araç Seç" açılır listesini doldurur (Gelen Araçlar / declarationsData)
-window.dilekceAracListesiDoldur = function(){
+// firmaFiltre verilirse yalnız o firmanın araçları listelenir (değerler declarationsData sırası olarak kalır).
+window.dilekceAracListesiDoldur = function(firmaFiltre){
     const sel = document.getElementById('dlk-arac-sec');
     if(!sel) return;
     const list = Array.isArray(window.declarationsData) ? window.declarationsData : [];
+    const onceki = sel.value;
     let opts = '<option value="">— Araç seçin (opsiyonel) —</option>';
     opts += list.map(function(d, i){
+        if(firmaFiltre && !window._dlkAracFirmaUyar(d, firmaFiltre)) return '';
         const et = [ (d.marka||''), (d.model||''), (d.sasi? (d.sasi.slice(-6)) : '') ].filter(Boolean).join(' ');
         const firma = d.firma ? (' · ' + d.firma) : '';
         return '<option value="'+i+'">'+ (et || ('Araç #'+(i+1))) + firma +'</option>';
     }).join('');
     sel.innerHTML = opts;
+    if(onceki !== '' && sel.querySelector('option[value="'+onceki+'"]')) sel.value = onceki;
 };
 
 // Araç seçilince ortak alanları otomatik doldur (yalnızca formda var olanları)
@@ -24593,12 +24679,27 @@ window.dilekceAracSecildi = function(idx){
         window.dilekceOnizleGuncelle();
         return;
     }
+    if(window._dlkAktifSablon === 'mahrece_iade') window._dlkMahreceAracDoldur(d);
     const firmaBilgi = window.getFirmaDetay(d.firma);
     const firmaEl = document.getElementById('dlk-f-firma');
     if(firmaEl) firmaEl.value = firmaBilgi.tamUnvan;
     const imzaEl = document.getElementById('dlk-f-imza');
     if(imzaEl) imzaEl.value = firmaBilgi.imzaYetkilisi === '........................' ? '' : firmaBilgi.imzaYetkilisi;
     window.dilekceOnizleGuncelle();
+};
+
+// Mahrece İade: araçtan tescil tarihi + ceza karar no, firmasından VKN + adres
+window._dlkMahreceAracDoldur = function(d){
+    const yaz = function(id, v){ const el = document.getElementById('dlk-f-' + id); if(el) el.value = v == null ? '' : String(v).trim(); };
+    yaz('tescil_tarihi', d.beynmCif || d.tarih || '');
+    yaz('ceza_karar_no', window._dlkCezaKararNo(d));
+    window._dlkMahreceFirmaDoldur(d.firma);
+};
+window._dlkMahreceFirmaDoldur = function(firma){
+    const k = window._dlkFirmaKimlik(firma);
+    const vknEl = document.getElementById('dlk-f-vkn'), adresEl = document.getElementById('dlk-f-adres');
+    if(vknEl) vknEl.value = k.vkn;
+    if(adresEl) adresEl.value = k.adres;
 };
 
 // Dilekçe metnini panoya kopyala
@@ -24620,6 +24721,8 @@ window.dilekceSablonSec = function(key){
     if(!formEl || !prevEl) return;
     const s = window.DILEKCE_SABLONLARI[key];
     if(!s){ formEl.innerHTML = '<div class="dlk-empty">Yukarıdan bir dilekçe şablonu seçin.</div>'; prevEl.innerText = ''; window._dlkAktifSablon = null; return; }
+    // Mahrece İade araç listesini firmaya göre süzer; başka şablona geçince tam liste geri gelir.
+    if(window._dlkAktifSablon === 'mahrece_iade' && key !== 'mahrece_iade') window.dilekceAracListesiDoldur();
     window._dlkAktifSablon = key;
     window._dlkTarih = '';   // sağ üst tarih her yeni şablonda bugünden başlar
     const secici = document.getElementById('dilekce-sablon-secici');
@@ -24640,7 +24743,8 @@ window.dilekceSablonSec = function(key){
         if(a.id === 'imza'){
             return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'" autocomplete="off"><div id="dlk-imza-secim" style="display:flex; flex-wrap:wrap; align-items:center; margin-top:6px;"></div></div>';
         }
-        const defaultValue = a.varsayilan ? ' value="'+window._dlkEsc(a.varsayilan).replace(/"/g,'&quot;')+'"' : '';
+        const vars = typeof a.varsayilan === 'function' ? a.varsayilan() : a.varsayilan;
+        const defaultValue = vars ? ' value="'+window._dlkEsc(vars).replace(/"/g,'&quot;')+'"' : '';
         return '<div class="dlk-field"><label>'+a.etiket+'</label><input type="text" id="'+idAttr+'"'+defaultValue+'></div>';
     }).join('');
 
@@ -24673,6 +24777,10 @@ window.dilekceSablonSec = function(key){
                     window.bilgeFormuDoldur(el.value, 'dlk-f-firma');
                     window.dilekceOnizleGuncelle();
                     return;
+                }
+                if(window._dlkAktifSablon === 'mahrece_iade'){
+                    window._dlkMahreceFirmaDoldur(el.value);
+                    window.dilekceAracListesiDoldur(el.value);
                 }
                 const firmaBilgi = window.getFirmaDetay(el.value);
                 el.value = firmaBilgi.tamUnvan;
@@ -24754,6 +24862,8 @@ window.dilekceHtmlUret = function(key){
             if(v !== undefined && v !== '') return v;
             if(id === 'kiymet_yazi_no_1' || id === 'kiymet_yazi_no_2') return 'E-........................';
             if(id === 'kiymet_yazi_tarih_1' || id === 'kiymet_yazi_tarih_2') return '..../..../........';
+            if(id === 'makbuz_tarihi'){ const b = new Date(); return '[… / ' + String(b.getMonth()+1).padStart(2,'0') + ' / ' + b.getFullYear() + ']'; }
+            if(id === 'makbuz_no') return '[……]';
             return '..........';
         });
     };
@@ -24796,7 +24906,9 @@ window.dilekceHtmlUret = function(key){
 
     // Blok akışı Safari/iOS yazdırmada tabloların yatay taşma hatasını önler.
     var h = '<article class="dlk-document">';
-    h += '<div class="dlk-date-row">Tarih: <span class="dilekce-sag-ust-tarih">' + window._dlkEsc(window._dlkTarih || window._dlkBugun()) + '</span></div>';
+    // Şablonun kendi "Dilekçe Tarihi" alanı varsa sağ üst tarih ondan gelir (Mahrece İade: GG / AA / YYYY).
+    const ustTarih = alanTip.dilekce_tarihi ? (raw.dilekce_tarihi || window._dlkTarih || window._dlkBugunBosluklu()) : (window._dlkTarih || window._dlkBugun());
+    h += '<div class="dlk-date-row">Tarih: <span class="dilekce-sag-ust-tarih">' + window._dlkEsc(ustTarih) + '</span></div>';
     h += '<div class="dlk-addressee">' + window._dlkEsc(s.makam) + '</div>';
     if(konuHtml) h += '<div class="dlk-subject"><strong>KONU:</strong> ' + konuHtml + '</div>';
     h += '<div class="dlk-body">' + govdeHtml + '</div>';
@@ -24831,7 +24943,11 @@ window.dilekceOnizleGuncelle = function(){
         // Yazarken önizleme yeniden çizilmez (imleç kaybolmasın); değer form/duruma yazılır.
         prev.addEventListener('input', function(e){
             const t = e.target;
-            if(t.classList.contains('dilekce-sag-ust-tarih')) window._dlkTarih = t.textContent.trim();
+            if(t.classList.contains('dilekce-sag-ust-tarih')){
+                window._dlkTarih = t.textContent.trim();
+                const dtEl = document.getElementById('dlk-f-dilekce_tarihi');
+                if(dtEl) dtEl.value = window._dlkTarih;
+            }
             else if(t.classList.contains('imza-yetkili')){
                 const imzaInput = document.getElementById('dlk-f-imza');
                 if(imzaInput) imzaInput.value = t.textContent.trim();
@@ -24841,7 +24957,9 @@ window.dilekceOnizleGuncelle = function(){
         prev.addEventListener('focusout', function(e){
             if(e.target.classList.contains('dilekce-sag-ust-tarih') && !e.target.textContent.trim()){
                 window._dlkTarih = '';
-                e.target.textContent = window._dlkBugun();
+                const dtEl = document.getElementById('dlk-f-dilekce_tarihi');
+                e.target.textContent = dtEl ? window._dlkBugunBosluklu() : window._dlkBugun();
+                if(dtEl) dtEl.value = e.target.textContent;
             }
         });
     }
