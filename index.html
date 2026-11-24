@@ -24453,15 +24453,14 @@ Muayene Memuru              Muayene Memuru              Muayene Memuru`
     alanlar: window.REDRESE_ALANLARI,
     metin: ""
   },
-  // Mahrece İade (2026-11-25): firma → VKN/adres, araç (firmanın araçları) → şasi/marka/model/beyanname/tescil,
-  // ceza kararı (ekTahakkuklar CEZA_KARARI) → karar no. Boş makbuz tarihi/no köşeli yer tutucuyla basılır.
+  // Mahrece İade (2026-11-25): firma → unvan + Vergi No (adres basılmaz), araç (firmanın araçları) → şasi/marka/model/
+  // beyanname/tescil + evrak ajanının yazdığı cezaKararNo/uzlasmaNo/uzlasmaMakbuzTarih/No. Boş makbuz köşeli yer tutucuyla basılır.
   mahrece_iade: {
     baslik: "Mahrece İade",
     makam: "YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE",
     alanlar: [
       { id: "firma", etiket: "Firma" },
-      { id: "vkn", etiket: "Vergi Kimlik No" },
-      { id: "adres", etiket: "Firma Adresi" },
+      { id: "vkn", etiket: "Vergi No" },
       { id: "sasi", etiket: "Şasi No" },
       { id: "marka", etiket: "Marka" },
       { id: "model", etiket: "Model" },
@@ -24472,29 +24471,28 @@ Muayene Memuru              Muayene Memuru              Muayene Memuru`
       { id: "ceza_karar_no", etiket: "Ceza Karar No (ops.)" },
       { id: "uzlasma_no", etiket: "Uzlaşma Başvuru No (ops.)" },
       { id: "makbuz_tarihi", etiket: "Uzlaşma Makbuz / Dekont Tarihi" },
-      { id: "makbuz_no", etiket: "Uzlaşma Makbuz / Dekont No" },
-      { id: "imza", etiket: "İmza Yetkilisi" }
+      { id: "makbuz_no", etiket: "Uzlaşma Makbuz / Dekont No" }
     ],
-    metin: `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
+    // Ceza Karar No ve Uzlaşma No ikisi de boşsa uzlaşma cümlesi atlanır (yalnız GK 64, 165 + GY 121 talebi).
+    metin: function(raw){
+      const uzlasmaVar = !!(String(raw.ceza_karar_no || '').trim() || String(raw.uzlasma_no || '').trim());
+      const giris = uzlasmaVar
+        ? `Müdürlüğünüzde tescilli {{TESCIL_TARIHI}} tarih ve {{BEYANNAME}} sayılı beyanname kapsamındaki {{SASI}} şasi numaralı {{MARKA}} {{MODEL}} aracımıza ilişkin {{CEZA_KARAR_NO}} sayılı idari para cezası kararı için {{UZLASMA_NO}} numaralı başvuru ile uzlaşma sağlanmış ve uzlaşılan ceza tutarı {{MAKBUZ_TARIHI}} tarih ve {{MAKBUZ_NO}} sayılı makbuz/dekont ile ödenmiştir.
 
-Konu: {{BEYANNAME}} sayılı beyanname kapsamındaki aracın mahrecine iadesi hk.
+Aracın ithalat vergileri henüz ödenmemiş olup, araç gümrük gözetimi altında {{SAHA}} sahasında beklemektedir.`
+        : `Müdürlüğünüzde tescilli {{TESCIL_TARIHI}} tarih ve {{BEYANNAME}} sayılı beyanname kapsamındaki {{SASI}} şasi numaralı {{MARKA}} {{MODEL}} aracımızın ithalat vergileri henüz ödenmemiş olup, araç gümrük gözetimi altında {{SAHA}} sahasında beklemektedir.`;
+      return `YEŞİLKÖY GÜMRÜK MÜDÜRLÜĞÜ’NE
 
-Müdürlüğünüzde {{TESCIL_TARIHI}} tarihinde tescil edilen {{BEYANNAME}} sayılı serbest dolaşıma giriş beyannamesi kapsamında beyan edilen ve halen {{SAHA}} sahasında bulunan {{SASI}} şasi numaralı {{MARKA}} {{MODEL}} marka/model aracımız için düzenlenen {{CEZA_KARAR_NO}} sayılı ceza kararına ilişkin {{UZLASMA_NO}} numaralı uzlaşma başvurumuz sonucunda uzlaşılan tutar, {{MAKBUZ_TARIHI}} tarihli ve {{MAKBUZ_NO}} numaralı makbuz/dekont ile ödenmiştir.
+Konu: {{BEYANNAME}} Sayılı Beyannamenin İptali ve Mahrece İade Talebi Hk.
 
-Söz konusu aracın serbest dolaşıma girişinden vazgeçilmiş olup aracın mahrecine iade edilmesi için gerekli işlemlerin yapılması hususunda gereğini bilgilerinize arz ederiz.
+${giris}
 
-Firma ve Araç Bilgileri:
-● Firma: {{FIRMA}}
-● Vergi Kimlik No: {{VKN}}
-● Adres: {{ADRES}}
-● Beyanname No / Tescil Tarihi: {{BEYANNAME}} / {{TESCIL_TARIHI}}
-● Şasi No: {{SASI}}
-● Marka / Model: {{MARKA}} {{MODEL}}
-● Bulunduğu Saha: {{SAHA}}
+4458 sayılı Gümrük Kanunu’nun 64. ve 165. maddeleri ile Gümrük Yönetmeliği’nin 121. maddesi uyarınca {{BEYANNAME}} sayılı beyannamenin iptal edilerek tahakkuk eden vergilerinin terkin edilmesini ve aracın mahrecine iadesine izin verilmesini arz ederiz.
 
 Saygılarımızla,
 {{FIRMA}}
-{{IMZA}}`
+Vergi No: {{VKN}}`;
+    }
   }
 };
 // Bugün "GG / AA / YYYY" (Mahrece İade dilekçe tarihi)
@@ -24692,14 +24690,17 @@ window.dilekceAracSecildi = function(idx){
 window._dlkMahreceAracDoldur = function(d){
     const yaz = function(id, v){ const el = document.getElementById('dlk-f-' + id); if(el) el.value = v == null ? '' : String(v).trim(); };
     yaz('tescil_tarihi', d.beynmCif || d.tarih || '');
-    yaz('ceza_karar_no', window._dlkCezaKararNo(d));
+    // Evrak ajanının karta yazdığı alanlar (cezaKararNo / uzlasmaNo / uzlasmaMakbuzTarih / uzlasmaMakbuzNo)
+    yaz('ceza_karar_no', d.cezaKararNo || window._dlkCezaKararNo(d));
+    yaz('uzlasma_no', d.uzlasmaNo || '');
+    yaz('makbuz_tarihi', d.uzlasmaMakbuzTarih || '');
+    yaz('makbuz_no', d.uzlasmaMakbuzNo || '');
     window._dlkMahreceFirmaDoldur(d.firma);
 };
 window._dlkMahreceFirmaDoldur = function(firma){
     const k = window._dlkFirmaKimlik(firma);
-    const vknEl = document.getElementById('dlk-f-vkn'), adresEl = document.getElementById('dlk-f-adres');
+    const vknEl = document.getElementById('dlk-f-vkn');
     if(vknEl) vknEl.value = k.vkn;
-    if(adresEl) adresEl.value = k.adres;
 };
 
 // Dilekçe metnini panoya kopyala
@@ -24869,7 +24870,8 @@ window.dilekceHtmlUret = function(key){
     };
 
     // Gövde: ilk satırı (makam) ve "Saygılarımızla..."dan sonrasını çıkar
-    let govde = s.metin.replace(/^[^\n]*\n/, '');           // makam satırı
+    const metinKaynak = typeof s.metin === 'function' ? s.metin(raw) : s.metin;  // koşullu metin (Mahrece İade)
+    let govde = metinKaynak.replace(/^[^\n]*\n/, '');       // makam satırı
     govde = govde.replace(/\n?Saygılarımızla[\s\S]*$/i, ''); // imza bloğu (kendimiz koyacağız)
     govde = sub(govde).trim();
 
@@ -24908,13 +24910,23 @@ window.dilekceHtmlUret = function(key){
     var h = '<article class="dlk-document">';
     // Şablonun kendi "Dilekçe Tarihi" alanı varsa sağ üst tarih ondan gelir (Mahrece İade: GG / AA / YYYY).
     const ustTarih = alanTip.dilekce_tarihi ? (raw.dilekce_tarihi || window._dlkTarih || window._dlkBugunBosluklu()) : (window._dlkTarih || window._dlkBugun());
-    h += '<div class="dlk-date-row">Tarih: <span class="dilekce-sag-ust-tarih">' + window._dlkEsc(ustTarih) + '</span></div>';
+    const tarihHtml = '<div class="dlk-date-row">Tarih: <span class="dilekce-sag-ust-tarih">' + window._dlkEsc(ustTarih) + '</span></div>';
+    // Mahrece İade birebir düzen: makam → Tarih → Konu; imzada firma unvanı + Vergi No (adres/yetkili satırı yok).
+    const mahrece = key === 'mahrece_iade';
+    if(!mahrece) h += tarihHtml;
     h += '<div class="dlk-addressee">' + window._dlkEsc(s.makam) + '</div>';
-    if(konuHtml) h += '<div class="dlk-subject"><strong>KONU:</strong> ' + konuHtml + '</div>';
+    if(mahrece) h += tarihHtml;
+    if(konuHtml) h += '<div class="dlk-subject"><strong>' + (mahrece ? 'Konu:' : 'KONU:') + '</strong> ' + konuHtml + '</div>';
     h += '<div class="dlk-body">' + govdeHtml + '</div>';
     if(eklerHtml) h += '<div class="dlk-attachments"><strong>EKLER:</strong><br>' + eklerHtml + '</div>';
     if(key === 'gmc_chevrolet_tutanak'){
         h += muayeneImzaHtml;
+    } else if(mahrece){
+        h += '<div class="dlk-signature"><div class="dlk-signature-box">';
+        h += '<div class="dlk-signoff">Saygılarımızla,</div>';
+        h += '<div class="dlk-signature-company"><strong>' + (firmaVal || '..........') + '</strong></div>';
+        h += '<div class="dlk-signature-name">Vergi No: ' + window._dlkEsc(disp.vkn || '..........') + '</div>';
+        h += '</div></div>';
     } else {
         h += '<div class="dlk-signature"><div class="dlk-signature-box">';
         h += '<div class="dlk-signoff">Saygılarımızla,</div>';
