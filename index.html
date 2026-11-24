@@ -5570,6 +5570,7 @@ div[style*="position: relative"] > input {
                 <div>
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">EKSİK BEYAN (EUR) <span id="kc-eksik-elle-not" style="font-size:10px;color:var(--warning);text-transform:none;"></span></label>
                     <input type="text" inputmode="decimal" id="kc-eksik" placeholder="12.686" oninput="window.kcEksikDegisti()" onblur="window.kcEksikBlur()" style="width:100%;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;">
+                    <div id="kc-cif-not" style="display:none;margin-top:6px;font-size:11px;line-height:1.35;color:var(--primary);font-weight:600;"></div>
                 </div>
                 <div>
                     <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px;">DÖVİZ KURU (TL/EUR)</label>
@@ -5799,7 +5800,7 @@ div[style*="position: relative"] > input {
                         <th style="padding:6px 8px;font-weight:600;">Yeni Redrese Beyanname</th>
                     </tr></thead>
                     <tbody id="kc-redrese-tbody">
-                        <tr data-k="gvm" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">GV / EMY Matrahı (GVM)</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-gvm" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
+                        <tr data-k="gvm" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">GV / EMY Matrahı (GVM)</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-gvm" placeholder="—" oninput="window.kcYdisiDusumHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
                         <tr data-k="gv" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">Gümrük Vergisi (GV)</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-gv" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
                         <tr data-k="emy" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">Ek Mali Yükümlülük (EMY)</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-emy" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
                         <tr data-k="otv" style="border-top:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;color:var(--text-primary);">ÖTV</td><td style="padding:4px 8px;text-align:right;"><input type="text" inputmode="decimal" id="kc-eski-otv" placeholder="—" oninput="window.kcHesapla()" style="width:130px;padding:5px 8px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;text-align:right;"></td><td data-c="fark" style="padding:6px 8px;text-align:right;color:var(--text-primary);">0,00</td><td data-c="yeni" style="padding:6px 8px;text-align:right;font-weight:700;color:#6366f1;">—</td></tr>
@@ -29026,7 +29027,7 @@ window.kcRedreseTabloCiz = function(r) {
 };
 
 window.kcTemizle = function() {
-    window._kcAracRequest=(window._kcAracRequest || 0)+1; window._kcBrutFarkEuro=null;
+    window._kcAracRequest=(window._kcAracRequest || 0)+1; window._kcBrutFarkEuro=null; window._kcCifDusum=0; window.kcCifNotGuncelle();
     window.kcEksikElleIsaretle(false);
     const sel=document.getElementById('kc-arac-sec'); if(sel) sel.value='';
     const yd=document.getElementById('kc-ydisi-tl'); if(yd){yd.value=''; delete yd.dataset.ocrState; yd.placeholder='Beyannameden otomatik okunur'; yd.title='';}
@@ -29191,6 +29192,7 @@ window.kcExportPDF = async function() {
     let redreseSatirPdf = (R.satirlar || []).filter(s => !((s.k === 'otv' && !(R.otvOran > 0) && !(s.eski > 0)) || (s.k === 'trt' && !(R.trtOran > 0) && !(s.eski > 0))));
     const KARAR = window.kcKararBilgi();
     const cezali = KARAR.cezali;
+    const cifNot = typeof window.kcCifNotMetni === 'function' ? window.kcCifNotMetni() : '';
     const hc = 'padding:4px 5px;font-size:10px;overflow-wrap:anywhere;';
     let redreseHtml = redreseSatirPdf.map(s => {
         const kalin = s.k === 'toplam' || s.k === 'kdv' || s.k === 'kdvm' || s.k === 'gvm';
@@ -29290,6 +29292,7 @@ window.kcExportPDF = async function() {
   <div style="margin-top:8px;padding:5px 0;font-size:7.5px;color:#92400e;line-height:1.3;">
     <strong>Yasal Dayanak:</strong> 3065 Sayılı KDV Kanunu 48 ve 51. Maddeleri kapsamında düzenlenen ek tahakkuk hesabıdır. Ek tahakkuk tutarı tebliğden itibaren 15 gün içinde ödenir; aynı süre içinde itiraz veya uzlaşma talep edilebilir.
   </div>`}
+  ${cifNot ? `<div style="margin-top:4px;padding:4px 8px;font-size:8.5px;color:#1e3a8a;background:#eff6ff;border-left:3px solid #3b82f6;line-height:1.35;"><strong>${escapeHtml(cifNot)}</strong></div>` : ''}
 
   <div style="margin-top:8px;padding:8px;background:#f5f7ff;">
     <div style="font-size:9px;font-weight:700;color:#3730a3;text-transform:uppercase;margin-bottom:6px;">Redrese Beyanname Özeti (Kıymet Farkı Sonrası)</div>
@@ -29369,8 +29372,8 @@ window.kcBeyannameVergileriniDoldur = function(res){
     return dolan;
 };
 
-// EKSİK BEYAN (EUR) elle girilirse esas alınır: kutuya geri yazılmaz, YDIŞI düşülmez,
-// kur / beyanname okuması değeri ezmez. Kutu boşaltılırsa otomatik hesaba (Kıymet − Fatura − YDIŞI) dönülür.
+// EKSİK BEYAN (EUR) elle girilirse esas alınır: kutuya geri yazılmaz, otomatik düşüm uygulanmaz,
+// kur / beyanname okuması değeri ezmez. Kutu boşaltılırsa otomatik hesaba dönülür (CIF: kıymet×kur − GVM; değilse Kıymet − Fatura).
 window._kcEksikElle = false;
 window.kcEksikElleIsaretle = function(acik){
     window._kcEksikElle = !!acik;
@@ -29381,6 +29384,44 @@ window.kcEksikElleIsaretle = function(acik){
     }
     const not=document.getElementById('kc-eksik-elle-not');
     if(not) not.textContent = acik ? '✎ elle' : '';
+    window.kcCifNotGuncelle();
+};
+
+// Kıymet teslim esası (2026-11-24): evrak-ajani kıymet cevabından araç kaydına kiymetTeslimTipi yazar.
+//  'CIF' → distribütör kıymeti navlun+sigorta dahil: eksik TL = kıymet×kur − beyannamedeki GVM (TL),
+//          eksik € = eksik TL / kur → beyannamedeki Navlun + Sigorta + Y.Dışı kendiliğinden düşülür.
+//          (Cadillac 26342400ET000089: 147.000 € × 55,411 − 5.740.579,60 = 2.404.837,40 TL = 43.400 €)
+//  diğer (FOB/EXW/perakende ya da boş) → kıymet − fatura; Y.Dışı DÜŞÜLMEZ
+//          (Mercedes S580 26342400CK002030: 166.119 − 140.000 = 26.119 €)
+//  CIF olup GVM/kur henüz yoksa geçici olarak kıymet − fatura gösterilir (mod 'CIF_BEKLIYOR').
+window.kcKiymetEksikHesapla = function(o){
+    o = o || {};
+    const r2 = function(n){ return Math.round(n * 100) / 100; };
+    const k = Number(o.kiymet) || 0, f = Number(o.fatura) || 0, kur = Number(o.kur) || 0, gvm = Number(o.gvmTL) || 0;
+    const cif = String(o.tip || '').trim().toUpperCase() === 'CIF';
+    if (cif && k > 0 && gvm > 0 && kur > 0) {
+        const tl = r2(k * kur - gvm);
+        return { mod: 'CIF', eksikEur: tl > 0 ? r2(tl / kur) : 0, eksikTL: Math.max(0, tl),
+                 dusulenEur: f > 0 ? Math.max(0, r2(gvm / kur - f)) : 0 };
+    }
+    const fark = f > 0 && k > f ? r2(k - f) : 0;
+    return { mod: cif ? 'CIF_BEKLIYOR' : 'FOB', eksikEur: fark, eksikTL: kur > 0 ? r2(fark * kur) : 0, dusulenEur: 0 };
+};
+window._kcCifDusum = 0;
+window.kcCifNotMetni = function(){
+    const n = Number(window._kcCifDusum) || 0;
+    if (window._kcEksikElle || !(n > 0)) return '';
+    return 'Not: Distribütör kıymeti CIF kabul edildiğinden beyannamedeki Navlun, Sigorta ve Y.Dışı Gider ('
+        + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €) düşülmüştür.';
+};
+window.kcCifNotGuncelle = function(){
+    const el = document.getElementById('kc-cif-not'); if (!el) return;
+    const m = window.kcCifNotMetni();
+    el.textContent = m; el.style.display = m ? 'block' : 'none';
+};
+window.kcSeciliArac = function(){
+    const sel = document.getElementById('kc-arac-sec');
+    return sel && sel.value !== '' ? ((window.declarationsData || [])[Number(sel.value)] || null) : null;
 };
 window.kcEksikDegisti = function(){
     const el=document.getElementById('kc-eksik');
@@ -29419,35 +29460,45 @@ window.kcYdisiDusumHesapla = function(){
     if(window._kcEksikElle){
         // Elle girilen değer esas: yalnızca yeniden hesapla, kutuya yazma
         const hintE=document.getElementById('kc-ydisi-eur-hint');
-        if(hintE){ hintE.textContent='(Eksik beyan elle girildi — YDIŞI düşülmez)'; hintE.style.color='var(--text-muted)'; }
+        if(hintE){ hintE.textContent='(Eksik beyan elle girildi — otomatik düşüm uygulanmaz)'; hintE.style.color='var(--text-muted)'; }
+        window._kcCifDusum=0; window.kcCifNotGuncelle();
         window.kcHesapla();
         return;
     }
-    if(window._kcBrutFarkEuro == null){
-        const sel=document.getElementById('kc-arac-sec');
-        const d=sel && sel.value !== '' ? (window.declarationsData || [])[Number(sel.value)] : null;
-        const k=d ? window.parseParaTR(d.kiymet) : 0, f=d ? window.parseParaTR(d.fatura) : 0;
-        window._kcBrutFarkEuro=d ? window.kiymetEksikBeyanFarki(k,f) : window.parseParaTR(eksikEl.value);
-    }
     const kurEl=document.getElementById('kc-kur'), ydisiEl=document.getElementById('kc-ydisi-tl');
     const kur=window.parseParaTR(kurEl ? kurEl.value : ''), tl=window.parseParaTR(ydisiEl ? ydisiEl.value : '');
-    const euro=tl > 0 && kur > 0 ? tl/kur : 0;
-    const hint=document.getElementById('kc-ydisi-eur-hint');
     const format=function(n){return Number(n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});};
+    // Seçili araçta kıymet teslim esasına göre (CIF → GVM ile, değilse fatura ile) otomatik eksik beyan
+    const arac=window.kcSeciliArac();
+    let s;
+    if(arac){
+        s=window.kcKiymetEksikHesapla({ kiymet: window.parseParaTR(arac.kiymet), fatura: window.parseParaTR(arac.fatura),
+            tip: arac.kiymetTeslimTipi, gvmTL: window.kcSayiOku('kc-eski-gvm'), kur: kur });
+    }else{
+        if(window._kcBrutFarkEuro == null) window._kcBrutFarkEuro=window.parseParaTR(eksikEl.value);
+        s={ mod: 'FOB', eksikEur: Math.max(0, window._kcBrutFarkEuro || 0), dusulenEur: 0 };
+    }
+    window._kcBrutFarkEuro=s.eksikEur;
+    window._kcCifDusum=s.mod === 'CIF' ? s.dusulenEur : 0;
+    const hint=document.getElementById('kc-ydisi-eur-hint');
     if(hint){
         const state=ydisiEl ? ydisiEl.dataset.ocrState : '';
-        hint.textContent=tl > 0 ? (kur > 0 ? '(-'+format(euro)+' € düşüldü)' : '(Düşüm için kur bekleniyor)') : (state === 'read' ? '(Beyannamede YDIŞI yok)' : (state === 'missing' ? '(YDIŞI belgeden alınamadı)' : ''));
-        hint.style.color=tl > 0 && kur > 0 ? 'var(--success)' : 'var(--text-muted)';
-        if(window._kcBrutFarkEuro === 0){
-            const sel=document.getElementById('kc-arac-sec');
-            const arac=sel && sel.value !== '' ? (window.declarationsData || [])[Number(sel.value)] : null;
-            hint.textContent=arac && window.parseParaTR(arac.fatura) <= 0 ? 'ℹ️ Fatura tutarı eksik. Eksik beyan hesaplanmadı.' : 'ℹ️ Eksik beyan yok (Fatura ≥ Gelen Kıymet). Ceza doğmaz.';
+        if(s.mod === 'CIF'){
+            hint.textContent='(CIF kıymet — GVM ile kıyaslandı)'; hint.style.color='var(--success)';
+        }else if(s.mod === 'CIF_BEKLIYOR'){
+            hint.textContent='(CIF kıymet — beyanname GVM / kur bekleniyor)'; hint.style.color='var(--text-muted)';
+        }else{
+            hint.textContent=tl > 0 ? '(FOB/EXW kıymet — Y.Dışı düşülmez)' : (state === 'read' ? '(Beyannamede YDIŞI yok)' : (state === 'missing' ? '(YDIŞI belgeden alınamadı)' : ''));
             hint.style.color='var(--text-muted)';
-        }else if(window._kcBrutFarkEuro-euro <= 0){
-            hint.textContent='(-'+format(euro)+' € düşüldü) Net eksik beyan 0,00 €. Ceza doğmaz.';
+        }
+        if(s.eksikEur <= 0 && arac){
+            hint.textContent=window.parseParaTR(arac.fatura) <= 0 && s.mod !== 'CIF' ? 'ℹ️ Fatura tutarı eksik. Eksik beyan hesaplanmadı.'
+                : (s.mod === 'CIF' ? 'ℹ️ Eksik beyan yok (GVM ≥ CIF kıymet). Ceza doğmaz.' : 'ℹ️ Eksik beyan yok (Fatura ≥ Gelen Kıymet). Ceza doğmaz.');
+            hint.style.color='var(--text-muted)';
         }
     }
-    eksikEl.value=format(Math.max(0,window._kcBrutFarkEuro-euro));
+    eksikEl.value=format(Math.max(0,s.eksikEur));
+    window.kcCifNotGuncelle();
     window.kcHesapla();
 };
 window.kcDilekceyeGit = function(){
@@ -29880,6 +29931,10 @@ window.openKiymetCezaFor = async function(idx) {
 
         // Eksik beyan (kıymet - fatura)
         if (eksikStr) {eksikEl.value = eksikStr; window._kcBrutFarkEuro=window.parseParaTR(eksikStr);}
+        // Araç seçiciyi bu araca bağla → kıymet teslim esası (CIF/FOB) otomatik eksik beyan hesabına girer
+        let kcSel = document.getElementById('kc-arac-sec');
+        if (kcSel) { if (kcSel.options.length < 2) window.kcAracListesiDoldur(); kcSel.value = String(idx); }
+        window.kcEksikElleIsaretle(false);
 
         // Kur — beyanname tarihinde "bir önceki iş gününün" TCMB kuru geçerli
         // (Gümrük Yönetmeliği: TCMB kuru 15:30'da yayınlanır, ertesi iş günü için geçerlidir)
@@ -29926,7 +29981,7 @@ window.openKiymetCezaFor = async function(idx) {
                 }
             }
         }
-        window.kcHesapla();
+        window.kcYdisiDusumHesapla();
 
         // Beyannameden KDV Matrahını OCR ile çek (arka planda, paralel)
         let kdvmEl = document.getElementById('kc-mevcut-kdvm');
@@ -29951,6 +30006,7 @@ window.openKiymetCezaFor = async function(idx) {
                         tvEl.title = `Beyannameden otomatik (${res.dosyaAdi})`;
                     }
                     window.kcBeyannameVergileriniDoldur(res);
+                    window.kcYdisiDusumHesapla(); // CIF kıymette GVM artık belli
 
                     if (typeof window.showToast === 'function') {
                         let kaynak = res.fromCache ? ' [cache]' : '';
