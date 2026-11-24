@@ -29093,6 +29093,66 @@ window.kcKopyala = function(tip) {
     }
 };
 
+// Kıymet Ceza / Ek Tahakkuk sayfa HTML'i → her zaman TEK sayfa dikey A4 PDF → Promise<{blob, sayfa, olcek}>.
+// Çizim 794×1123 px görünmez iframe'de (Ardiye deseni): portalın mobil @media kuralları, dar görünüm ve
+// kaydırma konumu html2canvas'a karışmaz; telefon ve PC aynı A4 düzenini üretir. Kenar [7, 8, 7, 8] mm;
+// içerik iç alana sığmazsa oranlı küçültülür (ikinci sayfa asla oluşmaz).
+window.KC_PDF_KENAR = [7, 8, 7, 8];  // üst, sağ, alt, sol (mm)
+window.kcPdfYerlesim = function(cw, ch, pageW, pageH) {
+    const [U, S, A, L] = window.KC_PDF_KENAR;
+    const icW = pageW - L - S, icH = pageH - U - A;
+    let w = icW, h = ch * icW / cw;
+    if (h > icH) { h = icH; w = cw * icH / ch; }  // tek sayfaya sığdır
+    return { x: L + (icW - w) / 2, y: U, w: w, h: h, olcek: w / icW };
+};
+window.kcPdfBlob = function(html, dosyaAdi) {
+    const kaynak = (document.querySelector('script[src*="html2pdf"]') || {}).src || 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    return new Promise(function(coz, red) {
+        const ifr = document.createElement('iframe');
+        ifr.setAttribute('aria-hidden', 'true');
+        ifr.setAttribute('tabindex', '-1');
+        ifr.style.cssText = 'position:fixed;top:0;left:0;width:794px;height:1123px;border:none;margin:0;padding:0;opacity:0;pointer-events:none;z-index:-9999;';
+        let bitti = false;
+        const son = function(hata, sonuc) {
+            if (bitti) return;
+            bitti = true;
+            clearTimeout(sure);
+            setTimeout(function() { if (ifr.parentNode) ifr.parentNode.removeChild(ifr); }, 0);
+            if (hata) red(hata); else coz(sonuc);
+        };
+        const sure = setTimeout(function() { son(new Error('PDF zaman aşımına uğradı')); }, 25000);
+        ifr.onload = async function() {
+            try {
+                const w = ifr.contentWindow, sayfa = ifr.contentDocument.getElementById('kc-pdf-sayfa');
+                // html2pdf.bundle html2canvas/jsPDF'i global açmaz → iframe'deki html2pdf işçisiyle tuval ve jsPDF alınır
+                if (!w || typeof w.html2pdf !== 'function' || !sayfa) { son(new Error('PDF modülü yüklenemedi')); return; }
+                const is = w.html2pdf().set({
+                    margin: 0, filename: dosyaAdi, image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+                        scrollX: 0, scrollY: 0, x: 0, y: 0, windowWidth: 794, windowHeight: 1123 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+                    pagebreak: { mode: [] }
+                }).from(sayfa);
+                const canvas = await is.toCanvas().get('canvas');
+                const pdf = await is.toPdf().get('pdf');
+                // html2pdf'in kendi dilimlediği sayfalar atılır; temiz tek sayfaya oranlı tek görüntü konur
+                pdf.addPage('a4', 'portrait');
+                while (pdf.getNumberOfPages() > 1) pdf.deletePage(1);
+                const Y = window.kcPdfYerlesim(canvas.width, canvas.height, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', Y.x, Y.y, Y.w, Y.h, undefined, 'FAST');
+                pdf.setProperties({ title: dosyaAdi || 'Kiymet.pdf' });
+                window._kcSonPdf = { sayfa: pdf.getNumberOfPages(), canvasW: canvas.width, canvasH: canvas.height, sayfaGenislik: sayfa.scrollWidth, olcek: Y.olcek };
+                son(null, new Blob([pdf.output('arraybuffer')], { type: 'application/pdf' }));
+            } catch (e) { son(e); }
+        };
+        ifr.srcdoc = '<!doctype html><html><head><meta charset="utf-8">' +
+            '<style>html,body{margin:0;padding:0;background:#ffffff;width:794px;}*{box-sizing:border-box;}' +
+            'table{border-collapse:collapse;}#kc-pdf-sayfa td,#kc-pdf-sayfa th{word-break:normal;}</style>' +
+            '<scr' + 'ipt src="' + kaynak + '"></scr' + 'ipt></head><body>' + html + '</body></html>';
+        document.body.appendChild(ifr);
+    });
+};
+
 window.kcExportPDF = async function() {
     if (!document.getElementById('kc-eksik')) {
         alert('Önce Kıymet Ceza Hesaplama sayfasını açın.');
@@ -29131,7 +29191,7 @@ window.kcExportPDF = async function() {
     let redreseSatirPdf = (R.satirlar || []).filter(s => !((s.k === 'otv' && !(R.otvOran > 0) && !(s.eski > 0)) || (s.k === 'trt' && !(R.trtOran > 0) && !(s.eski > 0))));
     const KARAR = window.kcKararBilgi();
     const cezali = KARAR.cezali;
-    const hc = 'padding:5px 6px;font-size:10.5px;overflow-wrap:anywhere;';
+    const hc = 'padding:4px 5px;font-size:10px;overflow-wrap:anywhere;';
     let redreseHtml = redreseSatirPdf.map(s => {
         const kalin = s.k === 'toplam' || s.k === 'kdv' || s.k === 'kdvm' || s.k === 'gvm';
         const bg = s.k === 'toplam' ? 'background:#dcfce7;' : (kalin ? 'background:#eef2ff;' : '');
@@ -29151,17 +29211,8 @@ window.kcExportPDF = async function() {
     let showKdvEtki = mevcutKdvm !== '-' && mevcutKdvm !== '' && mevcutKdvm !== '0';
     let showToplamV = mevcutToplamV !== '-' && mevcutToplamV !== '' && mevcutToplamV !== '0';
 
-    // Container: GERÇEKTEN görünür konumda + üstüne "yükleniyor" overlay
-    // (opacity:0 / offscreen → html2canvas painted DOM bulamıyor, boş PDF veriyor)
-    let wrap = document.createElement('div');
-    wrap.id = 'kc-pdf-wrap-' + Date.now();
-    wrap.style.cssText = [
-        'position:fixed','top:0','left:0','width:794px',
-        'background:#ffffff','color:#000',
-        'z-index:99998','overflow:visible',
-        'font-family:Arial,Helvetica,sans-serif'
-    ].join(';') + ';';
-
+    // Çizim 2026-11-24'ten beri portal DOM'unda DEĞİL, izole iframe'de (Ardiye deseni, window.ardiyePdfBlob):
+    // telefondaki @media kuralları, ~390px görünüm genişliği ve kaydırma konumu html2canvas'a karışmaz.
     let overlay = document.createElement('div');
     overlay.style.cssText = [
         'position:fixed','inset:0','background:rgba(15,23,42,0.92)',
@@ -29171,9 +29222,9 @@ window.kcExportPDF = async function() {
     overlay.innerHTML = '<div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="font-size:16px;font-weight:600;">PDF üretiliyor...</div>';
 
     let html = `
-<div style="width:100%;max-width:710px;box-sizing:border-box;margin:0 auto;overflow:hidden;padding:8px 4px;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:1.35;">
+<div id="kc-pdf-sayfa" style="width:710px;box-sizing:border-box;margin:0 auto;padding:0;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:1.3;">
 
-  <div style="text-align:center;padding-bottom:8px;margin-bottom:10px;">
+  <div style="text-align:center;padding-bottom:4px;margin-bottom:6px;">
     <div style="font-size:18px;font-weight:700;margin:0 0 3px;">${escapeHtml(KARAR.baslik)}</div>
     <div style="font-size:9px;color:#444;">${escapeHtml(KARAR.pdfAlt)}</div>
   </div>
@@ -29188,30 +29239,30 @@ window.kcExportPDF = async function() {
 
   <table style="width:100%;border-collapse:collapse;margin-bottom:8px;table-layout:fixed;">
     <colgroup><col style="width:65%"><col style="width:35%"></colgroup>
-    <tr><th colspan="2" style="font-weight:700;font-size:9px;text-transform:uppercase;padding:5px 10px;text-align:left;">Girdi Değerleri</th></tr>
-    <tr><td style="padding:4px 10px;">Eksik Beyan (EUR)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(eksik)} EUR</td></tr>
-    <tr><td style="padding:4px 10px;">Döviz Kuru (TL/EUR)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(kur)}</td></tr>
-    <tr><td style="padding:4px 10px;">GV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(String(gvOranPdf).replace('.', ','))}</td></tr>
-    <tr><td style="padding:4px 10px;">EMY Oranı (Ek Mali Yükümlülük)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(String(emyOranPdf).replace('.', ','))}</td></tr>
-    <tr><td style="padding:4px 10px;">TRT Bandrolü</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(trt)} ${R.trtAyri ? '(ek tahakkukta ayrı)' : '(KDV matrahına dahil)'}</td></tr>
-    <tr><td style="padding:4px 10px;">ÖTV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${otvOranPdf > 0 ? '% ' + otvOranPdf : 'Yok / Muaf'}</td></tr>
-    <tr><td style="padding:4px 10px;">KDV Oranı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">% ${escapeHtml(kdv)}</td></tr>
-    ${cezali ? `<tr><td style="padding:4px 10px;">Ceza Katsayısı</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(katsayi)} kat</td></tr>` : `<tr><td style="padding:4px 10px;">Yasal Dayanak</td><td style="padding:4px 10px;text-align:left;font-weight:600;">3065 Sayılı KDV Kanunu 48 ve 51. Md.</td></tr>`}
+    <tr><th colspan="2" style="font-weight:700;font-size:9px;text-transform:uppercase;padding:4px 6px;text-align:left;">Girdi Değerleri</th></tr>
+    <tr><td style="padding:3.5px 6px;">Eksik Beyan (EUR)</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(eksik)} EUR</td></tr>
+    <tr><td style="padding:3.5px 6px;">Döviz Kuru (TL/EUR)</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(kur)}</td></tr>
+    <tr><td style="padding:3.5px 6px;">GV Oranı</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">% ${escapeHtml(String(gvOranPdf).replace('.', ','))}</td></tr>
+    <tr><td style="padding:3.5px 6px;">EMY Oranı (Ek Mali Yükümlülük)</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">% ${escapeHtml(String(emyOranPdf).replace('.', ','))}</td></tr>
+    <tr><td style="padding:3.5px 6px;">TRT Bandrolü</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">% ${escapeHtml(trt)} ${R.trtAyri ? '(ek tahakkukta ayrı)' : '(KDV matrahına dahil)'}</td></tr>
+    <tr><td style="padding:3.5px 6px;">ÖTV Oranı</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${otvOranPdf > 0 ? '% ' + otvOranPdf : 'Yok / Muaf'}</td></tr>
+    <tr><td style="padding:3.5px 6px;">KDV Oranı</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">% ${escapeHtml(kdv)}</td></tr>
+    ${cezali ? `<tr><td style="padding:3.5px 6px;">Ceza Katsayısı</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(katsayi)} kat</td></tr>` : `<tr><td style="padding:3.5px 6px;">Yasal Dayanak</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">3065 Sayılı KDV Kanunu 48 ve 51. Md.</td></tr>`}
   </table>
 
   <table style="width:100%;border-collapse:collapse;margin-bottom:8px;table-layout:fixed;">
     <colgroup><col style="width:65%"><col style="width:35%"></colgroup>
-    <tr><th colspan="2" style="font-weight:700;font-size:9px;text-transform:uppercase;padding:5px 10px;text-align:left;">Hesaplama Adımları</th></tr>
-    <tr><td style="padding:4px 10px;">1. Eksik beyan TL karşılığı / CIF farkı (EUR × Kur)</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
-    ${gvOranPdf > 0 ? `<tr><td style="padding:4px 10px;">GV farkı (1 × %${escapeHtml(String(gvOranPdf).replace('.', ','))})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adimGv)}</td></tr>` : ''}
-    ${emyOranPdf > 0 ? `<tr><td style="padding:4px 10px;">EMY farkı (1 × %${escapeHtml(String(emyOranPdf).replace('.', ','))})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adimEmy)}</td></tr>` : ''}
-    <tr><td style="padding:4px 10px;">2. TRT bandrolü (${gvOranPdf > 0 || emyOranPdf > 0 ? '(1 + GV + EMY)' : '1'} × %${escapeHtml(trt)})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim2)}</td></tr>
-    ${otvOranPdf > 0 ? `<tr><td style="padding:4px 10px;">3. ÖTV farkı ((1${gvOranPdf > 0 || emyOranPdf > 0 ? ' + GV + EMY' : ''} + 2) × %${otvOranPdf})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adimOtv)}</td></tr>` : ''}
-    <tr><td style="padding:4px 10px;">4. KDV matrahı (1${gvOranPdf > 0 ? ' + GV' : ''}${emyOranPdf > 0 ? ' + EMY' : ''} + 2${otvOranPdf > 0 ? ' + 3' : ''})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim3)}</td></tr>
-    <tr><td style="padding:4px 10px;">5. KDV farkı (4 × %${escapeHtml(kdv)})</td><td style="padding:4px 10px;text-align:left;font-weight:600;">${escapeHtml(adim4)}</td></tr>
-    <tr style="background:#fff1e6;"><td style="padding:4px 10px;color:#9a3412;font-weight:700;">Ek tahakkuk toplamı (${ekKalemPdf.join(' + ')})</td><td style="padding:4px 10px;text-align:left;color:#9a3412;font-weight:700;">${escapeHtml(ekTahakkukPdf)}</td></tr>
-    ${cezali ? `<tr style="background:#ffe5e5;"><td style="padding:4px 10px;color:#991b1b;font-weight:700;">6. Ceza ((${cezaKalemPdf.join(' + ')}) × ${escapeHtml(katsayi)} kat)</td><td style="padding:4px 10px;text-align:left;color:#991b1b;font-weight:700;">${escapeHtml(adim5)}</td></tr>` : ''}
-    ${cezali && showIndirim ? `<tr style="background:#e6f4ea;"><td style="padding:4px 10px;color:#166534;font-weight:700;">7. Erken ödeme indirimi (6 ÷ 4)</td><td style="padding:4px 10px;text-align:left;color:#166534;font-weight:700;">${escapeHtml(adim6)}</td></tr>` : ''}
+    <tr><th colspan="2" style="font-weight:700;font-size:9px;text-transform:uppercase;padding:4px 6px;text-align:left;">Hesaplama Adımları</th></tr>
+    <tr><td style="padding:3.5px 6px;">1. Eksik beyan TL karşılığı / CIF farkı (EUR × Kur)</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(adim1)}</td></tr>
+    ${gvOranPdf > 0 ? `<tr><td style="padding:3.5px 6px;">GV farkı (1 × %${escapeHtml(String(gvOranPdf).replace('.', ','))})</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(adimGv)}</td></tr>` : ''}
+    ${emyOranPdf > 0 ? `<tr><td style="padding:3.5px 6px;">EMY farkı (1 × %${escapeHtml(String(emyOranPdf).replace('.', ','))})</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(adimEmy)}</td></tr>` : ''}
+    <tr><td style="padding:3.5px 6px;">2. TRT bandrolü (${gvOranPdf > 0 || emyOranPdf > 0 ? '(1 + GV + EMY)' : '1'} × %${escapeHtml(trt)})</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(adim2)}</td></tr>
+    ${otvOranPdf > 0 ? `<tr><td style="padding:3.5px 6px;">3. ÖTV farkı ((1${gvOranPdf > 0 || emyOranPdf > 0 ? ' + GV + EMY' : ''} + 2) × %${otvOranPdf})</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(adimOtv)}</td></tr>` : ''}
+    <tr><td style="padding:3.5px 6px;">4. KDV matrahı (1${gvOranPdf > 0 ? ' + GV' : ''}${emyOranPdf > 0 ? ' + EMY' : ''} + 2${otvOranPdf > 0 ? ' + 3' : ''})</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(adim3)}</td></tr>
+    <tr><td style="padding:3.5px 6px;">5. KDV farkı (4 × %${escapeHtml(kdv)})</td><td style="padding:3.5px 6px;text-align:left;font-weight:600;">${escapeHtml(adim4)}</td></tr>
+    <tr style="background:#fff1e6;"><td style="padding:3.5px 6px;color:#9a3412;font-weight:700;">Ek tahakkuk toplamı (${ekKalemPdf.join(' + ')})</td><td style="padding:3.5px 6px;text-align:left;color:#9a3412;font-weight:700;">${escapeHtml(ekTahakkukPdf)}</td></tr>
+    ${cezali ? `<tr style="background:#ffe5e5;"><td style="padding:3.5px 6px;color:#991b1b;font-weight:700;">6. Ceza ((${cezaKalemPdf.join(' + ')}) × ${escapeHtml(katsayi)} kat)</td><td style="padding:3.5px 6px;text-align:left;color:#991b1b;font-weight:700;">${escapeHtml(adim5)}</td></tr>` : ''}
+    ${cezali && showIndirim ? `<tr style="background:#e6f4ea;"><td style="padding:3.5px 6px;color:#166534;font-weight:700;">7. Erken ödeme indirimi (6 ÷ 4)</td><td style="padding:3.5px 6px;text-align:left;color:#166534;font-weight:700;">${escapeHtml(adim6)}</td></tr>` : ''}
   </table>
 
   ${cezali ? `<table style="width:100%;border-collapse:separate;border-spacing:8px 0;margin-top:8px;table-layout:fixed;">
@@ -29269,82 +29320,22 @@ window.kcExportPDF = async function() {
 
 </div>`;
 
-    wrap.innerHTML = html;
-    document.body.appendChild(wrap);
     document.body.appendChild(overlay);
-
-    // Layout settle olsun (paint frame'i bekle)
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    await new Promise(r => setTimeout(r, 250));
 
     let dosyaAdi = ((cezali ? 'Kiymet_Ceza_' : 'Kiymet_Ek_Tahakkuk_') + (dosya || tarih).replace(/[^a-zA-Z0-9_-]/g, '_')).substring(0, 80) + '.pdf';
 
     try {
-        // html2pdf.bundle.min.js → window.html2canvas + window.jspdf.jsPDF expose eder
-        const h2c = window.html2canvas;
-        const JsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-
-        if (!h2c || !JsPDFCtor) {
-            // Fallback: html2pdf wrapper
-            await html2pdf().set({
-                margin: [10, 10, 10, 10],
-                filename: dosyaAdi,
-                image: { type: 'jpeg', quality: 0.95 },
-                // windowWidth burada VERİLMEZ: html2pdf öğeyi ~719px (190 mm) kaba koyar; windowWidth:794
-                // içeriği ~38px sağa kaydırıp sağ sütunu kesiyordu (2026-11-23 tarayıcıda ölçüldü).
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            }).from(wrap.firstElementChild).save();
-        } else {
-            // Manuel: html2canvas → canvas, jsPDF → tam A4'e oranlı yerleştirme
-            const target = wrap.firstElementChild;
-            const canvas = await h2c(target, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-                scrollX: 0,
-                scrollY: 0,
-                windowWidth: 794
-            });
-            console.log('[KC PDF] canvas:', canvas.width, 'x', canvas.height);
-
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            const pdf = new JsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
-            const pageW = pdf.internal.pageSize.getWidth();   // 210
-            const pageH = pdf.internal.pageSize.getHeight();  // 297
-
-            // 10 mm kenar boşluğu; canvas 190 mm genişliğe oranlı sığdırılır
-            const KB = 10;
-            const imgW = pageW - 2 * KB;
-            const icH = pageH - 2 * KB;
-            const imgH = (canvas.height * imgW) / canvas.width;
-
-            if (imgH <= icH) {
-                // Tek sayfa
-                pdf.addImage(imgData, 'JPEG', KB, KB, imgW, imgH, undefined, 'FAST');
-            } else {
-                // Çok sayfa: canvas'ı sayfa yüksekliğinde dilimle (kenar boşlukları korunur)
-                const dilimPx = Math.floor(canvas.width * icH / imgW);
-                for (let y = 0, sayfa = 0; y < canvas.height; y += dilimPx, sayfa++) {
-                    const h = Math.min(dilimPx, canvas.height - y);
-                    const c = document.createElement('canvas');
-                    c.width = canvas.width; c.height = h;
-                    const cx = c.getContext('2d');
-                    cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, c.width, h);
-                    cx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
-                    if (sayfa > 0) pdf.addPage();
-                    pdf.addImage(c.toDataURL('image/jpeg', 0.95), 'JPEG', KB, KB, imgW, h * imgW / canvas.width, undefined, 'FAST');
-                }
-            }
-            pdf.save(dosyaAdi);
-        }
+        const blob = await window.kcPdfBlob(html, dosyaAdi);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = dosyaAdi; a.style.display = 'none';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
         if (typeof showSyncToast === 'function') showSyncToast('PDF indirildi: ' + dosyaAdi, true);
     } catch (err) {
         console.error('[KC PDF] hata:', err);
         alert('PDF üretiminde hata: ' + (err.message || err));
     } finally {
-        wrap.remove();
         overlay.remove();
     }
 
