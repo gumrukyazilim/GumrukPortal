@@ -7399,6 +7399,37 @@ window._dbGet = get;
 window._dbSet = set;
 window._db = db;
 
+// ─── GİZLİ FİRMA BİLGİLERİ (BİLGE TC/şifre, yetkili TC, anne kızlık, KEP, telefon) ───
+// Portal herkese açık yayında olduğu için bu değerler kodda yoktur; RTDB 'gizli_firma'
+// düğümünde durur (kural: yalnız onaylı admin okur/yazar). Giriş yapılınca okunur ve
+// BYN_FIRMA_CONFIG / BEYANNAME_FIRMA_SABITLERI / BILGE_FIRMA_BILGILERI / FIRMA_WHATSAPP'a eklenir.
+window._gizliFirmaUygula = function(veri) {
+    veri = veri || {};
+    window.FIRMA_WHATSAPP = window.FIRMA_WHATSAPP || {};
+    Object.keys(veri).forEach(function(k) {
+        const g = veri[k] || {};
+        const byn = window.BYN_FIRMA_CONFIG && window.BYN_FIRMA_CONFIG[k];
+        if (byn) { if (g.bilgeTc) byn.kullanici = g.bilgeTc; if (g.bilgeSifre) byn.sifre = g.bilgeSifre; }
+        const sab = window.BEYANNAME_FIRMA_SABITLERI && window.BEYANNAME_FIRMA_SABITLERI[k];
+        if (sab) { if (g.bilgeTc) sab.bilgeTc = g.bilgeTc; if (g.bilgeSifre) sab.bilgeSifre = g.bilgeSifre; }
+        const bil = window.BILGE_FIRMA_BILGILERI && window.BILGE_FIRMA_BILGILERI[k];
+        if (bil) ['tcNo', 'anneKizlikSoyadi', 'kepAdresi'].forEach(function(a) { if (g[a]) bil[a] = g[a]; });
+        if (g.tel) window.FIRMA_WHATSAPP[String(k).trim().toUpperCase()] = g.tel;
+    });
+    window._gizliFirmaYuklendi = Object.keys(veri).length > 0;
+};
+window._gizliFirmaYukle = async function() {
+    try {
+        const snap = await get(ref(db, 'gizli_firma'));
+        window._gizliFirmaUygula(snap.exists() ? snap.val() : {});
+        window._gizliFirmaHata = '';
+    } catch (e) {
+        // Firma kullanıcıları ve oturumsuz ziyaretçi için izin yok → sessizce geç
+        window._gizliFirmaHata = (e && e.message) || String(e);
+    }
+};
+onAuthStateChanged(auth, function(u) { if (u) window._gizliFirmaYukle(); });
+
 window._firebaseSave = async function(payload) {
     try {
         // 1. ÖNCE EKSİK ALANLARI DOLDUR (Paketi son haline getir)
@@ -15128,15 +15159,13 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     // ─── FİRMA SABİT BİLGİLERİ ───────────────────────────────────────────
     window.BYN_FIRMA_CONFIG = {
         'ŞAMNU GT': {
-            kullanici:  '***GIZLI***',
-            sifre:      ***GIZLI***,
+            // kullanici / sifre: Firebase gizli_firma (yalnız admin) — window._gizliFirmaUygula
             otvMuhaf:   '25243160111096067013069/1',
             vergiNo:    '4110376487',
             unvan:      'ŞAMNU GT OTOMOTİV'
         },
         'FF OTOMOTİV': {
-            kullanici:  '***GIZLI***',
-            sifre:      ***GIZLI***,
+            // kullanici / sifre: Firebase gizli_firma (yalnız admin) — window._gizliFirmaUygula
             otvMuhaf:   '26243160111096081978046/1',
             vergiNo:    '3851704324',
             unvan:      'FF OTOMOTİV'
@@ -15318,17 +15347,16 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
     // BEYANNAME HAZIRLIK & İŞ EMRİ KARTI
     // Firma sabitleri, gümrük giriş kodları, Transfer Bildirim Formu
     // ayrıştırıcı ve BİLGE 28. kutu 12 haneli banka kodu (EFT4+Şube5+İl3)
-    // NOT: Portal herkese açık GitHub Pages'te yayınlandığı için BİLGE TC ve
-    // şifreleri burada tutulmaz; cihazdaki localStorage ('gumruk_bilge_giris')
-    // ayarından okunur (yoksa mevcut BYN_FIRMA_CONFIG'e düşer).
+    // NOT: Portal herkese açık GitHub Pages'te yayınlandığı için BİLGE TC/şifre,
+    // yetkili TC, anne kızlık soyadı, KEP ve telefon KODDA TUTULMAZ: girişte
+    // Firebase 'gizli_firma' düğümünden (kural: yalnız onaylı admin) okunup bu
+    // nesnelere eklenir (window._gizliFirmaUygula). Yedek: cihazdaki 'gumruk_bilge_giris'.
     // ═══════════════════════════════════════════════════════════════════
     window.BEYANNAME_FIRMA_SABITLERI = {
         "ŞAMNU GT": {
             unvan: "ŞAMNU GT MOTORLU ARAÇLAR SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
             vergiNo: "4110376487",
             tpsOtvMuafiyetNo: "25243160111096067013069/1",
-            bilgeTc: "***GIZLI***",
-            bilgeSifre: ***GIZLI***,
             rejimKodu: "4000",
             aliciSaticiIliskisi: "6",
             kapAdedi: "1"
@@ -15337,8 +15365,6 @@ ${d.kiymet?'<span style="color:var(--kiymet-color);font-size:12px;font-weight:60
             unvan: "FF OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ",
             vergiNo: "3851704324",
             tpsOtvMuafiyetNo: "26243160111096081978046/1",
-            bilgeTc: "***GIZLI***",
-            bilgeSifre: ***GIZLI***,
             rejimKodu: "4000",
             aliciSaticiIliskisi: "6",
             kapAdedi: "1"
@@ -21770,10 +21796,8 @@ const _r = localStorage.getItem('gumruk_role'); if(_r && _r !== 'admin') { alert
 
 // --- WHATSAPP MESAJ MOTORU (KURUMSAL DİL VE DİREKT HAT) ---
 window.sendWhatsApp = function(index, type) {
-    const rehber = {
-        "ŞAMNU GT": "***GIZLI***",
-        "FF OTOMOTİV": "***GIZLI***"
-    };
+    // Telefonlar Firebase gizli_firma/<firma>/tel (yalnız admin) — window._gizliFirmaUygula doldurur
+    const rehber = window.FIRMA_WHATSAPP || {};
 
     let item;
     let firmaAdi = "";
@@ -23985,13 +24009,15 @@ window.dilekceHtml2PdfIndir = function() {
 // ═══════════════════════════════════════════════════════════════════
 // BİLGE/YFKS bilgileri yalnız bu şablonda kullanılır; diğer dilekçe unvanları korunur.
 window.BILGE_FIRMA_BILGILERI = {
-    "ŞAMNU GT": { tamUnvan: "ŞAMNU GT MOTORLU ARAÇLAR SAN VE TİC LTD ŞTİ", anneKizlikSoyadi: "***GIZLI***", kepAdresi: "***GIZLI***", tcNo: "***GIZLI***", vergiNo: "4110376487", imzaYetkilisi: "FEVZİ ALPER TAVMAN" },
-    "FF OTOMOTİV": { tamUnvan: "FF OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ", anneKizlikSoyadi: "***GIZLI***", kepAdresi: "***GIZLI***", tcNo: "***GIZLI***", vergiNo: "3851704324", imzaYetkilisi: "Fatih İsmail ÇEBİ" }
+    "ŞAMNU GT": { tamUnvan: "ŞAMNU GT MOTORLU ARAÇLAR SAN VE TİC LTD ŞTİ", vergiNo: "4110376487", imzaYetkilisi: "FEVZİ ALPER TAVMAN" },
+    "FF OTOMOTİV": { tamUnvan: "FF OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ", vergiNo: "3851704324", imzaYetkilisi: "Fatih İsmail ÇEBİ" }
 };
 window.getBilgeFirmaBilgisi = function(firmaAdi){
     const clean = window.cleanBrand(firmaAdi);
-    if(clean.includes('SAMNU')) return Object.assign({}, window.BILGE_FIRMA_BILGILERI['ŞAMNU GT']);
-    if(clean.includes('FF')) return Object.assign({}, window.BILGE_FIRMA_BILGILERI['FF OTOMOTİV']);
+    const bos = { anneKizlikSoyadi: '........................', kepAdresi: '........................', tcNo: '........................' };
+    const tamamla = function(k){ const r = Object.assign({}, bos, window.BILGE_FIRMA_BILGILERI[k]); Object.keys(bos).forEach(function(a){ if(!r[a]) r[a] = bos[a]; }); return r; };
+    if(clean.includes('SAMNU')) return tamamla('ŞAMNU GT');
+    if(clean.includes('FF')) return tamamla('FF OTOMOTİV');
     return { tamUnvan: firmaAdi || '.......................................................', anneKizlikSoyadi: '........................', kepAdresi: '........................', tcNo: '........................', vergiNo: '........................', imzaYetkilisi: '........................' };
 };
 window.BILGE_FORM_ALANLARI = [
